@@ -8,12 +8,12 @@
         ->implode('');
 @endphp
 
-<div {{ $attributes->merge(['class' => 'flex min-w-[220px] items-center gap-2.5 rounded-xl border border-slate-100 bg-white px-3 py-2 text-left shadow-card']) }}>
-    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white" style="background-color: {{ $accent }}">
+<div {{ $attributes->merge(['class' => 'flex min-w-[168px] max-w-[200px] items-center gap-2 rounded-lg border border-slate-100 bg-white px-2.5 py-1.5 text-left shadow-sm']) }}>
+    <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-medium text-white" style="background-color: {{ $accent }}">
         {{ $initials }}
     </div>
     <div class="min-w-0">
-        <p class="truncate text-sm font-semibold text-slate-800">{{ $name }}</p>
-        <p class="truncate text-[11px] text-slate-400">{{ $title }}</p>
+        <p class="truncate text-[12px] font-medium leading-tight text-slate-800">{{ $name }}</p>
+        <p class="truncate text-[10px] leading-tight text-slate-400">{{ $title }}</p>
     </div>
 </div>

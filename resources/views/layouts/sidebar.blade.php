@@ -1,60 +1,124 @@
-<aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'" class="fixed inset-y-0 left-0 z-40 flex w-[260px] flex-col border-r border-slate-100 bg-white transition-transform duration-200 lg:static lg:translate-x-0">
-    <div class="flex items-center gap-2.5 px-5 py-5">
-        <x-application-logo class="h-8 w-8" />
-        <span class="text-lg font-semibold tracking-tight text-slate-900">Bynnas Audit</span>
-    </div>
-
-    <div class="px-4">
-        <button type="button" class="flex w-full items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5 text-left">
-            <div class="flex items-center gap-3">
-                <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-500 text-xs font-bold text-white">BA</div>
-                <div>
-                    <p class="text-sm font-semibold text-slate-800">Bynnas Audit</p>
-                    <p class="text-[11px] text-slate-400">Team - {{ $sidebarMemberCount }} Members</p>
-                </div>
-            </div>
-            <svg class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clip-rule="evenodd" />
+<aside
+    :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+    class="sidebar-shell fixed inset-y-0 left-0 z-40 flex w-[188px] shrink-0 flex-col overflow-hidden text-white transition-transform duration-200 lg:static lg:translate-x-0"
+>
+    <div class="relative z-10 flex items-center gap-2 px-3 pb-1.5 pt-3.5">
+        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-blue-600 shadow-md shadow-blue-500/30">
+            <svg class="h-4 w-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3l7 3v5c0 4.5-2.8 8.4-7 10-4.2-1.6-7-5.5-7-10V6l7-3z" />
             </svg>
-        </button>
+        </span>
+        <div class="min-w-0">
+            <p class="truncate text-[13px] font-semibold leading-tight tracking-tight">
+                <span class="text-white">Bynnas</span>
+                <span class="text-sky-300"> Audit</span>
+            </p>
+            <p class="mt-0.5 truncate text-[9px] tracking-wide text-slate-400">Secure • Analyze</p>
+        </div>
     </div>
 
-    <div class="mt-6 flex-1 overflow-y-auto px-4 pb-6">
-        <p class="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Main Menu</p>
-        <nav class="mt-2 space-y-1">
+    <div class="sidebar-scroll relative z-10 min-h-0 flex-1 overflow-y-auto px-2 pb-3 pt-3">
+        <div class="mb-1.5 flex items-center gap-1.5 px-1.5">
+            <span class="h-px w-2.5 rounded-full bg-sky-400/80"></span>
+            <p class="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-400">Main</p>
+        </div>
+        <nav class="space-y-0.5">
             <x-sidebar-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('dashboard') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4 5a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm8 1a1 1 0 011-1h6a1 1 0 011 1v3a1 1 0 01-1 1h-6a1 1 0 01-1-1v-3z" />
                 </svg>
                 Dashboard
             </x-sidebar-link>
+
             <x-sidebar-link :href="route('organogram')" :active="request()->routeIs('organogram')">
-                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('organogram') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M17 20v-2a3 3 0 00-3-3H7a3 3 0 00-3 3v2m16-11a3 3 0 11-6 0 3 3 0 016 0zM9 9a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
                 Organogram
             </x-sidebar-link>
-        </nav>
-    </div>
 
-    <div class="border-t border-slate-100 px-4 py-4">
-        <p class="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Other</p>
-        <nav class="mt-2 space-y-1">
+            <x-sidebar-link :href="route('annual-audit.index')" :active="request()->routeIs('annual-audit.*')">
+                <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('annual-audit.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M4 11h16M5 5h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z" />
+                </svg>
+                Annual Audit
+            </x-sidebar-link>
+
+            <x-sidebar-link :href="route('projects.index')" :active="request()->routeIs('projects.*')">
+                <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('projects.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+                Projects
+            </x-sidebar-link>
+
+            <div x-data="{ shakhaOpen: {{ request()->routeIs('shakhas.*') || request()->routeIs('areas.*') ? 'true' : 'false' }} }">
+                <button
+                    type="button"
+                    @click="shakhaOpen = !shakhaOpen"
+                    class="group relative flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] tracking-tight transition"
+                    :class="shakhaOpen ? 'bg-white/[0.06] text-white' : 'text-slate-300 hover:bg-white/[0.04] hover:text-white'"
+                >
+                    <svg class="h-3.5 w-3.5 shrink-0 text-slate-400 group-hover:text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+                    </svg>
+                    <span class="min-w-0 flex-1 truncate text-left">Shakha</span>
+                    <svg class="h-3 w-3 shrink-0 text-slate-500 transition" :class="shakhaOpen ? 'rotate-180 text-slate-300' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+
+                <div x-show="shakhaOpen" x-cloak class="mt-0.5 space-y-0.5 border-l border-white/10 py-0.5 pl-2 ml-3">
+                    <a href="{{ route('shakhas.index') }}" class="block rounded-md px-2 py-1 text-[11px] {{ request()->routeIs('shakhas.index') ? 'bg-blue-500/20 text-white' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white' }}">All Shakha</a>
+                    <a href="{{ route('shakhas.create') }}" class="block rounded-md px-2 py-1 text-[11px] {{ request()->routeIs('shakhas.create') ? 'bg-blue-500/20 text-white' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white' }}">Add Shakha</a>
+                    <a href="{{ route('areas.index') }}" class="block rounded-md px-2 py-1 text-[11px] {{ request()->routeIs('areas.index') ? 'bg-blue-500/20 text-white' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white' }}">All Areas</a>
+                    <a href="{{ route('areas.create') }}" class="block rounded-md px-2 py-1 text-[11px] {{ request()->routeIs('areas.create') ? 'bg-blue-500/20 text-white' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white' }}">Add Area</a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="mb-1.5 mt-4 flex items-center gap-1.5 px-1.5">
+            <span class="h-px w-2.5 rounded-full bg-sky-400/80"></span>
+            <p class="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-400">Others</p>
+        </div>
+        <nav class="space-y-0.5">
             <x-sidebar-link :href="route('profile.edit')" :active="request()->routeIs('profile.*')">
-                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('profile.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                Setting
+                Settings
             </x-sidebar-link>
-            <a href="#help" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-500 hover:bg-slate-50 hover:text-slate-800">
-                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+
+            <a href="#help" class="group relative flex items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] tracking-tight text-slate-300 transition hover:bg-white/[0.04] hover:text-white">
+                <svg class="h-3.5 w-3.5 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 1.97-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Help Center
+                Help
             </a>
         </nav>
     </div>
+
+    <div class="relative z-10 border-t border-white/10 px-2 py-2" x-data="{ profileOpen: false }">
+        <button type="button" @click="profileOpen = !profileOpen" class="flex w-full items-center gap-2 rounded-lg px-1.5 py-1.5 text-left transition hover:bg-white/[0.04]">
+            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-400 to-blue-500 text-[11px] font-semibold text-white shadow-md shadow-violet-500/30">
+                {{ strtoupper(mb_substr(Auth::user()->name, 0, 1)) }}
+            </span>
+            <span class="min-w-0 flex-1">
+                <span class="block truncate text-[11px] font-medium text-white">{{ Auth::user()->name }}</span>
+                <span class="block truncate text-[10px] text-slate-400">Admin</span>
+            </span>
+            <svg class="h-3 w-3 shrink-0 text-slate-500 transition" :class="profileOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+        </button>
+        <div x-show="profileOpen" x-cloak class="mt-1 space-y-0.5 rounded-lg border border-white/10 bg-[#0b1f3f]/90 p-1 backdrop-blur">
+            <a href="{{ route('profile.edit') }}" class="block rounded-md px-2 py-1 text-[11px] text-slate-300 hover:bg-white/[0.05] hover:text-white">Profile</a>
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button type="submit" class="block w-full rounded-md px-2 py-1 text-left text-[11px] text-slate-300 hover:bg-white/[0.05] hover:text-white">Log Out</button>
+            </form>
+        </div>
+    </div>
 </aside>
 
-<div x-show="sidebarOpen" x-cloak class="fixed inset-0 z-30 bg-slate-900/40 lg:hidden" @click="sidebarOpen = false"></div>
+<div x-show="sidebarOpen" x-cloak class="fixed inset-0 z-30 bg-slate-950/60 lg:hidden" @click="sidebarOpen = false"></div>

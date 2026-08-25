@@ -58,7 +58,7 @@ class OrganogramController extends Controller
             'title' => $title,
             'slug' => $slug,
             'serial' => $data['serial'] ?? (((int) Position::query()->max('serial')) + 1),
-            'color' => $data['color'] ?? '#4C6FFF',
+            'color' => '#4C6FFF',
         ]);
 
         return back()->with('status', 'Position added to the audit organogram.');

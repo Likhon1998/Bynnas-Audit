@@ -12,7 +12,7 @@
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="font-sans antialiased text-slate-800" x-data="{ sidebarOpen: false, searchOpen: false }" @keydown.window.prevent.ctrl.k="searchOpen = true" @keydown.window.escape="searchOpen = false; sidebarOpen = false">
+        <body class="font-sans text-[13px] font-normal leading-relaxed antialiased text-slate-700" x-data="{ sidebarOpen: false, searchOpen: false }" @keydown.window.prevent.ctrl.k="searchOpen = true" @keydown.window.escape="searchOpen = false; sidebarOpen = false">
         <div class="flex h-screen overflow-hidden bg-canvas">
             @include('layouts.sidebar')
 
@@ -36,12 +36,14 @@
                     <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z" />
                     </svg>
-                    <input type="text" placeholder="Search keyword..." class="w-full border-0 p-0 text-sm text-slate-700 placeholder:text-slate-400 focus:ring-0" autofocus>
+                    <input type="text" placeholder="Search keyword..." class="w-full border-0 p-0 text-[13px] text-slate-700 placeholder:text-slate-400 focus:ring-0" autofocus>
                 </div>
                 <div class="p-2">
-                    <a href="{{ route('dashboard') }}" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-50">Dashboard</a>
-                    <a href="{{ route('organogram') }}" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-50">Organogram</a>
-                    <a href="{{ route('profile.edit') }}" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-50">Settings</a>
+                    <a href="{{ route('dashboard') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] text-slate-600 hover:bg-slate-50">Dashboard</a>
+                    <a href="{{ route('organogram') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] text-slate-600 hover:bg-slate-50">Organogram</a>
+                    <a href="{{ route('shakhas.index') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] text-slate-600 hover:bg-slate-50">All Shakha</a>
+                    <a href="{{ route('areas.index') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] text-slate-600 hover:bg-slate-50">All Areas</a>
+                    <a href="{{ route('profile.edit') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] text-slate-600 hover:bg-slate-50">Settings</a>
                 </div>
             </div>
         </div>

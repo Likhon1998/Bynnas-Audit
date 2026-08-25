@@ -27,14 +27,14 @@ class OrganogramTest extends TestCase
             ->get(route('organogram'))
             ->assertOk()
             ->assertSee('Audit Organogram')
-            ->assertSee('Show')
-            ->assertSee('Full Audit Organogram')
+            ->assertSee('Preview')
+            ->assertSee('Organogram preview')
             ->assertSee('Director Audit')
             ->assertSee('Joint Director Audit')
             ->assertSee('Deputy Director Audit')
             ->assertSee('Assistant Director Audit')
             ->assertSee('Senior Officer Audit')
-            ->assertSee('Add Position')
+            ->assertSee('Position')
             ->assertSee('Officer Audit')
             ->assertSee('Audit Officer')
             ->assertSee('Mahmud Hasan');
@@ -69,14 +69,13 @@ class OrganogramTest extends TestCase
             ->post(route('organogram.positions.store'), [
                 'title' => 'Chief Audit Coordinator',
                 'serial' => 8,
-                'color' => '#123456',
             ])
             ->assertRedirect();
 
         $this->assertDatabaseHas('positions', [
             'title' => 'Chief Audit Coordinator',
             'serial' => 8,
-            'color' => '#123456',
+            'color' => '#4C6FFF',
         ]);
     }
 
@@ -101,7 +100,7 @@ class OrganogramTest extends TestCase
         $this->actingAs($user)
             ->get(route('dashboard'))
             ->assertOk()
-            ->assertSee('Dashboard')
+            ->assertSee('Welcome back')
             ->assertSee('Organogram')
             ->assertDontSee('Audit organogram ranks');
     }

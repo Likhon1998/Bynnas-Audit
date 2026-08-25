@@ -21,9 +21,15 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Bynnas Admin',
                 'password' => Hash::make('12345678'),
                 'email_verified_at' => now(),
+                'is_superadmin' => true,
             ]
         );
 
-        $this->call(OrganogramSeeder::class);
+        $this->call([
+            OrganogramSeeder::class,
+            OrganizationSeeder::class,
+            ShakhaSeeder::class,
+            AnnualAuditSeeder::class,
+        ]);
     }
 }

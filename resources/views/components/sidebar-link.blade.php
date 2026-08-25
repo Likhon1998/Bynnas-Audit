@@ -2,13 +2,13 @@
 
 @php
     $classes = $active
-        ? 'bg-brand-50 text-brand-600 font-semibold'
-        : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800';
+        ? 'sidebar-link-active text-white font-medium shadow-[0_6px_16px_rgba(37,99,235,0.3)]'
+        : 'text-slate-300 hover:bg-white/[0.04] hover:text-white';
 @endphp
 
-<a href="{{ $href }}" {{ $attributes->merge(['class' => 'relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition '.$classes]) }}>
+<a href="{{ $href }}" {{ $attributes->merge(['class' => 'group relative flex items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] tracking-tight transition '.$classes]) }}>
     @if ($active)
-        <span class="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-brand-500"></span>
+        <span class="absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-r-full bg-sky-300"></span>
     @endif
     {{ $slot }}
 </a>
