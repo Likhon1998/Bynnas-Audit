@@ -35,7 +35,7 @@ class StoreProjectRequest extends FormRequest
             'has_project_monitoring' => ['boolean'],
             'locations' => ['nullable', 'array'],
             'locations.*.name' => ['required_with:locations', 'string', 'max:255'],
-            'locations.*.division' => ['nullable', 'string', Rule::in(Divisions::OPTIONS)],
+            'locations.*.division' => ['required_with:locations.*.name', 'string', Rule::in(Divisions::OPTIONS)],
             'locations.*.status' => ['nullable', 'string', Rule::in(['active', 'inactive'])],
         ];
     }
@@ -44,6 +44,7 @@ class StoreProjectRequest extends FormRequest
     {
         return [
             'locations.*.name.required_with' => 'Each location needs a name.',
+            'locations.*.division.required_with' => 'Select the division for each location.',
         ];
     }
 }

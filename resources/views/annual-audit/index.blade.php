@@ -1,6 +1,11 @@
 <x-app-layout>
     @php
         $tabs = [
+            'policies' => [
+                'label' => $plan->generated_at ? 'Policies' : '1. Policies',
+                'idle' => 'bg-rose-50 text-rose-700 hover:bg-rose-100',
+                'active' => 'bg-rose-600 text-white shadow-md ring-2 ring-rose-600/30',
+            ],
             'total' => ['label' => 'Total', 'idle' => 'bg-slate-100 text-slate-600 hover:bg-slate-200', 'active' => 'bg-navy-900 text-white shadow-md ring-2 ring-navy-900/20'],
             'shakha' => ['label' => 'Shakha Audit', 'idle' => 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100', 'active' => 'bg-emerald-600 text-white shadow-md ring-2 ring-emerald-600/30'],
             'area' => ['label' => 'Area Office', 'idle' => 'bg-amber-50 text-amber-800 hover:bg-amber-100', 'active' => 'bg-amber-500 text-white shadow-md ring-2 ring-amber-500/30'],
@@ -8,8 +13,6 @@
             'hq' => ['label' => 'HQ', 'idle' => 'bg-sky-50 text-sky-700 hover:bg-sky-100', 'active' => 'bg-sky-600 text-white shadow-md ring-2 ring-sky-600/30'],
             'project_audit' => ['label' => 'Project Audit', 'idle' => 'bg-teal-50 text-teal-700 hover:bg-teal-100', 'active' => 'bg-teal-600 text-white shadow-md ring-2 ring-teal-600/30'],
             'project_monitoring' => ['label' => 'Project Monitoring', 'idle' => 'bg-cyan-50 text-cyan-700 hover:bg-cyan-100', 'active' => 'bg-cyan-600 text-white shadow-md ring-2 ring-cyan-600/30'],
-            'strategic' => ['label' => 'Strategic Plan', 'idle' => 'bg-lime-50 text-lime-800 hover:bg-lime-100', 'active' => 'bg-lime-600 text-white shadow-md ring-2 ring-lime-600/30'],
-            'policies' => ['label' => 'Policies', 'idle' => 'bg-rose-50 text-rose-700 hover:bg-rose-100', 'active' => 'bg-rose-600 text-white shadow-md ring-2 ring-rose-600/30'],
         ];
         $canEditSchedule = $canEditSchedule ?? true;
     @endphp
@@ -77,10 +80,28 @@
                 <form method="POST" action="{{ route('annual-audit.generate') }}" class="inline">
                     @csrf
                     <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
-                    <button type="submit" class="inline-flex h-7 items-center rounded-md bg-navy-900 px-2.5 text-[11px] font-medium text-white hover:bg-navy-800">
-                        Generate
+                    <button
+                        type="submit"
+                        class="inline-flex h-7 items-center rounded-md bg-navy-900 px-2.5 text-[11px] font-medium text-white hover:bg-navy-800"
+                        title="Uses frequencies from Policies to build the yearly schedule"
+                    >
+                        {{ $plan->generated_at ? 'Regenerate' : '2. Generate Plan' }}
                     </button>
                 </form>
+                @if ($plan->generated_at)
+                    <form method="POST" action="{{ route('annual-audit.sync-missing') }}" class="inline">
+                        @csrf
+                        <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
+                        <input type="hidden" name="tab" value="{{ $tab }}">
+                        <button
+                            type="submit"
+                            class="inline-flex h-7 items-center rounded-md border border-slate-200 bg-white px-2.5 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
+                            title="Add only new shakha / area / project rows without changing existing schedules"
+                        >
+                            Sync new items
+                        </button>
+                    </form>
+                @endif
                 @if ($plan->status !== 'published')
                     <form method="POST" action="{{ route('annual-audit.publish') }}" class="inline">
                         @csrf
@@ -102,6 +123,17 @@
                 {{ $errors->first() }}
             </div>
         @endif
+
+        @unless ($plan->generated_at)
+            <div class="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-rose-100 bg-rose-50/70 px-3 py-2 text-[12px] text-rose-900">
+                <span class="font-semibold">Setup this FY:</span>
+                <a href="{{ route('annual-audit.index', ['fy' => $plan->fy_label, 'tab' => 'policies']) }}" class="font-medium underline decoration-rose-300 underline-offset-2 hover:text-rose-700">1. Set Policies</a>
+                <span class="text-rose-300">→</span>
+                <span>2. Generate Plan</span>
+                <span class="text-rose-300">→</span>
+                <span class="text-rose-700/80">3. Review report tabs</span>
+            </div>
+        @endunless
 
         <div class="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
             @foreach ([
@@ -162,6 +194,7 @@
                     'rows' => $rows,
                     'pksfTotals' => $pksfTotals,
                     'canEditSchedule' => $canEditSchedule,
+                    'highlightProjectId' => $highlightProjectId ?? null,
                 ])
             @elseif ($tab === 'area')
                 @include('annual-audit.partials.area-work-plan', [
@@ -180,72 +213,22 @@
                     'projectGroups' => $projectGroups,
                     'divisions' => $divisions,
                     'canEditSchedule' => $canEditSchedule,
+                    'highlightProjectId' => $highlightProjectId ?? null,
                 ])
             @elseif ($tab === 'total')
-                <div class="overflow-x-auto">
-                    <table class="min-w-full text-left">
-                        <thead class="border-b border-slate-100 bg-slate-50/80">
-                            <tr class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                                <th class="px-3 py-2.5">Category</th>
-                                @foreach ($months as $month)
-                                    <th class="px-2 py-2.5 text-center">{{ $month['label'] }}</th>
-                                @endforeach
-                                <th class="px-3 py-2.5 text-right">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            @foreach ($categoryTotals as $row)
-                                <tr class="text-[12px]">
-                                    <td class="px-3 py-2 font-medium text-navy-900">{{ $row['label'] }}</td>
-                                    @foreach ($row['by_month'] as $count)
-                                        <td class="px-2 py-2 text-center {{ $count ? 'font-semibold text-navy-900' : 'text-slate-300' }}">{{ $count ?: '—' }}</td>
-                                    @endforeach
-                                    <td class="px-3 py-2 text-right font-semibold text-navy-900">{{ $row['planned'] }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @elseif ($tab === 'strategic')
-                <div class="overflow-x-auto">
-                    <table class="min-w-full text-left">
-                        <thead class="border-b border-slate-100 bg-slate-50/80">
-                            <tr class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                                <th class="px-3 py-2.5">SL</th>
-                                <th class="px-3 py-2.5">Targeted Development</th>
-                                <th class="px-3 py-2.5">Y1</th>
-                                <th class="px-3 py-2.5">Y2</th>
-                                <th class="px-3 py-2.5">Y3</th>
-                                <th class="px-3 py-2.5">Y4</th>
-                                <th class="px-3 py-2.5">Y5</th>
-                                <th class="px-3 py-2.5">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            @forelse ($strategicItems as $item)
-                                <tr class="text-[12px]">
-                                    <td class="px-3 py-2 text-slate-500">{{ $item->sl_no }}</td>
-                                    <td class="px-3 py-2 font-medium text-navy-900">{{ $item->targeted_development }}</td>
-                                    <td class="px-3 py-2 text-slate-600">{{ $item->year_1 ?: '—' }}</td>
-                                    <td class="px-3 py-2 text-slate-600">{{ $item->year_2 ?: '—' }}</td>
-                                    <td class="px-3 py-2 text-slate-600">{{ $item->year_3 ?: '—' }}</td>
-                                    <td class="px-3 py-2 text-slate-600">{{ $item->year_4 ?: '—' }}</td>
-                                    <td class="px-3 py-2 text-slate-600">{{ $item->year_5 ?: '—' }}</td>
-                                    <td class="px-3 py-2 capitalize text-slate-600">{{ $item->status }}</td>
-                                </tr>
-                            @empty
-                                <tr><td colspan="8" class="px-4 py-10 text-center text-[12px] text-slate-400">No strategic plan items.</td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
+                @include('annual-audit.partials.total-work-plan', [
+                    'plan' => $plan,
+                    'months' => $months,
+                    'categoryTotals' => $categoryTotals,
+                ])
             @elseif ($tab === 'policies')
                 <form method="POST" action="{{ route('annual-audit.policies') }}" class="p-4">
                     @csrf
                     <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
                     <p class="mb-3 text-[12px] text-slate-600">
-                        Set how many times each category should be audited by default (e.g. Shakha <span class="font-medium text-navy-900">3 or 4</span> per year).
-                        Then generate — or click months on each report tab to choose exact months. Nothing is locked.
+                        <span class="font-semibold text-navy-900">Step 1 — set times per year.</span>
+                        That is the only policy setting. Months are placed evenly across the FY when you generate;
+                        change any cell later on the report tabs.
                     </p>
                     <div class="overflow-x-auto">
                         <table class="min-w-full text-left">
@@ -253,46 +236,35 @@
                                 <tr class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                                     <th class="px-3 py-2.5">Category</th>
                                     <th class="px-3 py-2.5">Times / Year</th>
-                                    <th class="px-3 py-2.5">Interval (months)</th>
-                                    <th class="px-3 py-2.5">Pattern</th>
-                                    <th class="px-3 py-2.5">Custom months (0–11)</th>
-                                    <th class="px-3 py-2.5">Notes</th>
+                                    <th class="px-3 py-2.5">When generating</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100">
                                 @foreach ($policies as $policy)
-                                    <tr class="text-[12px] align-top">
-                                        <td class="px-3 py-2 font-medium capitalize text-navy-900">{{ str_replace('_', ' ', $policy->category) }}</td>
-                                        <td class="px-3 py-2">
+                                    @php
+                                        $hints = [
+                                            'shakha_audit' => 'Months are rotated across branches so visits are spread out.',
+                                            'area_office' => 'Same months for every area (evenly spaced).',
+                                            'pksf_maternity' => 'Same months for each PKSF / Maternity location.',
+                                            'hq_concern' => 'Same months for each HQ department.',
+                                            'project_audit' => 'Same months for each project-audit location.',
+                                            'project_monitoring' => 'Same months for each monitoring location.',
+                                        ];
+                                    @endphp
+                                    <tr class="text-[12px]">
+                                        <td class="px-3 py-2.5 font-medium capitalize text-navy-900">{{ str_replace('_', ' ', $policy->category) }}</td>
+                                        <td class="px-3 py-2.5">
                                             @if ($policy->category === 'shakha_audit')
-                                                <select name="policies[{{ $policy->id }}][frequency_per_year]" class="w-20 rounded-lg border-slate-200 text-[12px]">
+                                                <select name="policies[{{ $policy->id }}][frequency_per_year]" class="w-24 rounded-lg border-slate-200 text-[12px]">
                                                     @foreach ([2, 3, 4, 6, 12] as $freq)
                                                         <option value="{{ $freq }}" @selected((int) $policy->frequency_per_year === $freq)>{{ $freq }}</option>
                                                     @endforeach
                                                 </select>
                                             @else
-                                                <input type="number" min="1" max="12" name="policies[{{ $policy->id }}][frequency_per_year]" value="{{ $policy->frequency_per_year }}" class="w-20 rounded-lg border-slate-200 text-[12px]">
+                                                <input type="number" min="1" max="12" name="policies[{{ $policy->id }}][frequency_per_year]" value="{{ $policy->frequency_per_year }}" class="w-24 rounded-lg border-slate-200 text-[12px]">
                                             @endif
                                         </td>
-                                        <td class="px-3 py-2">
-                                            <input type="number" min="1" max="12" name="policies[{{ $policy->id }}][interval_months]" value="{{ $policy->interval_months }}" class="w-20 rounded-lg border-slate-200 text-[12px]">
-                                        </td>
-                                        <td class="px-3 py-2">
-                                            <input type="text" name="policies[{{ $policy->id }}][pattern]" value="{{ $policy->pattern }}" class="w-36 rounded-lg border-slate-200 text-[12px]">
-                                        </td>
-                                        <td class="px-3 py-2">
-                                            <input
-                                                type="text"
-                                                name="policies[{{ $policy->id }}][custom_month_indexes]"
-                                                value="{{ is_array($policy->custom_month_indexes) ? implode(',', $policy->custom_month_indexes) : '' }}"
-                                                placeholder="e.g. 0,3,6,9"
-                                                class="w-40 rounded-lg border-slate-200 text-[12px]"
-                                            >
-                                            <p class="mt-1 text-[10px] text-slate-400">Jul=0 … Jun=11</p>
-                                        </td>
-                                        <td class="px-3 py-2">
-                                            <textarea name="policies[{{ $policy->id }}][notes]" rows="2" class="w-full min-w-[180px] rounded-lg border-slate-200 text-[12px]">{{ $policy->notes }}</textarea>
-                                        </td>
+                                        <td class="px-3 py-2.5 text-slate-500">{{ $hints[$policy->category] ?? 'Evenly spaced months.' }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -303,7 +275,7 @@
                             Save policies
                         </button>
                         <button type="submit" name="regenerate" value="1" class="rounded-lg bg-navy-900 px-3 py-1.5 text-[12px] font-medium text-white hover:bg-navy-800">
-                            Save & regenerate plan
+                            Save &amp; regenerate plan
                         </button>
                     </div>
                 </form>
@@ -313,8 +285,8 @@
                         <thead class="border-b border-slate-100 bg-slate-50/80">
                             <tr class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                                 <th class="px-3 py-2.5">Project</th>
-                                <th class="px-3 py-2.5">Location</th>
                                 <th class="px-3 py-2.5">Division</th>
+                                <th class="px-3 py-2.5">Location</th>
                                 @foreach ($months as $month)
                                     <th class="px-1 py-2.5 text-center">{{ $month['label'] }}</th>
                                 @endforeach
@@ -331,8 +303,8 @@
                                     "
                                 >
                                     <td class="px-3 py-1.5 font-medium text-navy-900">{{ $row['project'] }}</td>
-                                    <td class="px-3 py-1.5 text-slate-600">{{ $row['location'] }}</td>
                                     <td class="px-3 py-1.5 text-slate-600">{{ $row['division'] ?: '—' }}</td>
+                                    <td class="px-3 py-1.5 text-slate-600">{{ $row['location'] }}</td>
                                     @foreach ($row['months'] as $monthIndex => $active)
                                         <td class="px-1 py-1 text-center">
                                             <x-audit-month-mark

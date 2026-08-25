@@ -30,6 +30,8 @@ class DatabaseSeeder extends Seeder
             OrganizationSeeder::class,
             ShakhaSeeder::class,
             AnnualAuditSeeder::class,
+            ActivityTypeSeeder::class,
+            CalendarHolidaySeeder::class,
         ]);
     }
 }

@@ -10,7 +10,6 @@ use App\Models\PlanSchedule;
 use App\Models\Project;
 use App\Models\ProjectLocation;
 use App\Models\Shakha;
-use App\Models\StrategicPlanItem;
 use App\Support\FinancialYear;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -355,6 +354,7 @@ class AnnualAuditReportBuilder
             return [
                 'id' => $location->id,
                 'sl' => $index + 1,
+                'project_id' => $location->project_id,
                 'project' => $location->project?->name,
                 'location' => $location->name,
                 'division' => $location->division,
@@ -482,10 +482,5 @@ class AnnualAuditReportBuilder
             ],
             'grand' => array_sum($byMonth),
         ];
-    }
-
-    public function strategicItems(): Collection
-    {
-        return StrategicPlanItem::query()->orderBy('sl_no')->get();
     }
 }

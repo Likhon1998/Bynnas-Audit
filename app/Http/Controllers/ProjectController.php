@@ -6,6 +6,7 @@ use App\Http\Requests\StoreProjectLocationRequest;
 use App\Http\Requests\StoreProjectRequest;
 use App\Models\Project;
 use App\Models\ProjectLocation;
+use App\Services\AnnualPlanGenerator;
 use App\Support\Divisions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -13,6 +14,10 @@ use Illuminate\View\View;
 
 class ProjectController extends Controller
 {
+    public function __construct(
+        private AnnualPlanGenerator $planGenerator,
+    ) {}
+
     public function index(): View
     {
         $projects = Project::query()
@@ -54,9 +59,11 @@ class ProjectController extends Controller
             return $project;
         });
 
+        $syncNote = $this->planGenerator->includeInCurrentPlan();
+
         return redirect()
             ->route('projects.show', $project)
-            ->with('status', 'Project added. Regenerate the annual plan to include it in schedules.');
+            ->with('status', 'Project added.'.($syncNote ? ' '.$syncNote : ' Generate or Sync new items on Annual Audit if this FY plan already exists.'));
     }
 
     public function show(Project $project): View
@@ -73,19 +80,21 @@ class ProjectController extends Controller
     {
         $project->locations()->create($request->validated());
 
+        $syncNote = $this->planGenerator->includeInCurrentPlan();
+
         return redirect()
             ->route('projects.show', $project)
-            ->with('status', 'Location added. Regenerate the annual plan to schedule it.');
+            ->with('status', 'Location added.'.($syncNote ? ' '.$syncNote : ' Generate or Sync new items on Annual Audit if this FY plan already exists.'));
     }
 
     public function destroyLocation(Project $project, ProjectLocation $location): RedirectResponse
     {
         abort_unless($location->project_id === $project->id, 404);
 
-        $location->delete();
+        $this->planGenerator->deleteLocationWithSchedules($location);
 
         return redirect()
             ->route('projects.show', $project)
-            ->with('status', 'Location removed.');
+            ->with('status', 'Location removed from project and annual audit schedules.');
     }
 }

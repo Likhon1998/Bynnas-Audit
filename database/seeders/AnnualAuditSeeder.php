@@ -8,7 +8,6 @@ use App\Models\HqDepartment;
 use App\Models\PlanSchedule;
 use App\Models\Project;
 use App\Models\ProjectLocation;
-use App\Models\StrategicPlanItem;
 use App\Models\User;
 use App\Services\AnnualPlanGenerator;
 use Illuminate\Database\Seeder;
@@ -19,7 +18,6 @@ class AnnualAuditSeeder extends Seeder
     {
         $this->seedProjects();
         $this->seedHqDepartments();
-        $this->seedStrategicPlan();
 
         $admin = User::query()->where('email', 'admin@bynnasaudit.com')->first();
         $generator = app(AnnualPlanGenerator::class);
@@ -463,24 +461,6 @@ class AnnualAuditSeeder extends Seeder
                     ]);
                 }
             }
-        }
-    }
-
-    protected function seedStrategicPlan(): void
-    {
-        $items = [
-            ['sl_no' => 1, 'targeted_development' => 'Strengthen branch audit coverage', 'year_1' => 'Plan', 'year_2' => 'Rollout', 'year_3' => 'Scale', 'year_4' => 'Review', 'year_5' => 'Sustain'],
-            ['sl_no' => 2, 'targeted_development' => 'Digitize audit execution tracking', 'year_1' => 'Spec', 'year_2' => 'Build', 'year_3' => 'Pilot', 'year_4' => 'Adopt', 'year_5' => 'Optimize'],
-            ['sl_no' => 3, 'targeted_development' => 'Improve Area Office quarterly reviews', 'year_1' => 'Design', 'year_2' => 'Train', 'year_3' => 'Monitor', 'year_4' => 'Improve', 'year_5' => 'Embed'],
-            ['sl_no' => 4, 'targeted_development' => 'Integrate project audit & monitoring calendars', 'year_1' => 'Map', 'year_2' => 'Align', 'year_3' => 'Unify', 'year_4' => 'Report', 'year_5' => 'Govern'],
-            ['sl_no' => 5, 'targeted_development' => 'Build auditor capacity & rotation policy', 'year_1' => 'Assess', 'year_2' => 'Curriculum', 'year_3' => 'Deliver', 'year_4' => 'Certify', 'year_5' => 'Refresh'],
-        ];
-
-        foreach ($items as $item) {
-            StrategicPlanItem::query()->updateOrCreate(
-                ['sl_no' => $item['sl_no']],
-                $item + ['status' => 'planned']
-            );
         }
     }
 }

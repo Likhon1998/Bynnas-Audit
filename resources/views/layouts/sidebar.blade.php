@@ -44,6 +44,13 @@
                 Annual Audit
             </x-sidebar-link>
 
+            <x-sidebar-link :href="route('monthly-visits.index')" :active="request()->routeIs('monthly-visits.*')">
+                <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('monthly-visits.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M5 11h14M5 15h8M5 5h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z" />
+                </svg>
+                Monthly Visits
+            </x-sidebar-link>
+
             <x-sidebar-link :href="route('projects.index')" :active="request()->routeIs('projects.*')">
                 <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('projects.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />

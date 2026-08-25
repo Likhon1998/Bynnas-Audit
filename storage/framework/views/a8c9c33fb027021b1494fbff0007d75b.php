@@ -10,6 +10,11 @@
 <?php $component->withAttributes([]); ?>
     <?php
         $tabs = [
+            'policies' => [
+                'label' => $plan->generated_at ? 'Policies' : '1. Policies',
+                'idle' => 'bg-rose-50 text-rose-700 hover:bg-rose-100',
+                'active' => 'bg-rose-600 text-white shadow-md ring-2 ring-rose-600/30',
+            ],
             'total' => ['label' => 'Total', 'idle' => 'bg-slate-100 text-slate-600 hover:bg-slate-200', 'active' => 'bg-navy-900 text-white shadow-md ring-2 ring-navy-900/20'],
             'shakha' => ['label' => 'Shakha Audit', 'idle' => 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100', 'active' => 'bg-emerald-600 text-white shadow-md ring-2 ring-emerald-600/30'],
             'area' => ['label' => 'Area Office', 'idle' => 'bg-amber-50 text-amber-800 hover:bg-amber-100', 'active' => 'bg-amber-500 text-white shadow-md ring-2 ring-amber-500/30'],
@@ -17,8 +22,6 @@
             'hq' => ['label' => 'HQ', 'idle' => 'bg-sky-50 text-sky-700 hover:bg-sky-100', 'active' => 'bg-sky-600 text-white shadow-md ring-2 ring-sky-600/30'],
             'project_audit' => ['label' => 'Project Audit', 'idle' => 'bg-teal-50 text-teal-700 hover:bg-teal-100', 'active' => 'bg-teal-600 text-white shadow-md ring-2 ring-teal-600/30'],
             'project_monitoring' => ['label' => 'Project Monitoring', 'idle' => 'bg-cyan-50 text-cyan-700 hover:bg-cyan-100', 'active' => 'bg-cyan-600 text-white shadow-md ring-2 ring-cyan-600/30'],
-            'strategic' => ['label' => 'Strategic Plan', 'idle' => 'bg-lime-50 text-lime-800 hover:bg-lime-100', 'active' => 'bg-lime-600 text-white shadow-md ring-2 ring-lime-600/30'],
-            'policies' => ['label' => 'Policies', 'idle' => 'bg-rose-50 text-rose-700 hover:bg-rose-100', 'active' => 'bg-rose-600 text-white shadow-md ring-2 ring-rose-600/30'],
         ];
         $canEditSchedule = $canEditSchedule ?? true;
     ?>
@@ -87,10 +90,29 @@
                 <form method="POST" action="<?php echo e(route('annual-audit.generate')); ?>" class="inline">
                     <?php echo csrf_field(); ?>
                     <input type="hidden" name="fy" value="<?php echo e($plan->fy_label); ?>">
-                    <button type="submit" class="inline-flex h-7 items-center rounded-md bg-navy-900 px-2.5 text-[11px] font-medium text-white hover:bg-navy-800">
-                        Generate
+                    <button
+                        type="submit"
+                        class="inline-flex h-7 items-center rounded-md bg-navy-900 px-2.5 text-[11px] font-medium text-white hover:bg-navy-800"
+                        title="Uses frequencies from Policies to build the yearly schedule"
+                    >
+                        <?php echo e($plan->generated_at ? 'Regenerate' : '2. Generate Plan'); ?>
+
                     </button>
                 </form>
+                <?php if($plan->generated_at): ?>
+                    <form method="POST" action="<?php echo e(route('annual-audit.sync-missing')); ?>" class="inline">
+                        <?php echo csrf_field(); ?>
+                        <input type="hidden" name="fy" value="<?php echo e($plan->fy_label); ?>">
+                        <input type="hidden" name="tab" value="<?php echo e($tab); ?>">
+                        <button
+                            type="submit"
+                            class="inline-flex h-7 items-center rounded-md border border-slate-200 bg-white px-2.5 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
+                            title="Add only new shakha / area / project rows without changing existing schedules"
+                        >
+                            Sync new items
+                        </button>
+                    </form>
+                <?php endif; ?>
                 <?php if($plan->status !== 'published'): ?>
                     <form method="POST" action="<?php echo e(route('annual-audit.publish')); ?>" class="inline">
                         <?php echo csrf_field(); ?>
@@ -111,6 +133,17 @@
             <div class="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-[12px] text-rose-700">
                 <?php echo e($errors->first()); ?>
 
+            </div>
+        <?php endif; ?>
+
+        <?php if (! ($plan->generated_at)): ?>
+            <div class="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-rose-100 bg-rose-50/70 px-3 py-2 text-[12px] text-rose-900">
+                <span class="font-semibold">Setup this FY:</span>
+                <a href="<?php echo e(route('annual-audit.index', ['fy' => $plan->fy_label, 'tab' => 'policies'])); ?>" class="font-medium underline decoration-rose-300 underline-offset-2 hover:text-rose-700">1. Set Policies</a>
+                <span class="text-rose-300">→</span>
+                <span>2. Generate Plan</span>
+                <span class="text-rose-300">→</span>
+                <span class="text-rose-700/80">3. Review report tabs</span>
             </div>
         <?php endif; ?>
 
@@ -174,6 +207,7 @@
                     'rows' => $rows,
                     'pksfTotals' => $pksfTotals,
                     'canEditSchedule' => $canEditSchedule,
+                    'highlightProjectId' => $highlightProjectId ?? null,
                 ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
             <?php elseif($tab === 'area'): ?>
                 <?php echo $__env->make('annual-audit.partials.area-work-plan', [
@@ -192,72 +226,22 @@
                     'projectGroups' => $projectGroups,
                     'divisions' => $divisions,
                     'canEditSchedule' => $canEditSchedule,
+                    'highlightProjectId' => $highlightProjectId ?? null,
                 ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
             <?php elseif($tab === 'total'): ?>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full text-left">
-                        <thead class="border-b border-slate-100 bg-slate-50/80">
-                            <tr class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                                <th class="px-3 py-2.5">Category</th>
-                                <?php $__currentLoopData = $months; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $month): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                    <th class="px-2 py-2.5 text-center"><?php echo e($month['label']); ?></th>
-                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                                <th class="px-3 py-2.5 text-right">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            <?php $__currentLoopData = $categoryTotals; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $row): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                <tr class="text-[12px]">
-                                    <td class="px-3 py-2 font-medium text-navy-900"><?php echo e($row['label']); ?></td>
-                                    <?php $__currentLoopData = $row['by_month']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $count): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                        <td class="px-2 py-2 text-center <?php echo e($count ? 'font-semibold text-navy-900' : 'text-slate-300'); ?>"><?php echo e($count ?: '—'); ?></td>
-                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                                    <td class="px-3 py-2 text-right font-semibold text-navy-900"><?php echo e($row['planned']); ?></td>
-                                </tr>
-                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                        </tbody>
-                    </table>
-                </div>
-            <?php elseif($tab === 'strategic'): ?>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full text-left">
-                        <thead class="border-b border-slate-100 bg-slate-50/80">
-                            <tr class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                                <th class="px-3 py-2.5">SL</th>
-                                <th class="px-3 py-2.5">Targeted Development</th>
-                                <th class="px-3 py-2.5">Y1</th>
-                                <th class="px-3 py-2.5">Y2</th>
-                                <th class="px-3 py-2.5">Y3</th>
-                                <th class="px-3 py-2.5">Y4</th>
-                                <th class="px-3 py-2.5">Y5</th>
-                                <th class="px-3 py-2.5">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            <?php $__empty_1 = true; $__currentLoopData = $strategicItems; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-                                <tr class="text-[12px]">
-                                    <td class="px-3 py-2 text-slate-500"><?php echo e($item->sl_no); ?></td>
-                                    <td class="px-3 py-2 font-medium text-navy-900"><?php echo e($item->targeted_development); ?></td>
-                                    <td class="px-3 py-2 text-slate-600"><?php echo e($item->year_1 ?: '—'); ?></td>
-                                    <td class="px-3 py-2 text-slate-600"><?php echo e($item->year_2 ?: '—'); ?></td>
-                                    <td class="px-3 py-2 text-slate-600"><?php echo e($item->year_3 ?: '—'); ?></td>
-                                    <td class="px-3 py-2 text-slate-600"><?php echo e($item->year_4 ?: '—'); ?></td>
-                                    <td class="px-3 py-2 text-slate-600"><?php echo e($item->year_5 ?: '—'); ?></td>
-                                    <td class="px-3 py-2 capitalize text-slate-600"><?php echo e($item->status); ?></td>
-                                </tr>
-                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
-                                <tr><td colspan="8" class="px-4 py-10 text-center text-[12px] text-slate-400">No strategic plan items.</td></tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
+                <?php echo $__env->make('annual-audit.partials.total-work-plan', [
+                    'plan' => $plan,
+                    'months' => $months,
+                    'categoryTotals' => $categoryTotals,
+                ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
             <?php elseif($tab === 'policies'): ?>
                 <form method="POST" action="<?php echo e(route('annual-audit.policies')); ?>" class="p-4">
                     <?php echo csrf_field(); ?>
                     <input type="hidden" name="fy" value="<?php echo e($plan->fy_label); ?>">
                     <p class="mb-3 text-[12px] text-slate-600">
-                        Set how many times each category should be audited by default (e.g. Shakha <span class="font-medium text-navy-900">3 or 4</span> per year).
-                        Then generate — or click months on each report tab to choose exact months. Nothing is locked.
+                        <span class="font-semibold text-navy-900">Step 1 — set times per year.</span>
+                        That is the only policy setting. Months are placed evenly across the FY when you generate;
+                        change any cell later on the report tabs.
                     </p>
                     <div class="overflow-x-auto">
                         <table class="min-w-full text-left">
@@ -265,46 +249,35 @@
                                 <tr class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                                     <th class="px-3 py-2.5">Category</th>
                                     <th class="px-3 py-2.5">Times / Year</th>
-                                    <th class="px-3 py-2.5">Interval (months)</th>
-                                    <th class="px-3 py-2.5">Pattern</th>
-                                    <th class="px-3 py-2.5">Custom months (0–11)</th>
-                                    <th class="px-3 py-2.5">Notes</th>
+                                    <th class="px-3 py-2.5">When generating</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100">
                                 <?php $__currentLoopData = $policies; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $policy): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                    <tr class="text-[12px] align-top">
-                                        <td class="px-3 py-2 font-medium capitalize text-navy-900"><?php echo e(str_replace('_', ' ', $policy->category)); ?></td>
-                                        <td class="px-3 py-2">
+                                    <?php
+                                        $hints = [
+                                            'shakha_audit' => 'Months are rotated across branches so visits are spread out.',
+                                            'area_office' => 'Same months for every area (evenly spaced).',
+                                            'pksf_maternity' => 'Same months for each PKSF / Maternity location.',
+                                            'hq_concern' => 'Same months for each HQ department.',
+                                            'project_audit' => 'Same months for each project-audit location.',
+                                            'project_monitoring' => 'Same months for each monitoring location.',
+                                        ];
+                                    ?>
+                                    <tr class="text-[12px]">
+                                        <td class="px-3 py-2.5 font-medium capitalize text-navy-900"><?php echo e(str_replace('_', ' ', $policy->category)); ?></td>
+                                        <td class="px-3 py-2.5">
                                             <?php if($policy->category === 'shakha_audit'): ?>
-                                                <select name="policies[<?php echo e($policy->id); ?>][frequency_per_year]" class="w-20 rounded-lg border-slate-200 text-[12px]">
+                                                <select name="policies[<?php echo e($policy->id); ?>][frequency_per_year]" class="w-24 rounded-lg border-slate-200 text-[12px]">
                                                     <?php $__currentLoopData = [2, 3, 4, 6, 12]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $freq): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                                         <option value="<?php echo e($freq); ?>" <?php if((int) $policy->frequency_per_year === $freq): echo 'selected'; endif; ?>><?php echo e($freq); ?></option>
                                                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                                 </select>
                                             <?php else: ?>
-                                                <input type="number" min="1" max="12" name="policies[<?php echo e($policy->id); ?>][frequency_per_year]" value="<?php echo e($policy->frequency_per_year); ?>" class="w-20 rounded-lg border-slate-200 text-[12px]">
+                                                <input type="number" min="1" max="12" name="policies[<?php echo e($policy->id); ?>][frequency_per_year]" value="<?php echo e($policy->frequency_per_year); ?>" class="w-24 rounded-lg border-slate-200 text-[12px]">
                                             <?php endif; ?>
                                         </td>
-                                        <td class="px-3 py-2">
-                                            <input type="number" min="1" max="12" name="policies[<?php echo e($policy->id); ?>][interval_months]" value="<?php echo e($policy->interval_months); ?>" class="w-20 rounded-lg border-slate-200 text-[12px]">
-                                        </td>
-                                        <td class="px-3 py-2">
-                                            <input type="text" name="policies[<?php echo e($policy->id); ?>][pattern]" value="<?php echo e($policy->pattern); ?>" class="w-36 rounded-lg border-slate-200 text-[12px]">
-                                        </td>
-                                        <td class="px-3 py-2">
-                                            <input
-                                                type="text"
-                                                name="policies[<?php echo e($policy->id); ?>][custom_month_indexes]"
-                                                value="<?php echo e(is_array($policy->custom_month_indexes) ? implode(',', $policy->custom_month_indexes) : ''); ?>"
-                                                placeholder="e.g. 0,3,6,9"
-                                                class="w-40 rounded-lg border-slate-200 text-[12px]"
-                                            >
-                                            <p class="mt-1 text-[10px] text-slate-400">Jul=0 … Jun=11</p>
-                                        </td>
-                                        <td class="px-3 py-2">
-                                            <textarea name="policies[<?php echo e($policy->id); ?>][notes]" rows="2" class="w-full min-w-[180px] rounded-lg border-slate-200 text-[12px]"><?php echo e($policy->notes); ?></textarea>
-                                        </td>
+                                        <td class="px-3 py-2.5 text-slate-500"><?php echo e($hints[$policy->category] ?? 'Evenly spaced months.'); ?></td>
                                     </tr>
                                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                             </tbody>
@@ -315,7 +288,7 @@
                             Save policies
                         </button>
                         <button type="submit" name="regenerate" value="1" class="rounded-lg bg-navy-900 px-3 py-1.5 text-[12px] font-medium text-white hover:bg-navy-800">
-                            Save & regenerate plan
+                            Save &amp; regenerate plan
                         </button>
                     </div>
                 </form>
@@ -325,8 +298,8 @@
                         <thead class="border-b border-slate-100 bg-slate-50/80">
                             <tr class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                                 <th class="px-3 py-2.5">Project</th>
-                                <th class="px-3 py-2.5">Location</th>
                                 <th class="px-3 py-2.5">Division</th>
+                                <th class="px-3 py-2.5">Location</th>
                                 <?php $__currentLoopData = $months; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $month): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                     <th class="px-1 py-2.5 text-center"><?php echo e($month['label']); ?></th>
                                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
@@ -343,8 +316,8 @@
                                     "
                                 >
                                     <td class="px-3 py-1.5 font-medium text-navy-900"><?php echo e($row['project']); ?></td>
-                                    <td class="px-3 py-1.5 text-slate-600"><?php echo e($row['location']); ?></td>
                                     <td class="px-3 py-1.5 text-slate-600"><?php echo e($row['division'] ?: '—'); ?></td>
+                                    <td class="px-3 py-1.5 text-slate-600"><?php echo e($row['location']); ?></td>
                                     <?php $__currentLoopData = $row['months']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $monthIndex => $active): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                         <td class="px-1 py-1 text-center">
                                             <?php if (isset($component)) { $__componentOriginalf804d80bf7f70abc19b8214e9b3a6670 = $component; } ?>

@@ -35,8 +35,11 @@ class AnnualAuditController extends Controller
     {
         $plan = $this->resolvePlan($request);
         $builder = new AnnualAuditReportBuilder($plan);
-        $tab = $request->string('tab', 'total')->toString();
+        // Policies first when the yearly plan has not been generated yet.
+        $defaultTab = $plan->generated_at ? 'total' : 'policies';
+        $tab = $request->filled('tab') ? $request->string('tab')->toString() : $defaultTab;
         $allowed = [
+            'policies',
             'total',
             'shakha',
             'area',
@@ -44,11 +47,9 @@ class AnnualAuditController extends Controller
             'hq',
             'project_audit',
             'project_monitoring',
-            'strategic',
-            'policies',
         ];
         if (! in_array($tab, $allowed, true)) {
-            $tab = 'total';
+            $tab = $defaultTab;
         }
 
         $division = $request->string('division')->toString() ?: null;
@@ -57,6 +58,7 @@ class AnnualAuditController extends Controller
         $availablePlans = AuditPlan::query()->orderByDesc('start_date')->get(['id', 'fy_label', 'status', 'start_date']);
         $nextFyLabel = FinancialYear::fromLabel($plan->fy_label)->next()->label;
         $nextPlanExists = $availablePlans->contains(fn ($p) => $p->fy_label === $nextFyLabel);
+        $highlightProjectId = $request->integer('project') ?: null;
 
         $data = [
             'plan' => $plan,
@@ -74,6 +76,7 @@ class AnnualAuditController extends Controller
             'nextFyLabel' => $nextFyLabel,
             'nextPlanExists' => $nextPlanExists,
             'canDeletePlan' => (bool) $request->user()?->isSuperAdmin(),
+            'highlightProjectId' => $highlightProjectId,
         ];
 
         return match ($tab) {
@@ -108,11 +111,6 @@ class AnnualAuditController extends Controller
                 'rows' => collect(),
                 'categoryTotals' => null,
             ]),
-            'strategic' => view('annual-audit.index', $data + [
-                'strategicItems' => $builder->strategicItems(),
-                'rows' => collect(),
-                'categoryTotals' => null,
-            ]),
             'policies' => view('annual-audit.index', $data + [
                 'policies' => $plan->policies()->orderBy('category')->get(),
                 'rows' => collect(),
@@ -131,8 +129,8 @@ class AnnualAuditController extends Controller
         $plan = $this->generator->createNextPlan($current, $request->user()?->id);
 
         return redirect()
-            ->route('annual-audit.index', $this->fyParams($plan, ['tab' => 'total']))
-            ->with('status', 'Created FY '.$plan->fy_label.'. Policies copied from FY '.$current->fy_label.'. Click Generate when ready.');
+            ->route('annual-audit.index', $this->fyParams($plan, ['tab' => 'policies']))
+            ->with('status', 'Created FY '.$plan->fy_label.'. Policies copied from FY '.$current->fy_label.'. Review policies first, then generate the yearly plan.');
     }
 
     public function destroyYear(Request $request): RedirectResponse
@@ -194,10 +192,6 @@ class AnnualAuditController extends Controller
         $validated = $request->validate([
             'policies' => ['required', 'array'],
             'policies.*.frequency_per_year' => ['required', 'integer', 'min:1', 'max:12'],
-            'policies.*.interval_months' => ['nullable', 'integer', 'min:1', 'max:12'],
-            'policies.*.pattern' => ['nullable', 'string', 'max:40'],
-            'policies.*.custom_month_indexes' => ['nullable', 'string', 'max:80'],
-            'policies.*.notes' => ['nullable', 'string', 'max:500'],
             'regenerate' => ['nullable', 'boolean'],
         ]);
 
@@ -210,8 +204,20 @@ class AnnualAuditController extends Controller
         return redirect()
             ->route('annual-audit.index', $this->fyParams($plan, ['tab' => 'policies']))
             ->with('status', $request->boolean('regenerate')
-                ? 'Policies saved and plan regenerated (manual picks kept).'
+                ? 'Policies saved and plan regenerated (manual month picks kept).'
                 : 'Policies saved. Generate the plan when you are ready.');
+    }
+
+    public function syncMissing(Request $request): RedirectResponse
+    {
+        $plan = $this->resolvePlan($request);
+        $added = $this->generator->syncMissing($plan);
+
+        return redirect()
+            ->route('annual-audit.index', $this->fyParams($plan, ['tab' => $request->string('tab', 'total')->toString()]))
+            ->with('status', $added > 0
+                ? "Added {$added} schedule row(s) for new branches / areas / projects missing from this FY."
+                : 'Nothing new to sync — all active items are already on this plan.');
     }
 
     public function toggleMonth(Request $request): RedirectResponse|JsonResponse
@@ -271,7 +277,7 @@ class AnnualAuditController extends Controller
             return $this->excelExporter->downloadAll($plan);
         }
 
-        if (! in_array($mode, ['audit', 'monitoring', 'hq', 'area', 'pksf', 'shakha'], true)) {
+        if (! in_array($mode, ['audit', 'monitoring', 'hq', 'area', 'pksf', 'shakha', 'total'], true)) {
             $mode = 'monitoring';
         }
 
@@ -294,9 +300,13 @@ class AnnualAuditController extends Controller
             'sort_order' => $maxOrder + 1,
         ]);
 
+        $added = $plan->generated_at ? $this->generator->syncMissing($plan) : 0;
+
         return redirect()
             ->route('annual-audit.index', $this->fyParams($plan, ['tab' => 'hq']))
-            ->with('status', 'HQ department added. Click months to schedule visits.');
+            ->with('status', $added > 0
+                ? "HQ department added and scheduled ({$added} row(s))."
+                : 'HQ department added. Generate the plan or click months to schedule visits.');
     }
 
     public function destroyHqDepartment(Request $request, HqDepartment $department): RedirectResponse
@@ -353,9 +363,13 @@ class AnnualAuditController extends Controller
             }
         });
 
+        $added = $plan->generated_at ? $this->generator->syncMissing($plan) : 0;
+
         return redirect()
             ->route('annual-audit.index', $this->fyParams($plan, ['tab' => $tab]))
-            ->with('status', 'Project added. Click months to schedule visits.');
+            ->with('status', $added > 0
+                ? "Project added and scheduled ({$added} row(s))."
+                : 'Project added. Generate the plan or click months to schedule visits.');
     }
 
     public function storeProjectLocation(StoreProjectLocationRequest $request, Project $project): RedirectResponse
@@ -374,9 +388,13 @@ class AnnualAuditController extends Controller
 
         $project->locations()->create($request->validated());
 
+        $added = $plan->generated_at ? $this->generator->syncMissing($plan) : 0;
+
         return redirect()
             ->route('annual-audit.index', $this->fyParams($plan, ['tab' => $tab]))
-            ->with('status', 'Location added. Click months to schedule.');
+            ->with('status', $added > 0
+                ? "Location added and scheduled ({$added} row(s))."
+                : 'Location added. Generate the plan or click months to schedule.');
     }
 
     public function destroyProject(Request $request, Project $project): RedirectResponse
@@ -387,19 +405,7 @@ class AnnualAuditController extends Controller
             $tab = 'project_monitoring';
         }
 
-        DB::transaction(function () use ($project) {
-            $locationIds = $project->locations()->pluck('id');
-
-            if ($locationIds->isNotEmpty()) {
-                PlanSchedule::query()
-                    ->where('schedulable_type', ProjectLocation::class)
-                    ->whereIn('schedulable_id', $locationIds)
-                    ->delete();
-            }
-
-            $project->locations()->delete();
-            $project->delete();
-        });
+        $this->generator->deleteProjectWithSchedules($project);
 
         return redirect()
             ->route('annual-audit.index', $this->fyParams($plan, ['tab' => $tab]))
@@ -416,14 +422,7 @@ class AnnualAuditController extends Controller
             $tab = 'project_monitoring';
         }
 
-        DB::transaction(function () use ($location) {
-            PlanSchedule::query()
-                ->where('schedulable_type', ProjectLocation::class)
-                ->where('schedulable_id', $location->id)
-                ->delete();
-
-            $location->delete();
-        });
+        $this->generator->deleteLocationWithSchedules($location);
 
         return redirect()
             ->route('annual-audit.index', $this->fyParams($plan, ['tab' => $tab]))

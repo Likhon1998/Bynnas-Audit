@@ -26,8 +26,15 @@ class StoreProjectLocationRequest extends FormRequest
                     fn ($query) => $query->where('project_id', $projectId)
                 ),
             ],
-            'division' => ['nullable', 'string', Rule::in(Divisions::OPTIONS)],
+            'division' => ['required', 'string', Rule::in(Divisions::OPTIONS)],
             'status' => ['required', 'string', Rule::in(['active', 'inactive'])],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'division.required' => 'Select the division first, then enter the location.',
         ];
     }
 }

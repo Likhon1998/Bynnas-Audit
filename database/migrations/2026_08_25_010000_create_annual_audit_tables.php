@@ -39,20 +39,6 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('strategic_plan_items', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedInteger('sl_no')->default(0);
-            $table->string('targeted_development');
-            $table->string('year_1')->nullable();
-            $table->string('year_2')->nullable();
-            $table->string('year_3')->nullable();
-            $table->string('year_4')->nullable();
-            $table->string('year_5')->nullable();
-            $table->string('status', 40)->default('planned');
-            $table->text('remarks')->nullable();
-            $table->timestamps();
-        });
-
         Schema::create('audit_plans', function (Blueprint $table) {
             $table->id();
             $table->string('name');
@@ -120,7 +106,6 @@ return new class extends Migration
         Schema::dropIfExists('plan_schedules');
         Schema::dropIfExists('audit_policies');
         Schema::dropIfExists('audit_plans');
-        Schema::dropIfExists('strategic_plan_items');
         Schema::dropIfExists('hq_departments');
         Schema::dropIfExists('project_locations');
         Schema::dropIfExists('projects');

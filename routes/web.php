@@ -3,6 +3,7 @@
 use App\Http\Controllers\AnnualAuditController;
 use App\Http\Controllers\AreaController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\MonthlyVisitController;
 use App\Http\Controllers\OrganogramController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
@@ -32,6 +33,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/annual-audit/years', [AnnualAuditController::class, 'createYear'])->name('annual-audit.years.store');
     Route::delete('/annual-audit/years', [AnnualAuditController::class, 'destroyYear'])->name('annual-audit.years.destroy');
     Route::post('/annual-audit/generate', [AnnualAuditController::class, 'generate'])->name('annual-audit.generate');
+    Route::post('/annual-audit/sync-missing', [AnnualAuditController::class, 'syncMissing'])->name('annual-audit.sync-missing');
     Route::post('/annual-audit/publish', [AnnualAuditController::class, 'publish'])->name('annual-audit.publish');
     Route::post('/annual-audit/policies', [AnnualAuditController::class, 'updatePolicies'])->name('annual-audit.policies');
     Route::post('/annual-audit/toggle-month', [AnnualAuditController::class, 'toggleMonth'])->name('annual-audit.toggle-month');
@@ -42,6 +44,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/annual-audit/projects/{project}', [AnnualAuditController::class, 'destroyProject'])->name('annual-audit.projects.destroy');
     Route::post('/annual-audit/projects/{project}/locations', [AnnualAuditController::class, 'storeProjectLocation'])->name('annual-audit.projects.locations.store');
     Route::delete('/annual-audit/projects/{project}/locations/{location}', [AnnualAuditController::class, 'destroyProjectLocation'])->name('annual-audit.projects.locations.destroy');
+
+    Route::get('/monthly-visits', [MonthlyVisitController::class, 'index'])->name('monthly-visits.index');
+    Route::post('/monthly-visits/generate', [MonthlyVisitController::class, 'generate'])->name('monthly-visits.generate');
+    Route::post('/monthly-visits/bulk-allocate', [MonthlyVisitController::class, 'bulkAllocate'])->name('monthly-visits.bulk-allocate');
+    Route::post('/monthly-visits/resolve-conflicts', [MonthlyVisitController::class, 'resolveConflicts'])->name('monthly-visits.resolve-conflicts');
+    Route::post('/monthly-visits/special', [MonthlyVisitController::class, 'storeSpecial'])->name('monthly-visits.special.store');
+    Route::get('/monthly-visits/report', [MonthlyVisitController::class, 'report'])->name('monthly-visits.report');
+    Route::get('/monthly-visits/schedule/print', [MonthlyVisitController::class, 'printSchedule'])->name('monthly-visits.schedule.print');
+    Route::get('/monthly-visits/schedule/pdf', [MonthlyVisitController::class, 'exportSchedulePdf'])->name('monthly-visits.schedule.pdf');
+    Route::get('/monthly-visits/schedule/doc', [MonthlyVisitController::class, 'exportScheduleDoc'])->name('monthly-visits.schedule.doc');
+    Route::get('/monthly-visits/schedule/excel', [MonthlyVisitController::class, 'exportScheduleExcel'])->name('monthly-visits.schedule.excel');
+    Route::get('/monthly-visits/items/{workItem}/assign', [MonthlyVisitController::class, 'assignForm'])->name('monthly-visits.assign');
+    Route::post('/monthly-visits/items/{workItem}/assign', [MonthlyVisitController::class, 'assign'])->name('monthly-visits.assign.store');
+    Route::get('/monthly-visits/assignments/{assignment}/execution', [MonthlyVisitController::class, 'executionForm'])->name('monthly-visits.execution');
+    Route::post('/monthly-visits/assignments/{assignment}/execution', [MonthlyVisitController::class, 'updateExecution'])->name('monthly-visits.execution.store');
+    Route::get('/monthly-visits/assignments/{assignment}/reschedule', [MonthlyVisitController::class, 'rescheduleForm'])->name('monthly-visits.reschedule');
+    Route::post('/monthly-visits/assignments/{assignment}/reschedule', [MonthlyVisitController::class, 'reschedule'])->name('monthly-visits.reschedule.store');
 
     Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
     Route::get('/projects/create', [ProjectController::class, 'create'])->name('projects.create');

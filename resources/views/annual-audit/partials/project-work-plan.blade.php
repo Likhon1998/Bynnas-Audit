@@ -13,9 +13,18 @@
     $fyParts = explode('-', $fy);
     $startYear = substr($fyParts[0] ?? '2026', -2);
     $endYear = substr($fyParts[1] ?? '2027', -2);
+    $highlightProjectId = (int) ($highlightProjectId ?? 0);
 @endphp
 
-<div x-data="{ showAddProject: false, openLocationFor: null }">
+<div
+    x-data="{ showAddProject: false, openLocationFor: null }"
+    x-init="
+        $nextTick(() => {
+            const el = document.getElementById('highlighted-project');
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        })
+    "
+>
     <div class="border-b border-slate-200 bg-slate-50/80 px-4 py-3">
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -85,13 +94,13 @@
                     <div class="space-y-2">
                         <template x-for="(loc, index) in locations" :key="index">
                             <div class="grid gap-2 sm:grid-cols-12">
-                                <input type="text" :name="'locations['+index+'][name]'" x-model="loc.name" required placeholder="Location e.g. Dhaka" class="sm:col-span-7 rounded-lg border-slate-200 text-[12px]">
-                                <select :name="'locations['+index+'][division]'" x-model="loc.division" class="sm:col-span-4 rounded-lg border-slate-200 text-[12px]">
+                                <select :name="'locations['+index+'][division]'" x-model="loc.division" required class="sm:col-span-4 rounded-lg border-slate-200 text-[12px]">
                                     <option value="">Division</option>
                                     @foreach ($divisions as $division)
                                         <option value="{{ $division }}">{{ $division }}</option>
                                     @endforeach
                                 </select>
+                                <input type="text" :name="'locations['+index+'][name]'" x-model="loc.name" required placeholder="Location / site e.g. Savar Unit Office" class="sm:col-span-7 rounded-lg border-slate-200 text-[12px]">
                                 <button type="button" @click="if (locations.length > 1) locations.splice(index, 1)" class="sm:col-span-1 text-[11px] text-rose-500">×</button>
                             </div>
                         </template>
@@ -132,8 +141,12 @@
             </thead>
             <tbody>
                 @forelse ($projectGroups as $group)
+                    @php $isHighlighted = $highlightProjectId > 0 && (int) $group['project_id'] === $highlightProjectId; @endphp
                     @if ($group['rows']->isEmpty())
-                        <tr class="text-[12px]">
+                        <tr
+                            @if ($isHighlighted) id="highlighted-project" @endif
+                            class="text-[12px] {{ $isHighlighted ? 'bg-amber-100 ring-2 ring-inset ring-amber-400' : '' }}"
+                        >
                             <td class="border border-slate-200 px-2 py-2 text-center text-slate-500">{{ $group['sl'] }}</td>
                             <td class="border border-slate-200 px-3 py-2 align-top">
                                 <p class="font-medium text-navy-900">{{ $group['project'] }}</p>
@@ -146,13 +159,7 @@
                                 <button type="button" @click="openLocationFor = openLocationFor === {{ $group['project_id'] }} ? null : {{ $group['project_id'] }}" class="ml-1 font-medium text-brand-600 hover:underline">Add location</button>
                             </td>
                             <td class="border border-slate-200 px-2 py-2 text-center">
-                                <form method="POST" action="{{ route('annual-audit.projects.destroy', $group['project_id']) }}" onsubmit="return confirm('Delete this project and all its locations?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <input type="hidden" name="return_tab" value="{{ $tabKey }}">
-                                    <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
-                                    <button type="submit" class="text-[10px] font-medium text-rose-500 hover:underline">Delete project</button>
-                                </form>
+                                <button type="button" @click="openLocationFor = openLocationFor === {{ $group['project_id'] }} ? null : {{ $group['project_id'] }}" class="text-[10px] font-medium text-brand-600 hover:underline">+ Loc</button>
                             </td>
                         </tr>
                         <tr x-show="openLocationFor === {{ $group['project_id'] }}" x-cloak>
@@ -162,17 +169,17 @@
                                     <input type="hidden" name="return_tab" value="{{ $tabKey }}">
                                     <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
                                     <div>
-                                        <label class="mb-1 block text-[10px] font-medium text-slate-400">Location</label>
-                                        <input type="text" name="name" required placeholder="e.g. Savar (Unit Office)" class="rounded-lg border-slate-200 text-[12px]">
-                                    </div>
-                                    <div>
                                         <label class="mb-1 block text-[10px] font-medium text-slate-400">Division</label>
-                                        <select name="division" class="rounded-lg border-slate-200 text-[12px]">
-                                            <option value="">Optional</option>
+                                        <select name="division" required class="rounded-lg border-slate-200 text-[12px]">
+                                            <option value="">Select division</option>
                                             @foreach ($divisions as $division)
                                                 <option value="{{ $division }}">{{ $division }}</option>
                                             @endforeach
                                         </select>
+                                    </div>
+                                    <div>
+                                        <label class="mb-1 block text-[10px] font-medium text-slate-400">Location</label>
+                                        <input type="text" name="name" required placeholder="e.g. Savar Unit Office" class="rounded-lg border-slate-200 text-[12px]">
                                     </div>
                                     <input type="hidden" name="status" value="active">
                                     <button type="submit" class="rounded-lg bg-navy-900 px-3 py-1.5 text-[12px] font-medium text-white">Add</button>
@@ -183,7 +190,8 @@
                     @else
                         @foreach ($group['rows'] as $index => $row)
                             <tr
-                                class="text-[12px]"
+                                @if ($isHighlighted && $index === 0) id="highlighted-project" @endif
+                                class="text-[12px] {{ $isHighlighted ? 'bg-amber-100 ring-2 ring-inset ring-amber-400' : '' }}"
                                 x-data="{ total: {{ (int) $row['total'] }} }"
                                 @audit-tick="total += $event.detail.delta"
                             >
@@ -198,7 +206,13 @@
                                 @endif
                                 <td class="border border-slate-200 px-3 py-1.5">
                                     <div class="flex items-center justify-between gap-2">
-                                        <span class="text-slate-700">{{ $row['location'] }}</span>
+                                        <span class="text-slate-700">
+                                            @if (! empty($row['division']))
+                                                <span class="font-medium text-navy-900">{{ $row['division'] }}</span>
+                                                <span class="text-slate-400"> · </span>
+                                            @endif
+                                            {{ $row['location'] }}
+                                        </span>
                                         <form method="POST" action="{{ route('annual-audit.projects.locations.destroy', [$group['project_id'], $row['id']]) }}" onsubmit="return confirm('Remove location {{ $row['location'] }}?')">
                                             @csrf
                                             @method('DELETE')
@@ -225,17 +239,8 @@
                                 @endforeach
                                 <td class="border border-slate-200 px-2 py-1.5 text-center font-semibold text-navy-900" x-text="total">{{ $row['total'] }}</td>
                                 @if ($index === 0)
-                                    <td rowspan="{{ $group['rows']->count() }}" class="border border-slate-200 px-2 py-2 align-middle">
-                                        <div class="flex flex-col items-center gap-1">
-                                            <button type="button" @click="openLocationFor = openLocationFor === {{ $group['project_id'] }} ? null : {{ $group['project_id'] }}" class="text-[10px] font-medium text-brand-600 hover:underline">+ Loc</button>
-                                            <form method="POST" action="{{ route('annual-audit.projects.destroy', $group['project_id']) }}" onsubmit="return confirm('Delete project {{ $group['project'] }} and all locations?')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <input type="hidden" name="return_tab" value="{{ $tabKey }}">
-                                    <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
-                                                <button type="submit" class="text-[10px] font-medium text-rose-500 hover:underline">Delete</button>
-                                            </form>
-                                        </div>
+                                    <td rowspan="{{ $group['rows']->count() }}" class="border border-slate-200 px-2 py-2 align-middle text-center">
+                                        <button type="button" @click="openLocationFor = openLocationFor === {{ $group['project_id'] }} ? null : {{ $group['project_id'] }}" class="text-[10px] font-medium text-brand-600 hover:underline">+ Loc</button>
                                     </td>
                                 @endif
                             </tr>
@@ -247,17 +252,17 @@
                                     <input type="hidden" name="return_tab" value="{{ $tabKey }}">
                                     <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
                                     <div>
-                                        <label class="mb-1 block text-[10px] font-medium text-slate-400">Location</label>
-                                        <input type="text" name="name" required placeholder="e.g. Khulna (Unit Office)" class="rounded-lg border-slate-200 text-[12px]">
-                                    </div>
-                                    <div>
                                         <label class="mb-1 block text-[10px] font-medium text-slate-400">Division</label>
-                                        <select name="division" class="rounded-lg border-slate-200 text-[12px]">
-                                            <option value="">Optional</option>
+                                        <select name="division" required class="rounded-lg border-slate-200 text-[12px]">
+                                            <option value="">Select division</option>
                                             @foreach ($divisions as $division)
                                                 <option value="{{ $division }}">{{ $division }}</option>
                                             @endforeach
                                         </select>
+                                    </div>
+                                    <div>
+                                        <label class="mb-1 block text-[10px] font-medium text-slate-400">Location</label>
+                                        <input type="text" name="name" required placeholder="e.g. Savar Unit Office" class="rounded-lg border-slate-200 text-[12px]">
                                     </div>
                                     <input type="hidden" name="status" value="active">
                                     <button type="submit" class="rounded-lg bg-navy-900 px-3 py-1.5 text-[12px] font-medium text-white">Add location</button>
@@ -278,6 +283,6 @@
     </div>
 
     <p class="border-t border-slate-100 px-4 py-2 text-[11px] text-slate-500">
-        Green cells = planned {{ $isAudit ? 'audit' : 'monitoring' }} visit (like Excel). Click to add/remove. Use <span class="font-medium text-slate-700">Remove</span> / <span class="font-medium text-slate-700">Delete</span> to undo mistakes.
+        Green cells = planned {{ $isAudit ? 'audit' : 'monitoring' }} visit (like Excel). Click to add/remove. Use <span class="font-medium text-slate-700">Remove</span> on a location to drop it individually.
     </p>
 </div>

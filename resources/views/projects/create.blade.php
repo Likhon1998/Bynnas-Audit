@@ -11,7 +11,28 @@
                 <p class="mt-0.5 text-[11px] text-slate-500">Flags control which report tabs this project appears in</p>
             </div>
 
-            <form method="POST" action="{{ route('projects.store') }}" class="px-4 py-4" x-data="{ locations: [{ name: '', division: '', status: 'active' }] }">
+            <form
+                method="POST"
+                action="{{ route('projects.store') }}"
+                class="px-4 py-4"
+                x-data="{
+                    locations: [{ name: '', division: '', status: 'active' }],
+                    isPksf: {{ old('is_pksf') ? 'true' : 'false' }},
+                    isMaternity: {{ old('is_maternity') ? 'true' : 'false' }},
+                    hasAudit: {{ old('has_project_audit', true) ? 'true' : 'false' }},
+                    hasMonitoring: {{ old('has_project_monitoring', true) ? 'true' : 'false' }},
+                    get isSpecial() { return this.isPksf || this.isMaternity },
+                    onSpecialChange() {
+                        if (this.isSpecial) {
+                            this.hasAudit = false;
+                            this.hasMonitoring = false;
+                        } else if (! this.hasAudit && ! this.hasMonitoring) {
+                            this.hasAudit = true;
+                            this.hasMonitoring = true;
+                        }
+                    },
+                }"
+            >
                 @csrf
                 <div class="space-y-3">
                     <div>
@@ -34,23 +55,27 @@
                         </select>
                     </div>
 
-                    <div class="grid gap-2 sm:grid-cols-2">
-                        <label class="flex items-center gap-2 rounded-lg border border-slate-100 px-3 py-2 text-[12px] text-slate-700">
-                            <input type="checkbox" name="is_pksf" value="1" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500" @checked(old('is_pksf'))>
-                            PKSF project
-                        </label>
-                        <label class="flex items-center gap-2 rounded-lg border border-slate-100 px-3 py-2 text-[12px] text-slate-700">
-                            <input type="checkbox" name="is_maternity" value="1" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500" @checked(old('is_maternity'))>
-                            Maternity project
-                        </label>
-                        <label class="flex items-center gap-2 rounded-lg border border-slate-100 px-3 py-2 text-[12px] text-slate-700">
-                            <input type="checkbox" name="has_project_audit" value="1" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500" @checked(old('has_project_audit', true))>
-                            Include in Project Audit
-                        </label>
-                        <label class="flex items-center gap-2 rounded-lg border border-slate-100 px-3 py-2 text-[12px] text-slate-700">
-                            <input type="checkbox" name="has_project_monitoring" value="1" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500" @checked(old('has_project_monitoring', true))>
-                            Include in Project Monitoring
-                        </label>
+                    <div>
+                        <p class="mb-1.5 text-[11px] font-medium text-slate-600">Where this project appears in Annual Audit</p>
+                        <div class="grid gap-2 sm:grid-cols-2">
+                            <label class="flex items-center gap-2 rounded-lg border border-slate-100 px-3 py-2 text-[12px] text-slate-700">
+                                <input type="checkbox" name="is_pksf" value="1" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500" x-model="isPksf" @change="onSpecialChange()">
+                                PKSF tab
+                            </label>
+                            <label class="flex items-center gap-2 rounded-lg border border-slate-100 px-3 py-2 text-[12px] text-slate-700">
+                                <input type="checkbox" name="is_maternity" value="1" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500" x-model="isMaternity" @change="onSpecialChange()">
+                                Maternity (PKSF tab)
+                            </label>
+                            <label class="flex items-center gap-2 rounded-lg border border-slate-100 px-3 py-2 text-[12px] text-slate-700" :class="isSpecial && 'opacity-60'">
+                                <input type="checkbox" name="has_project_audit" value="1" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500" x-model="hasAudit">
+                                Project Audit tab
+                            </label>
+                            <label class="flex items-center gap-2 rounded-lg border border-slate-100 px-3 py-2 text-[12px] text-slate-700" :class="isSpecial && 'opacity-60'">
+                                <input type="checkbox" name="has_project_monitoring" value="1" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500" x-model="hasMonitoring">
+                                Project Monitoring tab
+                            </label>
+                        </div>
+                        <p class="mt-1.5 text-[11px] text-slate-400" x-show="isSpecial" x-cloak>PKSF / Maternity projects go to the PKSF &amp; Maternity work plan by default.</p>
                     </div>
 
                     <div class="border-t border-slate-100 pt-3">
@@ -67,16 +92,16 @@
                         <div class="space-y-2">
                             <template x-for="(loc, index) in locations" :key="index">
                                 <div class="grid gap-2 rounded-lg border border-slate-100 p-2.5 sm:grid-cols-12">
-                                    <div class="sm:col-span-5">
-                                        <input type="text" :name="'locations['+index+'][name]'" x-model="loc.name" placeholder="Location name" class="block w-full rounded-lg border-slate-200 text-[12px]" required>
-                                    </div>
                                     <div class="sm:col-span-4">
-                                        <select :name="'locations['+index+'][division]'" x-model="loc.division" class="block w-full rounded-lg border-slate-200 text-[12px]">
-                                            <option value="">Division (optional)</option>
+                                        <select :name="'locations['+index+'][division]'" x-model="loc.division" required class="block w-full rounded-lg border-slate-200 text-[12px]">
+                                            <option value="">Select division</option>
                                             @foreach ($divisions as $division)
                                                 <option value="{{ $division }}">{{ $division }}</option>
                                             @endforeach
                                         </select>
+                                    </div>
+                                    <div class="sm:col-span-5">
+                                        <input type="text" :name="'locations['+index+'][name]'" x-model="loc.name" placeholder="Location / site name" class="block w-full rounded-lg border-slate-200 text-[12px]" required>
                                     </div>
                                     <div class="flex items-center gap-2 sm:col-span-3">
                                         <select :name="'locations['+index+'][status]'" x-model="loc.status" class="block w-full rounded-lg border-slate-200 text-[12px]">

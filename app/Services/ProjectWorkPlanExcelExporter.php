@@ -29,6 +29,10 @@ class ProjectWorkPlanExcelExporter
             $sheet->setTitle('HQ');
             $this->writeHqSheet($sheet, $fy, $months, $rows, $totals);
             $filename = 'hq-work-plan-'.$fy.'.xlsx';
+        } elseif ($mode === 'total') {
+            $sheet->setTitle('Total');
+            $this->writeTotalSheet($sheet, $fy, $months, $builder->totalsByCategory());
+            $filename = 'annual-total-work-plan-'.$fy.'.xlsx';
         } elseif ($mode === 'shakha') {
             $groups = $builder->shakhaGroups();
             $rows = $groups->flatMap(fn ($g) => $g['rows']);

@@ -36,4 +36,24 @@ class Project extends Model
     {
         return $this->status === 'active';
     }
+
+    /**
+     * Best Annual Audit tab for deep-linking this project.
+     */
+    public function preferredPlanTab(): string
+    {
+        if ($this->is_pksf || $this->is_maternity) {
+            return 'pksf';
+        }
+
+        if ($this->has_project_audit) {
+            return 'project_audit';
+        }
+
+        if ($this->has_project_monitoring) {
+            return 'project_monitoring';
+        }
+
+        return 'project_audit';
+    }
 }

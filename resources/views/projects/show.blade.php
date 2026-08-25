@@ -10,8 +10,8 @@
                     <span class="capitalize">{{ $project->status }}</span>
                 </p>
             </div>
-            <a href="{{ route('annual-audit.index', ['tab' => 'project_audit']) }}" class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[12px] font-medium text-slate-700 hover:bg-slate-50">
-                Open Annual Audit
+            <a href="{{ route('annual-audit.index', ['tab' => $project->preferredPlanTab(), 'project' => $project->id]) }}" class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[12px] font-medium text-slate-700 hover:bg-slate-50">
+                Open in Annual Audit
             </a>
         </div>
 
@@ -44,8 +44,8 @@
                     <table class="min-w-full text-left">
                         <thead class="border-b border-slate-100 bg-slate-50/80">
                             <tr class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                                <th class="px-4 py-2.5">Name</th>
                                 <th class="px-4 py-2.5">Division</th>
+                                <th class="px-4 py-2.5">Location</th>
                                 <th class="px-4 py-2.5">Status</th>
                                 <th class="px-4 py-2.5"></th>
                             </tr>
@@ -53,8 +53,8 @@
                         <tbody class="divide-y divide-slate-100">
                             @forelse ($project->locations as $location)
                                 <tr class="text-[12px]">
-                                    <td class="px-4 py-2.5 font-medium text-navy-900">{{ $location->name }}</td>
-                                    <td class="px-4 py-2.5 text-slate-600">{{ $location->division ?: '—' }}</td>
+                                    <td class="px-4 py-2.5 font-medium text-navy-900">{{ $location->division ?: '—' }}</td>
+                                    <td class="px-4 py-2.5 text-slate-600">{{ $location->name }}</td>
                                     <td class="px-4 py-2.5 capitalize text-slate-600">{{ $location->status }}</td>
                                     <td class="px-4 py-2.5 text-right">
                                         <form method="POST" action="{{ route('projects.locations.destroy', [$project, $location]) }}" onsubmit="return confirm('Remove this location?')">
@@ -81,18 +81,19 @@
                 <form method="POST" action="{{ route('projects.locations.store', $project) }}" class="space-y-3 px-4 py-4">
                     @csrf
                     <div>
-                        <label for="name" class="mb-1 block text-[11px] font-medium text-slate-600">Location name</label>
-                        <x-text-input id="name" name="name" type="text" class="block w-full rounded-lg text-[13px]" :value="old('name')" required />
-                        <x-input-error :messages="$errors->get('name')" class="mt-1" />
-                    </div>
-                    <div>
                         <label for="division" class="mb-1 block text-[11px] font-medium text-slate-600">Division</label>
-                        <select id="division" name="division" class="block w-full rounded-lg border-slate-200 text-[13px]">
-                            <option value="">Optional</option>
+                        <select id="division" name="division" required class="block w-full rounded-lg border-slate-200 text-[13px]">
+                            <option value="">Select division</option>
                             @foreach ($divisions as $division)
                                 <option value="{{ $division }}" @selected(old('division') === $division)>{{ $division }}</option>
                             @endforeach
                         </select>
+                        <x-input-error :messages="$errors->get('division')" class="mt-1" />
+                    </div>
+                    <div>
+                        <label for="name" class="mb-1 block text-[11px] font-medium text-slate-600">Location / site</label>
+                        <x-text-input id="name" name="name" type="text" class="block w-full rounded-lg text-[13px]" :value="old('name')" required placeholder="e.g. Savar Unit Office" />
+                        <x-input-error :messages="$errors->get('name')" class="mt-1" />
                     </div>
                     <div>
                         <label for="status" class="mb-1 block text-[11px] font-medium text-slate-600">Status</label>

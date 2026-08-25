@@ -4,6 +4,7 @@
     $startYear = substr($fyParts[0] ?? '2026', -2);
     $endYear = substr($fyParts[1] ?? '2027', -2);
     $initialMonthTotals = array_values($pksfTotals['by_month'] ?? array_fill(0, 12, 0));
+    $highlightProjectId = (int) ($highlightProjectId ?? 0);
 @endphp
 
 <div
@@ -19,6 +20,12 @@
             this.monthTotals = [...this.monthTotals];
         },
     }"
+    x-init="
+        $nextTick(() => {
+            const el = document.getElementById('highlighted-project');
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        })
+    "
     @audit-tick.window="onTick($event)"
 >
     <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-slate-200 bg-slate-50/80 px-3 py-1.5">
@@ -26,6 +33,12 @@
             PKSF and Maternity Work Plan
             <span class="ml-1.5 font-normal text-slate-400">FY {{ $fy }} · {{ $rows->count() }} rows</span>
         </p>
+        <a
+            href="{{ route('projects.create') }}"
+            class="inline-flex h-7 items-center gap-1 rounded-md border border-slate-200 bg-white px-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
+        >
+            + Add via Projects
+        </a>
         <a
             href="{{ route('annual-audit.export', ['mode' => 'pksf', 'fy' => $plan->fy_label]) }}"
             class="inline-flex h-7 items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 text-[11px] font-medium text-emerald-800 hover:bg-emerald-100"
@@ -68,9 +81,15 @@
                 </tr>
             </thead>
             <tbody>
+                @php $highlightAnchorSet = false; @endphp
                 @forelse ($rows as $row)
+                    @php $isHighlighted = $highlightProjectId > 0 && (int) ($row['project_id'] ?? 0) === $highlightProjectId; @endphp
                     <tr
-                        class="text-[12px] {{ ($row['is_maternity'] ?? false) && ! ($row['is_pksf'] ?? false) && ($row['sl'] ?? 0) === 7 ? 'border-t-2 border-slate-400' : '' }}"
+                        @if ($isHighlighted && ! $highlightAnchorSet)
+                            id="highlighted-project"
+                            @php $highlightAnchorSet = true; @endphp
+                        @endif
+                        class="text-[12px] {{ $isHighlighted ? 'bg-amber-100 ring-2 ring-inset ring-amber-400' : '' }} {{ ($row['is_maternity'] ?? false) && ! ($row['is_pksf'] ?? false) && ($row['sl'] ?? 0) === 7 ? 'border-t-2 border-slate-400' : '' }}"
                         @audit-tick="
                             const cell = $el.querySelector('[data-row-total]');
                             if (cell) cell.textContent = Number(cell.textContent || 0) + Number($event.detail.delta || 0);
@@ -78,7 +97,13 @@
                     >
                         <td class="border border-slate-300 px-1.5 py-0.5 text-center text-[11px] text-slate-500">{{ $row['sl'] }}</td>
                         <td class="border border-slate-300 px-2 py-0.5 font-medium text-navy-900">{{ $row['project'] }}</td>
-                        <td class="border border-slate-300 px-2 py-0.5 text-slate-700">{{ $row['location'] }}</td>
+                        <td class="border border-slate-300 px-2 py-0.5 text-slate-700">
+                            @if (! empty($row['division']))
+                                <span class="font-medium text-navy-900">{{ $row['division'] }}</span>
+                                <span class="text-slate-400"> · </span>
+                            @endif
+                            {{ $row['location'] }}
+                        </td>
                         @foreach ($row['months'] as $monthIndex => $active)
                             <td class="border border-slate-300 px-0 py-0 text-center {{ $active ? 'bg-emerald-100' : 'bg-white' }}">
                                 <x-audit-month-mark
@@ -99,7 +124,9 @@
                 @empty
                     <tr>
                         <td colspan="16" class="border border-slate-300 px-4 py-10 text-center text-[12px] text-slate-400">
-                            No PKSF / Maternity schedules yet. Generate the annual plan after seeding projects.
+                            No PKSF / Maternity schedules yet.
+                            <a href="{{ route('projects.create') }}" class="font-medium text-brand-600 hover:underline">Add a PKSF/Maternity project</a>,
+                            then Generate or Sync new items.
                         </td>
                     </tr>
                 @endforelse

@@ -7,6 +7,7 @@ use App\Models\AuditPlan;
 use App\Models\AuditPolicy;
 use App\Models\HqDepartment;
 use App\Models\PlanSchedule;
+use App\Models\Project;
 use App\Models\ProjectLocation;
 use App\Models\Shakha;
 use App\Support\FinancialYear;
@@ -72,10 +73,10 @@ class AnnualPlanGenerator
                 ],
                 [
                     'frequency_per_year' => $policy->frequency_per_year,
-                    'interval_months' => $policy->interval_months,
-                    'pattern' => $policy->pattern,
-                    'custom_month_indexes' => $policy->custom_month_indexes,
-                    'notes' => $policy->notes,
+                    'interval_months' => max(1, (int) floor(12 / max(1, (int) $policy->frequency_per_year))),
+                    'pattern' => null,
+                    'custom_month_indexes' => null,
+                    'notes' => null,
                 ]
             );
         }
@@ -86,53 +87,25 @@ class AnnualPlanGenerator
     public function ensureDefaultPolicies(AuditPlan $plan): void
     {
         $defaults = [
-            AuditPolicy::CATEGORY_SHAKHA => [
-                'frequency_per_year' => 3,
-                'interval_months' => 4,
-                'pattern' => 'rotated_interval',
-                'notes' => 'Default suggestion only. Admin can change frequency (e.g. 3 or 4) and pick months per shakha.',
-            ],
-            AuditPolicy::CATEGORY_AREA => [
-                'frequency_per_year' => 4,
-                'interval_months' => 3,
-                'pattern' => 'quarterly',
-                'custom_month_indexes' => [0, 3, 6, 9],
-                'notes' => 'Default quarterly months. Admin can override per area office.',
-            ],
-            AuditPolicy::CATEGORY_PKSF => [
-                'frequency_per_year' => 2,
-                'interval_months' => 6,
-                'pattern' => 'interval',
-                'custom_month_indexes' => [0, 6],
-                'notes' => 'Default twice yearly. Admin can override per location.',
-            ],
-            AuditPolicy::CATEGORY_HQ => [
-                'frequency_per_year' => 2,
-                'interval_months' => 6,
-                'pattern' => 'interval',
-                'custom_month_indexes' => [5, 11],
-                'notes' => 'Default twice yearly (e.g. Dec & Jun). Admin can set any months per HQ department like Excel.',
-            ],
-            AuditPolicy::CATEGORY_PROJECT_AUDIT => [
-                'frequency_per_year' => 4,
-                'interval_months' => 3,
-                'pattern' => 'quarterly',
-                'custom_month_indexes' => [0, 3, 6, 9],
-                'notes' => 'Default quarterly (Jul/Oct/Jan/Apr) matching Excel Project Audit work plan.',
-            ],
-            AuditPolicy::CATEGORY_PROJECT_MONITORING => [
-                'frequency_per_year' => 4,
-                'interval_months' => 3,
-                'pattern' => 'quarterly',
-                'custom_month_indexes' => [0, 3, 6, 9],
-                'notes' => 'Default quarterly. Admin can override per location.',
-            ],
+            AuditPolicy::CATEGORY_SHAKHA => ['frequency_per_year' => 3],
+            AuditPolicy::CATEGORY_AREA => ['frequency_per_year' => 4],
+            AuditPolicy::CATEGORY_PKSF => ['frequency_per_year' => 2],
+            AuditPolicy::CATEGORY_HQ => ['frequency_per_year' => 2],
+            AuditPolicy::CATEGORY_PROJECT_AUDIT => ['frequency_per_year' => 4],
+            AuditPolicy::CATEGORY_PROJECT_MONITORING => ['frequency_per_year' => 4],
         ];
 
         foreach ($defaults as $category => $data) {
+            $frequency = max(1, min(12, (int) $data['frequency_per_year']));
             AuditPolicy::firstOrCreate(
                 ['audit_plan_id' => $plan->id, 'category' => $category],
-                $data
+                [
+                    'frequency_per_year' => $frequency,
+                    'interval_months' => max(1, (int) floor(12 / $frequency)),
+                    'pattern' => null,
+                    'custom_month_indexes' => null,
+                    'notes' => null,
+                ]
             );
         }
     }
@@ -264,7 +237,7 @@ class AnnualPlanGenerator
     }
 
     /**
-     * @param  array<int, array{frequency_per_year?:int,interval_months?:int|null,pattern?:string,notes?:string|null,custom_month_indexes?:array|null}>  $policies
+     * @param  array<int, array{frequency_per_year?:int}>  $policies
      */
     public function updatePolicies(AuditPlan $plan, array $policies): void
     {
@@ -279,30 +252,102 @@ class AnnualPlanGenerator
             }
 
             $frequency = max(1, min(12, (int) ($data['frequency_per_year'] ?? $policy->frequency_per_year)));
-            $interval = isset($data['interval_months']) && $data['interval_months'] !== ''
-                ? max(1, min(12, (int) $data['interval_months']))
-                : (int) max(1, floor(12 / $frequency));
-
-            $custom = $data['custom_month_indexes'] ?? null;
-            if (is_string($custom)) {
-                $custom = collect(explode(',', $custom))
-                    ->map(fn ($v) => trim($v))
-                    ->filter(fn ($v) => $v !== '' && is_numeric($v))
-                    ->map(fn ($v) => (int) $v)
-                    ->filter(fn ($v) => $v >= 0 && $v <= 11)
-                    ->values()
-                    ->all();
-                $custom = $custom === [] ? null : $custom;
-            }
 
             $policy->update([
                 'frequency_per_year' => $frequency,
-                'interval_months' => $interval,
-                'pattern' => $data['pattern'] ?? $policy->pattern,
-                'custom_month_indexes' => $custom,
-                'notes' => $data['notes'] ?? $policy->notes,
+                'interval_months' => max(1, (int) floor(12 / $frequency)),
+                'pattern' => null,
+                'custom_month_indexes' => null,
+                'notes' => null,
             ]);
         }
+    }
+
+    /**
+     * Add schedules for active entities that are missing from an already-generated plan
+     * (e.g. a shakha opened mid-year). Does not touch existing rows.
+     */
+    public function syncMissing(AuditPlan $plan): int
+    {
+        $this->ensureDefaultPolicies($plan);
+        $plan->load('policies');
+        $fy = FinancialYear::fromLabel($plan->fy_label);
+        $policies = $plan->policies->keyBy('category');
+        $added = 0;
+
+        $added += $this->syncMissingShakhas($plan, $fy, $policies->get(AuditPolicy::CATEGORY_SHAKHA));
+        $added += $this->syncMissingAreas($plan, $fy, $policies->get(AuditPolicy::CATEGORY_AREA));
+        $added += $this->syncMissingHq($plan, $fy, $policies->get(AuditPolicy::CATEGORY_HQ));
+        $added += $this->syncMissingProjects($plan, $fy, $policies);
+
+        if ($added > 0 && ! $plan->generated_at) {
+            $plan->update([
+                'generated_at' => now(),
+                'status' => $plan->status === 'published' ? 'published' : 'generated',
+            ]);
+        }
+
+        return $added;
+    }
+
+    /**
+     * Schedule missing entities into the active (latest generated) FY plan —
+     * same plan Annual Audit opens by default.
+     */
+    public function includeInCurrentPlan(): ?string
+    {
+        $plan = AuditPlan::query()
+            ->whereNotNull('generated_at')
+            ->orderByDesc('start_date')
+            ->first();
+
+        if (! $plan) {
+            $plan = AuditPlan::query()
+                ->where('fy_label', FinancialYear::current()->label)
+                ->whereNotNull('generated_at')
+                ->first();
+        }
+
+        if (! $plan) {
+            return null;
+        }
+
+        $added = $this->syncMissing($plan);
+
+        if ($added === 0) {
+            return null;
+        }
+
+        return "Scheduled into FY {$plan->fy_label} ({$added} new row".($added === 1 ? '' : 's').').';
+    }
+
+    public function deleteLocationWithSchedules(ProjectLocation $location): void
+    {
+        DB::transaction(function () use ($location) {
+            PlanSchedule::query()
+                ->where('schedulable_type', ProjectLocation::class)
+                ->where('schedulable_id', $location->id)
+                ->delete();
+
+            $location->delete();
+        });
+    }
+
+    public function deleteProjectWithSchedules(Project $project): void
+    {
+        DB::transaction(function () use ($project) {
+            $locationIds = $project->locations()->pluck('id');
+
+            if ($locationIds->isNotEmpty()) {
+                PlanSchedule::query()
+                    ->where('schedulable_type', ProjectLocation::class)
+                    ->whereIn('schedulable_id', $locationIds)
+                    ->delete();
+            }
+
+            $project->locations()->delete();
+            $project->delete();
+        });
     }
 
     protected function generateShakhaSchedules(AuditPlan $plan, FinancialYear $fy, ?AuditPolicy $policy, bool $preserveManual): void
@@ -340,6 +385,217 @@ class AnnualPlanGenerator
         }
 
         $this->insertChunks($rows);
+    }
+
+    protected function syncMissingShakhas(AuditPlan $plan, FinancialYear $fy, ?AuditPolicy $policy): int
+    {
+        if (! $policy) {
+            return 0;
+        }
+
+        $existingIds = $this->scheduledEntityIds($plan, AuditPolicy::CATEGORY_SHAKHA, Shakha::class);
+        $frequency = max(1, (int) $policy->frequency_per_year);
+        $interval = max(1, (int) ($policy->interval_months ?: (int) floor(12 / $frequency)));
+
+        $shakhas = Shakha::query()
+            ->where('status', 'active')
+            ->orderBy('id')
+            ->get();
+
+        $rows = [];
+        foreach ($shakhas as $offset => $shakha) {
+            if (in_array((int) $shakha->id, $existingIds, true)) {
+                continue;
+            }
+
+            $startMonth = $offset % $interval;
+            for ($i = 0; $i < $frequency; $i++) {
+                $monthIndex = ($startMonth + ($i * $interval)) % 12;
+                $rows[] = $this->scheduleRow(
+                    $plan,
+                    AuditPolicy::CATEGORY_SHAKHA,
+                    $shakha,
+                    $monthIndex,
+                    $fy,
+                    $i + 1
+                );
+            }
+        }
+
+        $this->insertChunks($rows);
+
+        return count($rows);
+    }
+
+    protected function syncMissingAreas(AuditPlan $plan, FinancialYear $fy, ?AuditPolicy $policy): int
+    {
+        if (! $policy) {
+            return 0;
+        }
+
+        $existingIds = $this->scheduledEntityIds($plan, AuditPolicy::CATEGORY_AREA, Area::class);
+        $months = $this->resolveMonthIndexes($policy);
+        $areas = Area::query()
+            ->where('status', 'active')
+            ->whereNotIn('id', $existingIds ?: [0])
+            ->orderBy('id')
+            ->get();
+
+        $rows = [];
+        foreach ($areas as $area) {
+            foreach ($months as $occurrence => $monthIndex) {
+                $rows[] = $this->scheduleRow(
+                    $plan,
+                    AuditPolicy::CATEGORY_AREA,
+                    $area,
+                    $monthIndex,
+                    $fy,
+                    $occurrence + 1
+                );
+            }
+        }
+
+        $this->insertChunks($rows);
+
+        return count($rows);
+    }
+
+    protected function syncMissingHq(AuditPlan $plan, FinancialYear $fy, ?AuditPolicy $policy): int
+    {
+        if (! $policy) {
+            return 0;
+        }
+
+        $existingIds = $this->scheduledEntityIds($plan, AuditPolicy::CATEGORY_HQ, HqDepartment::class);
+        $months = $this->resolveMonthIndexes($policy);
+        $departments = HqDepartment::query()
+            ->where('status', 'active')
+            ->whereNotIn('id', $existingIds ?: [0])
+            ->orderBy('sort_order')
+            ->get();
+
+        $rows = [];
+        foreach ($departments as $department) {
+            foreach ($months as $occurrence => $monthIndex) {
+                $rows[] = $this->scheduleRow(
+                    $plan,
+                    AuditPolicy::CATEGORY_HQ,
+                    $department,
+                    $monthIndex,
+                    $fy,
+                    $occurrence + 1
+                );
+            }
+        }
+
+        $this->insertChunks($rows);
+
+        return count($rows);
+    }
+
+    protected function syncMissingProjects(AuditPlan $plan, FinancialYear $fy, Collection $policies): int
+    {
+        $locations = ProjectLocation::query()
+            ->with('project')
+            ->where('status', 'active')
+            ->whereHas('project', fn ($q) => $q->where('status', 'active'))
+            ->get();
+
+        $rows = [];
+
+        foreach ($locations as $location) {
+            $project = $location->project;
+
+            if ($project->is_pksf || $project->is_maternity) {
+                $this->appendMissingLocationRows(
+                    $rows,
+                    $plan,
+                    $fy,
+                    $policies->get(AuditPolicy::CATEGORY_PKSF),
+                    AuditPolicy::CATEGORY_PKSF,
+                    $location
+                );
+            }
+
+            if ($project->has_project_audit) {
+                $this->appendMissingLocationRows(
+                    $rows,
+                    $plan,
+                    $fy,
+                    $policies->get(AuditPolicy::CATEGORY_PROJECT_AUDIT),
+                    AuditPolicy::CATEGORY_PROJECT_AUDIT,
+                    $location
+                );
+            }
+
+            if ($project->has_project_monitoring) {
+                $this->appendMissingLocationRows(
+                    $rows,
+                    $plan,
+                    $fy,
+                    $policies->get(AuditPolicy::CATEGORY_PROJECT_MONITORING),
+                    AuditPolicy::CATEGORY_PROJECT_MONITORING,
+                    $location
+                );
+            }
+        }
+
+        $this->insertChunks($rows);
+
+        return count($rows);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     */
+    protected function appendMissingLocationRows(
+        array &$rows,
+        AuditPlan $plan,
+        FinancialYear $fy,
+        ?AuditPolicy $policy,
+        string $category,
+        ProjectLocation $location
+    ): void {
+        if (! $policy) {
+            return;
+        }
+
+        $alreadyScheduled = PlanSchedule::query()
+            ->where('audit_plan_id', $plan->id)
+            ->where('category', $category)
+            ->where('schedulable_type', ProjectLocation::class)
+            ->where('schedulable_id', $location->id)
+            ->exists();
+
+        if ($alreadyScheduled) {
+            return;
+        }
+
+        foreach ($this->resolveMonthIndexes($policy) as $occurrence => $monthIndex) {
+            $rows[] = $this->scheduleRow(
+                $plan,
+                $category,
+                $location,
+                $monthIndex,
+                $fy,
+                $occurrence + 1
+            );
+        }
+    }
+
+    /**
+     * @return list<int>
+     */
+    protected function scheduledEntityIds(AuditPlan $plan, string $category, string $type): array
+    {
+        return PlanSchedule::query()
+            ->where('audit_plan_id', $plan->id)
+            ->where('category', $category)
+            ->where('schedulable_type', $type)
+            ->distinct()
+            ->pluck('schedulable_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
     }
 
     protected function generateAreaSchedules(AuditPlan $plan, FinancialYear $fy, ?AuditPolicy $policy, bool $preserveManual): void
@@ -500,10 +756,6 @@ class AnnualPlanGenerator
      */
     protected function resolveMonthIndexes(AuditPolicy $policy): array
     {
-        if (! empty($policy->custom_month_indexes) && is_array($policy->custom_month_indexes)) {
-            return array_values(array_map('intval', $policy->custom_month_indexes));
-        }
-
         $frequency = max(1, (int) $policy->frequency_per_year);
         $interval = max(1, (int) ($policy->interval_months ?: (int) floor(12 / $frequency)));
         $indexes = [];
