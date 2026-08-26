@@ -6,15 +6,22 @@
             'division' => $area->division,
             'shakhas_count' => $area->shakhas_count,
         ])->values();
+
+        $openingDefault = old(
+            'opening_date',
+            $shakha?->opening_date?->format('Y-m-d')
+                ?? $shakha?->opened_at?->format('Y-m-d')
+                ?? ''
+        );
     @endphp
 
     <div
         class="px-4 py-4 lg:px-6"
         x-data="{
-            name: @js((string) old('name', '')),
-            code: @js((string) old('code', '')),
-            status: @js((string) old('status', 'active')),
-            areaId: @js(old('area_id') !== null ? (string) old('area_id') : ''),
+            name: @js((string) old('name', $shakha?->name ?? '')),
+            code: @js((string) old('code', $shakha?->code ?? '')),
+            status: @js((string) old('status', $shakha?->status ?? 'active')),
+            areaId: @js(old('area_id') !== null ? (string) old('area_id') : (string) ($shakha?->area_id ?? '')),
             areas: @js($areaOptions),
             get selectedArea() {
                 return this.areas.find(area => area.id === String(this.areaId)) || null;
@@ -25,7 +32,7 @@
             <div class="flex items-center gap-1.5 text-[11px] text-slate-400">
                 <a href="{{ route('shakhas.index') }}" class="hover:text-brand-600">All Shakha</a>
                 <span>/</span>
-                <span class="text-slate-600">Add Shakha</span>
+                <span class="text-slate-600">{{ $isEdit ? 'Edit Shakha' : 'Add Shakha' }}</span>
             </div>
             <div class="flex items-center gap-1.5">
                 <a href="{{ route('shakhas.index') }}" class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-medium text-slate-600 hover:bg-slate-50">
@@ -43,13 +50,22 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('shakhas.store') }}" class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <form
+            method="POST"
+            action="{{ $isEdit ? route('shakhas.update', $shakha) : route('shakhas.store') }}"
+            class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]"
+        >
             @csrf
+            @if ($isEdit)
+                @method('PUT')
+            @endif
 
             <div class="rounded-2xl border border-slate-100 bg-white shadow-card">
                 <div class="border-b border-slate-100 px-5 py-3.5">
                     <p class="text-[13px] font-semibold text-navy-900">Shakha information</p>
-                    <p class="mt-0.5 text-[11px] text-slate-500">Complete the fields below to create a branch record.</p>
+                    <p class="mt-0.5 text-[11px] text-slate-500">
+                        {{ $isEdit ? 'Update the branch record below.' : 'Complete the fields below to create a branch record.' }}
+                    </p>
                 </div>
 
                 <div class="space-y-5 px-5 py-5">
@@ -79,7 +95,7 @@
                                     id="name"
                                     name="name"
                                     type="text"
-                                    value="{{ old('name') }}"
+                                    value="{{ old('name', $shakha?->name) }}"
                                     x-model="name"
                                     required
                                     @disabled($areas->isEmpty())
@@ -97,7 +113,7 @@
                                     id="code"
                                     name="code"
                                     type="text"
-                                    value="{{ old('code') }}"
+                                    value="{{ old('code', $shakha?->code) }}"
                                     x-model="code"
                                     @disabled($areas->isEmpty())
                                     placeholder="e.g. DHA-001"
@@ -123,6 +139,39 @@
                                     <option value="inactive">Inactive</option>
                                 </select>
                                 <x-input-error :messages="$errors->get('status')" class="mt-1" />
+                            </div>
+
+                            <div>
+                                <label for="opening_date" class="mb-1.5 block text-[11px] font-medium text-slate-600">
+                                    Branch opening date <span class="text-rose-500">*</span>
+                                </label>
+                                <input
+                                    id="opening_date"
+                                    name="opening_date"
+                                    type="date"
+                                    value="{{ $openingDefault }}"
+                                    required
+                                    @disabled($areas->isEmpty())
+                                    class="block w-full rounded-lg border-slate-200 text-[13px] text-slate-800 shadow-sm focus:border-brand-500 focus:ring-brand-500 disabled:cursor-not-allowed disabled:bg-slate-50"
+                                >
+                                <p class="mt-1 text-[10px] text-slate-400">Used in KPI Excel (Year / Month / Day columns).</p>
+                                <x-input-error :messages="$errors->get('opening_date')" class="mt-1" />
+                            </div>
+
+                            <div>
+                                <label for="focal_person_name" class="mb-1.5 block text-[11px] font-medium text-slate-600">
+                                    Focal person
+                                </label>
+                                <input
+                                    id="focal_person_name"
+                                    name="focal_person_name"
+                                    type="text"
+                                    value="{{ old('focal_person_name', $shakha?->focal_person_name) }}"
+                                    @disabled($areas->isEmpty())
+                                    placeholder="e.g. Md. Rafiqul Islam"
+                                    class="block w-full rounded-lg border-slate-200 text-[13px] text-slate-800 shadow-sm focus:border-brand-500 focus:ring-brand-500 disabled:cursor-not-allowed disabled:bg-slate-50"
+                                >
+                                <x-input-error :messages="$errors->get('focal_person_name')" class="mt-1" />
                             </div>
                         </div>
                     </section>
@@ -152,7 +201,7 @@
                                 @foreach ($areasByDivision as $division => $divisionAreas)
                                     <optgroup label="{{ $division }}">
                                         @foreach ($divisionAreas as $area)
-                                            <option value="{{ $area->id }}" @selected((string) old('area_id') === (string) $area->id)>
+                                            <option value="{{ $area->id }}" @selected((string) old('area_id', $shakha?->area_id) === (string) $area->id)>
                                                 {{ $area->name }} ({{ $area->shakhas_count }} shakha)
                                             </option>
                                         @endforeach
@@ -176,7 +225,7 @@
                             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                             </svg>
-                            Save Shakha
+                            {{ $isEdit ? 'Update Shakha' : 'Save Shakha' }}
                         </button>
                     </div>
                 </div>

@@ -11,6 +11,8 @@
         <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @livewireStyles
+        @stack('styles')
     </head>
         <body class="font-sans text-[13px] font-normal leading-relaxed antialiased text-slate-700" x-data="{ sidebarOpen: false, searchOpen: false }" @keydown.window.prevent.ctrl.k="searchOpen = true" @keydown.window.escape="searchOpen = false; sidebarOpen = false">
         <div class="flex h-screen overflow-hidden bg-canvas">
@@ -47,5 +49,8 @@
                 </div>
             </div>
         </div>
+
+        @stack('scripts')
+        @livewireScripts
     </body>
 </html>

@@ -58,6 +58,20 @@
                 Projects
             </x-sidebar-link>
 
+            <x-sidebar-link :href="route('kpis.index')" :active="request()->routeIs('kpis.*')">
+                <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('kpis.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2a2 2 0 012-2h2a2 2 0 012 2v2m-6 0h6M7 7h.01M12 7h.01M17 7h.01M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" />
+                </svg>
+                KPI
+            </x-sidebar-link>
+
+            <x-sidebar-link :href="route('audits.index')" :active="request()->routeIs('audits.*')">
+                <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('audits.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Audit Reports
+            </x-sidebar-link>
+
             <div x-data="{ shakhaOpen: {{ request()->routeIs('shakhas.*') || request()->routeIs('areas.*') ? 'true' : 'false' }} }">
                 <button
                     type="button"

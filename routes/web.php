@@ -2,12 +2,15 @@
 
 use App\Http\Controllers\AnnualAuditController;
 use App\Http\Controllers\AreaController;
+use App\Http\Controllers\AuditReportController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MonthlyVisitController;
 use App\Http\Controllers\OrganogramController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\RiskAssessmentController;
 use App\Http\Controllers\ShakhaController;
+use App\Http\Controllers\ShakhaKpiController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -21,9 +24,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/organogram/positions', [OrganogramController::class, 'storePosition'])->name('organogram.positions.store');
     Route::delete('/organogram/employees/{employee}', [OrganogramController::class, 'destroy'])->name('organogram.employees.destroy');
 
+    Route::get('/kpi', [ShakhaKpiController::class, 'index'])->name('kpis.index');
+    Route::get('/kpi/export', [ShakhaKpiController::class, 'export'])->name('kpis.export');
+    Route::get('/kpi/{shakha}/edit', [ShakhaKpiController::class, 'edit'])->name('kpis.edit');
+    Route::post('/kpi/{shakha}', [ShakhaKpiController::class, 'store'])->name('kpis.store');
+
+    Route::get('/audits', [AuditReportController::class, 'index'])->name('audits.index');
+
     Route::get('/shakhas', [ShakhaController::class, 'index'])->name('shakhas.index');
     Route::get('/shakhas/create', [ShakhaController::class, 'create'])->name('shakhas.create');
     Route::post('/shakhas', [ShakhaController::class, 'store'])->name('shakhas.store');
+    Route::get('/shakhas/risk/export', [RiskAssessmentController::class, 'export'])->name('shakhas.risk.export');
+    Route::get('/shakhas/{shakha}/edit', [ShakhaController::class, 'edit'])->name('shakhas.edit');
+    Route::put('/shakhas/{shakha}', [ShakhaController::class, 'update'])->name('shakhas.update');
+    Route::get('/shakhas/{shakha}/risk', [RiskAssessmentController::class, 'create'])->name('shakhas.risk.create');
+    Route::post('/shakhas/{shakha}/risk', [RiskAssessmentController::class, 'store'])->name('shakhas.risk.store');
 
     Route::get('/areas', [AreaController::class, 'index'])->name('areas.index');
     Route::get('/areas/create', [AreaController::class, 'create'])->name('areas.create');

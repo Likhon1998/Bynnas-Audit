@@ -11,6 +11,9 @@
         <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />
 
         <?php echo app('Illuminate\Foundation\Vite')(['resources/css/app.css', 'resources/js/app.js']); ?>
+        <?php echo \Livewire\Mechanisms\FrontendAssets\FrontendAssets::styles(); ?>
+
+        <?php echo $__env->yieldPushContent('styles'); ?>
     </head>
         <body class="font-sans text-[13px] font-normal leading-relaxed antialiased text-slate-700" x-data="{ sidebarOpen: false, searchOpen: false }" @keydown.window.prevent.ctrl.k="searchOpen = true" @keydown.window.escape="searchOpen = false; sidebarOpen = false">
         <div class="flex h-screen overflow-hidden bg-canvas">
@@ -48,6 +51,10 @@
                 </div>
             </div>
         </div>
+
+        <?php echo $__env->yieldPushContent('scripts'); ?>
+        <?php echo \Livewire\Mechanisms\FrontendAssets\FrontendAssets::scripts(); ?>
+
     </body>
 </html>
 <?php /**PATH C:\xampp\htdocs\Bynnas-Audit\resources\views/layouts/app.blade.php ENDPATH**/ ?>
