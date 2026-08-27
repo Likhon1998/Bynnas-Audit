@@ -36,6 +36,8 @@ echo "==> composer install"
 "${COMPOSER[@]}" install --no-dev --optimize-autoloader --no-interaction
 
 echo "==> migrate + seed"
+# First deploy / broken partial DB: wipe then migrate cleanly.
+php artisan db:wipe --force
 php artisan migrate --force
 php artisan db:seed --class=RolePermissionSeeder --force
 
