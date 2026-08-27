@@ -30,14 +30,14 @@
                 Dashboard
             </x-sidebar-link>
 
-            @can('users.manage')
+            @if(auth()->user()?->can('users.manage') || auth()->user()?->isSuperAdmin())
                 <x-sidebar-link :href="route('users.index')" :active="request()->routeIs('users.*')">
                     <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('users.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                     </svg>
                     Users & Access
                 </x-sidebar-link>
-            @endcan
+            @endif
 
             @canany(['organogram.view', 'organogram.manage'])
                 <x-sidebar-link :href="route('organogram')" :active="request()->routeIs('organogram')">

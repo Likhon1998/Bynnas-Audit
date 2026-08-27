@@ -14,7 +14,16 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Superadmin bypass: Spatie role OR legacy is_superadmin flag.
         Gate::before(function ($user, $ability) {
+            if (! is_object($user)) {
+                return null;
+            }
+
+            if (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) {
+                return true;
+            }
+
             if (method_exists($user, 'hasRole') && $user->hasRole('superadmin')) {
                 return true;
             }

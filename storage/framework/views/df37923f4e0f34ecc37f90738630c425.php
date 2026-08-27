@@ -50,7 +50,7 @@
 <?php unset($__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300); ?>
 <?php endif; ?>
 
-            <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('users.manage')): ?>
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(auth()->user()?->can('users.manage') || auth()->user()?->isSuperAdmin()): ?>
                 <?php if (isset($component)) { $__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal3d3185cbc95d2b4d3b41182ae7d7a300 = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.sidebar-link','data' => ['href' => route('users.index'),'active' => request()->routeIs('users.*')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
@@ -77,7 +77,7 @@
 <?php $component = $__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300; ?>
 <?php unset($__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300); ?>
 <?php endif; ?>
-            <?php endif; ?>
+            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
             <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->any(['organogram.view', 'organogram.manage'])): ?>
                 <?php if (isset($component)) { $__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300 = $component; } ?>
