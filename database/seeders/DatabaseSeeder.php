@@ -32,6 +32,8 @@ class DatabaseSeeder extends Seeder
             AnnualAuditSeeder::class,
             ActivityTypeSeeder::class,
             CalendarHolidaySeeder::class,
+            AuditIndicatorSeeder::class,
+            RolePermissionSeeder::class,
         ]);
     }
 }

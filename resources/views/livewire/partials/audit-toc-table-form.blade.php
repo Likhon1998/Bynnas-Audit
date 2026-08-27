@@ -5,7 +5,7 @@
 
 <div class="mb-2 flex flex-wrap items-center gap-2">
     <p class="mr-auto text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-        সূচিপত্র @if($previewPage === 2) (পৃষ্ঠা ২ — নিচের অংশ) @else (পৃষ্ঠা ৩ — ধারাবাহিকতা) @endif
+        সূচিপত্র @if($previewPage === 2) (শুরু) @else (বাকি অংশ) @endif
     </p>
     <button type="button" wire:click="addTocSection(-1, {{ $previewPage }})" class="h-7 rounded border border-slate-300 px-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50">+ Section</button>
     <button type="button" wire:click="addTocRow(-1, {{ $previewPage }})" class="h-7 rounded border border-slate-300 px-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50">+ Row</button>

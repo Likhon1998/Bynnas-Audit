@@ -81,10 +81,14 @@ class OrganogramSeeder extends Seeder
         ];
 
         foreach ($ranks as $rank) {
-            $position = Position::query()->updateOrCreate(
-                ['slug' => $rank['slug']],
-                $rank
-            );
+            $position = Position::query()->where('slug', $rank['slug'])->first()
+                ?? Position::query()->where('serial', $rank['serial'])->first();
+
+            if ($position) {
+                $position->update($rank);
+            } else {
+                $position = Position::query()->create($rank);
+            }
 
             foreach ($people[$rank['slug']] as $index => $person) {
                 Employee::query()->updateOrCreate(

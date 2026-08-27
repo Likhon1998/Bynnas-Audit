@@ -10,7 +10,7 @@ class ExampleTest extends TestCase
     {
         $response = $this->get('/');
 
-        $response->assertOk();
+        $response->assertRedirect(route('login'));
     }
 
     public function test_login_is_available_at_the_login_path(): void

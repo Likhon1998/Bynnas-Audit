@@ -193,11 +193,11 @@ class AnnualAuditTest extends TestCase
         $this->actingAs($user)
             ->get(route('annual-audit.index'))
             ->assertOk()
-            ->assertSee('Create FY 2027-2028', false);
+            ->assertSee('Create 2027-2028', false);
 
         $this->actingAs($user)
             ->post(route('annual-audit.years.store'), ['fy' => '2026-2027'])
-            ->assertRedirect(route('annual-audit.index', ['fy' => '2027-2028', 'tab' => 'total']));
+            ->assertRedirect(route('annual-audit.index', ['fy' => '2027-2028', 'tab' => 'policies']));
 
         $next = AuditPlan::query()->where('fy_label', '2027-2028')->first();
         $this->assertNotNull($next);
@@ -214,8 +214,8 @@ class AnnualAuditTest extends TestCase
             ->get(route('annual-audit.index', ['fy' => '2027-2028']))
             ->assertOk()
             ->assertSee('2027-2028', false)
-            ->assertDontSee('Create FY 2027-2028', false)
-            ->assertSee('Create FY 2028-2029', false);
+            ->assertDontSee('Create 2027-2028', false)
+            ->assertSee('Create 2028-2029', false);
     }
 
     public function test_only_superadmin_can_delete_financial_year_plan(): void
@@ -244,7 +244,7 @@ class AnnualAuditTest extends TestCase
         $this->actingAs($super)
             ->get(route('annual-audit.index', ['fy' => '2027-2028']))
             ->assertOk()
-            ->assertSee('Delete FY 2027-2028', false);
+            ->assertSee('Delete FY', false);
 
         $this->actingAs($super)
             ->delete(route('annual-audit.years.destroy'), ['fy' => '2027-2028'])

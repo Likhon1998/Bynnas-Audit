@@ -2,185 +2,95 @@
     <link href="https://fonts.bunny.net/css?family=hind-siliguri:400,500,600,700&display=swap" rel="stylesheet" />
 
     @if ($step === 'select')
-        <div class="border-b border-slate-200 bg-white px-4 py-4 lg:px-6">
-            <div class="mb-3">
-                <h1 class="text-[16px] font-semibold text-navy-900">Audit Report</h1>
-                <p class="text-[11px] text-slate-500">Select branch · month · year — then Start</p>
-            </div>
-
-            <div class="grid gap-2 rounded-2xl border border-slate-100 bg-white p-3 shadow-card sm:grid-cols-[1fr_130px_100px_auto]">
-                {{-- Find branch (Alpine typeahead) --}}
-                <div
-                    class="relative"
-                    x-data="{
-                        q: @js($selectedShakhaLabel ?: ''),
-                        open: false,
-                        highlight: 0,
-                        selectedId: @js($shakha_id ? (string) $shakha_id : ''),
-                        branches: @js($branchOptions),
-                        get filtered() {
-                            const q = this.q.trim().toLowerCase();
-                            return this.branches.filter((b) => {
-                                if (!q) return true;
-                                const hay = (b.name + ' ' + b.code + ' ' + b.area + ' ' + b.division + ' ' + b.focal + ' ' + b.opening).toLowerCase();
-                                return hay.includes(q);
-                            });
-                        },
-                        pick(b) {
-                            this.q = b.name;
-                            this.selectedId = String(b.id);
-                            this.open = false;
-                            this.highlight = 0;
-                            $wire.set('shakha_id', Number(b.id));
-                        },
-                        clear() {
-                            this.q = '';
-                            this.selectedId = '';
-                            this.open = false;
-                            this.highlight = 0;
-                            $wire.set('shakha_id', null);
-                        },
-                        onKey(e) {
-                            const list = this.filtered;
-                            if (!this.open && (e.key === 'ArrowDown' || e.key === 'Enter')) {
-                                this.open = true;
-                                return;
-                            }
-                            if (e.key === 'ArrowDown') {
-                                e.preventDefault();
-                                this.highlight = Math.min(this.highlight + 1, Math.max(Math.min(list.length, 40) - 1, 0));
-                            } else if (e.key === 'ArrowUp') {
-                                e.preventDefault();
-                                this.highlight = Math.max(this.highlight - 1, 0);
-                            } else if (e.key === 'Enter' && list[this.highlight]) {
-                                e.preventDefault();
-                                this.pick(list[this.highlight]);
-                            } else if (e.key === 'Escape') {
-                                this.open = false;
-                            }
-                        }
-                    }"
-                    @click.outside="open = false"
-                >
-                    <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Find branch</label>
-                    <div class="relative">
-                        <svg class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"/></svg>
-                        <input
-                            type="search"
-                            x-model="q"
-                            @focus="open = true; highlight = 0"
-                            @input="open = true; highlight = 0; if (selectedId) { selectedId = ''; $wire.set('shakha_id', null); }"
-                            @keydown="onKey($event)"
-                            placeholder="Type branch, area, code, focal person…"
-                            class="h-9 w-full rounded-lg border-slate-200 py-0 pl-8 pr-8 text-[13px] shadow-sm focus:border-brand-500 focus:ring-brand-500"
-                            autocomplete="off"
-                        >
-                        <button
-                            type="button"
-                            x-show="q"
-                            x-cloak
-                            @click="clear()"
-                            class="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-medium text-slate-400 hover:text-slate-600"
-                        >Clear</button>
-                    </div>
-
-                    <div
-                        x-show="open && filtered.length"
-                        x-cloak
-                        class="absolute z-30 mt-1 max-h-72 w-full overflow-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
-                    >
-                        <template x-for="(b, idx) in filtered.slice(0, 40)" :key="b.id">
-                            <button
-                                type="button"
-                                @click="pick(b)"
-                                @mouseenter="highlight = idx"
-                                class="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-sky-50"
-                                :class="highlight === idx || selectedId === b.id ? 'bg-sky-50' : ''"
-                            >
-                                <span class="mt-0.5 w-6 shrink-0 text-[11px] tabular-nums text-slate-400" x-text="b.serial"></span>
-                                <span class="min-w-0 flex-1">
-                                    <span class="block truncate text-[12px] font-semibold text-navy-900" x-text="b.name"></span>
-                                    <span class="mt-0.5 block truncate text-[10px] text-slate-500">
-                                        <span x-text="b.area || 'No area'"></span>
-                                        <span x-show="b.code"> · <span x-text="b.code"></span></span>
-                                        <span x-show="b.opening"> · Opened <span x-text="b.opening"></span></span>
-                                    </span>
-                                </span>
-                                <span
-                                    class="mt-0.5 shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold"
-                                    :class="b.active ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'"
-                                    x-text="b.active ? 'Active' : 'Inactive'"
-                                ></span>
-                            </button>
-                        </template>
-                        <p class="border-t border-slate-100 px-3 py-1.5 text-[10px] text-slate-400" x-show="filtered.length > 40">
-                            Showing first 40 of <span x-text="filtered.length"></span> — keep typing to narrow
-                        </p>
-                    </div>
-                    <p x-show="open && q && !filtered.length" x-cloak class="absolute z-30 mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-[12px] text-slate-500 shadow-lg">
-                        No branch matches “<span x-text="q"></span>”
-                    </p>
-
-                    @if ($shakha_id)
-                        <p class="mt-1 text-[11px] text-emerald-700">Selected: {{ $selectedShakhaLabel }}</p>
-                    @endif
-                    @error('shakha_id')
-                        <p class="mt-1 text-[12px] font-medium text-rose-600">{{ $message }}</p>
-                    @enderror
+        <div
+            class="px-4 py-5 lg:px-6"
+            x-data="{
+                q: '',
+                open: false,
+                highlight: 0,
+                selectedId: @js($shakha_id ? (string) $shakha_id : ''),
+                selectedLabel: @js($selectedShakhaLabel ?: ''),
+                branches: @js($branchOptions),
+                get filtered() {
+                    const q = this.q.trim().toLowerCase();
+                    if (!q) return this.branches;
+                    return this.branches.filter((b) => {
+                        const hay = (b.name + ' ' + b.code + ' ' + b.area + ' ' + b.division + ' ' + b.focal).toLowerCase();
+                        return hay.includes(q);
+                    });
+                },
+                pick(b) {
+                    this.selectedId = String(b.id);
+                    this.selectedLabel = b.name + (b.code ? ' (' + b.code + ')' : '') + (b.area ? ' — ' + b.area : '');
+                    this.q = '';
+                    this.open = false;
+                    this.highlight = 0;
+                    $wire.set('shakha_id', Number(b.id));
+                },
+                clear() {
+                    this.q = '';
+                    this.selectedId = '';
+                    this.selectedLabel = '';
+                    this.open = false;
+                    this.highlight = 0;
+                    $wire.set('shakha_id', null);
+                },
+                onKey(e) {
+                    const list = this.filtered;
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        this.open = true;
+                        this.highlight = Math.min(this.highlight + 1, Math.max(list.length - 1, 0));
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        this.highlight = Math.max(this.highlight - 1, 0);
+                    } else if (e.key === 'Enter' && list[this.highlight]) {
+                        e.preventDefault();
+                        this.pick(list[this.highlight]);
+                    } else if (e.key === 'Escape') {
+                        this.open = false;
+                        this.q = '';
+                    }
+                }
+            }"
+        >
+            <div class="px-4 py-4 lg:px-6">
+                <div class="mb-3">
+                    <h1 class="text-[16px] font-semibold text-navy-900">Audit Report Dashboard</h1>
+                    <p class="mt-0.5 text-[11px] text-slate-500">একসাথে সর্বোচ্চ {{ $maxConcurrentDrafts }}টি রিপোর্ট · Auto-save · Continue দিয়ে আগের কাজ চালিয়ে যান</p>
                 </div>
 
-                <div>
-                    <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Month</label>
-                    <select wire:model="report_month" class="h-9 w-full rounded-lg border-slate-200 py-0 text-[12px]">
-                        @for ($m = 1; $m <= 12; $m++)
-                            <option value="{{ $m }}">{{ date('F', mktime(0, 0, 0, $m, 1)) }}</option>
-                        @endfor
-                    </select>
-                </div>
+                @if (session('status'))
+                    <div class="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] text-emerald-800">{{ session('status') }}</div>
+                @endif
 
-                <div>
-                    <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Year</label>
-                    <select wire:model="report_year" class="h-9 w-full rounded-lg border-slate-200 py-0 text-[12px]">
-                        @for ($y = now()->year + 1; $y >= now()->year - 6; $y--)
-                            <option value="{{ $y }}">{{ $y }}</option>
-                        @endfor
-                    </select>
-                </div>
-
-                {{-- Pure Livewire Start (outside Alpine) --}}
-                <div class="flex items-end">
-                    <button
-                        type="button"
-                        wire:click="startReport"
-                        wire:loading.attr="disabled"
-                        wire:target="startReport"
-                        class="inline-flex h-9 w-full items-center justify-center rounded-lg bg-[#2b579a] px-4 text-[12px] font-semibold text-white hover:bg-[#204072] disabled:opacity-60"
-                    >
-                        <span wire:loading.remove wire:target="startReport">Start</span>
-                        <span wire:loading wire:target="startReport">Starting…</span>
-                    </button>
-                </div>
-            </div>
-
-            {{-- Fallback native select if typeahead fails --}}
-            <div class="mt-3">
-                <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Or select branch</label>
-                <select wire:model="shakha_id" class="h-9 w-full max-w-xl rounded-lg border-slate-200 py-0 text-[12px]">
-                    <option value="">শাখা নির্বাচন করুন…</option>
-                    @foreach ($branchOptions as $b)
-                        <option value="{{ $b['id'] }}">{{ $b['name'] }}@if($b['code']) ({{ $b['code'] }})@endif@if($b['area']) — {{ $b['area'] }}@endif</option>
-                    @endforeach
-                </select>
+                @include('livewire.partials.audit-reports-dashboard')
             </div>
         </div>
     @else
-        <div class="border-b border-slate-200 bg-white px-4 py-3 lg:px-6">
+        <div
+            class="border-b border-slate-200 bg-white px-4 py-3 lg:px-6"
+            wire:poll.30s="autoSaveDraft"
+        >
             <div class="flex flex-wrap items-center gap-3">
+                <button
+                    type="button"
+                    wire:click="backToSelect"
+                    class="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-medium text-slate-700 hover:bg-slate-50"
+                    title="Audit Dashboard"
+                >
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                    Back
+                </button>
                 <div class="min-w-0 flex-1">
                     <h1 class="truncate text-[15px] font-semibold text-navy-900">অভ্যন্তরীণ নিরীক্ষা প্রতিবেদন</h1>
                     <p class="truncate text-[11px] text-slate-500">{{ $shakha_display_name }} · {{ $area_display_name }} · {{ $monthLabel }} {{ $report_year }}</p>
+                    @if ($autoSaveHint !== '')
+                        <p class="mt-0.5 text-[10px] font-medium text-emerald-700" wire:loading.remove wire:target="autoSaveDraft">{{ $autoSaveHint }}</p>
+                        <p class="mt-0.5 text-[10px] font-medium text-slate-400" wire:loading wire:target="autoSaveDraft">Saving…</p>
+                    @endif
                 </div>
-                <button type="button" wire:click="backToSelect" class="h-8 rounded-lg border border-slate-200 px-3 text-[12px] text-slate-600 hover:bg-slate-50">নতুন করে শুরু</button>
+                <button type="button" wire:click="autoSaveDraft" class="h-8 rounded-lg border border-slate-200 px-3 text-[12px] text-slate-600 hover:bg-slate-50">Save now</button>
                 <button type="button" wire:click="openPreview" class="h-8 rounded-lg border border-[#2b579a] bg-white px-3 text-[12px] font-semibold text-[#2b579a] hover:bg-sky-50">Preview</button>
                 <button
                     type="button"
@@ -337,6 +247,8 @@
             @include('livewire.partials.audit-page2-form')
         @elseif ($activeTab === 'page3')
             @include('livewire.partials.audit-page3-form')
+        @elseif ($activeTab === 'page4')
+            @include('livewire.partials.audit-page4-form')
         @else
             <div class="px-4 py-16 text-center text-[13px] text-slate-500">
                 এই পৃষ্ঠা এখনো যোগ করা হয়নি। Cover Page শেষ করে পরের ছবি পাঠালে ট্যাব যোগ করা হবে।
@@ -344,12 +256,14 @@
         @endif
 
         @if ($showPreview)
-            <div class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/55 px-3 py-6" wire:click.self="closePreview">
-                <div class="w-full max-w-[230mm]">
+            @include('livewire.partials.audit-document-preview-styles')
+
+            <div class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 px-3 py-6" wire:click.self="closePreview">
+                <div class="mx-auto w-full max-w-[236mm]">
                     <div class="mb-3 flex items-center justify-between rounded-lg bg-white px-4 py-2.5 shadow">
                         <div>
                             <p class="text-[13px] font-semibold text-navy-900">Preview</p>
-                            <p class="text-[11px] text-slate-500">A4 · পৃষ্ঠা ১–৩ · Cover + এক নজরে/সূচিপত্র + স্বাক্ষর</p>
+                            <p class="text-[11px] text-slate-500">A4 · Cover আলাদা · বাকি অংশ একসাথে বসে (ফাঁকা পৃষ্ঠা নয়)</p>
                         </div>
                         <div class="flex items-center gap-2">
                             <button
@@ -367,109 +281,31 @@
                         </div>
                     </div>
 
-                    <div class="a4-preview-stage bg-[#a6a6a6] px-3 py-5 sm:px-5">
-                        <div class="mb-2 flex items-center justify-between px-1">
-                            <p class="text-[11px] font-medium text-slate-800">পৃষ্ঠা ১ — Cover (A4)</p>
-                        </div>
-
-                        <div class="a4-sheet">
-                            <div class="a4-inner official-preview">
-                                <div class="a4-body">
-                                    @include('livewire.partials.audit-cover-letterhead', [
-                                        'editable' => false,
-                                        'logoUrl' => $logoUrl,
-                                        'ratingColor' => $ratingColor,
-                                        'control_rating' => $control_rating,
-                                    ])
-
-                                    <div class="mt-[4mm] space-y-[1.5mm] text-[12px] text-black leading-[1.55]">
-                                        <p><span class="font-semibold">সূত্র নাম্বার:</span> <span class="dotted">{{ $memo_no ?: '………………………………' }}</span></p>
-                                        <p><span class="font-semibold">তারিখ:</span> <span class="dotted">{{ $report_date ? \Carbon\Carbon::parse($report_date)->format('d/m/Y') : '……………………' }}</span></p>
-                                    </div>
-
-                                    <div class="mt-[5mm] text-[12px] leading-[1.55] text-black">
-                                        <p>বরাবর,</p>
-                                        <p>যুগ্ম পরিচালক (নিরীক্ষা)</p>
-                                        <p>দুঃস্থ স্বাস্থ্য কেন্দ্র (ডিএসকে)</p>
-                                        <p>প্রধান কার্যালয়, ঢাকা।</p>
-                                    </div>
-
-                                    <h2 class="mt-[5mm] text-center text-[14.5px] font-bold text-black underline decoration-1 underline-offset-4">অভ্যন্তরীণ নিরীক্ষা প্রতিবেদন</h2>
-
-                                    <div class="mt-[4mm] space-y-[2mm] text-[12px] leading-[1.55] text-black">
-                                        <p><span class="font-semibold">শাখার নাম ও নাম্বার:</span> <span class="dotted">{{ $shakha_display_name ?: '………………………………' }}</span></p>
-                                        <p><span class="font-semibold">অঞ্চলের নাম:</span> <span class="dotted">{{ $area_display_name ?: '………………………………' }}</span></p>
-                                        <p><span class="font-semibold">নিরীক্ষাকাল:</span> <span class="dotted">{{ $audit_period_label ?: '………………………………' }}</span></p>
-                                    </div>
-
-                                    <div class="mt-[4.5mm] text-[12px] leading-[1.7] text-black">
-                                        <p class="font-semibold">প্রিয় মহোদয়,</p>
-                                        <p class="mt-[2mm] text-justify">
-                                            গত
-                                            <span class="underline-field">{{ $audit_start_date ? \Carbon\Carbon::parse($audit_start_date)->format('d/m/Y') : '…………' }}</span>
-                                            হতে
-                                            <span class="underline-field">{{ $audit_end_date ? \Carbon\Carbon::parse($audit_end_date)->format('d/m/Y') : '…………' }}</span>
-                                            পর্যন্ত মোট
-                                            <span class="underline-field">{{ $working_days !== null && $working_days !== '' ? $working_days : '……' }}</span>
-                                            কর্ম দিবস
-                                            <span class="underline-field">{{ $shakha_display_name ?: '………………' }}</span>
-                                            শাখা হতে
-                                            <span class="underline-field">{{ $period_scope ?: '………………' }}</span>
-                                            সময়ের উপর অভ্যন্তরীণ নিরীক্ষা সম্পন্ন করা হয়। শাখার খসড়া প্রতিবেদন
-                                            <span class="underline-field">{{ $draft_sent_date ? \Carbon\Carbon::parse($draft_sent_date)->format('d/m/Y') : '…………' }}</span>
-                                            ইং তারিখে প্রেরণ করা হয় এবং
-                                            <span class="underline-field">{{ $comments_received_date ? \Carbon\Carbon::parse($comments_received_date)->format('d/m/Y') : '…………' }}</span>
-                                            তারিখে মতামত পাওয়া যায়। এতদসংক্রান্ত অভ্যন্তরীণ নিরীক্ষা প্রতিবেদন আপনার সদয় অবগতির জন্য পেশ করা হলো।
-                                        </p>
-                                    </div>
-
-                                    <div class="mt-[6mm] text-[12px] leading-[1.55] text-black">
-                                        <p>আপনার বিশ্বস্ত,</p>
-                                        <p class="mt-[5mm]"><span class="font-semibold">নাম:</span> <span class="dotted">{{ $auditor_name ?: '……………………' }}</span></p>
-                                        <p class="mt-[1.5mm]"><span class="font-semibold">পদবী:</span> <span class="dotted">{{ $auditor_designation ?: '……………………' }}</span></p>
-                                    </div>
-
-                                    <div class="mt-[6mm] text-[11.5px] leading-[1.55] text-black">
-                                        <p class="font-semibold">অনুলিপি:</p>
-                                        <ol class="ml-5 list-decimal space-y-[0.8mm]">
-                                            <li>নির্বাহী পরিচালক</li>
-                                            <li>উপ-নির্বাহী পরিচালক</li>
-                                            <li>পরিচালক ঋণ</li>
-                                            <li>উপ-প্রধান ঋণ</li>
-                                            <li>যুগ্ম পরিচালক প্রশাসন ও মানব সম্পদ</li>
-                                            <li>ফোকাল পার্সন</li>
-                                            <li>অঞ্চলিক ব্যবস্থাপক</li>
-                                            <li>শাখা ব্যবস্থাপক</li>
-                                            <li>অফিস কপি</li>
-                                        </ol>
-                                    </div>
-                                </div>
-                                <p class="a4-page-num">1</p>
-                            </div>
-                        </div>
-
-                        <div class="mb-2 mt-8 flex items-center justify-between px-1">
-                            <p class="text-[11px] font-medium text-slate-800">পৃষ্ঠা ২ — এক নজরে তথ্য + সূচিপত্র (শুরু) (A4)</p>
-                        </div>
-
-                        @include('livewire.partials.audit-page2-preview', [
+                    <div class="audit-doc-preview rounded-sm bg-[#8d8d8d] px-4 py-6">
+                        @include('livewire.partials.audit-document-preview-pages', [
+                            'documentSheets' => $documentSheets,
                             'logoUrl' => $logoUrl,
+                            'ratingColor' => $ratingColor,
+                            'control_rating' => $control_rating,
+                            'memo_no' => $memo_no,
+                            'report_date' => $report_date,
                             'shakha_display_name' => $shakha_display_name,
+                            'area_display_name' => $area_display_name,
+                            'audit_period_label' => $audit_period_label,
+                            'audit_start_date' => $audit_start_date,
+                            'audit_end_date' => $audit_end_date,
+                            'working_days' => $working_days,
+                            'period_scope' => $period_scope,
+                            'draft_sent_date' => $draft_sent_date,
+                            'comments_received_date' => $comments_received_date,
+                            'auditor_name' => $auditor_name,
+                            'auditor_designation' => $auditor_designation,
                             'glance_as_of' => $glance_as_of,
                             'branch_opening_date' => $branch_opening_date,
                             'staff_info_as_of' => $staff_info_as_of,
                             'glanceRows' => $glanceRows,
                             'staffColumns' => $staffColumns,
                             'staffRows' => $staffRows,
-                            'tocPage2Rows' => $tocPage2Rows,
-                        ])
-
-                        <div class="mb-2 mt-8 flex items-center justify-between px-1">
-                            <p class="text-[11px] font-medium text-slate-800">পৃষ্ঠা ৩ — সূচিপত্র (ধারাবাহিকতা) + স্বাক্ষর (A4)</p>
-                        </div>
-
-                        @include('livewire.partials.audit-page3-preview', [
-                            'tocPage3Rows' => $tocPage3Rows,
                             'sign_auditor_name' => $sign_auditor_name,
                             'sign_auditor_designation' => $sign_auditor_designation,
                             'sign_auditor_date' => $sign_auditor_date,
@@ -477,6 +313,11 @@
                             'sign_bm_date' => $sign_bm_date,
                             'sign_abm_name' => $sign_abm_name,
                             'sign_abm_date' => $sign_abm_date,
+                            'financial_section_title' => $financial_section_title,
+                            'financialFindings' => $financialFindings,
+                            'financial_criteria' => $financial_criteria,
+                            'vatObservationRows' => $vatObservationRows,
+                            'taxObservationRows' => $taxObservationRows,
                         ])
                     </div>
                 </div>
@@ -523,53 +364,25 @@
         box-shadow: 0 0 0 1px #2b579a;
         background: #fff;
     }
-    /* Editor sheet (approximate A4 look while editing) */
+    /* Editor sheet — same A4 margins as submitted document */
     .cover-form {
         width: 210mm;
         max-width: 100%;
     }
     .cover-inner {
-        padding: 14mm 16mm 12mm;
+        padding: 15mm 20mm 15mm;
         color: #111;
-        font-size: 12.5px;
+        font-size: 12pt;
+        line-height: 1.45;
         min-height: 297mm;
         box-sizing: border-box;
     }
-    /* True A4 preview pages */
-    .a4-sheet {
-        width: 210mm;
-        height: 297mm;
-        max-width: 100%;
-        margin-left: auto;
-        margin-right: auto;
-        background: #fff;
-        box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.35);
-        box-sizing: border-box;
-        overflow: hidden;
+    .dotted {
+        border-bottom: 1px dotted #111;
+        padding: 0 2px 1px;
+        font-weight: 600;
     }
-    .a4-inner {
-        height: 100%;
-        padding: 12mm 14mm 10mm;
-        box-sizing: border-box;
-        display: flex;
-        flex-direction: column;
-        color: #111;
-        font-size: 11.5px;
-        line-height: 1.5;
-    }
-    .a4-body {
-        flex: 1 1 auto;
-        min-height: 0;
-    }
-    .a4-page-num {
-        flex: 0 0 auto;
-        margin-top: auto;
-        padding-top: 4mm;
-        text-align: right;
-        font-size: 11px;
-        color: #111;
-        line-height: 1;
-    }
+    /* Form editor tables (pages 2–4 input views) */
     .a4-table {
         width: 100%;
         border-collapse: collapse;
@@ -587,28 +400,6 @@
     .a4-table-compact th,
     .a4-table-compact td {
         padding: 1.2mm 1.4mm;
-    }
-    .official-preview {
-        font-family: 'Hind Siliguri', 'Nirmala UI', Arial, sans-serif;
-    }
-    .underline-field {
-        display: inline;
-        border-bottom: 1px dotted #111;
-        padding: 0 4px;
-        font-weight: 600;
-    }
-    .dotted {
-        border-bottom: 1px dotted #111;
-        padding: 0 2px 1px;
-        font-weight: 600;
-    }
-    @media print {
-        @page { size: A4 portrait; margin: 0; }
-        .a4-sheet {
-            box-shadow: none;
-            page-break-after: always;
-            break-after: page;
-        }
     }
 </style>
 </div>

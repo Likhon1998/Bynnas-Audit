@@ -21,4 +21,9 @@ class Employee extends Model
     {
         return $this->belongsTo(Position::class);
     }
+
+    public function user(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(User::class);
+    }
 }

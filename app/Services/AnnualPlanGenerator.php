@@ -74,9 +74,9 @@ class AnnualPlanGenerator
                 [
                     'frequency_per_year' => $policy->frequency_per_year,
                     'interval_months' => max(1, (int) floor(12 / max(1, (int) $policy->frequency_per_year))),
-                    'pattern' => null,
-                    'custom_month_indexes' => null,
-                    'notes' => null,
+                    'pattern' => $policy->pattern ?: 'interval',
+                    'custom_month_indexes' => $policy->custom_month_indexes,
+                    'notes' => $policy->notes,
                 ]
             );
         }
@@ -102,7 +102,7 @@ class AnnualPlanGenerator
                 [
                     'frequency_per_year' => $frequency,
                     'interval_months' => max(1, (int) floor(12 / $frequency)),
-                    'pattern' => null,
+                    'pattern' => 'interval',
                     'custom_month_indexes' => null,
                     'notes' => null,
                 ]
@@ -256,9 +256,13 @@ class AnnualPlanGenerator
             $policy->update([
                 'frequency_per_year' => $frequency,
                 'interval_months' => max(1, (int) floor(12 / $frequency)),
-                'pattern' => null,
-                'custom_month_indexes' => null,
-                'notes' => null,
+                'pattern' => $data['pattern'] ?? $policy->pattern ?? 'interval',
+                'custom_month_indexes' => array_key_exists('custom_month_indexes', $data)
+                    ? ($data['custom_month_indexes'] === '' || $data['custom_month_indexes'] === null
+                        ? null
+                        : $data['custom_month_indexes'])
+                    : $policy->custom_month_indexes,
+                'notes' => $data['notes'] ?? $policy->notes,
             ]);
         }
     }

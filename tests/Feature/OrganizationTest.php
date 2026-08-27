@@ -46,6 +46,7 @@ class OrganizationTest extends TestCase
                 'area_id' => $area->id,
                 'code' => 'DHA-100',
                 'status' => 'active',
+                'opening_date' => '2020-01-15',
             ])
             ->assertRedirect(route('shakhas.index'));
 

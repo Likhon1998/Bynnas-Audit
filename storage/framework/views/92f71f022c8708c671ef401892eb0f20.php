@@ -5,7 +5,7 @@
 
 <div class="mb-2 flex flex-wrap items-center gap-2">
     <p class="mr-auto text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-        সূচিপত্র <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($previewPage === 2): ?> (পৃষ্ঠা ২ — নিচের অংশ) <?php else: ?> <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+        সূচিপত্র <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($previewPage === 2): ?> (শুরু) <?php else: ?> <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
     </p>
     <button type="button" wire:click="addTocSection(-1, <?php echo e($previewPage); ?>)" class="h-7 rounded border border-slate-300 px-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50">+ Section</button>
     <button type="button" wire:click="addTocRow(-1, <?php echo e($previewPage); ?>)" class="h-7 rounded border border-slate-300 px-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50">+ Row</button>

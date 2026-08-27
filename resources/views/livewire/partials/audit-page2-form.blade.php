@@ -103,7 +103,7 @@
 
         <div class="mt-8 border-t border-dashed border-slate-200 pt-5">
             <h3 class="mb-3 text-center text-[14px] font-bold underline decoration-1 underline-offset-4">সূচিপত্র</h3>
-            <p class="mb-3 text-center text-[11px] text-slate-500">পৃষ্ঠা ২-এর নিচের অংশ · বাকি অংশ পৃষ্ঠা ৩-এ চলবে</p>
+            <p class="mb-3 text-center text-[11px] text-slate-500">PDF-এ পুরো সূচিপত্র এক নজরের পরে একসাথে বসবে</p>
             @include('livewire.partials.audit-toc-table-form', ['previewPage' => 2])
         </div>
 

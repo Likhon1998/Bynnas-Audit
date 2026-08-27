@@ -1,4 +1,5 @@
 @php
+    use App\Livewire\MakeAuditReport;
     /** @var \Illuminate\Support\Collection|array $rows */
     $rows = $rows ?? [];
     $compact = $compact ?? false;
@@ -25,18 +26,33 @@
                 @php
                     $isSection = ($row['type'] ?? 'item') === 'section';
                     $rating = $row['rating'] ?? '';
-                    $style = \App\Livewire\MakeAuditReport::findingRatingStyle($rating);
+                    $anchor = ! $isSection ? MakeAuditReport::findingAnchorId($row['serial'] ?? '') : '';
+                    $findingText = ($row['finding'] ?? '') !== '' ? $row['finding'] : '—';
+                    $pageNo = $row['page_no'] ?? '';
                 @endphp
                 <tr class="{{ $isSection ? 'bg-[#efefef]' : '' }}">
                     <td class="text-center font-semibold">{{ $row['serial'] !== '' ? $row['serial'] : '—' }}</td>
-                    <td class="{{ $isSection ? 'font-bold' : '' }}">{{ $row['finding'] !== '' ? $row['finding'] : '—' }}</td>
+                    <td class="{{ $isSection ? 'font-bold' : '' }}">
+                        @if (! $isSection && $anchor !== '')
+                            <a href="#{{ $anchor }}" class="text-navy-900 underline decoration-slate-400 underline-offset-2 hover:text-[#2b579a]">{{ $findingText }}</a>
+                        @else
+                            {{ $findingText }}
+                        @endif
+                    </td>
                     <td class="text-right">{{ $isSection ? '' : ($row['amount'] !== '' ? $row['amount'] : '') }}</td>
-                    <td
-                        class="text-center font-semibold"
-                        style="{{ $isSection || $rating === '' ? '' : 'background: '.$style['bg'].'; color: '.$style['color'].';' }}"
-                    >{{ $isSection ? '' : $rating }}</td>
+                    <td class="p-0 align-top">
+                        @if (! $isSection && $rating !== '')
+                            @include('livewire.partials.audit-rating-box', ['rating' => $rating, 'editable' => false])
+                        @endif
+                    </td>
                     <td class="text-center">{{ $isSection ? '' : ($row['status'] ?? '') }}</td>
-                    <td class="text-center">{{ $isSection ? '' : ($row['page_no'] ?? '') }}</td>
+                    <td class="text-center">
+                        @if (! $isSection && $anchor !== '' && $pageNo !== '')
+                            <a href="#{{ $anchor }}" class="underline decoration-slate-400 underline-offset-2 hover:text-[#2b579a]">{{ $pageNo }}</a>
+                        @else
+                            {{ $isSection ? '' : $pageNo }}
+                        @endif
+                    </td>
                 </tr>
             @empty
                 <tr>

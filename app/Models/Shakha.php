@@ -56,6 +56,11 @@ class Shakha extends Model
         return $this->hasMany(AuditReport::class);
     }
 
+    public function auditFindings(): HasMany
+    {
+        return $this->hasMany(AuditFinding::class);
+    }
+
     public function latestRiskAssessment(): HasOne
     {
         return $this->hasOne(ShakhaRiskAssessment::class)->latestOfMany([
