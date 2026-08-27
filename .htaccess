@@ -1,0 +1,11 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # If document root is the Laravel project root (not /public),
+    # send all traffic into /public so the app loads instead of a directory listing.
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Prefer index.php over directory indexes
+DirectoryIndex index.php
+Options -Indexes

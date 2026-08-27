@@ -18,6 +18,21 @@ if [[ ! -f .env ]]; then
   exit 1
 fi
 
+if [[ ! -f public/index.php ]]; then
+  echo "ERROR: public/index.php missing. Document root / deploy path is wrong."
+  exit 1
+fi
+
+# Vite "hot" file must never exist on production (breaks CSS/JS).
+rm -f public/hot
+
+if [[ ! -f public/build/manifest.json ]]; then
+  echo "ERROR: public/build/manifest.json missing."
+  echo "On your PC run: npm run build"
+  echo "Then upload the public/build folder to the server."
+  exit 1
+fi
+
 if [[ -f composer.phar ]]; then
   COMPOSER=(php composer.phar)
 elif command -v composer >/dev/null 2>&1; then
