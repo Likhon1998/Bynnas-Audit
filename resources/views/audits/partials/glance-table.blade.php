@@ -14,9 +14,21 @@
         @foreach ($glanceRows as $row)
             <tr>
                 <td class="left-align">{{ $row['left_label'] !== '' ? $row['left_label'] : '—' }}</td>
-                <td class="center bold">{{ $row['left_value'] !== '' ? $row['left_value'] : $dash }}</td>
+                <td class="center bold">
+                    @if ($row['left_value'] !== '')
+                        {!! \App\Support\BanglaNumerals::highlight($row['left_value'], 'stat') !!}
+                    @else
+                        {{ $dash }}
+                    @endif
+                </td>
                 <td class="left-align">{{ $row['right_label'] !== '' ? $row['right_label'] : '—' }}</td>
-                <td class="center bold">{{ $row['right_value'] !== '' ? $row['right_value'] : $dash }}</td>
+                <td class="center bold">
+                    @if ($row['right_value'] !== '')
+                        {!! \App\Support\BanglaNumerals::highlight($row['right_value'], 'stat') !!}
+                    @else
+                        {{ $dash }}
+                    @endif
+                </td>
             </tr>
         @endforeach
     </tbody>

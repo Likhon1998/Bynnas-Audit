@@ -181,4 +181,16 @@ class MakeAuditReportStartTest extends TestCase
             ->call('downloadPdf')
             ->assertFileDownloaded();
     }
+
+    public function test_doc_download_streams_a_word_file(): void
+    {
+        $user = User::factory()->create(['email_verified_at' => now()]);
+        $shakha = $this->makeShakha();
+
+        Livewire::actingAs($user)
+            ->test(MakeAuditReport::class)
+            ->call('startReport', $shakha->id)
+            ->call('downloadDoc')
+            ->assertFileDownloaded();
+    }
 }

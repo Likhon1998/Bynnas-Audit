@@ -50,6 +50,11 @@ class AuditReportPdfService
                     'B' => 'HindSiliguri-Bold.ttf',
                     'useOTL' => 0xFF,
                 ],
+                'notosansbengali' => [
+                    'R' => 'NotoSansBengali-Regular.ttf',
+                    'B' => 'NotoSansBengali-Bold.ttf',
+                    'useOTL' => 0xFF,
+                ],
             ],
             'default_font' => 'hindsiliguri',
             'default_font_size' => 11,

@@ -13,8 +13,10 @@
 
 <table class="header-table">
     <tr>
-        <td style="width:68%;">
-            @if (! empty($logoDataUri))
+        <td style="width:68%;" valign="top">
+            @if (($forDoc ?? false) && ! empty($logoDoc))
+                @include('audits.partials.logo-word', ['logoDoc' => $logoDoc])
+            @elseif (! empty($logoDataUri))
                 <img src="{{ $logoDataUri }}" class="logo-large" alt="Logo">
             @else
                 <p class="org-name">DSK</p>

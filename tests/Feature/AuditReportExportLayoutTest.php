@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Services\AuditReportDocService;
 use Tests\TestCase;
 
 class AuditReportExportLayoutTest extends TestCase
@@ -28,6 +29,46 @@ class AuditReportExportLayoutTest extends TestCase
         $this->assertStringNotContainsString('min-height: 297mm', $html);
     }
 
+    public function test_doc_service_outputs_valid_docx_zip(): void
+    {
+        $binary = app(AuditReportDocService::class)->output($this->minimalReportData());
+
+        $this->assertStringStartsWith('PK', $binary);
+        $this->assertGreaterThan(4000, strlen($binary));
+    }
+
+    public function test_doc_service_embeds_logo_in_docx_when_path_exists(): void
+    {
+        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mNk+M9Qz0AEYBxVSF+FABJAD9/qQ8WCAAAAAElFTkSuQmCC', true);
+        $logoPath = tempnam(sys_get_temp_dir(), 'audit-logo-').'.png';
+        file_put_contents($logoPath, $png);
+
+        try {
+            $data = $this->minimalReportData();
+            $data['logoPath'] = $logoPath;
+
+            $binary = app(AuditReportDocService::class)->output($data);
+            $this->assertStringStartsWith('PK', $binary);
+            $this->assertStringContainsString('word/media/', $this->extractDocxFilenames($binary));
+        } finally {
+            @unlink($logoPath);
+        }
+    }
+
+    public function test_word_html_table_fixer_adds_borders_to_doc_tables(): void
+    {
+        $html = <<<'HTML'
+<table class="doc-table"><tr><th>Header</th><td>Cell</td></tr></table>
+<table class="header-table"><tr><td>No border</td></tr></table>
+HTML;
+
+        $fixed = app(\App\Support\WordHtmlTableFixer::class)->apply($html);
+
+        $this->assertStringContainsString('mso-border-alt', $fixed);
+        $this->assertMatchesRegularExpression('/<table[^>]*class="doc-table"[^>]*border="1"/', $fixed);
+        $this->assertMatchesRegularExpression('/<table[^>]*class="header-table"[^>]*border="0"/', $fixed);
+    }
+
     public function test_preview_uses_cover_plus_continuous_body(): void
     {
         $html = view('livewire.partials.audit-document-preview-pages', $this->minimalPreviewData())->render();
@@ -41,6 +82,23 @@ class AuditReportExportLayoutTest extends TestCase
         $this->assertStringContainsString('financial-follow', $html);
         $this->assertStringContainsString('cover-rating', view('audits.partials.cover-page', $this->minimalPreviewData() + ['logoDataUri' => null])->render());
         $this->assertStringContainsString('classification-summary', $html);
+    }
+
+    protected function extractDocxFilenames(string $binary): string
+    {
+        $path = tempnam(sys_get_temp_dir(), 'audit-docx-test-');
+        file_put_contents($path, $binary);
+
+        $zip = new \ZipArchive;
+        $zip->open($path);
+        $names = [];
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $names[] = $zip->getNameIndex($i);
+        }
+        $zip->close();
+        @unlink($path);
+
+        return implode("\n", $names);
     }
 
     /**
@@ -81,6 +139,7 @@ class AuditReportExportLayoutTest extends TestCase
                 ['type' => 'financial', 'number' => 4],
             ],
             'logoDataUri' => null,
+            'logoPath' => null,
             'ratingColor' => '#16a34a',
             'control_rating' => 'Satisfactory',
             'memo_no' => 'M-1',
@@ -116,8 +175,8 @@ class AuditReportExportLayoutTest extends TestCase
                 ['serial' => '১.১', 'title' => 'VAT', 'body' => 'Body', 'rating' => 'Major (B)'],
             ],
             'financial_criteria' => 'Criteria text',
-            'vatObservationRows' => [['a' => '', 'b' => '', 'c' => '', 'd' => '']],
-            'taxObservationRows' => [['a' => '', 'b' => '', 'c' => '', 'd' => '']],
+            'vatObservationRows' => [['total_population' => '', 'sample_size' => '', 'instances_found' => '', 'percentage' => '']],
+            'taxObservationRows' => [['total_population' => '', 'sample_size' => '', 'instances_found' => '', 'percentage' => '']],
         ];
     }
 }

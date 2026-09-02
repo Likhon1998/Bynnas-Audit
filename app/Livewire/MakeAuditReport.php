@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\AuditIndicator;
 use App\Models\AuditReport;
 use App\Models\Shakha;
+use App\Services\AuditReportDocService;
 use App\Services\AuditReportPdfService;
 use App\Services\UserAccessService;
 use App\Support\AuditReportPaginator;
@@ -698,6 +699,21 @@ class MakeAuditReport extends Component
         );
     }
 
+    public function downloadDoc(): StreamedResponse
+    {
+        $data = $this->reportViewData();
+        $filename = 'audit-report-'.$this->reportExportBasename().'.docx';
+        $binary = app(AuditReportDocService::class)->output($data);
+
+        return response()->streamDownload(
+            function () use ($binary) {
+                echo $binary;
+            },
+            $filename,
+            ['Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+        );
+    }
+
     protected function reportExportBasename(): string
     {
         $safeName = preg_replace('/[^\pL\pN\-]+/u', '-', trim($this->shakha_display_name ?: 'audit')) ?: 'audit';
@@ -716,10 +732,12 @@ class MakeAuditReport extends Component
         $this->ensureFinancialAuditDefaults();
 
         $logoDataUri = null;
+        $logoPath = null;
         if ($this->logo_path && Storage::disk('public')->exists($this->logo_path)) {
             $binary = Storage::disk('public')->get($this->logo_path);
             $mime = Storage::disk('public')->mimeType($this->logo_path) ?: 'image/png';
             $logoDataUri = 'data:'.$mime.';base64,'.base64_encode($binary);
+            $logoPath = Storage::disk('public')->path($this->logo_path);
         }
 
         $document = $this->stampedDocument();
@@ -728,6 +746,7 @@ class MakeAuditReport extends Component
             'fontRegular' => storage_path('fonts/NotoSansBengali-Regular.ttf'),
             'fontBold' => storage_path('fonts/NotoSansBengali-Bold.ttf'),
             'logoDataUri' => $logoDataUri,
+            'logoPath' => $logoPath,
             'documentSheets' => $document['sheets'],
             'ratingColor' => AuditReport::ratingColor($this->control_rating),
             'control_rating' => $this->control_rating,

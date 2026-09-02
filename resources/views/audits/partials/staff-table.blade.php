@@ -1,9 +1,6 @@
 @php
     use App\Support\AuditDocumentLayout as Doc;
-    $bnDigits = $bnDigits ?? ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
-    $toBn = $toBn ?? function (int $n) use ($bnDigits) {
-        return implode('', array_map(fn ($d) => $bnDigits[(int) $d], str_split((string) $n)));
-    };
+    use App\Support\BanglaNumerals;
     $widths = Doc::staffColumnWidths($staffColumns);
 @endphp
 
@@ -24,7 +21,9 @@
     <tbody>
         @foreach ($staffRows as $idx => $row)
             <tr>
-                <td class="center">{!! $toBn($idx + 1) !!}</td>
+                <td class="center">
+                    @include('audits.partials.bn-num', ['value' => BanglaNumerals::fromInt($idx + 1), 'variant' => 'index'])
+                </td>
                 @foreach ($staffColumns as $cIdx => $col)
                     @php
                         $cell = trim((string) ($row['cells'][$cIdx] ?? ''));

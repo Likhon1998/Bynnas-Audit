@@ -40,5 +40,6 @@
     @include('audits.partials.toc-table', [
         'rows' => $tocRows ?? $tocPage2Rows ?? [],
         'showTitle' => true,
+        'forDoc' => $forDoc ?? false,
     ])
 </div>

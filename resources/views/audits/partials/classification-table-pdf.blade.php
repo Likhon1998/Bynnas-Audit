@@ -52,7 +52,7 @@
         @foreach ($summaryRows as $summary)
             <tr>
                 <td>{{ $summary['label'] }}</td>
-                <td class="center bold" style="width:30%;">{{ $summary['range'] }}</td>
+                <td class="center bold">{!! \App\Support\BanglaNumerals::highlight($summary['range'], 'stat') !!}</td>
             </tr>
         @endforeach
     </tbody>

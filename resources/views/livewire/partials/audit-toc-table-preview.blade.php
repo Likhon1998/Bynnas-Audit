@@ -31,7 +31,12 @@
                     $pageNo = $row['page_no'] ?? '';
                 @endphp
                 <tr class="{{ $isSection ? 'bg-[#efefef]' : '' }}">
-                    <td class="text-center font-semibold">{{ $row['serial'] !== '' ? $row['serial'] : '—' }}</td>
+                    <td class="text-center font-semibold">
+                        @include('audits.partials.bn-num', [
+                            'value' => $row['serial'] !== '' ? $row['serial'] : '—',
+                            'variant' => $isSection ? 'serial-section' : 'serial',
+                        ])
+                    </td>
                     <td class="{{ $isSection ? 'font-bold' : '' }}">
                         @if (! $isSection && $anchor !== '')
                             <a href="#{{ $anchor }}" class="text-navy-900 underline decoration-slate-400 underline-offset-2 hover:text-[#2b579a]">{{ $findingText }}</a>
@@ -47,10 +52,14 @@
                     </td>
                     <td class="text-center">{{ $isSection ? '' : ($row['status'] ?? '') }}</td>
                     <td class="text-center">
-                        @if (! $isSection && $anchor !== '' && $pageNo !== '')
-                            <a href="#{{ $anchor }}" class="underline decoration-slate-400 underline-offset-2 hover:text-[#2b579a]">{{ $pageNo }}</a>
-                        @else
-                            {{ $isSection ? '' : $pageNo }}
+                        @if (! $isSection && $pageNo !== '')
+                            @if ($anchor !== '')
+                                <a href="#{{ $anchor }}" class="bn-page-link">
+                                    @include('audits.partials.bn-num', ['value' => $pageNo, 'variant' => 'page'])
+                                </a>
+                            @else
+                                @include('audits.partials.bn-num', ['value' => $pageNo, 'variant' => 'page'])
+                            @endif
                         @endif
                     </td>
                 </tr>

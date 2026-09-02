@@ -3,7 +3,8 @@
     $scope = $scope ?? '';
     $p = $scope !== '' ? $scope.' ' : '';
     $isPdf = $isPdf ?? false;
-    $compact = $isPdf;
+    $forDoc = $forDoc ?? false;
+    $compact = $isPdf || $forDoc;
     $pad = Doc::pagePaddingCss();
 @endphp
 <style>
@@ -99,20 +100,32 @@
     }
 
     {{ $p }}table.doc-table {
-        display: table;
         width: 100%;
         table-layout: fixed;
         border-collapse: collapse;
         margin-top: 2mm;
         font-size: 9.5pt;
+        @if ($forDoc)
+        mso-table-lspace: 0pt;
+        mso-table-rspace: 0pt;
+        @else
+        display: table;
+        @endif
     }
+    @if (! $forDoc)
     {{ $p }}table.doc-table thead { display: table-header-group; }
     {{ $p }}table.doc-table tbody { display: table-row-group; }
     {{ $p }}table.doc-table tr { display: table-row; }
+    @endif
     {{ $p }}table.doc-table th,
     {{ $p }}table.doc-table td {
+        @if (! $forDoc)
         display: table-cell;
+        @endif
         border: 1px solid #222;
+        @if ($forDoc)
+        mso-border-alt: solid #222 0.5pt;
+        @endif
         padding: {{ $compact ? '1.1mm 1.4mm' : '1.6mm 2mm' }};
         vertical-align: middle;
         word-wrap: break-word;
@@ -146,6 +159,9 @@
     }
     {{ $p }}table.rating-box td {
         border: 1px solid #111;
+        @if ($forDoc)
+        mso-border-alt: solid #111 0.5pt;
+        @endif
         padding: 1.1mm 0.8mm;
         text-align: center;
         font-weight: 700;
@@ -233,8 +249,10 @@
 
     /* Let সূচিপত্র continue across A4 pages instead of jumping to an empty sheet. */
     {{ $p }}table.toc-table { page-break-inside: auto; }
+    @if (! $forDoc)
     {{ $p }}table.toc-table thead { display: table-header-group; }
     {{ $p }}table.toc-table tr { page-break-inside: avoid; page-break-after: auto; }
+    @endif
 
     {{ $p }}.logo-large {
         max-width: 62mm;
@@ -314,6 +332,9 @@
     {{ $p }}.sign-table td {
         width: 33.33%;
         border: 1px solid #222;
+        @if ($forDoc)
+        mso-border-alt: solid #222 0.5pt;
+        @endif
         vertical-align: top;
         padding: 2.2mm;
         font-size: 9.5pt;
@@ -346,4 +367,71 @@
     {{ $p }}ol.copy { margin: 1mm 0 0 6mm; padding: 0; list-style: decimal; }
     {{ $p }}ol.copy li { margin: {{ $compact ? '0.4mm' : '0.8mm' }} 0; }
     {{ $p }}.copy-block { page-break-inside: avoid; }
+
+    @php
+        $bnFont = $forDoc
+            ? "'Nirmala UI', 'Vrinda', 'Kalpurush', 'Segoe UI', sans-serif"
+            : ($isPdf
+                ? 'notosansbengali, hindsiliguri, sans-serif'
+                : "'Noto Sans Bengali', 'Hind Siliguri', 'Nirmala UI', sans-serif");
+    @endphp
+    {{ $p }}.bn-num {
+        font-family: {{ $bnFont }};
+        font-variant-numeric: tabular-nums lining-nums;
+        font-feature-settings: "tnum" 1, "lnum" 1;
+        letter-spacing: 0.05em;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+    }
+    {{ $p }}.bn-serial {
+        display: inline-block;
+        min-width: 2.2em;
+        font-weight: 700;
+        font-size: 9.5pt;
+        color: #1e3a5f;
+        line-height: 1.25;
+    }
+    {{ $p }}.bn-serial-section {
+        display: inline-block;
+        min-width: 2.4em;
+        font-weight: 700;
+        font-size: 10pt;
+        color: #0f172a;
+        letter-spacing: 0.07em;
+        line-height: 1.25;
+    }
+    {{ $p }}.bn-page {
+        display: inline-block;
+        min-width: 1.4em;
+        font-weight: 700;
+        font-size: 9.5pt;
+        color: #1d4ed8;
+        line-height: 1.25;
+    }
+    {{ $p }}a.bn-page-link {
+        color: #1d4ed8;
+        text-decoration: none;
+    }
+    {{ $p }}a.bn-page-link .bn-page {
+        border-bottom: 1px solid #93c5fd;
+        padding-bottom: 0.5pt;
+    }
+    {{ $p }}.bn-index {
+        display: inline-block;
+        min-width: 1.6em;
+        font-weight: 700;
+        font-size: 9.5pt;
+        color: #334155;
+        line-height: 1.25;
+    }
+    {{ $p }}.bn-stat {
+        font-weight: 700;
+        font-size: 9.5pt;
+        color: #0f172a;
+        letter-spacing: 0.04em;
+    }
+    {{ $p }}table.doc-table td:first-child .bn-num,
+    {{ $p }}table.doc-table th:first-child .bn-num {
+        text-align: center;
+    }
 </style>

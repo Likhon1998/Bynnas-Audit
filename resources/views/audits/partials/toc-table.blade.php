@@ -38,12 +38,16 @@
             @endphp
             @if ($isSection)
                 <tr>
-                    <td class="center bold section">{{ $row['serial'] !== '' ? $row['serial'] : '—' }}</td>
+                    <td class="center bold section">
+                        @include('audits.partials.bn-num', ['value' => $row['serial'] !== '' ? $row['serial'] : '—', 'variant' => 'serial-section'])
+                    </td>
                     <td colspan="5" class="section left-align">{{ $row['finding'] !== '' ? $row['finding'] : '—' }}</td>
                 </tr>
             @else
                 <tr>
-                    <td class="center bold">{{ $row['serial'] !== '' ? $row['serial'] : '—' }}</td>
+                    <td class="center bold">
+                        @include('audits.partials.bn-num', ['value' => $row['serial'] !== '' ? $row['serial'] : '—', 'variant' => 'serial'])
+                    </td>
                     <td class="align-top left-align">
                         @if ($anchor !== '')
                             <a href="#{{ $anchor }}" style="color:#111; text-decoration:underline;">{{ $findingText }}</a>
@@ -52,15 +56,25 @@
                         @endif
                     </td>
                     <td class="right-align">{!! ($row['amount'] ?? '') !== '' ? e($row['amount']) : '&nbsp;' !!}</td>
-                    <td class="rating-cell">
-                        @include('audits.partials.toc-rating-cell-pdf', ['isSection' => false, 'rating' => $rating])
+                    <td class="rating-cell" valign="middle">
+                        @if ($forDoc ?? false)
+                            @include('audits.partials.toc-rating-cell-doc', ['isSection' => false, 'rating' => $rating])
+                        @else
+                            @include('audits.partials.toc-rating-cell-pdf', ['isSection' => false, 'rating' => $rating])
+                        @endif
                     </td>
                     <td class="center">{!! ($row['status'] ?? '') !== '' ? e($row['status']) : '&nbsp;' !!}</td>
                     <td class="center">
-                        @if ($anchor !== '' && $pageNo !== '')
-                            <a href="#{{ $anchor }}" style="color:#111; text-decoration:underline;">{{ $pageNo }}</a>
+                        @if ($pageNo !== '')
+                            @if ($anchor !== '')
+                                <a href="#{{ $anchor }}" class="bn-page-link">
+                                    @include('audits.partials.bn-num', ['value' => $pageNo, 'variant' => 'page'])
+                                </a>
+                            @else
+                                @include('audits.partials.bn-num', ['value' => $pageNo, 'variant' => 'page'])
+                            @endif
                         @else
-                            {!! $pageNo !== '' ? e($pageNo) : '&nbsp;' !!}
+                            &nbsp;
                         @endif
                     </td>
                 </tr>

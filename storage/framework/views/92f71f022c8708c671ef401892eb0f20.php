@@ -1,0 +1,85 @@
+<?php
+    /** @var int $previewPage */
+    $previewPage = $previewPage ?? 2;
+?>
+
+<div class="mb-2 flex flex-wrap items-center gap-2">
+    <p class="mr-auto text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+        সূচিপত্র <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($previewPage === 2): ?> (শুরু) <?php else: ?> <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+    </p>
+    <button type="button" wire:click="addTocSection(-1, <?php echo e($previewPage); ?>)" class="h-7 rounded border border-slate-300 px-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50">+ Section</button>
+    <button type="button" wire:click="addTocRow(-1, <?php echo e($previewPage); ?>)" class="h-7 rounded border border-slate-300 px-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50">+ Row</button>
+</div>
+
+<div class="overflow-x-auto">
+    <table class="w-full min-w-[900px] border-collapse text-[11px]">
+        <thead>
+            <tr class="bg-slate-200">
+                <th class="w-[70px] border border-slate-800 px-1 py-1.5 font-semibold">ক্রমিক নং</th>
+                <th class="border border-slate-800 px-1 py-1.5 font-semibold">নিরীক্ষায় প্রাপ্ত ঘটনা সমূহ</th>
+                <th class="w-[90px] border border-slate-800 px-1 py-1.5 font-semibold">টাকা</th>
+                <th class="w-[130px] border border-slate-800 px-1 py-1.5 font-semibold">রেটিং</th>
+                <th class="w-[100px] border border-slate-800 px-1 py-1.5 font-semibold">বর্তমান অবস্থা</th>
+                <th class="w-[70px] border border-slate-800 px-1 py-1.5 font-semibold">পৃষ্ঠা</th>
+                <th class="w-[70px] border border-slate-800 px-1 py-1.5 font-semibold">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $tocRows; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $idx => $row): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
+                <?php if((int) ($row['preview_page'] ?? 2) !== $previewPage): ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?><?php continue; ?><?php endif; ?>
+                <?php
+                    $isSection = ($row['type'] ?? 'item') === 'section';
+                    $ratingStyle = \App\Livewire\MakeAuditReport::findingRatingStyle($row['rating'] ?? '');
+                ?>
+                <tr class="<?php echo e($isSection ? 'bg-slate-100' : ''); ?>">
+                    <td class="border border-slate-800 px-1 py-1">
+                        <input type="text" wire:model.live="tocRows.<?php echo e($idx); ?>.serial" class="h-7 w-full border-0 bg-sky-50 px-1 text-center text-[11px] font-semibold focus:ring-1 focus:ring-sky-400">
+                    </td>
+                    <td class="border border-slate-800 px-1 py-1">
+                        <input type="text" wire:model.live="tocRows.<?php echo e($idx); ?>.finding" class="h-7 w-full border-0 bg-sky-50 px-1 text-[11px] <?php echo e($isSection ? 'font-bold' : ''); ?> focus:ring-1 focus:ring-sky-400" placeholder="<?php echo e($isSection ? 'Section title' : 'Finding'); ?>">
+                    </td>
+                    <td class="border border-slate-800 px-1 py-1">
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($isSection): ?>
+                            <span class="block text-center text-slate-400">—</span>
+                        <?php else: ?>
+                            <input type="text" wire:model.live="tocRows.<?php echo e($idx); ?>.amount" class="h-7 w-full border-0 bg-sky-50 px-1 text-right text-[11px] focus:ring-1 focus:ring-sky-400">
+                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                    </td>
+                    <td class="border border-slate-800 px-0 py-0">
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($isSection): ?>
+                            <span class="block px-1 text-center text-slate-400">—</span>
+                        <?php else: ?>
+                            <select
+                                wire:model.live="tocRows.<?php echo e($idx); ?>.rating"
+                                class="h-8 w-full border-0 px-1 text-[11px] font-semibold focus:ring-1 focus:ring-sky-400"
+                                style="background: <?php echo e($ratingStyle['bg']); ?>; color: <?php echo e($ratingStyle['color']); ?>;"
+                            >
+                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $findingRatings; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $opt): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
+                                    <option value="<?php echo e($opt); ?>"><?php echo e($opt !== '' ? $opt : '—'); ?></option>
+                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
+                            </select>
+                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                    </td>
+                    <td class="border border-slate-800 px-1 py-1">
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($isSection): ?>
+                            <span class="block text-center text-slate-400">—</span>
+                        <?php else: ?>
+                            <input type="text" wire:model.live="tocRows.<?php echo e($idx); ?>.status" class="h-7 w-full border-0 bg-sky-50 px-1 text-[11px] focus:ring-1 focus:ring-sky-400">
+                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                    </td>
+                    <td class="border border-slate-800 px-1 py-1">
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($isSection): ?>
+                            <span class="block text-center text-slate-400">—</span>
+                        <?php else: ?>
+                            <input type="text" wire:model.live="tocRows.<?php echo e($idx); ?>.page_no" class="h-7 w-full border-0 bg-sky-50 px-1 text-center text-[11px] focus:ring-1 focus:ring-sky-400">
+                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                    </td>
+                    <td class="border border-slate-800 px-1 py-1 text-center">
+                        <button type="button" wire:click="removeTocRow(<?php echo e($idx); ?>)" class="text-[11px] text-rose-600 hover:underline">×</button>
+                    </td>
+                </tr>
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
+        </tbody>
+    </table>
+</div>
+<?php /**PATH C:\xampp\htdocs\Bynnas-Audit\resources\views/livewire/partials/audit-toc-table-form.blade.php ENDPATH**/ ?>

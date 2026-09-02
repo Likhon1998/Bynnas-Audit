@@ -1,5 +1,6 @@
 @php
     $dash = $dash ?? '………………';
+    $forDoc = $forDoc ?? false;
     $byType = [];
     foreach ($documentSheets ?? [] as $sheet) {
         $byType[$sheet['type']] = $sheet;
@@ -9,7 +10,10 @@
 
 {{-- Cover alone; everything after flows continuously so no blank leftover pages. --}}
 <div class="doc-cover">
-    @include('audits.partials.cover-page')
+    @include('audits.partials.cover-page', [
+        'forDoc' => $forDoc,
+        'logoDoc' => $logoDoc ?? null,
+    ])
 </div>
 
 <div class="doc-flow">
@@ -23,8 +27,12 @@
         'staffRows' => $staffRows,
         'tocRows' => $overviewRows,
         'dash' => $dash,
+        'forDoc' => $forDoc,
     ])
 
+    @if ($forDoc)
+        <p style="margin:0;line-height:0;font-size:0;">&nbsp;</p>
+    @endif
     <div class="section-follow signatures-follow">
         @include('audits.partials.signatures-classification', [
             'sign_auditor_name' => $sign_auditor_name,
@@ -35,6 +43,7 @@
             'sign_abm_name' => $sign_abm_name,
             'sign_abm_date' => $sign_abm_date,
             'dash' => $dash,
+            'forDoc' => $forDoc,
         ])
     </div>
 
@@ -46,6 +55,7 @@
                 'financial_criteria' => $financial_criteria,
                 'vatObservationRows' => $vatObservationRows,
                 'taxObservationRows' => $taxObservationRows,
+                'forDoc' => $forDoc,
             ])
         </div>
     @endif

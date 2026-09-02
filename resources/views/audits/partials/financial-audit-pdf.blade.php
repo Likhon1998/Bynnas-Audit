@@ -19,11 +19,17 @@
         </colgroup>
         <tbody>
             <tr>
-                <td class="bold center">{{ $finding['serial'] ?? '' }}</td>
+                <td class="bold center">
+                    @include('audits.partials.bn-num', ['value' => $finding['serial'] ?? '', 'variant' => 'serial'])
+                </td>
                 <td class="bold center">{{ $finding['title'] ?? 'শিরোনাম' }}</td>
                 <td class="body-cell">{{ $finding['body'] ?? '' }}</td>
-                <td class="rating-cell">
-                    @include('audits.partials.rating-box-pdf', ['rating' => $finding['rating'] ?? ''])
+                <td class="rating-cell" valign="middle">
+                    @if ($forDoc ?? false)
+                        @include('audits.partials.rating-box-doc', ['rating' => $finding['rating'] ?? ''])
+                    @else
+                        @include('audits.partials.rating-box-pdf', ['rating' => $finding['rating'] ?? ''])
+                    @endif
                 </td>
             </tr>
         </tbody>
