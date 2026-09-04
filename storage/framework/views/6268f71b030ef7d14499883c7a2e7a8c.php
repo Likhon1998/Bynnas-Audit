@@ -11,7 +11,7 @@
 
         <div class="mt-8 border-t border-dashed border-slate-200 pt-5">
             <p class="mb-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">প্রতিবেদনের শ্রেণীবিন্যাস (নির্দেশিকা)</p>
-            <?php echo $__env->make('livewire.partials.audit-classification-table', ['compact' => false], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+            <?php echo $__env->make('livewire.partials.audit-classification-table', ['compact' => false, 'editable' => true], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
         </div>
 
         <div class="mt-8 border-t border-dashed border-slate-200 pt-5">

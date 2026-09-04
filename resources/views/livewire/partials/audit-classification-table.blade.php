@@ -2,7 +2,10 @@
     $rows = \App\Support\AuditReportClassification::ratingRows();
     $summaryRows = \App\Support\AuditReportClassification::performanceSummaryRows();
     $compact = $compact ?? true;
+    $editable = $editable ?? false;
     $tableClass = $compact ? 'a4-table a4-table-compact text-[8px]' : 'a4-table text-[10px]';
+    $hImportance = $tableHeaders['classification_importance'] ?? \App\Support\AuditTableHeaders::defaults()['classification_importance'];
+    $hEval = $tableHeaders['classification_eval'] ?? \App\Support\AuditTableHeaders::defaults()['classification_eval'];
 @endphp
 
 <h3 class="mb-[2mm] text-center text-[12px] font-bold underline decoration-1 underline-offset-4">প্রতিবেদনের শ্রেণীবিন্যাস</h3>
@@ -10,9 +13,9 @@
 <table class="{{ $tableClass }} leading-[1.35]">
     <thead>
         <tr>
-            <th class="w-[16%] bg-[#BDD7EE]">পর্যবেক্ষণসমূহের গুরুত্বের মাত্রা</th>
-            <th class="w-[7%] bg-[#BDD7EE]">কোড</th>
-            <th class="bg-[#BDD7EE]">রেটিং নির্বাচনের বিষদ, পয়েন্ট ও কারণ</th>
+            <x-audit-th :editable="$editable" wire="tableHeaders.classification_importance.0" class="w-[16%] bg-[#BDD7EE]">{{ $hImportance[0] }}</x-audit-th>
+            <x-audit-th :editable="$editable" wire="tableHeaders.classification_importance.1" class="w-[7%] bg-[#BDD7EE]">{{ $hImportance[1] }}</x-audit-th>
+            <x-audit-th :editable="$editable" wire="tableHeaders.classification_importance.2" class="bg-[#BDD7EE]">{{ $hImportance[2] }}</x-audit-th>
         </tr>
     </thead>
     <tbody>
@@ -41,8 +44,8 @@
 <table class="{{ $tableClass }} mt-[2mm] leading-[1.35]">
     <thead>
         <tr>
-            <th class="bg-[#2E5090] text-white">নিরীক্ষাকার্যে ফলাফল মূল্যায়ন</th>
-            <th class="w-[30%] bg-[#2E5090] text-white">সমষ্টিগত কর্মসম্পাদনের হার</th>
+            <x-audit-th :editable="$editable" wire="tableHeaders.classification_eval.0" class="bg-[#2E5090] text-white">{{ $hEval[0] }}</x-audit-th>
+            <x-audit-th :editable="$editable" wire="tableHeaders.classification_eval.1" class="w-[30%] bg-[#2E5090] text-white">{{ $hEval[1] }}</x-audit-th>
         </tr>
     </thead>
     <tbody>

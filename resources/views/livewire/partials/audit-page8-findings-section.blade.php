@@ -1,4 +1,4 @@
-﻿@php
+@php
     use App\Livewire\MakeAuditReport;
     $editable = $editable ?? false;
     $compact = $compact ?? false;
@@ -96,17 +96,11 @@
     @endif
 
 <table class="{{ $compact ? 'a4-table a4-table-compact text-[9px]' : 'w-full border-collapse text-[10.5px]' }} mb-[2mm]">
-        <thead>
-            <tr>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Total Population</th>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Sample Size(Checked)</th>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Instantans Found</th>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Persentange(%)</th>
-                @if ($editable)
-                    <th class="{{ $cellPad }} bg-[#5b2a86] text-white"></th>
-                @endif
-            </tr>
-        </thead>
+        @include('livewire.partials.audit-stats-thead', [
+            'editable' => $editable,
+            'cellPad' => $cellPad,
+            'variant' => 'stats',
+        ])
         <tbody>
             @foreach (($finding['statsRows'] ?? []) as $rowIndex => $row)
                 <tr>
@@ -148,18 +142,14 @@
             />
         @endif
 
+@php $hCof = $tableHeaders['cof'] ?? \App\Support\AuditTableHeaders::defaults()['cof']; @endphp
+@php $cofWidths = ['w-[9%]', 'w-[10%]', 'w-[10%]', 'w-[10%]', 'w-[10%]', 'w-[11%]', 'w-[11%]', 'w-[12%]', 'w-[12%]']; @endphp
 <table class="{{ $tableClass }} min-w-full table-fixed">
                 <thead>
                     <tr class="bg-slate-100">
-                        <th class="{{ $cellPad }} w-[9%] font-semibold leading-tight">মাসের নাম</th>
-                        <th class="{{ $cellPad }} w-[10%] font-semibold leading-tight">ওপেনিং ব্যালেন্স</th>
-                        <th class="{{ $cellPad }} w-[10%] font-semibold leading-tight">ক্লোজিং ব্যালেন্স</th>
-                        <th class="{{ $cellPad }} w-[10%] font-semibold leading-tight">মোট ব্যালেন্স<br><span class="font-normal">(৪=২+৩)</span></th>
-                        <th class="{{ $cellPad }} w-[10%] font-semibold leading-tight">গড় ব্যালেন্স<br><span class="font-normal">(৫=৪/২)</span></th>
-                        <th class="{{ $cellPad }} w-[11%] font-semibold leading-tight">লাভের হার ১০%<br><span class="font-normal">(৬=৫×১০%)</span></th>
-                        <th class="{{ $cellPad }} w-[11%] font-semibold leading-tight">মোট লাভ (১ মাস)<br><span class="font-normal">(৭=৬/১২)</span></th>
-                        <th class="{{ $cellPad }} w-[12%] font-semibold leading-tight">শাখা কর্তৃক ধার্যকৃত লাভ মাসভিত্তিক</th>
-                        <th class="{{ $cellPad }} w-[12%] font-semibold leading-tight">কম/বেশি লাভ<br><span class="font-normal">(৯=৭−৮)</span></th>
+                        @foreach ($hCof as $hi => $label)
+                            <x-audit-th :editable="$editable" :wire="'tableHeaders.cof.'.$hi" class="{{ $cellPad }} {{ $cofWidths[$hi] ?? '' }} font-semibold leading-tight">{{ $label }}</x-audit-th>
+                        @endforeach
                         @if ($editable)
                             <th class="{{ $cellPad }} w-[5%]"></th>
                         @endif

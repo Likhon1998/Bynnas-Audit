@@ -1,4 +1,4 @@
-﻿@php
+@php
     use App\Livewire\MakeAuditReport;
     $editable = $editable ?? false;
     $compact = $compact ?? false;
@@ -98,17 +98,11 @@
     @endif
 
 <table class="{{ $compact ? 'a4-table a4-table-compact text-[9px]' : 'w-full border-collapse text-[10.5px]' }} mb-[2mm]">
-        <thead>
-            <tr>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Total Population</th>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Sample Size(Checked)</th>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Instantans Found</th>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Persentange(%)</th>
-                @if ($editable)
-                    <th class="{{ $cellPad }} bg-[#5b2a86] text-white"></th>
-                @endif
-            </tr>
-        </thead>
+        @include('livewire.partials.audit-stats-thead', [
+            'editable' => $editable,
+            'cellPad' => $cellPad,
+            'variant' => 'stats',
+        ])
         <tbody>
             @foreach (($finding['statsRows'] ?? []) as $rowIndex => $row)
                 <tr>
@@ -165,28 +159,28 @@
             />
         @endif
 
+@php
+                    $hSamityR1 = $tableHeaders['samity_r1'] ?? \App\Support\AuditTableHeaders::defaults()['samity_r1'];
+                    $hSamityR2 = $tableHeaders['samity_r2'] ?? \App\Support\AuditTableHeaders::defaults()['samity_r2'];
+                @endphp
 <table class="{{ $tableClass }} min-w-full">
                 <thead>
                     <tr class="bg-slate-100">
-                        <th class="{{ $cellPad }} font-semibold text-center" rowspan="2">সমিতি নং</th>
-                        <th class="{{ $cellPad }} font-semibold text-center" rowspan="2">সদস্যের নাম/আইডি</th>
-                        <th class="{{ $cellPad }} font-semibold text-center" rowspan="2">তারিখ</th>
-                        <th class="{{ $cellPad }} font-semibold text-center" colspan="5">পাসবই অনুযায়ী আদায়ের তথ্য</th>
-                        <th class="{{ $cellPad }} font-semibold text-center" colspan="2">জমার তথ্য</th>
-                        <th class="{{ $cellPad }} font-semibold text-center" rowspan="2">পার্থক্য</th>
-                        <th class="{{ $cellPad }} font-semibold text-center" rowspan="2">কর্মীর নাম ও আইডি</th>
+                        <x-audit-th :editable="$editable" wire="tableHeaders.samity_r1.0" class="{{ $cellPad }} font-semibold text-center" rowspan="2">{{ $hSamityR1[0] }}</x-audit-th>
+                        <x-audit-th :editable="$editable" wire="tableHeaders.samity_r1.1" class="{{ $cellPad }} font-semibold text-center" rowspan="2">{{ $hSamityR1[1] }}</x-audit-th>
+                        <x-audit-th :editable="$editable" wire="tableHeaders.samity_r1.2" class="{{ $cellPad }} font-semibold text-center" rowspan="2">{{ $hSamityR1[2] }}</x-audit-th>
+                        <x-audit-th :editable="$editable" wire="tableHeaders.samity_r1.3" class="{{ $cellPad }} font-semibold text-center" colspan="5">{{ $hSamityR1[3] }}</x-audit-th>
+                        <x-audit-th :editable="$editable" wire="tableHeaders.samity_r1.4" class="{{ $cellPad }} font-semibold text-center" colspan="2">{{ $hSamityR1[4] }}</x-audit-th>
+                        <x-audit-th :editable="$editable" wire="tableHeaders.samity_r1.5" class="{{ $cellPad }} font-semibold text-center" rowspan="2">{{ $hSamityR1[5] }}</x-audit-th>
+                        <x-audit-th :editable="$editable" wire="tableHeaders.samity_r1.6" class="{{ $cellPad }} font-semibold text-center" rowspan="2">{{ $hSamityR1[6] }}</x-audit-th>
                         @if ($editable)
                             <th class="{{ $cellPad }}" rowspan="2"></th>
                         @endif
                     </tr>
                     <tr class="bg-slate-50">
-                        <th class="{{ $cellPad }} font-semibold text-center">বা: স:</th>
-                        <th class="{{ $cellPad }} font-semibold text-center">স্বেচ্ছা</th>
-                        <th class="{{ $cellPad }} font-semibold text-center">মেয়াদী</th>
-                        <th class="{{ $cellPad }} font-semibold text-center">কিস্তি</th>
-                        <th class="{{ $cellPad }} font-semibold text-center">মোট আদায়</th>
-                        <th class="{{ $cellPad }} font-semibold text-center">তারিখ</th>
-                        <th class="{{ $cellPad }} font-semibold text-center">টাকা</th>
+                        @foreach ($hSamityR2 as $hi => $label)
+                            <x-audit-th :editable="$editable" :wire="'tableHeaders.samity_r2.'.$hi" class="{{ $cellPad }} font-semibold text-center">{{ $label }}</x-audit-th>
+                        @endforeach
                     </tr>
                 </thead>
                 <tbody>

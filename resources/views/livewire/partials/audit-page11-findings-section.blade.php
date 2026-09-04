@@ -1,4 +1,4 @@
-﻿@php
+@php
     use App\Livewire\MakeAuditReport;
     $editable = $editable ?? false;
     $compact = $compact ?? false;
@@ -95,17 +95,11 @@
     @endif
 
 <table class="{{ $compact ? 'a4-table a4-table-compact text-[9px]' : 'w-full border-collapse text-[10.5px]' }} mb-[2mm]">
-        <thead>
-            <tr>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Total Population</th>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Sample Size(Checked)</th>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Instantans Found</th>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Persentange(%)</th>
-                @if ($editable)
-                    <th class="{{ $cellPad }} bg-[#5b2a86] text-white"></th>
-                @endif
-            </tr>
-        </thead>
+        @include('livewire.partials.audit-stats-thead', [
+            'editable' => $editable,
+            'cellPad' => $cellPad,
+            'variant' => 'stats',
+        ])
         <tbody>
             @foreach (($finding['statsRows'] ?? []) as $rowIndex => $row)
                 <tr>
@@ -163,23 +157,24 @@
             />
         @endif
 
+@php
+                    $hDepR1 = $tableHeaders['dep_r1'] ?? \App\Support\AuditTableHeaders::defaults()['dep_r1'];
+                    $hDepR2 = $tableHeaders['dep_r2'] ?? \App\Support\AuditTableHeaders::defaults()['dep_r2'];
+                @endphp
 <table class="{{ $tableClass }} min-w-full">
                 <thead>
                     <tr class="bg-slate-100">
-                        <th class="{{ $cellPad }} font-semibold" rowspan="2">সম্পদের গ্রুপ</th>
-                        <th class="{{ $cellPad }} font-semibold text-center" colspan="3">সম্পদের প্রারম্ভিক মূল্য (গ্রুপভিত্তিক মোট)</th>
-                        <th class="{{ $cellPad }} font-semibold text-center" colspan="3">অবচয়ের প্রারম্ভিক স্থিতি (গ্রুপভিত্তিক মোট)</th>
+                        <x-audit-th :editable="$editable" wire="tableHeaders.dep_r1.0" class="{{ $cellPad }} font-semibold" rowspan="2">{{ $hDepR1[0] }}</x-audit-th>
+                        <x-audit-th :editable="$editable" wire="tableHeaders.dep_r1.1" class="{{ $cellPad }} font-semibold text-center" colspan="3">{{ $hDepR1[1] }}</x-audit-th>
+                        <x-audit-th :editable="$editable" wire="tableHeaders.dep_r1.2" class="{{ $cellPad }} font-semibold text-center" colspan="3">{{ $hDepR1[2] }}</x-audit-th>
                         @if ($editable)
                             <th class="{{ $cellPad }}" rowspan="2"></th>
                         @endif
                     </tr>
                     <tr class="bg-slate-50">
-                        <th class="{{ $cellPad }} font-semibold text-center">মাসিক প্রতিবেদন</th>
-                        <th class="{{ $cellPad }} font-semibold text-center">সম্পদ রেজিস্টার</th>
-                        <th class="{{ $cellPad }} font-semibold text-center">পার্থক্য</th>
-                        <th class="{{ $cellPad }} font-semibold text-center">মাসিক প্রতিবেদন</th>
-                        <th class="{{ $cellPad }} font-semibold text-center">সম্পদ রেজিস্টার</th>
-                        <th class="{{ $cellPad }} font-semibold text-center">পার্থক্য</th>
+                        @foreach ($hDepR2 as $hi => $label)
+                            <x-audit-th :editable="$editable" :wire="'tableHeaders.dep_r2.'.$hi" class="{{ $cellPad }} font-semibold text-center">{{ $label }}</x-audit-th>
+                        @endforeach
                     </tr>
                 </thead>
                 <tbody>
@@ -228,15 +223,13 @@
             />
         @endif
 
+@php $hQuote = $tableHeaders['quote'] ?? \App\Support\AuditTableHeaders::defaults()['quote']; @endphp
 <table class="{{ $tableClass }} min-w-full">
                 <thead>
                     <tr class="bg-slate-100">
-                        <th class="{{ $cellPad }} font-semibold">পণ্যের নাম</th>
-                        <th class="{{ $cellPad }} font-semibold">পণ্যের গ্রুপ</th>
-                        <th class="{{ $cellPad }} font-semibold">ক্রয়ের তারিখ</th>
-                        <th class="{{ $cellPad }} font-semibold">ভাউচার নং</th>
-                        <th class="{{ $cellPad }} font-semibold">টাকার পরিমাণ (ভ্যাট ও ট্যাক্সসহ)</th>
-                        <th class="{{ $cellPad }} font-semibold">কোটেশনের অবস্থা</th>
+                        @foreach ($hQuote as $hi => $label)
+                            <x-audit-th :editable="$editable" :wire="'tableHeaders.quote.'.$hi" class="{{ $cellPad }} font-semibold">{{ $label }}</x-audit-th>
+                        @endforeach
                         @if ($editable)
                             <th class="{{ $cellPad }}"></th>
                         @endif

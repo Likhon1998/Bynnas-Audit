@@ -4,6 +4,7 @@
     'value' => '',
     'indicators' => [],
     'collection' => 'financialFindings',
+    'sectionIndex' => null,
     'wireKey' => null,
 ])
 
@@ -15,6 +16,7 @@
         q: @js($value),
         highlight: 0,
         collection: @js($collection),
+        sectionIndex: @js($sectionIndex),
         indicators: @js($indicators),
         get filtered() {
             const q = this.q.trim().toLowerCase();
@@ -29,10 +31,19 @@
             if (!q) return null;
             return this.indicators.find((i) => i.title.trim().toLowerCase() === q) || null;
         },
+        apply(id, title) {
+            if (this.collection === 'reportBlocks') {
+                $wire.applyBlockFindingIndicator({{ (int) $index }}, id, title);
+            } else if (this.collection === 'reportSections' && this.sectionIndex !== null) {
+                $wire.applySectionFindingIndicator(this.sectionIndex, {{ (int) $index }}, id, title);
+            } else {
+                $wire.applyFindingIndicator(this.collection, {{ (int) $index }}, id, title);
+            }
+        },
         pick(item) {
             this.q = item.title;
             this.open = false;
-            $wire.applyFindingIndicator(this.collection, {{ (int) $index }}, item.id, item.title);
+            this.apply(item.id, item.title);
         },
         commitCustom() {
             const title = this.q.trim();
@@ -42,7 +53,7 @@
                 return;
             }
             this.open = false;
-            $wire.applyFindingIndicator(this.collection, {{ (int) $index }}, null, title);
+            this.apply(null, title);
         },
         onKey(e) {
             const list = this.filtered;

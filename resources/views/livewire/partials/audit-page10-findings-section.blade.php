@@ -1,4 +1,4 @@
-﻿@php
+@php
     use App\Livewire\MakeAuditReport;
     $editable = $editable ?? false;
     $compact = $compact ?? false;
@@ -95,17 +95,11 @@
     @endif
 
 <table class="{{ $tableClass }} mb-[2mm]">
-        <thead>
-            <tr>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Total Population</th>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Sample Size(Checked)</th>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Instantans Found</th>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Persentange(%)</th>
-                @if ($editable)
-                    <th class="{{ $cellPad }} bg-[#5b2a86] text-white"></th>
-                @endif
-            </tr>
-        </thead>
+        @include('livewire.partials.audit-stats-thead', [
+            'editable' => $editable,
+            'cellPad' => $cellPad,
+            'variant' => 'stats',
+        ])
         <tbody>
             @foreach (($finding['statsRows'] ?? []) as $rowIndex => $row)
                 <tr>
@@ -152,15 +146,13 @@
             />
         @endif
 
+@php $hAsset = $tableHeaders['asset'] ?? \App\Support\AuditTableHeaders::defaults()['asset']; @endphp
 <table class="{{ $tableClass }} min-w-full">
                 <thead>
                     <tr class="bg-slate-100">
-                        <th class="{{ $cellPad }} font-semibold leading-tight">ক্রয়ের তারিখ</th>
-                        <th class="{{ $cellPad }} font-semibold leading-tight">ভাউচার নং</th>
-                        <th class="{{ $cellPad }} font-semibold leading-tight">সম্পদের নাম</th>
-                        <th class="{{ $cellPad }} font-semibold leading-tight">ক্রয়মূল্য</th>
-                        <th class="{{ $cellPad }} font-semibold leading-tight">পূর্বের ডকুমেন্টস অনুযায়ী যে খাতে হিসাবভুক্ত করা ছিল</th>
-                        <th class="{{ $cellPad }} font-semibold leading-tight">স্থায়ী সম্পদ রেজিস্টার অনুযায়ী সম্পদের বর্তমান অবস্থান</th>
+                        @foreach ($hAsset as $hi => $label)
+                            <x-audit-th :editable="$editable" :wire="'tableHeaders.asset.'.$hi" class="{{ $cellPad }} font-semibold leading-tight">{{ $label }}</x-audit-th>
+                        @endforeach
                         @if ($editable)
                             <th class="{{ $cellPad }}"></th>
                         @endif

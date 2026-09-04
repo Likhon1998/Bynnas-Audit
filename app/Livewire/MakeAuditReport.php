@@ -9,6 +9,8 @@ use App\Services\AuditReportDocService;
 use App\Services\AuditReportPdfService;
 use App\Services\UserAccessService;
 use App\Support\AuditReportPaginator;
+use App\Support\AuditTableHeaders;
+use App\Support\CustomTableSchema;
 use App\Support\ExcelTsvParser;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -85,6 +87,13 @@ class MakeAuditReport extends Component
     public array $staffRows = [];
 
     /**
+     * Editable column headings shared across report tables.
+     *
+     * @var array<string, list<string>>
+     */
+    public array $tableHeaders = [];
+
+    /**
      * সূচিপত্র rows spanning page 2 (bottom) + page 3.
      *
      * @var array<int, array{type:string,serial:string,finding:string,amount:string,rating:string,status:string,page_no:string,preview_page:int}>
@@ -107,8 +116,42 @@ class MakeAuditReport extends Component
 
     public string $financial_section_title = '১.০ আর্থিক নিরীক্ষা (Financial Audit) :';
 
-    /** @var array<int, array{serial:string,title:string,body:string,rating:string}> */
+    /** @var array<int, array{serial:string,title:string,body:string,rating:string,amount?:string}> */
     public array $financialFindings = [];
+
+    /**
+     * Full report body: multiple sections, each with its own শিরোনাম list.
+     * TOC is built only from these.
+     *
+     * @var array<int, array{serial:string,title:string,findings:list<array<string,mixed>>}>
+     */
+    public array $reportSections = [];
+
+    /**
+     * Ordered page-4 body blocks — insert/move anywhere.
+     * type: section|finding|criteria|observation|stats|custom_table (legacy: vat|tax → stats)
+     *
+     * @var array<int, array<string, mixed>>
+     */
+    public array $reportBlocks = [];
+
+    /** Custom table builder modal (null = closed). */
+    public ?int $customTableEditorIndex = null;
+
+    public ?int $customTableSelR = null;
+
+    public ?int $customTableSelC = null;
+
+    public int $customTableMergeRows = 2;
+
+    public int $customTableMergeCols = 1;
+
+    public int $customTableSizeCols = 4;
+
+    public int $customTableSizeRows = 5;
+
+    /** @var list<array{block:int,merges:list<array<string,mixed>>}> */
+    public array $customTableMergeHistory = [];
 
     public string $financial_criteria = '';
 
@@ -285,6 +328,7 @@ class MakeAuditReport extends Component
         $this->report_date = now()->toDateString();
         $this->memo_no = 'অডিট/শাখা - ';
         $this->applyMonthYearDefaults();
+        $this->ensureTableHeadersDefaults();
         $this->ensurePage2Defaults();
         $this->ensureTocDefaults();
         $this->ensureSignatureDefaults();
@@ -432,6 +476,7 @@ class MakeAuditReport extends Component
         $this->area_display_name = (string) ($shakha->area?->name ?? '');
         $this->memo_no = 'অডিট/শাখা - '.($shakha->code ?: $shakha->id).'/'.$this->report_year;
         $this->branch_opening_date = optional($shakha->opening_date ?? $shakha->opened_at)?->toDateString() ?: '';
+        $this->ensureTableHeadersDefaults();
         $this->ensurePage2Defaults();
         $this->ensureTocDefaults();
         $this->ensureSignatureDefaults();
@@ -486,47 +531,14 @@ class MakeAuditReport extends Component
                             'page2' => false,
                             'page3' => false,
                             'page4' => false,
-                            'page5' => false,
-                            'page6' => false,
-                            'page7' => false,
-                            'page8' => false,
-                            'page9' => false,
-                            'page10' => false,
-                            'page11' => false,
-                            'page12' => false,
-                            'page13' => false,
-                            'page14' => false,
-                            'page15' => false,
-                            'page16' => false,
-                            'page17' => false,
-                            'page18' => false,
-                            'page19' => false,
-                            'page20' => false,
-                            'page21' => false,
                         ],
                         'active_tab' => 'cover',
                     ],
+                    'tableHeaders' => $this->tableHeaders,
                     'page2' => $this->page2Payload(),
                     'toc' => $this->tocPayload(),
                     'page3' => $this->page3Payload(),
                     'page4' => $this->page4Payload(),
-                    'page5' => $this->page5Payload(),
-                    'page6' => $this->page6Payload(),
-                    'page7' => $this->page7Payload(),
-                    'page8' => $this->page8Payload(),
-                    'page9' => $this->page9Payload(),
-                    'page10' => $this->page10Payload(),
-                    'page11' => $this->page11Payload(),
-                    'page12' => $this->page12Payload(),
-                    'page13' => $this->page13Payload(),
-                    'page14' => $this->page14Payload(),
-                    'page15' => $this->page15Payload(),
-                    'page16' => $this->page16Payload(),
-                    'page17' => $this->page17Payload(),
-                    'page18' => $this->page18Payload(),
-                    'page19' => $this->page19Payload(),
-                    'page20' => $this->page20Payload(),
-                    'page21' => $this->page21Payload(),
                 ],
             ]);
         } catch (\Throwable $e) {
@@ -560,6 +572,10 @@ class MakeAuditReport extends Component
 
     public function updatedActiveTab(): void
     {
+        if ($this->activeTab === 'page4') {
+            $this->ensureFinancialAuditDefaults();
+        }
+
         if ($this->reportId && $this->step === 'wizard') {
             $this->autoSaveDraft();
         }
@@ -591,47 +607,14 @@ class MakeAuditReport extends Component
         }
 
         $this->ensureFinancialAuditDefaults();
-        $this->ensurePage5Defaults();
-        $this->ensurePage6Defaults();
-        $this->ensurePage7Defaults();
-        $this->ensurePage8Defaults();
-        $this->ensurePage9Defaults();
-        $this->ensurePage10Defaults();
-        $this->ensurePage11Defaults();
-        $this->ensurePage12Defaults();
-        $this->ensurePage13Defaults();
-        $this->ensurePage14Defaults();
-        $this->ensurePage15Defaults();
-        $this->ensurePage16Defaults();
-        $this->ensurePage17Defaults();
-        $this->ensurePage18Defaults();
-        $this->ensurePage19Defaults();
-        $this->ensurePage20Defaults();
-        $this->ensurePage21Defaults();
         $this->syncAllFinancialFindingsToToc();
-        $this->syncFinding13ToToc();
-        $this->syncPage6FindingsToToc();
-        $this->syncPage7FindingsToToc();
-        $this->syncPage8FindingsToToc();
-        $this->syncPage9FindingsToToc();
-        $this->syncPage10FindingsToToc();
-        $this->syncPage11FindingsToToc();
-        $this->syncPage12FindingsToToc();
-        $this->syncPage13FindingsToToc();
-        $this->syncPage14FindingsToToc();
-        $this->syncPage15FindingsToToc();
-        $this->syncPage16FindingsToToc();
-        $this->syncPage17FindingsToToc();
-        $this->syncPage18FindingsToToc();
-        $this->syncPage19SectionsToToc();
-        $this->syncPage21SectionsToToc();
-        $this->persistDraft(markTab: 'page21', flash: false);
+        $this->persistDraft(markTab: 'page4', flash: false);
 
         AuditReport::query()->whereKey($this->reportId)->update([
             'status' => AuditReport::STATUS_COMPLETED,
             'progress_pct' => 100,
             'completed_at' => now(),
-            'current_tab' => 'page21',
+            'current_tab' => 'page4',
             'last_saved_at' => now(),
         ]);
 
@@ -727,6 +710,7 @@ class MakeAuditReport extends Component
         $this->ensureSignatureDefaults();
         $this->persistDraft(markTab: 'page3', flash: true, flashMessage: 'পৃষ্ঠা ৩ (সূচিপত্র + শ্রেণীবিন্যাস + স্বাক্ষর) সংরক্ষণ হয়েছে।');
         $this->activeTab = 'page4';
+        $this->ensureFinancialAuditDefaults();
     }
 
     public function savePage4(): void
@@ -734,7 +718,6 @@ class MakeAuditReport extends Component
         $this->ensureFinancialAuditDefaults();
         $this->syncAllFinancialFindingsToToc();
         $this->persistDraft(markTab: 'page4', flash: true, flashMessage: 'পৃষ্ঠা ৪ (আর্থিক নিরীক্ষা) সংরক্ষণ হয়েছে।');
-        $this->activeTab = 'page5';
     }
 
     public function savePage5(): void
@@ -876,11 +859,972 @@ class MakeAuditReport extends Component
 
     public function updatedFinancialFindings(mixed $value, ?string $key = null): void
     {
-        if (! is_string($key) || ! preg_match('/^(\d+)\.(body|rating)$/', $key, $matches)) {
+        // reportBlocks owns order; legacy financialFindings is kept for older paths only.
+        $this->rebuildTocFromReportBlocks();
+    }
+
+    public function updatedFinancialSectionTitle(): void
+    {
+        $this->ensureReportBlocksDefaults();
+        foreach ($this->reportBlocks as $i => $block) {
+            if (($block['type'] ?? '') === 'section') {
+                $this->reportBlocks[$i]['title'] = $this->financial_section_title;
+                break;
+            }
+        }
+        $this->syncSectionsFromReportBlocks();
+        $this->rebuildTocFromReportBlocks();
+    }
+
+    public function updatedReportSections(mixed $value, ?string $key = null): void
+    {
+        // reportBlocks is source of truth for order; keep legacy flat findings in sync only.
+        $this->syncLegacyFinancialFromReportSections();
+        $this->rebuildTocFromReportBlocks();
+    }
+
+    public function updatedReportBlocks(mixed $value, ?string $key = null): void
+    {
+        $this->syncSectionsFromReportBlocks();
+        $this->syncLegacyFinancialFromReportSections();
+        $this->syncLegacyUtilityFromBlocks();
+        $this->rebuildTocFromReportBlocks();
+    }
+
+    public function addFinancialFinding(): void
+    {
+        $this->ensureReportBlocksDefaults();
+        $this->insertBlockAt(count($this->reportBlocks), 'finding');
+    }
+
+    public function removeFinancialFinding(int $index): void
+    {
+        $this->ensureReportBlocksDefaults();
+        $findingIndexes = [];
+        foreach ($this->reportBlocks as $i => $block) {
+            if (($block['type'] ?? '') === 'finding') {
+                $findingIndexes[] = $i;
+            }
+        }
+        if (! isset($findingIndexes[$index])) {
+            return;
+        }
+        $this->removeBlock($findingIndexes[$index]);
+    }
+
+    public function addReportSection(): void
+    {
+        $this->ensureReportBlocksDefaults();
+        $this->insertBlockAt(count($this->reportBlocks), 'section');
+    }
+
+    public function removeReportSection(int $sectionIndex): void
+    {
+        $this->ensureReportBlocksDefaults();
+        $sectionIndexes = [];
+        foreach ($this->reportBlocks as $i => $block) {
+            if (($block['type'] ?? '') === 'section') {
+                $sectionIndexes[] = $i;
+            }
+        }
+        if (! isset($sectionIndexes[$sectionIndex])) {
+            return;
+        }
+        $start = $sectionIndexes[$sectionIndex];
+        $end = $sectionIndexes[$sectionIndex + 1] ?? count($this->reportBlocks);
+        // Don't delete shared criteria/observation trailing blocks unless they're between sections
+        $removeUntil = $end;
+        for ($i = $start; $i < $end; $i++) {
+            $type = $this->reportBlocks[$i]['type'] ?? '';
+            if ($this->isUtilityBlockType($type)) {
+                $removeUntil = $i;
+                break;
+            }
+        }
+        array_splice($this->reportBlocks, $start, $removeUntil - $start);
+        $this->reportBlocks = array_values($this->reportBlocks);
+        $this->afterBlocksChanged();
+    }
+
+    public function addFindingToSection(int $sectionIndex, int $afterFindingIndex = -1): void
+    {
+        $this->ensureReportBlocksDefaults();
+        $sectionIndexes = [];
+        foreach ($this->reportBlocks as $i => $block) {
+            if (($block['type'] ?? '') === 'section') {
+                $sectionIndexes[] = $i;
+            }
+        }
+        if (! isset($sectionIndexes[$sectionIndex])) {
+            $this->insertBlockAt(count($this->reportBlocks), 'finding');
+
             return;
         }
 
-        $this->syncTocFindingFromFinancial((int) $matches[1]);
+        $start = $sectionIndexes[$sectionIndex];
+        $end = $sectionIndexes[$sectionIndex + 1] ?? $this->firstUtilityBlockIndex();
+        $findingPositions = [];
+        for ($i = $start + 1; $i < $end; $i++) {
+            if (($this->reportBlocks[$i]['type'] ?? '') === 'finding') {
+                $findingPositions[] = $i;
+            }
+        }
+
+        if ($afterFindingIndex < 0 || $afterFindingIndex >= count($findingPositions) - 1) {
+            $insertAt = $end;
+        } else {
+            $insertAt = $findingPositions[$afterFindingIndex] + 1;
+        }
+
+        $this->insertBlockAt($insertAt, 'finding');
+    }
+
+    public function removeFindingFromSection(int $sectionIndex, int $findingIndex): void
+    {
+        $this->ensureReportBlocksDefaults();
+        $sectionIndexes = [];
+        foreach ($this->reportBlocks as $i => $block) {
+            if (($block['type'] ?? '') === 'section') {
+                $sectionIndexes[] = $i;
+            }
+        }
+        if (! isset($sectionIndexes[$sectionIndex])) {
+            return;
+        }
+        $start = $sectionIndexes[$sectionIndex];
+        $end = $sectionIndexes[$sectionIndex + 1] ?? $this->firstUtilityBlockIndex();
+        $findingPositions = [];
+        for ($i = $start + 1; $i < $end; $i++) {
+            if (($this->reportBlocks[$i]['type'] ?? '') === 'finding') {
+                $findingPositions[] = $i;
+            }
+        }
+        if (! isset($findingPositions[$findingIndex])) {
+            return;
+        }
+        $this->removeBlock($findingPositions[$findingIndex]);
+    }
+
+    /**
+     * Insert a block at any absolute index (0 = top of page body).
+     * $type: section|finding|criteria|observation|stats|custom_table|risk|root_cause|recommendation|jobab_table|followup_pack
+     */
+    public function insertBlockAt(int $index, string $type = 'finding'): void
+    {
+        $this->ensureReportBlocksDefaults();
+        $allowed = [
+            'section', 'finding', 'criteria', 'observation', 'stats', 'custom_table',
+            'risk', 'root_cause', 'recommendation', 'jobab_table', 'followup_pack', 'text_box',
+        ];
+        $type = in_array($type, $allowed, true) ? $type : 'finding';
+        $index = max(0, min($index, count($this->reportBlocks)));
+
+        if ($type === 'section') {
+            $serial = $this->nextSectionSerialFromBlocks();
+            $block = [
+                'type' => 'section',
+                'serial' => $serial,
+                'title' => $serial.' নতুন বিভাগ',
+            ];
+            array_splice($this->reportBlocks, $index, 0, [$block]);
+            array_splice($this->reportBlocks, $index + 1, 0, [[
+                'type' => 'finding',
+                ...$this->blankFindingRow($this->nextFindingSerialNearIndex($index + 1)),
+            ]]);
+        } elseif ($type === 'criteria') {
+            array_splice($this->reportBlocks, $index, 0, [$this->blankCriteriaBlock('')]);
+        } elseif ($type === 'observation' || $type === 'text_box') {
+            array_splice($this->reportBlocks, $index, 0, [$this->blankObservationBlock('নতুন বক্স:', '')]);
+        } elseif ($type === 'risk') {
+            array_splice($this->reportBlocks, $index, 0, [$this->blankRiskBox()]);
+        } elseif ($type === 'root_cause') {
+            array_splice($this->reportBlocks, $index, 0, [$this->blankRootCauseBox()]);
+        } elseif ($type === 'recommendation') {
+            array_splice($this->reportBlocks, $index, 0, [$this->blankRecommendationBox()]);
+        } elseif ($type === 'jobab_table') {
+            array_splice($this->reportBlocks, $index, 0, [$this->blankJobabBlock()]);
+        } elseif ($type === 'followup_pack') {
+            $pack = [
+                $this->blankRiskBox(),
+                $this->blankRootCauseBox(),
+                $this->blankRecommendationBox(),
+                $this->blankJobabBlock(),
+            ];
+            array_splice($this->reportBlocks, $index, 0, $pack);
+        } elseif ($type === 'stats') {
+            array_splice($this->reportBlocks, $index, 0, [$this->blankStatsBlock('Report Rating Box:')]);
+        } elseif ($type === 'custom_table') {
+            array_splice($this->reportBlocks, $index, 0, [CustomTableSchema::blank(4, 5)]);
+        } else {
+            array_splice($this->reportBlocks, $index, 0, [[
+                'type' => 'finding',
+                ...$this->blankFindingRow($this->nextFindingSerialNearIndex($index)),
+            ]]);
+        }
+
+        $this->reportBlocks = array_values($this->reportBlocks);
+        $this->afterBlocksChanged();
+    }
+
+    public function removeBlock(int $index): void
+    {
+        if (! isset($this->reportBlocks[$index])) {
+            return;
+        }
+
+        $type = $this->reportBlocks[$index]['type'] ?? '';
+
+        if ($type === 'section') {
+            $end = count($this->reportBlocks);
+            for ($i = $index + 1; $i < count($this->reportBlocks); $i++) {
+                $t = $this->reportBlocks[$i]['type'] ?? '';
+                if ($t === 'section' || $this->isUtilityBlockType($t)) {
+                    $end = $i;
+                    break;
+                }
+            }
+            // Remove section heading + its findings until next section/utility
+            array_splice($this->reportBlocks, $index, $end - $index);
+        } else {
+            unset($this->reportBlocks[$index]);
+        }
+
+        $this->reportBlocks = array_values($this->reportBlocks);
+        if ($this->customTableEditorIndex !== null) {
+            if ($this->customTableEditorIndex === $index || ($type === 'section' && $this->customTableEditorIndex >= $index)) {
+                $this->closeCustomTableEditor();
+            } elseif ($this->customTableEditorIndex > $index) {
+                $this->customTableEditorIndex--;
+            }
+        }
+        $this->afterBlocksChanged();
+    }
+
+    public function moveBlock(int $index, string $direction): void
+    {
+        $this->ensureReportBlocksDefaults();
+        $swapWith = $direction === 'up' ? $index - 1 : $index + 1;
+        if (! isset($this->reportBlocks[$index], $this->reportBlocks[$swapWith])) {
+            return;
+        }
+
+        $tmp = $this->reportBlocks[$index];
+        $this->reportBlocks[$index] = $this->reportBlocks[$swapWith];
+        $this->reportBlocks[$swapWith] = $tmp;
+        $this->afterBlocksChanged();
+    }
+
+    public function addObservationBlockRow(int $blockIndex): void
+    {
+        $this->ensureReportBlocksDefaults();
+        if (! isset($this->reportBlocks[$blockIndex]) || ! $this->isStatsLike($this->reportBlocks[$blockIndex]['type'] ?? '')) {
+            return;
+        }
+        $rows = array_values((array) ($this->reportBlocks[$blockIndex]['rows'] ?? []));
+        $rows[] = $this->blankObservationRow();
+        $this->reportBlocks[$blockIndex]['rows'] = $rows;
+        $this->afterBlocksChanged();
+    }
+
+    public function removeObservationBlockRow(int $blockIndex, int $rowIndex): void
+    {
+        $this->ensureReportBlocksDefaults();
+        if (! isset($this->reportBlocks[$blockIndex]) || ! $this->isStatsLike($this->reportBlocks[$blockIndex]['type'] ?? '')) {
+            return;
+        }
+        $rows = array_values((array) ($this->reportBlocks[$blockIndex]['rows'] ?? []));
+        if (! isset($rows[$rowIndex]) || count($rows) <= 1) {
+            return;
+        }
+        unset($rows[$rowIndex]);
+        $this->reportBlocks[$blockIndex]['rows'] = array_values($rows);
+        $this->afterBlocksChanged();
+    }
+
+    public function applyCustomTableTemplate(int $blockIndex, string $template = 'expense'): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'custom_table') {
+            return;
+        }
+        $this->reportBlocks[$blockIndex] = $template === 'blank'
+            ? CustomTableSchema::blank(4, 5)
+            : CustomTableSchema::expenseVatTaxTemplate();
+        $block = CustomTableSchema::normalize($this->reportBlocks[$blockIndex]);
+        $this->reportBlocks[$blockIndex] = $block;
+        if ($this->customTableEditorIndex === $blockIndex) {
+            $this->customTableSizeCols = max(1, count($block['columns']));
+            $this->customTableSizeRows = max(1, count($block['rows']));
+            $this->customTableSelR = null;
+            $this->customTableSelC = null;
+        }
+        // No TOC/autosave on every tweak — saved when editor closes
+    }
+
+    public function addCustomTableColumn(int $blockIndex, ?string $parentId = null): void
+    {
+        if (! $this->mutateCustomTable($blockIndex, function (array $block) use ($parentId) {
+            $columns = $block['columns'];
+            $parentPath = $parentId
+                ? CustomTableSchema::findColumnPath($columns, $parentId)
+                : null;
+            if ($parentId !== null && $parentPath === null) {
+                return $block;
+            }
+            $label = $parentPath === null ? 'কলাম '.(count($columns) + 1) : 'সাব-কলাম';
+            $block['columns'] = CustomTableSchema::addColumn(
+                $columns,
+                $parentPath,
+                CustomTableSchema::columnNode($label)
+            );
+
+            return CustomTableSchema::syncRowWidths($block);
+        })) {
+            return;
+        }
+        if ($this->customTableEditorIndex === $blockIndex) {
+            $this->customTableSizeCols = max(1, count($this->reportBlocks[$blockIndex]['columns'] ?? []));
+        }
+    }
+
+    public function removeCustomTableColumn(int $blockIndex, string $columnId): void
+    {
+        if (! $this->mutateCustomTable($blockIndex, function (array $block) use ($columnId) {
+            $path = CustomTableSchema::findColumnPath($block['columns'], $columnId);
+            if ($path === null) {
+                return $block;
+            }
+            if (count($path) === 1 && count($block['columns']) <= 1) {
+                return $block;
+            }
+            $block['columns'] = CustomTableSchema::removeColumnAt($block['columns'], $path);
+
+            return CustomTableSchema::syncRowWidths($block);
+        })) {
+            return;
+        }
+        if ($this->customTableEditorIndex === $blockIndex) {
+            $this->customTableSizeCols = max(1, count($this->reportBlocks[$blockIndex]['columns'] ?? []));
+        }
+    }
+
+    public function addCustomTableRow(int $blockIndex): void
+    {
+        if (! $this->mutateCustomTable($blockIndex, function (array $block) {
+            $leaf = CustomTableSchema::leafCount($block['columns']);
+            $block['rows'][] = CustomTableSchema::blankRow($leaf);
+
+            return $block;
+        })) {
+            return;
+        }
+        if ($this->customTableEditorIndex === $blockIndex) {
+            $this->customTableSizeRows = max(1, count($this->reportBlocks[$blockIndex]['rows'] ?? []));
+        }
+    }
+
+    public function removeCustomTableRow(int $blockIndex, int $rowIndex): void
+    {
+        if (! $this->mutateCustomTable($blockIndex, function (array $block) use ($rowIndex) {
+            $rows = $block['rows'];
+            if (! isset($rows[$rowIndex]) || count($rows) <= 1) {
+                return $block;
+            }
+            unset($rows[$rowIndex]);
+            $block['rows'] = array_values($rows);
+            $block['merges'] = CustomTableSchema::normalizeMerges(
+                $block['merges'] ?? [],
+                count($block['rows']),
+                CustomTableSchema::leafCount($block['columns'])
+            );
+
+            return $block;
+        })) {
+            return;
+        }
+        if ($this->customTableEditorIndex === $blockIndex) {
+            $this->customTableSizeRows = max(1, count($this->reportBlocks[$blockIndex]['rows'] ?? []));
+        }
+    }
+
+    public function toggleCustomTableTotalRow(int $blockIndex, int $rowIndex): void
+    {
+        $this->mutateCustomTable($blockIndex, function (array $block) use ($rowIndex) {
+            if (! isset($block['rows'][$rowIndex])) {
+                return $block;
+            }
+            $isTotal = ! (bool) ($block['rows'][$rowIndex]['is_total'] ?? false);
+            $block['rows'][$rowIndex]['is_total'] = $isTotal;
+            if ($isTotal) {
+                $block['rows'][$rowIndex]['lead_colspan'] = max(1, min(
+                    CustomTableSchema::leafCount($block['columns']),
+                    (int) ($block['rows'][$rowIndex]['lead_colspan'] ?? 3)
+                ));
+            } else {
+                $block['rows'][$rowIndex]['lead_colspan'] = 1;
+            }
+
+            return $block;
+        });
+    }
+
+    public function openCustomTableEditor(int $blockIndex): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'custom_table') {
+            return;
+        }
+        $block = CustomTableSchema::normalize($this->reportBlocks[$blockIndex]);
+        $this->reportBlocks[$blockIndex] = $block;
+        $this->customTableEditorIndex = $blockIndex;
+        $this->customTableSelR = null;
+        $this->customTableSelC = null;
+        $this->customTableMergeRows = 2;
+        $this->customTableMergeCols = 1;
+        $this->customTableSizeCols = max(1, count($block['columns']));
+        $this->customTableSizeRows = max(1, count($block['rows']));
+        $this->customTableMergeHistory = [];
+    }
+
+    public function closeCustomTableEditor(): void
+    {
+        $this->customTableEditorIndex = null;
+        $this->customTableSelR = null;
+        $this->customTableSelC = null;
+        $this->customTableMergeHistory = [];
+        // One save when leaving — not on every click/keystroke
+        $this->afterBlocksChanged();
+        $this->js('delete document.body.dataset.ctEditor');
+    }
+
+    /** Instant selection — no HTML re-render. */
+    public function selectCustomTableCell(int $r, int $c): void
+    {
+        if ($this->customTableEditorIndex === null) {
+            return;
+        }
+        $this->customTableSelR = max(0, $r);
+        $this->customTableSelC = max(0, $c);
+        $this->skipRender();
+    }
+
+    public function applyCustomTableMerge(?int $r = null, ?int $c = null, ?int $rowspan = null, ?int $colspan = null): void
+    {
+        $blockIndex = $this->customTableEditorIndex;
+        $r = $r ?? $this->customTableSelR;
+        $c = $c ?? $this->customTableSelC;
+        if ($blockIndex === null || $r === null || $c === null) {
+            return;
+        }
+        $rs = max(1, min(100, $rowspan ?? $this->customTableMergeRows));
+        $cs = max(1, min(20, $colspan ?? $this->customTableMergeCols));
+        $this->customTableSelR = $r;
+        $this->customTableSelC = $c;
+        $this->customTableMergeRows = $rs;
+        $this->customTableMergeCols = $cs;
+        $this->pushCustomTableMergeHistory($blockIndex);
+        $this->mutateCustomTable($blockIndex, function (array $block) use ($r, $c, $rs, $cs) {
+            return CustomTableSchema::setMerge($block, $r, $c, $rs, $cs);
+        });
+    }
+
+    public function clearCustomTableMerge(?int $r = null, ?int $c = null): void
+    {
+        $blockIndex = $this->customTableEditorIndex;
+        $r = $r ?? $this->customTableSelR;
+        $c = $c ?? $this->customTableSelC;
+        if ($blockIndex === null || $r === null || $c === null) {
+            return;
+        }
+        $this->pushCustomTableMergeHistory($blockIndex);
+        $this->mutateCustomTable($blockIndex, function (array $block) use ($r, $c) {
+            return CustomTableSchema::clearMergeAt($block, $r, $c);
+        });
+    }
+
+    /** Grow/shrink selected merge by 1 (e.g. one less row). */
+    public function adjustCustomTableMerge(?int $r = null, ?int $c = null, int $deltaRows = 0, int $deltaCols = 0): void
+    {
+        $blockIndex = $this->customTableEditorIndex;
+        $r = $r ?? $this->customTableSelR;
+        $c = $c ?? $this->customTableSelC;
+        if ($blockIndex === null || $r === null || $c === null) {
+            return;
+        }
+        if ($deltaRows === 0 && $deltaCols === 0) {
+            return;
+        }
+        $this->pushCustomTableMergeHistory($blockIndex);
+        $this->mutateCustomTable($blockIndex, function (array $block) use ($r, $c, $deltaRows, $deltaCols) {
+            return CustomTableSchema::adjustMerge($block, $r, $c, $deltaRows, $deltaCols);
+        });
+        $merge = CustomTableSchema::mergeAt($this->reportBlocks[$blockIndex], $r, $c);
+        if ($merge !== null) {
+            $this->customTableSelR = $merge['r'];
+            $this->customTableSelC = $merge['c'];
+            $this->customTableMergeRows = $merge['rowspan'];
+            $this->customTableMergeCols = $merge['colspan'];
+        } else {
+            $this->customTableMergeRows = 1;
+            $this->customTableMergeCols = 1;
+        }
+    }
+
+    public function undoCustomTableMerge(): void
+    {
+        $entry = array_pop($this->customTableMergeHistory);
+        if ($entry === null) {
+            return;
+        }
+        $blockIndex = (int) ($entry['block'] ?? -1);
+        if ($blockIndex < 0 || ! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'custom_table') {
+            return;
+        }
+        $this->mutateCustomTable($blockIndex, function (array $block) use ($entry) {
+            $block['merges'] = array_values((array) ($entry['merges'] ?? []));
+
+            return $block;
+        });
+    }
+
+    /**
+     * @param  list<array<string,mixed>>|null  $merges
+     */
+    protected function pushCustomTableMergeHistory(int $blockIndex): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex])) {
+            return;
+        }
+        $merges = array_values((array) ($this->reportBlocks[$blockIndex]['merges'] ?? []));
+        $this->customTableMergeHistory[] = [
+            'block' => $blockIndex,
+            'merges' => $merges,
+        ];
+        if (count($this->customTableMergeHistory) > 30) {
+            $this->customTableMergeHistory = array_slice($this->customTableMergeHistory, -30);
+        }
+    }
+
+    public function resizeCustomTable(?int $cols = null, ?int $rows = null): void
+    {
+        $blockIndex = $this->customTableEditorIndex;
+        if ($blockIndex === null) {
+            return;
+        }
+        $cols = max(1, min(20, $cols ?? $this->customTableSizeCols));
+        $rows = max(1, min(100, $rows ?? $this->customTableSizeRows));
+        $this->customTableSizeCols = $cols;
+        $this->customTableSizeRows = $rows;
+        if (! $this->mutateCustomTable($blockIndex, function (array $block) use ($cols, $rows) {
+            return CustomTableSchema::resize($block, $cols, $rows);
+        })) {
+            return;
+        }
+        $this->customTableSelR = null;
+        $this->customTableSelC = null;
+    }
+
+    public function setCustomTableLeafWidth(int $blockIndex, string $leafId, $width): void
+    {
+        $w = is_numeric($width) ? (float) $width : 0.0;
+        if ($w <= 0) {
+            return;
+        }
+        $this->mutateCustomTable($blockIndex, function (array $block) use ($leafId, $w) {
+            $block['columns'] = CustomTableSchema::setLeafWidth($block['columns'], $leafId, $w);
+
+            return $block;
+        });
+    }
+
+    /** Sync cell text without re-rendering the wizard. */
+    public function setCustomTableCell(int $blockIndex, int $rowIndex, int $colIndex, string $value): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'custom_table') {
+            return;
+        }
+        if (! isset($this->reportBlocks[$blockIndex]['rows'][$rowIndex])) {
+            return;
+        }
+        $cells = array_values((array) ($this->reportBlocks[$blockIndex]['rows'][$rowIndex]['cells'] ?? []));
+        while (count($cells) <= $colIndex) {
+            $cells[] = '';
+        }
+        $cells[$colIndex] = $value;
+        $this->reportBlocks[$blockIndex]['rows'][$rowIndex]['cells'] = $cells;
+        $this->skipRender();
+    }
+
+    public function setCustomTableTitle(int $blockIndex, string $title): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'custom_table') {
+            return;
+        }
+        $this->reportBlocks[$blockIndex]['title'] = $title;
+        $this->skipRender();
+    }
+
+    public function setCustomTableColumnLabel(int $blockIndex, string $columnId, string $label): void
+    {
+        if (! $this->mutateCustomTable($blockIndex, function (array $block) use ($columnId, $label) {
+            $path = CustomTableSchema::findColumnPath($block['columns'], $columnId);
+            if ($path === null) {
+                return $block;
+            }
+            $col = CustomTableSchema::getColumnAt($block['columns'], $path);
+            if ($col === null) {
+                return $block;
+            }
+            $col['label'] = $label;
+            $block['columns'] = CustomTableSchema::setColumnAt($block['columns'], $path, $col);
+
+            return $block;
+        })) {
+            return;
+        }
+        $this->skipRender();
+    }
+
+    /**
+     * @param  callable(array<string,mixed>): array<string,mixed>  $mutator
+     */
+    protected function mutateCustomTable(int $blockIndex, callable $mutator): bool
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'custom_table') {
+            return false;
+        }
+        $block = CustomTableSchema::normalize($this->reportBlocks[$blockIndex]);
+        $this->reportBlocks[$blockIndex] = CustomTableSchema::normalize($mutator($block));
+
+        return true;
+    }
+
+    public function applySectionFindingIndicator(int $sectionIndex, int $findingIndex, ?int $indicatorId, string $title): void
+    {
+        $this->ensureReportBlocksDefaults();
+        // Map section/finding indexes onto flat blocks
+        $sectionIndexes = [];
+        foreach ($this->reportBlocks as $i => $block) {
+            if (($block['type'] ?? '') === 'section') {
+                $sectionIndexes[] = $i;
+            }
+        }
+        if (! isset($sectionIndexes[$sectionIndex])) {
+            return;
+        }
+        $start = $sectionIndexes[$sectionIndex];
+        $end = $sectionIndexes[$sectionIndex + 1] ?? $this->firstUtilityBlockIndex();
+        $findingPositions = [];
+        for ($i = $start + 1; $i < $end; $i++) {
+            if (($this->reportBlocks[$i]['type'] ?? '') === 'finding') {
+                $findingPositions[] = $i;
+            }
+        }
+        if (! isset($findingPositions[$findingIndex])) {
+            return;
+        }
+
+        $this->applyBlockFindingIndicator($findingPositions[$findingIndex], $indicatorId, $title);
+    }
+
+    public function applyBlockFindingIndicator(int $blockIndex, ?int $indicatorId, string $title): void
+    {
+        $this->ensureReportBlocksDefaults();
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'finding') {
+            return;
+        }
+
+        $title = trim($title);
+        if ($title === '') {
+            return;
+        }
+
+        $indicator = $this->resolveOrCreateIndicator($indicatorId, $title, 'নিরীক্ষা প্রতিবেদন');
+        $this->reportBlocks[$blockIndex]['title'] = 'শিরোনাম';
+        $this->reportBlocks[$blockIndex]['body'] = $indicator->title;
+        $this->reportBlocks[$blockIndex]['indicator_id'] = $indicator->id;
+        $this->reportBlocks[$blockIndex]['indicator_code'] = $indicator->indicator_code;
+        if (blank($this->reportBlocks[$blockIndex]['rating'] ?? null) && filled($indicator->risk_rating)) {
+            $this->reportBlocks[$blockIndex]['rating'] = $this->mapRiskToFindingRating((string) $indicator->risk_rating);
+        }
+
+        $this->afterBlocksChanged();
+        $this->autoSaveHint = 'Indicator সংযুক্ত · সূচিপত্রে আপডেট';
+    }
+
+    protected function afterBlocksChanged(): void
+    {
+        $this->syncSectionsFromReportBlocks();
+        $this->syncLegacyFinancialFromReportSections();
+        $this->syncLegacyUtilityFromBlocks();
+        $this->rebuildTocFromReportBlocks();
+        if ($this->reportId) {
+            $this->autoSaveDraft();
+        }
+    }
+
+    protected function firstUtilityBlockIndex(): int
+    {
+        foreach ($this->reportBlocks as $i => $block) {
+            if ($this->isUtilityBlockType($block['type'] ?? '')) {
+                return $i;
+            }
+        }
+
+        return count($this->reportBlocks);
+    }
+
+    protected function isUtilityBlockType(string $type): bool
+    {
+        return in_array($type, [
+            'criteria', 'observation', 'stats', 'custom_table', 'vat', 'tax',
+            'jobab_table', 'text_box',
+        ], true);
+    }
+
+    protected function isStatsLike(string $type): bool
+    {
+        return in_array($type, ['stats', 'vat', 'tax'], true);
+    }
+
+    /** @deprecated */
+    protected function isObservationLike(string $type): bool
+    {
+        return $this->isStatsLike($type) || $type === 'observation';
+    }
+
+    /**
+     * @return array{type:string,label:string,body:string}
+     */
+    protected function blankCriteriaBlock(?string $body = null): array
+    {
+        $default = 'প্রতিষ্ঠানের নির্দেশনা ও জাতীয় রাজস্ব বোর্ড (এনবিআর)-এর নির্দেশনা অনুযায়ী প্রযোজ্য ভ্যাট ও ট্যাক্স নির্ধারিত হারে সরকারি কোষাগারে জমা দিতে হবে।';
+
+        return [
+            'type' => 'criteria',
+            'label' => 'প্রচলিত নিয়ম (Criteria):',
+            'body' => $body !== null ? $body : ($this->financial_criteria !== '' ? $this->financial_criteria : $default),
+        ];
+    }
+
+    /**
+     * Text-only observation (পর্যবেক্ষণ লিখুন).
+     *
+     * @return array{type:string,label:string,body:string}
+     */
+    protected function blankObservationBlock(string $label = 'পর্যবেক্ষণ (Observation) :', string $body = ''): array
+    {
+        return [
+            'type' => 'observation',
+            'label' => $label,
+            'body' => $body,
+        ];
+    }
+
+    /** @return array{type:string,label:string,body:string} */
+    protected function blankRiskBox(): array
+    {
+        return $this->blankObservationBlock(
+            'ঝুঁকি/প্রভাব (Risk/Implication) :',
+            'এনবিআর এর নির্দেশনা অনুসরণ না করায় বহিঃনিরীক্ষা কর্তৃক আপত্তি উত্থাপিত হওয়ার আশঙ্কা।'
+        );
+    }
+
+    /** @return array{type:string,label:string,body:string} */
+    protected function blankRootCauseBox(): array
+    {
+        return $this->blankObservationBlock(
+            'মূল কারণ (Root Cause):',
+            'ব্যবস্থাপনা কর্তৃক সঠিক নির্দেশনা প্রদান না করা।'
+        );
+    }
+
+    /** @return array{type:string,label:string,body:string} */
+    protected function blankRecommendationBox(): array
+    {
+        return $this->blankObservationBlock(
+            'সুপারিশ (Recommendation) :',
+            'প্রযোজ্য সকল ক্ষেত্রে ট্যাক্স প্রদান নিশ্চিত করা।'
+        );
+    }
+
+    /**
+     * Branch manager reply / responsibility / timeline table (জবাব).
+     *
+     * @return array{type:string,rows:list<array{cells:list<string>}>}
+     */
+    protected function blankJobabBlock(): array
+    {
+        return [
+            'type' => 'jobab_table',
+            'rows' => [
+                ['cells' => ['শাখা ব্যবস্থাপকের জবাব', '']],
+                ['cells' => ['সমস্যা সমাধানের ক্ষেত্রে দায়িত্বপ্রাপ্ত কর্মীর নাম/আইডি ও গৃহীত পদক্ষেপ', '']],
+                ['cells' => ['সমাধানের প্রকৃত সময়কাল/সম্ভাব্য সময়কাল (তারিখ)', '']],
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string,mixed>  $block
+     * @return array{type:string,rows:list<array{cells:list<string>}>}
+     */
+    protected function normalizeJobabBlock(array $block): array
+    {
+        $rows = [];
+        $colCount = 2;
+        foreach (array_values((array) ($block['rows'] ?? [])) as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $cells = array_values(array_map('strval', (array) ($row['cells'] ?? [])));
+            $colCount = max($colCount, count($cells), 2);
+            $rows[] = ['cells' => $cells];
+        }
+        if ($rows === []) {
+            return $this->blankJobabBlock();
+        }
+        foreach ($rows as $i => $row) {
+            $cells = $row['cells'];
+            while (count($cells) < $colCount) {
+                $cells[] = '';
+            }
+            if (count($cells) > $colCount) {
+                $cells = array_slice($cells, 0, $colCount);
+            }
+            $rows[$i] = ['cells' => $cells];
+        }
+
+        return [
+            'type' => 'jobab_table',
+            'rows' => $rows,
+        ];
+    }
+
+    public function addJobabRow(int $blockIndex): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'jobab_table') {
+            return;
+        }
+        $block = $this->normalizeJobabBlock($this->reportBlocks[$blockIndex]);
+        $cols = count($block['rows'][0]['cells'] ?? []) ?: 2;
+        $block['rows'][] = ['cells' => array_fill(0, $cols, '')];
+        $this->reportBlocks[$blockIndex] = $block;
+        $this->afterBlocksChanged();
+    }
+
+    public function removeJobabRow(int $blockIndex, int $rowIndex): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'jobab_table') {
+            return;
+        }
+        $block = $this->normalizeJobabBlock($this->reportBlocks[$blockIndex]);
+        if (! isset($block['rows'][$rowIndex]) || count($block['rows']) <= 1) {
+            return;
+        }
+        unset($block['rows'][$rowIndex]);
+        $block['rows'] = array_values($block['rows']);
+        $this->reportBlocks[$blockIndex] = $block;
+        $this->afterBlocksChanged();
+    }
+
+    public function addJobabColumn(int $blockIndex): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'jobab_table') {
+            return;
+        }
+        $block = $this->normalizeJobabBlock($this->reportBlocks[$blockIndex]);
+        foreach ($block['rows'] as $i => $row) {
+            $block['rows'][$i]['cells'][] = '';
+        }
+        $this->reportBlocks[$blockIndex] = $block;
+        $this->afterBlocksChanged();
+    }
+
+    public function removeJobabColumn(int $blockIndex): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'jobab_table') {
+            return;
+        }
+        $block = $this->normalizeJobabBlock($this->reportBlocks[$blockIndex]);
+        $cols = count($block['rows'][0]['cells'] ?? []);
+        if ($cols <= 1) {
+            return;
+        }
+        foreach ($block['rows'] as $i => $row) {
+            $cells = $row['cells'];
+            array_pop($cells);
+            $block['rows'][$i]['cells'] = $cells;
+        }
+        $this->reportBlocks[$blockIndex] = $block;
+        $this->afterBlocksChanged();
+    }
+
+    /**
+     * Report Rating Box (stats table).
+     *
+     * @param  list<array{total_population:string,sample_size:string,instances_found:string,percentage:string}>|null  $rows
+     * @return array{type:string,heading:string,rows:list<array<string,string>>}
+     */
+    protected function blankStatsBlock(string $heading = 'Report Rating Box:', ?array $rows = null): array
+    {
+        $heading = $this->normalizeStatsHeading($heading);
+        $normalizedRows = [];
+        foreach (array_values($rows ?? [$this->blankObservationRow()]) as $row) {
+            $normalizedRows[] = array_merge($this->blankObservationRow(), is_array($row) ? $row : []);
+        }
+        if ($normalizedRows === []) {
+            $normalizedRows = [$this->blankObservationRow()];
+        }
+
+        return [
+            'type' => 'stats',
+            'heading' => $heading,
+            'rows' => $normalizedRows,
+        ];
+    }
+
+    protected function normalizeStatsHeading(string $heading): string
+    {
+        $heading = trim($heading);
+        $legacy = [
+            'ভ্যাট সংক্রান্ত:',
+            'ট্যাক্স সংক্রান্ত:',
+            'সারণী:',
+            'নতুন সারণী:',
+            'সারণী (VAT/Tax)',
+        ];
+        if ($heading === '' || in_array($heading, $legacy, true)) {
+            return 'Report Rating Box:';
+        }
+
+        return $heading;
+    }
+
+    protected function syncLegacyUtilityFromBlocks(): void
+    {
+        $firstCriteria = null;
+        $statsBlocks = [];
+        foreach ($this->reportBlocks as $block) {
+            $type = $block['type'] ?? '';
+            if ($type === 'criteria' && $firstCriteria === null) {
+                $firstCriteria = $block;
+            }
+            if ($this->isStatsLike($type)) {
+                $statsBlocks[] = $block;
+            }
+        }
+
+        if ($firstCriteria !== null) {
+            $this->financial_criteria = (string) ($firstCriteria['body'] ?? $this->financial_criteria);
+        }
+
+        if (isset($statsBlocks[0])) {
+            $rows = array_values((array) ($statsBlocks[0]['rows'] ?? []));
+            $this->vatObservationRows = $rows !== [] ? $rows : [$this->blankObservationRow()];
+        }
+        if (isset($statsBlocks[1])) {
+            $rows = array_values((array) ($statsBlocks[1]['rows'] ?? []));
+            $this->taxObservationRows = $rows !== [] ? $rows : [$this->blankObservationRow()];
+        }
     }
 
     /**
@@ -899,6 +1843,72 @@ class MakeAuditReport extends Component
         $slug = trim($slug, '-');
 
         return $slug !== '' ? 'finding-'.$slug : '';
+    }
+
+    public static function sectionAnchorId(?string $serial): string
+    {
+        $id = self::findingAnchorId($serial);
+
+        return $id !== '' ? str_replace('finding-', 'section-', $id) : '';
+    }
+
+    /**
+     * Left outline: headlines (not page numbers). Click → switch tab + scroll.
+     *
+     * @return list<array{kind:string,label:string,tab:string,anchor:string,depth:int}>
+     */
+    public function outlineNavItems(): array
+    {
+        $this->ensureReportBlocksDefaults();
+        $items = [
+            ['kind' => 'fixed', 'label' => 'Cover Page', 'tab' => 'cover', 'anchor' => 'audit-cover', 'depth' => 0],
+            ['kind' => 'fixed', 'label' => 'এক নজরে', 'tab' => 'page2', 'anchor' => 'audit-page2', 'depth' => 0],
+            ['kind' => 'fixed', 'label' => 'সূচিপত্র ও শ্রেণীবিন্যাস', 'tab' => 'page3', 'anchor' => 'audit-page3', 'depth' => 0],
+        ];
+
+        foreach ($this->reportBlocks as $block) {
+            $type = $block['type'] ?? '';
+            if ($type === 'section') {
+                $serial = trim((string) ($block['serial'] ?? ''));
+                $title = trim((string) ($block['title'] ?? ''));
+                $label = $title !== '' ? $title : ($serial !== '' ? $serial : 'বিভাগ');
+                $items[] = [
+                    'kind' => 'section',
+                    'label' => $label,
+                    'tab' => 'page4',
+                    'anchor' => self::sectionAnchorId($serial !== '' ? $serial : $title),
+                    'depth' => 0,
+                ];
+            } elseif ($type === 'finding') {
+                $serial = trim((string) ($block['serial'] ?? ''));
+                $body = trim((string) ($block['body'] ?? ''));
+                $title = trim((string) ($block['title'] ?? ''));
+                $text = $body !== '' ? $body : ($title !== '' && $title !== 'শিরোনাম' ? $title : 'শিরোনাম');
+                $short = mb_strlen($text) > 48 ? mb_substr($text, 0, 48).'…' : $text;
+                $label = $serial !== '' ? $serial.' '.$short : $short;
+                $items[] = [
+                    'kind' => 'finding',
+                    'label' => $label,
+                    'tab' => 'page4',
+                    'anchor' => self::findingAnchorId($serial),
+                    'depth' => 1,
+                ];
+            }
+        }
+
+        return $items;
+    }
+
+    public function goToOutlineItem(string $tab, string $anchor = ''): void
+    {
+        if (! in_array($tab, ['cover', 'page2', 'page3', 'page4'], true)) {
+            return;
+        }
+        $this->activeTab = $tab;
+        if ($anchor !== '') {
+            $safe = json_encode($anchor, JSON_UNESCAPED_UNICODE);
+            $this->js('setTimeout(() => { const el = document.getElementById('.$safe.'); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 160)');
+        }
     }
 
     public function addVatObservationRow(): void
@@ -1178,6 +2188,7 @@ class MakeAuditReport extends Component
             'glanceRows' => $this->glanceRows,
             'staffColumns' => $this->staffColumns,
             'staffRows' => $this->staffRows,
+            'tableHeaders' => $this->tableHeaders,
             'sign_auditor_name' => $this->sign_auditor_name,
             'sign_auditor_designation' => $this->sign_auditor_designation,
             'sign_auditor_date' => $this->sign_auditor_date,
@@ -1190,23 +2201,7 @@ class MakeAuditReport extends Component
             'financial_criteria' => $this->financial_criteria,
             'vatObservationRows' => $this->vatObservationRows,
             'taxObservationRows' => $this->taxObservationRows,
-            ...$this->page5Payload(),
-            ...$this->page6Payload(),
-            ...$this->page7Payload(),
-            ...$this->page8Payload(),
-            ...$this->page9Payload(),
-            ...$this->page10Payload(),
-            ...$this->page11Payload(),
-            ...$this->page12Payload(),
-            ...$this->page13Payload(),
-            ...$this->page14Payload(),
-            ...$this->page15Payload(),
-            ...$this->page16Payload(),
-            ...$this->page17Payload(),
-            ...$this->page18Payload(),
-            ...$this->page19Payload(),
-            ...$this->page20Payload(),
-            ...$this->page21Payload(),
+            ...$this->page4Payload(),
         ];
     }
 
@@ -1239,55 +2234,43 @@ class MakeAuditReport extends Component
             'page2' => false,
             'page3' => false,
             'page4' => false,
-            'page5' => false,
-            'page6' => false,
-            'page7' => false,
-            'page8' => false,
-            'page9' => false,
-            'page10' => false,
-            'page11' => false,
-            'page12' => false,
-            'page13' => false,
-            'page14' => false,
-            'page15' => false,
-            'page16' => false,
-            'page17' => false,
-            'page18' => false,
-            'page19' => false,
-            'page20' => false,
-            'page21' => false,
         ]);
 
         if ($markTab !== null) {
             $tabsDone[$markTab] = true;
         }
 
+        // Report ends at page 4 — drop legacy page5–21 progress keys.
+        $tabsDone = array_intersect_key($tabsDone, array_flip(['cover', 'page2', 'page3', 'page4']));
+
         $meta['tabs_done'] = $tabsDone;
         $meta['active_tab'] = $this->activeTab;
 
         $pages['meta'] = $meta;
+        $pages['tableHeaders'] = $this->tableHeaders;
         $pages['page2'] = $this->page2Payload();
         $pages['toc'] = $this->tocPayload();
         $pages['page3'] = $this->page3Payload();
         $pages['page4'] = $this->page4Payload();
-        $pages['page5'] = $this->page5Payload();
-        $pages['page6'] = $this->page6Payload();
-        $pages['page7'] = $this->page7Payload();
-        $pages['page8'] = $this->page8Payload();
-        $pages['page9'] = $this->page9Payload();
-        $pages['page10'] = $this->page10Payload();
-        $pages['page11'] = $this->page11Payload();
-        $pages['page12'] = $this->page12Payload();
-        $pages['page13'] = $this->page13Payload();
-        $pages['page14'] = $this->page14Payload();
-        $pages['page15'] = $this->page15Payload();
-        $pages['page16'] = $this->page16Payload();
-        $pages['page17'] = $this->page17Payload();
-        $pages['page18'] = $this->page18Payload();
-        $pages['page19'] = $this->page19Payload();
-        $pages['page20'] = $this->page20Payload();
-        $pages['page21'] = $this->page21Payload();
-
+        unset(
+            $pages['page5'],
+            $pages['page6'],
+            $pages['page7'],
+            $pages['page8'],
+            $pages['page9'],
+            $pages['page10'],
+            $pages['page11'],
+            $pages['page12'],
+            $pages['page13'],
+            $pages['page14'],
+            $pages['page15'],
+            $pages['page16'],
+            $pages['page17'],
+            $pages['page18'],
+            $pages['page19'],
+            $pages['page20'],
+            $pages['page21'],
+        );
         $progress = AuditReport::computeProgress($pages, [
             'memo_no' => $this->memo_no,
             'auditor_name' => $this->auditor_name,
@@ -1378,6 +2361,7 @@ class MakeAuditReport extends Component
         $this->glanceRows = array_values((array) ($page2['glanceRows'] ?? []));
         $this->staffColumns = array_values((array) ($page2['staffColumns'] ?? []));
         $this->staffRows = array_values((array) ($page2['staffRows'] ?? []));
+        $this->tableHeaders = (array) ($pages['tableHeaders'] ?? []);
         $this->tocRows = array_values((array) ($toc['rows'] ?? []));
 
         $this->sign_auditor_name = (string) ($page3['sign_auditor_name'] ?? '');
@@ -1390,6 +2374,14 @@ class MakeAuditReport extends Component
 
         $this->financial_section_title = (string) ($page4['financial_section_title'] ?? $this->financial_section_title);
         $this->financialFindings = array_values((array) ($page4['financialFindings'] ?? []));
+        $this->reportSections = array_values((array) ($page4['reportSections'] ?? []));
+        $this->reportBlocks = array_values((array) ($page4['reportBlocks'] ?? []));
+        // Keep every custom_table fully normalized (merges/widths) so it stays editable after resume
+        foreach ($this->reportBlocks as $i => $block) {
+            if (($block['type'] ?? '') === 'custom_table') {
+                $this->reportBlocks[$i] = CustomTableSchema::normalize(is_array($block) ? $block : []);
+            }
+        }
         $this->financial_criteria = (string) ($page4['financial_criteria'] ?? '');
         $this->vatObservationRows = array_values((array) ($page4['vatObservationRows'] ?? []));
         $this->taxObservationRows = array_values((array) ($page4['taxObservationRows'] ?? []));
@@ -1471,31 +2463,19 @@ class MakeAuditReport extends Component
         $this->page21_sign_name = (string) ($page21['page21_sign_name'] ?? '');
         $this->page21_sign_designation = (string) ($page21['page21_sign_designation'] ?? '');
 
+        $this->ensureTableHeadersDefaults();
         $this->ensurePage2Defaults();
         $this->ensureTocDefaults();
         $this->ensureSignatureDefaults();
         $this->ensureFinancialAuditDefaults();
-        $this->ensurePage5Defaults();
-        $this->ensurePage6Defaults();
-        $this->ensurePage7Defaults();
-        $this->ensurePage8Defaults();
-        $this->ensurePage9Defaults();
-        $this->ensurePage10Defaults();
-        $this->ensurePage11Defaults();
-        $this->ensurePage12Defaults();
-        $this->ensurePage13Defaults();
-        $this->ensurePage14Defaults();
-        $this->ensurePage15Defaults();
-        $this->ensurePage16Defaults();
-        $this->ensurePage17Defaults();
-        $this->ensurePage18Defaults();
-        $this->ensurePage19Defaults();
-        $this->ensurePage20Defaults();
-        $this->ensurePage21Defaults();
+        // Drop legacy TOC rows — সূচিপত্র = report blocks / শিরোনাম only.
+        $this->rebuildTocFromReportBlocks();
 
         $this->activeTab = (string) ($report->current_tab ?: ($meta['active_tab'] ?? 'cover'));
-        if (! in_array($this->activeTab, ['cover', 'page2', 'page3', 'page4', 'page5', 'page6', 'page7', 'page8', 'page9', 'page10', 'page11', 'page12', 'page13', 'page14', 'page15', 'page16', 'page17', 'page18', 'page19', 'page20', 'page21'], true)) {
-            $this->activeTab = 'cover';
+        if (! in_array($this->activeTab, ['cover', 'page2', 'page3', 'page4'], true)) {
+            $this->activeTab = in_array($this->activeTab, ['page5', 'page6', 'page7', 'page8', 'page9', 'page10', 'page11', 'page12', 'page13', 'page14', 'page15', 'page16', 'page17', 'page18', 'page19', 'page20', 'page21'], true)
+                ? 'page4'
+                : 'cover';
         }
 
         $this->lastAutoSavedAt = optional($report->last_saved_at)?->timezone('Asia/Dhaka')->format('h:i A');
@@ -1557,6 +2537,11 @@ class MakeAuditReport extends Component
                 default => ['bg' => '#ffffff', 'color' => '#111111'],
             },
         };
+    }
+
+    protected function ensureTableHeadersDefaults(): void
+    {
+        $this->tableHeaders = AuditTableHeaders::merge($this->tableHeaders);
     }
 
     protected function ensurePage2Defaults(): void
@@ -1641,52 +2626,13 @@ class MakeAuditReport extends Component
             ];
         };
 
-        // Page 2: glance + staff leave room for ~12 TOC rows on A4.
-        // Page 3: remaining TOC + signature blocks.
+        // Short report: cover → page4 financial (১.১–১.২).
         $this->tocRows = [
             $make('section', '১.০', 'অর্থ ও হিসাব নিরীক্ষা (Accounts and Financial Audit)', '', 2),
             $make('item', '১.১', 'ভ্যাট ও ট্যাক্স কর্তন না করা', 'Major (B)', 2),
             $make('item', '১.২', 'ভ্যাট ও ট্যাক্স পরিশোধ না করা', 'Major (B)', 2),
-            $make('item', '১.৩', 'নগদ অর্থ স্থিতির ঘাটতি', 'Medium (C)', 2),
-            $make('item', '১.৪', 'বাজেটের অতিরিক্ত ব্যয়', 'Major (B)', 2),
-            $make('item', '১.৫', 'অনুমোদন ছাড়া ব্যয়', 'Major (B)', 2),
-            $make('item', '১.৬', 'ভাউচার/বিল সংরক্ষণে ঘাটতি', 'Medium (C)', 2),
-            $make('item', '১.৭', 'ব্যাংক সমন্বয় বিবরণীতে পার্থক্য', 'Medium (C)', 2),
-            $make('item', '১.৮', 'অগ্রিম হিসাব নিষ্পত্তিতে বিলম্ব', 'Medium (C)', 2),
-            $make('item', '১.৯', 'রসিদ বই ব্যবহার/হিসাবরক্ষণে দুর্বলতা', 'Minor (D)', 2),
-            $make('item', '১.১০', 'খরচের সহায়ক দলিলাদি অসম্পূর্ণ', 'Medium (C)', 2),
-            $make('item', '১.১১', 'হিসাব খাত শ্রেণিবিন্যাসে ত্রুটি', 'Medium (C)', 2),
-
-            // Page 3 continuation
-            $make('item', '১.১২', 'নগদ ও ব্যাংক রেজিস্টার হালনাগাদ না হওয়া', 'Major (B)', 3),
-
-            $make('section', '২.০', 'স্থায়ী সম্পদ নিরীক্ষা (Fixed Asset Audit)', '', 3),
-            $make('item', '২.১', 'স্থায়ী সম্পদ হলেও স্থায়ী সম্পদ হিসাবে না দেখানো এবং রেজিস্টারে এন্ট্রি না করা', 'Medium (C)', 3),
-            $make('item', '২.২', 'প্রারম্ভিক সম্পদ মূল্য ও অবচয় স্থিতির মিল না পাওয়া', 'Medium (C)', 3),
-            $make('item', '২.৩', '৩টি কোটেশন ছাড়া আইপিএস ক্রয়', 'Minor (D)', 3),
-
-            $make('section', '৩.০', 'মজুদ ব্যবস্থাপনা নিরীক্ষা (Stock Management Audit)', '', 3),
-            $make('item', '৩.১', 'স্টক রেজিস্টার সঠিক নিয়মে ব্যবহার না করা এবং ক্রয়কৃত স্টেশনারী দ্রব্যাদি স্টক রেজিস্টারে এন্ট্রি না করা', 'Medium (C)', 3),
-
-            $make('section', '৪.০', 'কার্যক্রম/পরিচালন (Operational Audit)', '', 3),
-            $make('item', '৪.১', 'আদায়কৃত সঞ্চয় অফিস তহবিলে জমা হওয়া', 'Unsatisfactory (F)', 3),
-            $make('item', '৪.২', 'পাসবই পোস্টিং না দিয়ে সদস্যের নিকট থেকে সঞ্চয় আদায় করা', 'Major (B)', 3),
-            $make('item', '৪.৩', 'পাসবই পোস্টিং না দিয়ে সদস্যের নিকট থেকে কিস্তি আদায় করা', 'Major (B)', 3),
-            $make('item', '৪.৪', 'সফটওয়্যারে সুফলন ঋণের মেয়াদ ভুল পোস্টিং', 'Medium (C)', 3),
-            $make('item', '৪.৫', 'সফটওয়্যার আদায়যোগ্যর সমস্যার কারণে বকেয়া না দেখানো', 'Medium (C)', 3),
-            $make('item', '৪.৬', 'ঋণ বিতরণের অনেক দিন পরে আদায়যোগ্য দেখানো', 'Medium (C)', 3),
-            $make('item', '৪.৭', 'সমিতি পরিদর্শনে প্রাপ্ত ঘাটতি; একাধিক স্পটে সমিতি ও অনিয়মিত ঋণ বিতরণ', 'Medium (C)', 3),
-            $make('item', '৪.৮', 'ক্রসচেকের প্রয়োজনে ২৮টি পাসবই উপস্থিত না করা', 'Medium (C)', 3),
-            $make('item', '৪.৯', 'নীতিমালা বহির্ভূত ১ম ঋণের বাধ্যতামূলক সঞ্চয় আংশিক সমন্বয় করে কিস্তি আদায়', 'Medium (C)', 3),
-            $make('item', '৪.১০', 'সদস্যদের লাভবিহীন সম্পূর্ণ সঞ্চয় ফেরত দিয়ে ড্রপআউট করা ৩৮,৯৪৪ টাকা', 'Medium (C)', 3),
-            $make('item', '৪.১১', 'সঞ্চয় সমন্বয় তালিকায় লেখার পরেও সদস্যের সঞ্চয় নগদে উত্তোলন করে ঋণ আদায় দেখানোর কারণে ম্যানুয়াল সঞ্চয় সমন্বয় অনুমোদনের সাথে সফটওয়্যার এর সঞ্চয় সমন্বয়ের মিল পাওয়া যায়নি ৬,১২,২৯৬ টাকা', 'Medium (C)', 3),
-
-            $make('section', '৫.০০', 'বিগত অভ্যন্তরীণ নিরীক্ষা প্রতিবেদনের জবাবের কমপ্লায়েন্স (Compliance of Previous Internal Audit Report Reply)', '', 3),
-            $make('section', '৬.০০', 'আইটি (সফটওয়্যার) সংক্রান্ত চেকলিস্ট', '', 3),
-            $make('section', '৭.০০', 'বহিঃ নিরীক্ষা প্রতিবেদনের ফলোআপ', '', 3),
         ];
     }
-
     protected function ensureSignatureDefaults(): void
     {
         if ($this->sign_auditor_name === '') {
@@ -1725,10 +2671,6 @@ class MakeAuditReport extends Component
             $this->financial_criteria = 'প্রতিষ্ঠানের নির্দেশনা ও জাতীয় রাজস্ব বোর্ড (এনবিআর)-এর নির্দেশনা অনুযায়ী প্রযোজ্য ভ্যাট ও ট্যাক্স নির্ধারিত হারে সরকারি কোষাগারে জমা দিতে হবে।';
         }
 
-        if ($this->financialFindings === []) {
-            $this->syncFinancialFindingsFromToc();
-        }
-
         if ($this->vatObservationRows === []) {
             $this->vatObservationRows = [$this->blankObservationRow()];
         }
@@ -1737,12 +2679,439 @@ class MakeAuditReport extends Component
             $this->taxObservationRows = [$this->blankObservationRow()];
         }
 
-        foreach (array_keys($this->financialFindings) as $i) {
-            $this->financialFindings[$i] = array_merge([
-                'indicator_id' => null,
-                'indicator_code' => null,
-            ], $this->financialFindings[$i]);
+        $this->ensureReportBlocksDefaults();
+        $this->rebuildTocFromReportBlocks();
+    }
+
+    protected function ensureReportBlocksDefaults(): void
+    {
+        if ($this->reportBlocks !== []) {
+            $this->normalizeReportBlocks();
+            $this->syncSectionsFromReportBlocks();
+            $this->syncLegacyFinancialFromReportSections();
+
+            return;
         }
+
+        // Prefer saved reportSections, else legacy financial findings.
+        $this->ensureReportSectionsDefaults();
+        $this->syncReportBlocksFromSections();
+        $this->normalizeReportBlocks();
+    }
+
+    protected function normalizeReportBlocks(): void
+    {
+        $blocks = array_values($this->reportBlocks);
+        $migrated = [];
+
+        foreach ($blocks as $block) {
+            $type = $block['type'] ?? '';
+            if ($type === 'section') {
+                $migrated[] = array_merge(['type' => 'section', 'serial' => '১.০', 'title' => ''], $block, ['type' => 'section']);
+            } elseif ($type === 'finding') {
+                $migrated[] = array_merge(['type' => 'finding'], $this->blankFindingRow(''), is_array($block) ? $block : [], ['type' => 'finding']);
+            } elseif ($type === 'criteria') {
+                if (array_key_exists('body', $block)) {
+                    $body = (string) $block['body'];
+                } else {
+                    $body = $this->financial_criteria !== ''
+                        ? $this->financial_criteria
+                        : $this->blankCriteriaBlock()['body'];
+                }
+                $migrated[] = [
+                    'type' => 'criteria',
+                    'label' => (string) ($block['label'] ?? 'প্রচলিত নিয়ম (Criteria):'),
+                    'body' => $body,
+                ];
+            } elseif ($type === 'observation') {
+                $migrated[] = $this->blankObservationBlock(
+                    (string) ($block['label'] ?? 'পর্যবেক্ষণ (Observation) :'),
+                    (string) ($block['body'] ?? '')
+                );
+                // Legacy combined (text + table in one block) → split
+                if (array_key_exists('rows', $block)) {
+                    $heading = (string) ($block['heading'] ?? '');
+                    $rows = array_values((array) ($block['rows'] ?? []));
+                    $migrated[] = $this->blankStatsBlock(
+                        $heading !== '' ? $heading : 'Report Rating Box:',
+                        $rows !== [] ? $rows : null
+                    );
+                }
+            } elseif ($type === 'stats') {
+                $migrated[] = $this->blankStatsBlock(
+                    (string) ($block['heading'] ?? 'Report Rating Box:'),
+                    array_values((array) ($block['rows'] ?? []))
+                );
+            } elseif ($type === 'vat') {
+                if (trim((string) ($block['label'] ?? '')) !== '' || array_key_exists('body', $block)) {
+                    $migrated[] = $this->blankObservationBlock(
+                        (string) ($block['label'] ?: 'পর্যবেক্ষণ (Observation) :'),
+                        (string) ($block['body'] ?? '')
+                    );
+                }
+                $migrated[] = $this->blankStatsBlock(
+                    (string) ($block['heading'] ?? 'Report Rating Box:'),
+                    array_values((array) ($block['rows'] ?? ($this->vatObservationRows ?: [$this->blankObservationRow()])))
+                );
+            } elseif ($type === 'tax') {
+                $migrated[] = $this->blankStatsBlock(
+                    (string) ($block['heading'] ?? 'Report Rating Box:'),
+                    array_values((array) ($block['rows'] ?? ($this->taxObservationRows ?: [$this->blankObservationRow()])))
+                );
+            } elseif ($type === 'custom_table') {
+                $migrated[] = CustomTableSchema::normalize(is_array($block) ? $block : []);
+            } elseif ($type === 'jobab_table') {
+                $migrated[] = $this->normalizeJobabBlock(is_array($block) ? $block : []);
+            } elseif ($type === 'text_box') {
+                $migrated[] = $this->blankObservationBlock(
+                    (string) ($block['label'] ?? 'নতুন বক্স:'),
+                    (string) ($block['body'] ?? '')
+                );
+            }
+        }
+
+        $blocks = $migrated;
+
+        // Do not force-recreate section/finding — user may delete the first/only ones.
+        $hasCriteria = false;
+        $hasObservation = false;
+        $hasStats = false;
+        foreach ($blocks as $b) {
+            $t = $b['type'] ?? '';
+            if ($t === 'criteria') {
+                $hasCriteria = true;
+            }
+            if ($t === 'observation') {
+                $hasObservation = true;
+            }
+            if ($this->isStatsLike($t)) {
+                $hasStats = true;
+            }
+        }
+        if (! $hasCriteria) {
+            $blocks[] = $this->blankCriteriaBlock();
+        }
+        if (! $hasObservation) {
+            $blocks[] = $this->blankObservationBlock();
+        }
+        if (! $hasStats) {
+            $blocks[] = $this->blankStatsBlock(
+                'Report Rating Box:',
+                $this->vatObservationRows !== [] ? $this->vatObservationRows : null
+            );
+            $blocks[] = $this->blankStatsBlock(
+                'Report Rating Box:',
+                $this->taxObservationRows !== [] ? $this->taxObservationRows : null
+            );
+        }
+
+        $this->reportBlocks = array_values($blocks);
+        $this->syncLegacyUtilityFromBlocks();
+    }
+
+    protected function syncReportBlocksFromSections(): void
+    {
+        $blocks = [];
+        foreach ($this->reportSections as $section) {
+            $blocks[] = [
+                'type' => 'section',
+                'serial' => (string) ($section['serial'] ?? '১.০'),
+                'title' => (string) ($section['title'] ?? ''),
+            ];
+            foreach ((array) ($section['findings'] ?? []) as $finding) {
+                $blocks[] = array_merge(['type' => 'finding'], $this->blankFindingRow(''), is_array($finding) ? $finding : [], ['type' => 'finding']);
+            }
+        }
+
+        if ($blocks === []) {
+            $blocks = [
+                [
+                    'type' => 'section',
+                    'serial' => '১.০',
+                    'title' => $this->financial_section_title ?: '১.০ আর্থিক নিরীক্ষা (Financial Audit) :',
+                ],
+                ['type' => 'finding', ...$this->blankFindingRow('১.১')],
+            ];
+        }
+
+        $blocks[] = $this->blankCriteriaBlock();
+        $blocks[] = $this->blankObservationBlock();
+        $blocks[] = $this->blankStatsBlock(
+            'Report Rating Box:',
+            $this->vatObservationRows !== [] ? $this->vatObservationRows : null
+        );
+        $blocks[] = $this->blankStatsBlock(
+            'Report Rating Box:',
+            $this->taxObservationRows !== [] ? $this->taxObservationRows : null
+        );
+        $this->reportBlocks = $blocks;
+    }
+
+    protected function syncSectionsFromReportBlocks(): void
+    {
+        $sections = [];
+        $current = null;
+        foreach ($this->reportBlocks as $block) {
+            $type = $block['type'] ?? '';
+            if ($type === 'section') {
+                if ($current !== null) {
+                    $sections[] = $current;
+                }
+                $current = [
+                    'serial' => (string) ($block['serial'] ?? ''),
+                    'title' => (string) ($block['title'] ?? ''),
+                    'findings' => [],
+                ];
+            } elseif ($type === 'finding') {
+                if ($current === null) {
+                    $current = [
+                        'serial' => '১.০',
+                        'title' => $this->financial_section_title ?: '১.০ আর্থিক নিরীক্ষা',
+                        'findings' => [],
+                    ];
+                }
+                $finding = $block;
+                unset($finding['type']);
+                $current['findings'][] = array_merge($this->blankFindingRow(''), $finding);
+            }
+        }
+        if ($current !== null) {
+            $sections[] = $current;
+        }
+        if ($sections === []) {
+            $sections = [[
+                'serial' => '১.০',
+                'title' => $this->financial_section_title ?: '১.০ আর্থিক নিরীক্ষা',
+                'findings' => [$this->blankFindingRow('১.১')],
+            ]];
+        }
+        $this->reportSections = $sections;
+    }
+
+    protected function nextSectionSerialFromBlocks(): string
+    {
+        $map = [
+            '০' => '0', '১' => '1', '২' => '2', '৩' => '3', '৪' => '4',
+            '৫' => '5', '৬' => '6', '৭' => '7', '৮' => '8', '৯' => '9',
+        ];
+        $max = 0;
+        foreach ($this->reportBlocks as $block) {
+            if (($block['type'] ?? '') !== 'section') {
+                continue;
+            }
+            $latin = strtr((string) ($block['serial'] ?? ''), $map);
+            if (preg_match('/^(\d+)/', $latin, $m)) {
+                $max = max($max, (int) $m[1]);
+            }
+        }
+
+        return \App\Support\BanglaNumerals::fromInt(max(1, $max + 1)).'.০';
+    }
+
+    protected function nextFindingSerialNearIndex(int $index): string
+    {
+        $map = [
+            '০' => '0', '১' => '1', '২' => '2', '৩' => '3', '৪' => '4',
+            '৫' => '5', '৬' => '6', '৭' => '7', '৮' => '8', '৯' => '9',
+        ];
+        $rev = array_flip($map);
+
+        $prefix = '1';
+        for ($i = min($index, count($this->reportBlocks) - 1); $i >= 0; $i--) {
+            if (($this->reportBlocks[$i]['type'] ?? '') !== 'section') {
+                continue;
+            }
+            $latin = strtr((string) ($this->reportBlocks[$i]['serial'] ?? '১.০'), $map);
+            if (preg_match('/^(\d+)/', $latin, $m)) {
+                $prefix = $m[1];
+            }
+            break;
+        }
+        // Also scan backward from index-1 if inserting at 0 with no prior section yet
+        if ($index === 0) {
+            foreach ($this->reportBlocks as $block) {
+                if (($block['type'] ?? '') === 'section') {
+                    $latin = strtr((string) ($block['serial'] ?? '১.০'), $map);
+                    if (preg_match('/^(\d+)/', $latin, $m)) {
+                        $prefix = $m[1];
+                    }
+                    break;
+                }
+            }
+        }
+
+        $max = 0;
+        foreach ($this->reportBlocks as $block) {
+            if (($block['type'] ?? '') !== 'finding') {
+                continue;
+            }
+            $latin = strtr((string) ($block['serial'] ?? ''), $map);
+            if (preg_match('/^'.$prefix.'[\.٫.](\d+)$/', $latin, $m)) {
+                $max = max($max, (int) $m[1]);
+            }
+        }
+
+        return strtr($prefix, $rev).'.'.\App\Support\BanglaNumerals::fromInt(max(1, $max + 1));
+    }
+
+    protected function rebuildTocFromReportBlocks(): void
+    {
+        $this->ensureReportBlocksDefaults();
+
+        $preserved = [];
+        foreach ($this->tocRows as $row) {
+            if (($row['type'] ?? 'item') !== 'item') {
+                continue;
+            }
+            $serial = trim((string) ($row['serial'] ?? ''));
+            if ($serial === '') {
+                continue;
+            }
+            $preserved[$serial] = [
+                'amount' => (string) ($row['amount'] ?? ''),
+                'status' => (string) ($row['status'] ?? ''),
+                'page_no' => (string) ($row['page_no'] ?? ''),
+                'preview_page' => (int) ($row['preview_page'] ?? 2),
+            ];
+        }
+
+        $rows = [];
+        foreach ($this->reportBlocks as $block) {
+            $type = $block['type'] ?? '';
+            if ($type === 'section') {
+                $sectionSerial = trim((string) ($block['serial'] ?? '১.০')) ?: '১.০';
+                $sectionTitle = trim((string) ($block['title'] ?? ''));
+                $sectionLabel = preg_replace('/^'.preg_quote($sectionSerial, '/').'\s*/u', '', $sectionTitle) ?? $sectionTitle;
+                $sectionLabel = trim($sectionLabel, " \t\n\r\0\x0B:");
+                if ($sectionLabel === '') {
+                    $sectionLabel = $sectionTitle !== '' ? $sectionTitle : 'বিভাগ';
+                }
+                $rows[] = [
+                    'type' => 'section',
+                    'serial' => $sectionSerial,
+                    'finding' => $sectionLabel,
+                    'amount' => '',
+                    'rating' => '',
+                    'status' => '',
+                    'page_no' => '',
+                    'preview_page' => 2,
+                ];
+            } elseif ($type === 'finding') {
+                $serial = trim((string) ($block['serial'] ?? ''));
+                if ($serial === '') {
+                    continue;
+                }
+                $body = trim((string) ($block['body'] ?? ''));
+                $title = trim((string) ($block['title'] ?? ''));
+                $text = $body !== '' ? $body : ($title !== '' && $title !== 'শিরোনাম' ? $title : '');
+                $prev = $preserved[$serial] ?? [];
+                $rows[] = [
+                    'type' => 'item',
+                    'serial' => $serial,
+                    'finding' => $text,
+                    'amount' => (string) (($block['amount'] ?? '') !== '' ? $block['amount'] : ($prev['amount'] ?? '')),
+                    'rating' => (string) ($block['rating'] ?? ''),
+                    'status' => (string) ($prev['status'] ?? ''),
+                    'page_no' => (string) ($prev['page_no'] ?? ''),
+                    'preview_page' => (int) ($prev['preview_page'] ?? 2),
+                ];
+            }
+        }
+
+        $this->tocRows = $rows;
+    }
+
+    protected function ensureReportSectionsDefaults(): void
+    {
+        if ($this->reportSections !== []) {
+            foreach ($this->reportSections as $s => $section) {
+                $this->reportSections[$s] = array_merge([
+                    'serial' => '',
+                    'title' => '',
+                    'findings' => [],
+                ], is_array($section) ? $section : []);
+                $findings = array_values((array) ($this->reportSections[$s]['findings'] ?? []));
+                foreach ($findings as $f => $finding) {
+                    $findings[$f] = array_merge($this->blankFindingRow(''), is_array($finding) ? $finding : []);
+                }
+                if ($findings === []) {
+                    $findings = [$this->blankFindingRow($this->nextFindingSerialForSection($s))];
+                }
+                $this->reportSections[$s]['findings'] = $findings;
+            }
+            $this->syncLegacyFinancialFromReportSections();
+
+            return;
+        }
+
+        // Migrate legacy single-section data.
+        if ($this->financialFindings === []) {
+            $this->syncFinancialFindingsFromToc();
+        }
+
+        foreach (array_keys($this->financialFindings) as $i) {
+            $this->financialFindings[$i] = array_merge(
+                $this->blankFindingRow(''),
+                $this->financialFindings[$i]
+            );
+        }
+
+        $sectionTitle = trim((string) $this->financial_section_title);
+        if ($sectionTitle === '') {
+            $sectionTitle = '১.০ আর্থিক নিরীক্ষা (Financial Audit) :';
+        }
+
+        $serial = '১.০';
+        if (preg_match('/^(১[\.٫]০|[১-৯০-৯]+[\.٫]০)\s*/u', $sectionTitle, $m)) {
+            $serial = trim($m[1]);
+        }
+
+        $this->reportSections = [[
+            'serial' => $serial,
+            'title' => $sectionTitle,
+            'findings' => array_values($this->financialFindings),
+        ]];
+
+        $this->syncLegacyFinancialFromReportSections();
+    }
+
+    /**
+     * @return array{serial:string,title:string,body:string,rating:string,amount:string,indicator_id:null,indicator_code:null}
+     */
+    protected function blankFindingRow(string $serial): array
+    {
+        return [
+            'serial' => $serial,
+            'title' => 'শিরোনাম',
+            'body' => '',
+            'rating' => '',
+            'amount' => '',
+            'indicator_id' => null,
+            'indicator_code' => null,
+        ];
+    }
+
+    protected function syncLegacyFinancialFromReportSections(): void
+    {
+        if ($this->reportSections === []) {
+            return;
+        }
+
+        $first = $this->reportSections[0];
+        $this->financial_section_title = (string) ($first['title'] ?? $this->financial_section_title);
+        // Flat list used by older PDF callers that only know financialFindings:
+        // keep first section there; full list is in reportSections.
+        $this->financialFindings = array_values((array) ($first['findings'] ?? []));
+    }
+
+    protected function syncReportSectionsFromLegacyFinancial(): void
+    {
+        $this->ensureReportSectionsDefaults();
+        if (! isset($this->reportSections[0])) {
+            return;
+        }
+        $this->reportSections[0]['title'] = $this->financial_section_title;
+        $this->reportSections[0]['findings'] = array_values($this->financialFindings);
     }
 
     /**
@@ -1884,6 +3253,10 @@ class MakeAuditReport extends Component
             }
 
             $this->syncTocAfterFindingIndicator($collection, $index);
+            if ($collection === 'financialFindings') {
+                $this->syncReportSectionsFromLegacyFinancial();
+                $this->rebuildTocFromReportBlocks();
+            }
         }
 
         $this->autoSaveHint = 'Indicator সংযুক্ত · সূচিপত্রে আপডেট';
@@ -1909,6 +3282,10 @@ class MakeAuditReport extends Component
         ];
 
         if (in_array($path, $flatRoots, true)) {
+            return true;
+        }
+
+        if (preg_match('/^reportBlocks\.(\d+)\.rows$/', $path)) {
             return true;
         }
 
@@ -2061,8 +3438,8 @@ class MakeAuditReport extends Component
 
     protected function syncTocAfterFindingIndicator(string $collection, int $index): void
     {
-        match ($collection) {
-            'financialFindings' => $this->syncTocFindingFromFinancial($index),
+            match ($collection) {
+            'financialFindings' => $this->rebuildTocFromReportBlocks(),
             'page6Findings' => $this->syncPage6FindingsToToc(),
             'page7Findings' => $this->syncPage7FindingsToToc(),
             'page8Findings' => $this->syncPage8FindingsToToc(),
@@ -2082,9 +3459,74 @@ class MakeAuditReport extends Component
 
     protected function syncAllFinancialFindingsToToc(): void
     {
-        foreach (array_keys($this->financialFindings) as $index) {
-            $this->syncTocFindingFromFinancial((int) $index);
+        $this->rebuildTocFromReportBlocks();
+    }
+
+    /**
+     * @deprecated Use rebuildTocFromReportBlocks()
+     */
+    protected function rebuildTocFromReportSections(): void
+    {
+        $this->rebuildTocFromReportBlocks();
+    }
+
+    /** @deprecated Use rebuildTocFromReportSections() */
+    protected function rebuildTocFromFinancialFindings(): void
+    {
+        $this->rebuildTocFromReportSections();
+    }
+
+    protected function nextSectionSerial(): string
+    {
+        $map = [
+            '০' => '0', '১' => '1', '২' => '2', '৩' => '3', '৪' => '4',
+            '৫' => '5', '৬' => '6', '৭' => '7', '৮' => '8', '৯' => '9',
+        ];
+        $max = 0;
+        foreach ($this->reportSections as $section) {
+            $serial = trim((string) ($section['serial'] ?? ''));
+            $latin = strtr($serial, $map);
+            if (preg_match('/^(\d+)/', $latin, $m)) {
+                $max = max($max, (int) $m[1]);
+            }
         }
+
+        return \App\Support\BanglaNumerals::fromInt(max(1, $max + 1)).'.০';
+    }
+
+    protected function nextFindingSerialForSection(int $sectionIndex, ?string $sectionSerial = null): string
+    {
+        $map = [
+            '০' => '0', '১' => '1', '২' => '2', '৩' => '3', '৪' => '4',
+            '৫' => '5', '৬' => '6', '৭' => '7', '৮' => '8', '৯' => '9',
+        ];
+        $rev = array_flip($map);
+
+        $sectionSerial = $sectionSerial ?? (string) ($this->reportSections[$sectionIndex]['serial'] ?? '১.০');
+        $latinSection = strtr($sectionSerial, $map);
+        $prefix = '1';
+        if (preg_match('/^(\d+)/', $latinSection, $m)) {
+            $prefix = $m[1];
+        }
+        $bnPrefix = strtr($prefix, $rev);
+
+        $max = 0;
+        foreach ((array) ($this->reportSections[$sectionIndex]['findings'] ?? []) as $finding) {
+            $serial = trim((string) ($finding['serial'] ?? ''));
+            $latin = strtr($serial, $map);
+            if (preg_match('/^'.$prefix.'[\.٫.](\d+)$/', $latin, $m)) {
+                $max = max($max, (int) $m[1]);
+            }
+        }
+
+        return $bnPrefix.'.'.\App\Support\BanglaNumerals::fromInt(max(1, $max + 1));
+    }
+
+    protected function nextFinancialFindingSerial(): string
+    {
+        $this->ensureReportSectionsDefaults();
+
+        return $this->nextFindingSerialForSection(0);
     }
 
     protected function makeUniqueIndicatorCode(): string
@@ -2111,48 +3553,7 @@ class MakeAuditReport extends Component
 
     protected function syncTocFindingFromFinancial(int $index): void
     {
-        $finding = $this->financialFindings[$index] ?? null;
-        if (! is_array($finding)) {
-            return;
-        }
-
-        $serial = trim((string) ($finding['serial'] ?? ''));
-        $body = trim((string) ($finding['body'] ?? ''));
-        if ($serial === '' || $body === '') {
-            return;
-        }
-
-        $this->ensureTocDefaults();
-
-        foreach ($this->tocRows as $i => $row) {
-            if (($row['type'] ?? 'item') !== 'item') {
-                continue;
-            }
-
-            if (($row['serial'] ?? '') !== $serial) {
-                continue;
-            }
-
-            $this->tocRows[$i]['finding'] = $body;
-            if (filled($finding['rating'] ?? null)) {
-                $this->tocRows[$i]['rating'] = (string) $finding['rating'];
-            }
-
-            return;
-        }
-
-        $newRow = [
-            'type' => 'item',
-            'serial' => $serial,
-            'finding' => $body,
-            'amount' => '',
-            'rating' => (string) ($finding['rating'] ?? ''),
-            'status' => '',
-            'page_no' => '',
-            'preview_page' => 2,
-        ];
-
-        array_splice($this->tocRows, $this->tocInsertIndexForSerial($serial), 0, [$newRow]);
+        $this->rebuildTocFromReportBlocks();
     }
 
     protected function tocInsertIndexForSerial(string $serial): int
@@ -2201,46 +3602,33 @@ class MakeAuditReport extends Component
     {
         $this->ensureTocDefaults();
 
-        $serials = ['১.১', '১.২'];
-        $findings = [];
+        $wanted = ['১.১', '১.২'];
+        $fromToc = [];
 
         foreach ($this->tocRows as $row) {
             if (($row['type'] ?? 'item') !== 'item') {
                 continue;
             }
-
-            if (! in_array($row['serial'] ?? '', $serials, true)) {
+            $serial = trim((string) ($row['serial'] ?? ''));
+            if (! in_array($serial, $wanted, true)) {
                 continue;
             }
-
-            $findings[] = [
-                'serial' => $row['serial'],
-                'title' => 'শিরোনাম',
-                'body' => $row['finding'] ?? '',
-                'rating' => $row['rating'] ?? '',
-                'indicator_id' => null,
-                'indicator_code' => null,
-            ];
+            $fromToc[$serial] = $row;
         }
 
-        if ($findings === []) {
-            $findings = [
-                [
-                    'serial' => '১.১',
-                    'title' => 'শিরোনাম',
-                    'body' => 'ভ্যাট ও ট্যাক্স কর্তন না করা',
-                    'rating' => 'Major (B)',
-                    'indicator_id' => null,
-                    'indicator_code' => null,
-                ],
-                [
-                    'serial' => '১.২',
-                    'title' => 'শিরোনাম',
-                    'body' => 'ভ্যাট ও ট্যাক্স পরিশোধ না করা',
-                    'rating' => 'Major (B)',
-                    'indicator_id' => null,
-                    'indicator_code' => null,
-                ],
+        $findings = [];
+        foreach ($wanted as $serial) {
+            $row = $fromToc[$serial] ?? null;
+            $findings[] = [
+                'serial' => $serial,
+                'title' => 'শিরোনাম',
+                'body' => (string) ($row['finding'] ?? ($serial === '১.১'
+                    ? 'ভ্যাট ও ট্যাক্স কর্তন না করা'
+                    : 'ভ্যাট ও ট্যাক্স পরিশোধ না করা')),
+                'rating' => (string) ($row['rating'] ?? 'Major (B)'),
+                'amount' => (string) ($row['amount'] ?? ''),
+                'indicator_id' => null,
+                'indicator_code' => null,
             ];
         }
 
@@ -2262,9 +3650,22 @@ class MakeAuditReport extends Component
 
     protected function page4Payload(): array
     {
+        $this->ensureReportBlocksDefaults();
+        $blocks = [];
+        foreach ($this->reportBlocks as $block) {
+            if (($block['type'] ?? '') === 'custom_table') {
+                $blocks[] = CustomTableSchema::normalize(is_array($block) ? $block : []);
+            } else {
+                $blocks[] = $block;
+            }
+        }
+        $this->reportBlocks = array_values($blocks);
+
         return [
             'financial_section_title' => $this->financial_section_title,
             'financialFindings' => $this->financialFindings,
+            'reportSections' => $this->reportSections,
+            'reportBlocks' => $this->reportBlocks,
             'financial_criteria' => $this->financial_criteria,
             'vatObservationRows' => $this->vatObservationRows,
             'taxObservationRows' => $this->taxObservationRows,
@@ -6160,23 +7561,6 @@ class MakeAuditReport extends Component
         $this->ensureTocDefaults();
         $this->ensureSignatureDefaults();
         $this->ensureFinancialAuditDefaults();
-        $this->ensurePage5Defaults();
-        $this->ensurePage6Defaults();
-        $this->ensurePage7Defaults();
-        $this->ensurePage8Defaults();
-        $this->ensurePage9Defaults();
-        $this->ensurePage10Defaults();
-        $this->ensurePage11Defaults();
-        $this->ensurePage12Defaults();
-        $this->ensurePage13Defaults();
-        $this->ensurePage14Defaults();
-        $this->ensurePage15Defaults();
-        $this->ensurePage16Defaults();
-        $this->ensurePage17Defaults();
-        $this->ensurePage18Defaults();
-        $this->ensurePage19Defaults();
-        $this->ensurePage20Defaults();
-        $this->ensurePage21Defaults();
         $document = $this->stampedDocument();
 
         $userId = (int) (auth()->id() ?? 0);
@@ -6237,49 +7621,17 @@ class MakeAuditReport extends Component
                 ['id' => 'page2', 'num' => 2, 'label' => 'এক নজরে + সূচিপত্র', 'ready' => true],
                 ['id' => 'page3', 'num' => 3, 'label' => 'সূচিপত্র + শ্রেণীবিন্যাস', 'ready' => true],
                 ['id' => 'page4', 'num' => 4, 'label' => 'আর্থিক নিরীক্ষা', 'ready' => true],
-                ['id' => 'page5', 'num' => 5, 'label' => 'বিস্তারিত + ১.৩', 'ready' => true],
-                ['id' => 'page6', 'num' => 6, 'label' => '১.৪–১.৫', 'ready' => true],
-                ['id' => 'page7', 'num' => 7, 'label' => '১.৬–১.৭', 'ready' => true],
-                ['id' => 'page8', 'num' => 8, 'label' => '১.৮ Cost of Fund', 'ready' => true],
-                ['id' => 'page9', 'num' => 9, 'label' => '১.৯–১.১০', 'ready' => true],
-                ['id' => 'page10', 'num' => 10, 'label' => '২.১ স্থায়ী সম্পদ', 'ready' => true],
-                ['id' => 'page11', 'num' => 11, 'label' => '২.২–২.৩', 'ready' => true],
-                ['id' => 'page12', 'num' => 12, 'label' => '৩.১ মজুদ', 'ready' => true],
-                ['id' => 'page13', 'num' => 13, 'label' => '৪.১–৪.২', 'ready' => true],
-                ['id' => 'page14', 'num' => 14, 'label' => '৪.৩–৪.৪', 'ready' => true],
-                ['id' => 'page15', 'num' => 15, 'label' => '৪.৫–৪.৬', 'ready' => true],
-                ['id' => 'page16', 'num' => 16, 'label' => '৪.৭–৪.৮', 'ready' => true],
-                ['id' => 'page17', 'num' => 17, 'label' => '৪.৯', 'ready' => true],
-                ['id' => 'page18', 'num' => 18, 'label' => '৪.১০–৪.১১', 'ready' => true],
-                ['id' => 'page19', 'num' => 19, 'label' => '৫.০০ কমপ্লায়েন্স', 'ready' => true],
-                ['id' => 'page20', 'num' => 20, 'label' => '৬.০০ আইটি', 'ready' => true],
-                ['id' => 'page21', 'num' => 21, 'label' => '৭.০০ বহিঃ নিরীক্ষা', 'ready' => true],
             ],
+            'outlineNav' => $this->outlineNavItems(),
             'findingRatings' => $this->findingRatings,
             'financial_section_title' => $this->financial_section_title,
             'financialFindings' => $this->financialFindings,
+            'reportSections' => $this->reportSections,
             'financial_criteria' => $this->financial_criteria,
             'vatObservationRows' => $this->vatObservationRows,
             'taxObservationRows' => $this->taxObservationRows,
             'financialIndicatorOptions' => $financialIndicatorOptions,
             'indicatorOptions' => $financialIndicatorOptions,
-            ...$this->page5Payload(),
-            ...$this->page6Payload(),
-            ...$this->page7Payload(),
-            ...$this->page8Payload(),
-            ...$this->page9Payload(),
-            ...$this->page10Payload(),
-            ...$this->page11Payload(),
-            ...$this->page12Payload(),
-            ...$this->page13Payload(),
-            ...$this->page14Payload(),
-            ...$this->page15Payload(),
-            ...$this->page16Payload(),
-            ...$this->page17Payload(),
-            ...$this->page18Payload(),
-            ...$this->page19Payload(),
-            ...$this->page20Payload(),
-            ...$this->page21Payload(),
             'ongoingReports' => $ongoingReports,
             'completedReports' => $completedReports,
             'ongoingCount' => $ongoingCount,

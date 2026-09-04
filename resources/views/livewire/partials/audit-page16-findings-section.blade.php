@@ -1,4 +1,4 @@
-﻿@php
+@php
     use App\Livewire\MakeAuditReport;
     $editable = $editable ?? false;
     $compact = $compact ?? false;
@@ -96,17 +96,11 @@
     @endif
 
 <table class="{{ $compact ? 'a4-table a4-table-compact text-[9px]' : 'w-full border-collapse text-[10.5px]' }} mb-[2mm]">
-        <thead>
-            <tr>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Total Population/Sample size</th>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Sample Size(Checked)</th>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Instantans Found</th>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Persentange(%)</th>
-                @if ($editable)
-                    <th class="{{ $cellPad }} bg-[#5b2a86] text-white"></th>
-                @endif
-            </tr>
-        </thead>
+        @include('livewire.partials.audit-stats-thead', [
+            'editable' => $editable,
+            'cellPad' => $cellPad,
+            'variant' => 'stats_alt',
+        ])
         <tbody>
             @foreach (($finding['statsRows'] ?? []) as $rowIndex => $row)
                 <tr>
@@ -166,15 +160,13 @@
             />
         @endif
 
+@php $hPassbookAbsent = $tableHeaders['passbook_absent'] ?? \App\Support\AuditTableHeaders::defaults()['passbook_absent']; @endphp
 <table class="{{ $compact ? 'a4-table a4-table-compact text-[8px]' : 'w-full border-collapse text-[9px]' }} min-w-full">
                 <thead>
                     <tr class="bg-slate-100">
-                        <th class="{{ $cellPad }} font-semibold text-center">কর্মীর নাম</th>
-                        <th class="{{ $cellPad }} font-semibold text-center">সমিতি নং</th>
-                        <th class="{{ $cellPad }} font-semibold text-center">মোট সদস্য</th>
-                        <th class="{{ $cellPad }} font-semibold text-center">প্রাপ্ত পাসবই সংখ্যা</th>
-                        <th class="{{ $cellPad }} font-semibold text-center">অনুপস্থিত পাসবই সংখ্যা</th>
-                        <th class="{{ $cellPad }} font-semibold text-center">নিরীক্ষা/ পরিবীক্ষণ কর্মকর্তার মন্তব্য</th>
+                        @foreach ($hPassbookAbsent as $hi => $label)
+                            <x-audit-th :editable="$editable" :wire="'tableHeaders.passbook_absent.'.$hi" class="{{ $cellPad }} font-semibold text-center">{{ $label }}</x-audit-th>
+                        @endforeach
                         @if ($editable)
                             <th class="{{ $cellPad }}"></th>
                         @endif

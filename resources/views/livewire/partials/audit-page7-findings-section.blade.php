@@ -1,4 +1,4 @@
-﻿@php
+@php
     use App\Livewire\MakeAuditReport;
     $editable = $editable ?? false;
     $compact = $compact ?? false;
@@ -96,17 +96,11 @@
     @endif
 
 <table class="{{ $tableClass }} mb-[2mm]">
-        <thead>
-            <tr>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Total Population</th>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Sample Size(Checked)</th>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Instantans Found</th>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Persentange(%)</th>
-                @if ($editable)
-                    <th class="{{ $cellPad }} bg-[#5b2a86] text-white"></th>
-                @endif
-            </tr>
-        </thead>
+        @include('livewire.partials.audit-stats-thead', [
+            'editable' => $editable,
+            'cellPad' => $cellPad,
+            'variant' => 'stats',
+        ])
         <tbody>
             @foreach (($finding['statsRows'] ?? []) as $rowIndex => $row)
                 <tr>
@@ -169,20 +163,28 @@
             />
         @endif
 
+@php
+                        $hBudgetR1 = $tableHeaders['budget_r1'] ?? \App\Support\AuditTableHeaders::defaults()['budget_r1'];
+                        $hBudgetR2 = $tableHeaders['budget_r2'] ?? \App\Support\AuditTableHeaders::defaults()['budget_r2'];
+                        $budgetGroupLabel = $hBudgetR1[1] ?? 'বাজেট';
+                        if (! $editable && $budgetYear !== '') {
+                            $budgetGroupLabel = trim($budgetGroupLabel.' '.$budgetYear);
+                        }
+                    @endphp
 <table class="{{ $tableClass }} mb-[2mm]">
                     <thead>
                         <tr class="bg-slate-100">
-                            <th class="{{ $cellPad }} font-semibold" rowspan="2">বাজেটের খাত</th>
-                            <th class="{{ $cellPad }} font-semibold text-center" colspan="2">বাজেট {{ $budgetYear }}</th>
-                            <th class="{{ $cellPad }} font-semibold" rowspan="2">প্রকৃত খরচ জুন পর্যন্ত</th>
-                            <th class="{{ $cellPad }} font-semibold" rowspan="2">পার্থক্য</th>
+                            <x-audit-th :editable="$editable" wire="tableHeaders.budget_r1.0" class="{{ $cellPad }} font-semibold" rowspan="2">{{ $hBudgetR1[0] }}</x-audit-th>
+                            <x-audit-th :editable="$editable" wire="tableHeaders.budget_r1.1" class="{{ $cellPad }} font-semibold text-center" colspan="2">{{ $budgetGroupLabel }}</x-audit-th>
+                            <x-audit-th :editable="$editable" wire="tableHeaders.budget_r1.2" class="{{ $cellPad }} font-semibold" rowspan="2">{{ $hBudgetR1[2] }}</x-audit-th>
+                            <x-audit-th :editable="$editable" wire="tableHeaders.budget_r1.3" class="{{ $cellPad }} font-semibold" rowspan="2">{{ $hBudgetR1[3] }}</x-audit-th>
                             @if ($editable)
                                 <th class="{{ $cellPad }}" rowspan="2"></th>
                             @endif
                         </tr>
                         <tr class="bg-slate-50">
-                            <th class="{{ $cellPad }} font-semibold text-center">বাৎসরিক</th>
-                            <th class="{{ $cellPad }} font-semibold text-center">জুন পর্যন্ত</th>
+                            <x-audit-th :editable="$editable" wire="tableHeaders.budget_r2.0" class="{{ $cellPad }} font-semibold text-center">{{ $hBudgetR2[0] }}</x-audit-th>
+                            <x-audit-th :editable="$editable" wire="tableHeaders.budget_r2.1" class="{{ $cellPad }} font-semibold text-center">{{ $hBudgetR2[1] }}</x-audit-th>
                         </tr>
                     </thead>
                     <tbody>
@@ -233,13 +235,13 @@
             />
         @endif
 
+@php $hBonus = $tableHeaders['bonus'] ?? \App\Support\AuditTableHeaders::defaults()['bonus']; @endphp
 <table class="{{ $tableClass }} mb-[2mm]">
                     <thead>
                         <tr class="bg-slate-100">
-                            <th class="{{ $cellPad }} font-semibold">চাকরিতে যোগদানের তারিখ</th>
-                            <th class="{{ $cellPad }} font-semibold">বোনাস প্রদানের তারিখ ও ভাউচার নং</th>
-                            <th class="{{ $cellPad }} font-semibold">বোনাস প্রদানের দিন পর্যন্ত চাকরির বয়স</th>
-                            <th class="{{ $cellPad }} font-semibold">বোনাসের পরিমাণ</th>
+                            @foreach ($hBonus as $hi => $label)
+                                <x-audit-th :editable="$editable" :wire="'tableHeaders.bonus.'.$hi" class="{{ $cellPad }} font-semibold">{{ $label }}</x-audit-th>
+                            @endforeach
                             @if ($editable)
                                 <th class="{{ $cellPad }}"></th>
                             @endif

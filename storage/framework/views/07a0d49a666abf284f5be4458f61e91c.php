@@ -5,14 +5,7 @@
     $headerBg = 'background-color:#fce5cd;';
     $headerBgAlt = 'background-color:#f5d5b8;';
     $rowFields = ['area_of_observation', 'compliance_area', 'year_of_reporting', 'external_observation', 'compliance', 'internal_index_no'];
-    $headers = [
-        'Area of Observation',
-        'Compliance Area',
-        'Year of reporting',
-        'External Audit observation',
-        'Compliance',
-        'Internal audit report (Index No)',
-    ];
+    $headers = $tableHeaders['external'] ?? \App\Support\AuditTableHeaders::defaults()['external'];
 ?>
 
 <div class="mb-8">
@@ -70,7 +63,27 @@
             <thead>
                 <tr>
                     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $headers; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $header): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
-                        <th class="<?php echo e($cellPad); ?> font-semibold text-center" style="<?php echo e($index % 2 === 0 ? $headerBg : $headerBgAlt); ?>"><?php echo e($header); ?></th>
+                        <?php if (isset($component)) { $__componentOriginal0902e7c2ee22884dce85370b77fe36d7 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal0902e7c2ee22884dce85370b77fe36d7 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.audit-th','data' => ['editable' => $editable,'wire' => 'tableHeaders.external.'.$index,'class' => ''.e($cellPad).' font-semibold text-center','style' => ''.e($index % 2 === 0 ? $headerBg : $headerBgAlt).'']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('audit-th'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['editable' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($editable),'wire' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute('tableHeaders.external.'.$index),'class' => ''.e($cellPad).' font-semibold text-center','style' => ''.e($index % 2 === 0 ? $headerBg : $headerBgAlt).'']); ?>
+<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
+<?php echo e($header); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal0902e7c2ee22884dce85370b77fe36d7)): ?>
+<?php $attributes = $__attributesOriginal0902e7c2ee22884dce85370b77fe36d7; ?>
+<?php unset($__attributesOriginal0902e7c2ee22884dce85370b77fe36d7); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal0902e7c2ee22884dce85370b77fe36d7)): ?>
+<?php $component = $__componentOriginal0902e7c2ee22884dce85370b77fe36d7; ?>
+<?php unset($__componentOriginal0902e7c2ee22884dce85370b77fe36d7); ?>
+<?php endif; ?>
                     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($editable): ?>
                         <th class="<?php echo e($cellPad); ?>" style="<?php echo e($headerBg); ?>"></th>

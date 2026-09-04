@@ -71,7 +71,7 @@ unset($__defined_vars, $__key, $__value); ?>
     <div class="flex flex-wrap items-center justify-between gap-2">
         <div class="min-w-0 flex-1">
             <p class="m-0 text-[11px] font-semibold text-emerald-800">Excel থেকে পেস্ট</p>
-            <p class="m-0 text-[10px] leading-snug text-emerald-700/90"><?php echo e($hint); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($colCount > 0): ?> · <?php echo e($colCount); ?> কলাম<?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?></p>
+            <p class="m-0 text-[10px] leading-snug text-emerald-700/90"><?php echo e($hint); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($colCount > 0): ?> · <?php echo e($colCount); ?> কলাম<?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?> · পেস্ট করলে নিচের টেবিল <span class="font-semibold">পুরোপুরি বদলে যাবে</span></p>
         </div>
         <div class="flex flex-shrink-0 items-center gap-2">
             <span class="text-[10px] font-medium text-emerald-700" x-text="status" x-show="status" x-cloak></span>

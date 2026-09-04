@@ -57,23 +57,27 @@
             />
         @endif
         <table class="{{ $compact ? 'a4-table a4-table-compact text-[7.5px]' : 'w-full border-collapse text-[9px]' }} min-w-full">
+            @php
+                $hItR1 = $tableHeaders['it_r1'] ?? \App\Support\AuditTableHeaders::defaults()['it_r1'];
+                $hItR2 = $tableHeaders['it_r2'] ?? \App\Support\AuditTableHeaders::defaults()['it_r2'];
+            @endphp
             <thead>
                 <tr class="bg-slate-100">
-                    <th class="{{ $cellPad }} font-semibold text-center">ক্রমিক</th>
-                    <th class="{{ $cellPad }} font-semibold text-center">বিবরণ</th>
-                    <th class="{{ $cellPad }} font-semibold text-center" colspan="3">Compliance</th>
-                    <th class="{{ $cellPad }} font-semibold text-center">Action Owner (কার দায়িত্ব)</th>
-                    <th class="{{ $cellPad }} font-semibold text-center">Management Comments (ব্যবস্থাপনার মন্তব্য)</th>
-                    <th class="{{ $cellPad }} font-semibold text-center">Recommendation (সুপারিশ)</th>
+                    <x-audit-th :editable="$editable" wire="tableHeaders.it_r1.0" class="{{ $cellPad }} font-semibold text-center">{{ $hItR1[0] }}</x-audit-th>
+                    <x-audit-th :editable="$editable" wire="tableHeaders.it_r1.1" class="{{ $cellPad }} font-semibold text-center">{{ $hItR1[1] }}</x-audit-th>
+                    <x-audit-th :editable="$editable" wire="tableHeaders.it_r1.2" class="{{ $cellPad }} font-semibold text-center" colspan="3">{{ $hItR1[2] }}</x-audit-th>
+                    <x-audit-th :editable="$editable" wire="tableHeaders.it_r1.3" class="{{ $cellPad }} font-semibold text-center">{{ $hItR1[3] }}</x-audit-th>
+                    <x-audit-th :editable="$editable" wire="tableHeaders.it_r1.4" class="{{ $cellPad }} font-semibold text-center">{{ $hItR1[4] }}</x-audit-th>
+                    <x-audit-th :editable="$editable" wire="tableHeaders.it_r1.5" class="{{ $cellPad }} font-semibold text-center">{{ $hItR1[5] }}</x-audit-th>
                     @if ($editable)
                         <th class="{{ $cellPad }}"></th>
                     @endif
                 </tr>
                 <tr class="bg-slate-100">
                     <th class="{{ $cellPad }}" colspan="2"></th>
-                    <th class="{{ $cellPad }} font-semibold text-center">Yes</th>
-                    <th class="{{ $cellPad }} font-semibold text-center">No</th>
-                    <th class="{{ $cellPad }} font-semibold text-center">N/A</th>
+                    @foreach ($hItR2 as $hi => $label)
+                        <x-audit-th :editable="$editable" :wire="'tableHeaders.it_r2.'.$hi" class="{{ $cellPad }} font-semibold text-center">{{ $label }}</x-audit-th>
+                    @endforeach
                     <th class="{{ $cellPad }}" colspan="3"></th>
                     @if ($editable)
                         <th class="{{ $cellPad }}"></th>

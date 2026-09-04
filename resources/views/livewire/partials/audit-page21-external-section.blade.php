@@ -5,14 +5,7 @@
     $headerBg = 'background-color:#fce5cd;';
     $headerBgAlt = 'background-color:#f5d5b8;';
     $rowFields = ['area_of_observation', 'compliance_area', 'year_of_reporting', 'external_observation', 'compliance', 'internal_index_no'];
-    $headers = [
-        'Area of Observation',
-        'Compliance Area',
-        'Year of reporting',
-        'External Audit observation',
-        'Compliance',
-        'Internal audit report (Index No)',
-    ];
+    $headers = $tableHeaders['external'] ?? \App\Support\AuditTableHeaders::defaults()['external'];
 @endphp
 
 <div class="mb-8">
@@ -53,7 +46,12 @@
             <thead>
                 <tr>
                     @foreach ($headers as $index => $header)
-                        <th class="{{ $cellPad }} font-semibold text-center" style="{{ $index % 2 === 0 ? $headerBg : $headerBgAlt }}">{{ $header }}</th>
+                        <x-audit-th
+                            :editable="$editable"
+                            :wire="'tableHeaders.external.'.$index"
+                            class="{{ $cellPad }} font-semibold text-center"
+                            style="{{ $index % 2 === 0 ? $headerBg : $headerBgAlt }}"
+                        >{{ $header }}</x-audit-th>
                     @endforeach
                     @if ($editable)
                         <th class="{{ $cellPad }}" style="{{ $headerBg }}"></th>

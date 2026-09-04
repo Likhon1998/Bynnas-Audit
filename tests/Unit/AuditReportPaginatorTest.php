@@ -20,23 +20,6 @@ class AuditReportPaginatorTest extends TestCase
             'overview',
             'signatures_classification',
             'financial',
-            'financial_detail',
-            'financial_page6',
-            'financial_page7',
-            'financial_page8',
-            'financial_page9',
-            'financial_page10',
-            'financial_page11',
-            'financial_page12',
-            'financial_page13',
-            'financial_page14',
-            'financial_page15',
-            'financial_page16',
-            'financial_page17',
-            'financial_page18',
-            'financial_page19',
-            'financial_page20',
-            'financial_page21',
         ], $types);
         $this->assertCount(25, $sheets[1]['rows']);
         $this->assertSame('৪', $sheets[1]['rows'][0]['page_no'] ?? '');
@@ -55,26 +38,10 @@ class AuditReportPaginatorTest extends TestCase
             'overview',
             'signatures_classification',
             'financial',
-            'financial_detail',
-            'financial_page6',
-            'financial_page7',
-            'financial_page8',
-            'financial_page9',
-            'financial_page10',
-            'financial_page11',
-            'financial_page12',
-            'financial_page13',
-            'financial_page14',
-            'financial_page15',
-            'financial_page16',
-            'financial_page17',
-            'financial_page18',
-            'financial_page19',
-            'financial_page20',
-            'financial_page21',
         ], array_column($sheets, 'type'));
         $this->assertCount(1, $sheets[1]['rows']);
-        $this->assertSame('১২', $sheets[1]['rows'][0]['page_no']);
+        // Without page5–21 sheets, later serials fall back to the financial page.
+        $this->assertSame('৪', $sheets[1]['rows'][0]['page_no']);
     }
 
     public function test_financial_findings_point_to_correct_pages(): void
@@ -88,43 +55,39 @@ class AuditReportPaginatorTest extends TestCase
             ['type' => 'item', 'serial' => '১.৮', 'finding' => 'Cost of fund', 'page_no' => ''],
             ['type' => 'item', 'serial' => '১.৯', 'finding' => 'Excess cash', 'page_no' => ''],
             ['type' => 'item', 'serial' => '২.১', 'finding' => 'Fixed asset', 'page_no' => ''],
-            ['type' => 'item', 'serial' => '২.২', 'finding' => 'Depreciation mismatch', 'page_no' => ''],
+            ['type' => 'item', 'serial' => '২.২', 'finding' => 'Depreciation', 'page_no' => ''],
             ['type' => 'item', 'serial' => '৩.১', 'finding' => 'Stock', 'page_no' => ''],
-            ['type' => 'item', 'serial' => '৪.১', 'finding' => 'Savings deposit', 'page_no' => ''],
-            ['type' => 'item', 'serial' => '৪.২', 'finding' => 'Passbook savings', 'page_no' => ''],
-            ['type' => 'item', 'serial' => '৪.৩', 'finding' => 'Passbook installment', 'page_no' => ''],
-            ['type' => 'item', 'serial' => '৪.৪', 'finding' => 'Sufolon posting', 'page_no' => ''],
-            ['type' => 'item', 'serial' => '৪.৫', 'finding' => 'Receivable not shown', 'page_no' => ''],
-            ['type' => 'item', 'serial' => '৪.৬', 'finding' => 'Late receivable', 'page_no' => ''],
-            ['type' => 'item', 'serial' => '৪.৭', 'finding' => 'Samity visit gaps', 'page_no' => ''],
-            ['type' => 'item', 'serial' => '৪.৮', 'finding' => 'Missing passbooks', 'page_no' => ''],
-            ['type' => 'item', 'serial' => '৪.৯', 'finding' => 'Savings partial adjust', 'page_no' => ''],
-            ['type' => 'item', 'serial' => '৪.১০', 'finding' => 'Dropout savings refund', 'page_no' => ''],
-            ['type' => 'item', 'serial' => '৪.১১', 'finding' => 'Savings reconcile mismatch', 'page_no' => ''],
+            ['type' => 'item', 'serial' => '৪.১', 'finding' => 'Samity', 'page_no' => ''],
+            ['type' => 'item', 'serial' => '৪.৩', 'finding' => 'Passbook', 'page_no' => ''],
+            ['type' => 'item', 'serial' => '৪.৫', 'finding' => 'Arrears', 'page_no' => ''],
+            ['type' => 'item', 'serial' => '৪.৭', 'finding' => 'Absent', 'page_no' => ''],
+            ['type' => 'item', 'serial' => '৪.৯', 'finding' => 'Adjust', 'page_no' => ''],
+            ['type' => 'item', 'serial' => '৪.১০', 'finding' => 'Dropout', 'page_no' => ''],
+            ['type' => 'section', 'serial' => '৫.০০', 'finding' => 'Compliance', 'page_no' => ''],
+            ['type' => 'section', 'serial' => '৬.০০', 'finding' => 'IT', 'page_no' => ''],
+            ['type' => 'section', 'serial' => '৭.০০', 'finding' => 'External', 'page_no' => ''],
         ];
 
-        $stamped = AuditReportPaginator::stampRows($rows, 4, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21);
+        $sheets = AuditReportPaginator::buildSheets($rows);
+        $bySerial = [];
+        foreach ($sheets[1]['rows'] as $row) {
+            if (($row['type'] ?? 'item') === 'section') {
+                continue;
+            }
+            $bySerial[$row['serial']] = $row['page_no'];
+        }
 
-        $this->assertSame('', $stamped[0]['page_no']);
-        $this->assertSame('৪', $stamped[1]['page_no']);
-        $this->assertSame('৫', $stamped[2]['page_no']);
-        $this->assertSame('৬', $stamped[3]['page_no']);
-        $this->assertSame('৭', $stamped[4]['page_no']);
-        $this->assertSame('৮', $stamped[5]['page_no']);
-        $this->assertSame('৯', $stamped[6]['page_no']);
-        $this->assertSame('১০', $stamped[7]['page_no']);
-        $this->assertSame('১১', $stamped[8]['page_no']);
-        $this->assertSame('১২', $stamped[9]['page_no']);
-        $this->assertSame('১৩', $stamped[10]['page_no']);
-        $this->assertSame('১৩', $stamped[11]['page_no']);
-        $this->assertSame('১৪', $stamped[12]['page_no']);
-        $this->assertSame('১৪', $stamped[13]['page_no']);
-        $this->assertSame('১৫', $stamped[14]['page_no']);
-        $this->assertSame('১৫', $stamped[15]['page_no']);
-        $this->assertSame('১৬', $stamped[16]['page_no']);
-        $this->assertSame('১৬', $stamped[17]['page_no']);
-        $this->assertSame('১৭', $stamped[18]['page_no']);
-        $this->assertSame('১৮', $stamped[19]['page_no']);
-        $this->assertSame('১৮', $stamped[20]['page_no']);
+        // All findings map to financial page when later sheets are disabled.
+        foreach ($bySerial as $pageNo) {
+            $this->assertSame('৪', $pageNo);
+        }
+    }
+
+    public function test_legacy_full_sheet_flags_still_work(): void
+    {
+        $sheets = AuditReportPaginator::buildSheets([], true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true);
+
+        $this->assertContains('financial_detail', array_column($sheets, 'type'));
+        $this->assertContains('financial_page21', array_column($sheets, 'type'));
     }
 }

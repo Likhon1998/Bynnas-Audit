@@ -74,23 +74,167 @@
 <?php endif; ?>
         <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
         <table class="<?php echo e($compact ? 'a4-table a4-table-compact text-[7.5px]' : 'w-full border-collapse text-[9px]'); ?> min-w-full">
+            <?php
+                $hItR1 = $tableHeaders['it_r1'] ?? \App\Support\AuditTableHeaders::defaults()['it_r1'];
+                $hItR2 = $tableHeaders['it_r2'] ?? \App\Support\AuditTableHeaders::defaults()['it_r2'];
+            ?>
             <thead>
                 <tr class="bg-slate-100">
-                    <th class="<?php echo e($cellPad); ?> font-semibold text-center">ক্রমিক</th>
-                    <th class="<?php echo e($cellPad); ?> font-semibold text-center">বিবরণ</th>
-                    <th class="<?php echo e($cellPad); ?> font-semibold text-center" colspan="3">Compliance</th>
-                    <th class="<?php echo e($cellPad); ?> font-semibold text-center">Action Owner (কার দায়িত্ব)</th>
-                    <th class="<?php echo e($cellPad); ?> font-semibold text-center">Management Comments (ব্যবস্থাপনার মন্তব্য)</th>
-                    <th class="<?php echo e($cellPad); ?> font-semibold text-center">Recommendation (সুপারিশ)</th>
+                    <?php if (isset($component)) { $__componentOriginal0902e7c2ee22884dce85370b77fe36d7 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal0902e7c2ee22884dce85370b77fe36d7 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.audit-th','data' => ['editable' => $editable,'wire' => 'tableHeaders.it_r1.0','class' => ''.e($cellPad).' font-semibold text-center']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('audit-th'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['editable' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($editable),'wire' => 'tableHeaders.it_r1.0','class' => ''.e($cellPad).' font-semibold text-center']); ?>
+<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
+<?php echo e($hItR1[0]); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal0902e7c2ee22884dce85370b77fe36d7)): ?>
+<?php $attributes = $__attributesOriginal0902e7c2ee22884dce85370b77fe36d7; ?>
+<?php unset($__attributesOriginal0902e7c2ee22884dce85370b77fe36d7); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal0902e7c2ee22884dce85370b77fe36d7)): ?>
+<?php $component = $__componentOriginal0902e7c2ee22884dce85370b77fe36d7; ?>
+<?php unset($__componentOriginal0902e7c2ee22884dce85370b77fe36d7); ?>
+<?php endif; ?>
+                    <?php if (isset($component)) { $__componentOriginal0902e7c2ee22884dce85370b77fe36d7 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal0902e7c2ee22884dce85370b77fe36d7 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.audit-th','data' => ['editable' => $editable,'wire' => 'tableHeaders.it_r1.1','class' => ''.e($cellPad).' font-semibold text-center']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('audit-th'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['editable' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($editable),'wire' => 'tableHeaders.it_r1.1','class' => ''.e($cellPad).' font-semibold text-center']); ?>
+<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
+<?php echo e($hItR1[1]); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal0902e7c2ee22884dce85370b77fe36d7)): ?>
+<?php $attributes = $__attributesOriginal0902e7c2ee22884dce85370b77fe36d7; ?>
+<?php unset($__attributesOriginal0902e7c2ee22884dce85370b77fe36d7); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal0902e7c2ee22884dce85370b77fe36d7)): ?>
+<?php $component = $__componentOriginal0902e7c2ee22884dce85370b77fe36d7; ?>
+<?php unset($__componentOriginal0902e7c2ee22884dce85370b77fe36d7); ?>
+<?php endif; ?>
+                    <?php if (isset($component)) { $__componentOriginal0902e7c2ee22884dce85370b77fe36d7 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal0902e7c2ee22884dce85370b77fe36d7 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.audit-th','data' => ['editable' => $editable,'wire' => 'tableHeaders.it_r1.2','class' => ''.e($cellPad).' font-semibold text-center','colspan' => '3']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('audit-th'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['editable' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($editable),'wire' => 'tableHeaders.it_r1.2','class' => ''.e($cellPad).' font-semibold text-center','colspan' => '3']); ?>
+<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
+<?php echo e($hItR1[2]); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal0902e7c2ee22884dce85370b77fe36d7)): ?>
+<?php $attributes = $__attributesOriginal0902e7c2ee22884dce85370b77fe36d7; ?>
+<?php unset($__attributesOriginal0902e7c2ee22884dce85370b77fe36d7); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal0902e7c2ee22884dce85370b77fe36d7)): ?>
+<?php $component = $__componentOriginal0902e7c2ee22884dce85370b77fe36d7; ?>
+<?php unset($__componentOriginal0902e7c2ee22884dce85370b77fe36d7); ?>
+<?php endif; ?>
+                    <?php if (isset($component)) { $__componentOriginal0902e7c2ee22884dce85370b77fe36d7 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal0902e7c2ee22884dce85370b77fe36d7 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.audit-th','data' => ['editable' => $editable,'wire' => 'tableHeaders.it_r1.3','class' => ''.e($cellPad).' font-semibold text-center']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('audit-th'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['editable' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($editable),'wire' => 'tableHeaders.it_r1.3','class' => ''.e($cellPad).' font-semibold text-center']); ?>
+<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
+<?php echo e($hItR1[3]); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal0902e7c2ee22884dce85370b77fe36d7)): ?>
+<?php $attributes = $__attributesOriginal0902e7c2ee22884dce85370b77fe36d7; ?>
+<?php unset($__attributesOriginal0902e7c2ee22884dce85370b77fe36d7); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal0902e7c2ee22884dce85370b77fe36d7)): ?>
+<?php $component = $__componentOriginal0902e7c2ee22884dce85370b77fe36d7; ?>
+<?php unset($__componentOriginal0902e7c2ee22884dce85370b77fe36d7); ?>
+<?php endif; ?>
+                    <?php if (isset($component)) { $__componentOriginal0902e7c2ee22884dce85370b77fe36d7 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal0902e7c2ee22884dce85370b77fe36d7 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.audit-th','data' => ['editable' => $editable,'wire' => 'tableHeaders.it_r1.4','class' => ''.e($cellPad).' font-semibold text-center']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('audit-th'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['editable' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($editable),'wire' => 'tableHeaders.it_r1.4','class' => ''.e($cellPad).' font-semibold text-center']); ?>
+<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
+<?php echo e($hItR1[4]); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal0902e7c2ee22884dce85370b77fe36d7)): ?>
+<?php $attributes = $__attributesOriginal0902e7c2ee22884dce85370b77fe36d7; ?>
+<?php unset($__attributesOriginal0902e7c2ee22884dce85370b77fe36d7); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal0902e7c2ee22884dce85370b77fe36d7)): ?>
+<?php $component = $__componentOriginal0902e7c2ee22884dce85370b77fe36d7; ?>
+<?php unset($__componentOriginal0902e7c2ee22884dce85370b77fe36d7); ?>
+<?php endif; ?>
+                    <?php if (isset($component)) { $__componentOriginal0902e7c2ee22884dce85370b77fe36d7 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal0902e7c2ee22884dce85370b77fe36d7 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.audit-th','data' => ['editable' => $editable,'wire' => 'tableHeaders.it_r1.5','class' => ''.e($cellPad).' font-semibold text-center']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('audit-th'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['editable' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($editable),'wire' => 'tableHeaders.it_r1.5','class' => ''.e($cellPad).' font-semibold text-center']); ?>
+<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
+<?php echo e($hItR1[5]); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal0902e7c2ee22884dce85370b77fe36d7)): ?>
+<?php $attributes = $__attributesOriginal0902e7c2ee22884dce85370b77fe36d7; ?>
+<?php unset($__attributesOriginal0902e7c2ee22884dce85370b77fe36d7); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal0902e7c2ee22884dce85370b77fe36d7)): ?>
+<?php $component = $__componentOriginal0902e7c2ee22884dce85370b77fe36d7; ?>
+<?php unset($__componentOriginal0902e7c2ee22884dce85370b77fe36d7); ?>
+<?php endif; ?>
                     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($editable): ?>
                         <th class="<?php echo e($cellPad); ?>"></th>
                     <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </tr>
                 <tr class="bg-slate-100">
                     <th class="<?php echo e($cellPad); ?>" colspan="2"></th>
-                    <th class="<?php echo e($cellPad); ?> font-semibold text-center">Yes</th>
-                    <th class="<?php echo e($cellPad); ?> font-semibold text-center">No</th>
-                    <th class="<?php echo e($cellPad); ?> font-semibold text-center">N/A</th>
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $hItR2; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $hi => $label): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
+                        <?php if (isset($component)) { $__componentOriginal0902e7c2ee22884dce85370b77fe36d7 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal0902e7c2ee22884dce85370b77fe36d7 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.audit-th','data' => ['editable' => $editable,'wire' => 'tableHeaders.it_r2.'.$hi,'class' => ''.e($cellPad).' font-semibold text-center']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('audit-th'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['editable' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($editable),'wire' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute('tableHeaders.it_r2.'.$hi),'class' => ''.e($cellPad).' font-semibold text-center']); ?>
+<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
+<?php echo e($label); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal0902e7c2ee22884dce85370b77fe36d7)): ?>
+<?php $attributes = $__attributesOriginal0902e7c2ee22884dce85370b77fe36d7; ?>
+<?php unset($__attributesOriginal0902e7c2ee22884dce85370b77fe36d7); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal0902e7c2ee22884dce85370b77fe36d7)): ?>
+<?php $component = $__componentOriginal0902e7c2ee22884dce85370b77fe36d7; ?>
+<?php unset($__componentOriginal0902e7c2ee22884dce85370b77fe36d7); ?>
+<?php endif; ?>
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                     <th class="<?php echo e($cellPad); ?>" colspan="3"></th>
                     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($editable): ?>
                         <th class="<?php echo e($cellPad); ?>"></th>

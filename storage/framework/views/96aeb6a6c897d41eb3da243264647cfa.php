@@ -114,24 +114,18 @@
     <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
 <table class="<?php echo e($compact ? 'a4-table a4-table-compact text-[9px]' : 'w-full border-collapse text-[10.5px]'); ?> mb-[2mm]">
-        <thead>
-            <tr>
-                <th class="<?php echo e($cellPad); ?> bg-[#5b2a86] font-semibold text-white">Total Population</th>
-                <th class="<?php echo e($cellPad); ?> bg-[#5b2a86] font-semibold text-white">Sample Size(Checked)</th>
-                <th class="<?php echo e($cellPad); ?> bg-[#5b2a86] font-semibold text-white">Instantans Found</th>
-                <th class="<?php echo e($cellPad); ?> bg-[#5b2a86] font-semibold text-white">Persentange(%)</th>
-                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($editable): ?>
-                    <th class="<?php echo e($cellPad); ?> bg-[#5b2a86] text-white"></th>
-                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-            </tr>
-        </thead>
+        <?php echo $__env->make('livewire.partials.audit-stats-thead', [
+            'editable' => $editable,
+            'cellPad' => $cellPad,
+            'variant' => 'stats',
+        ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
         <tbody>
             <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = ($finding['statsRows'] ?? []); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $rowIndex => $row): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
                 <tr>
                     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = ['total_population', 'sample_size', 'instances_found', 'percentage']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $field): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
                         <td class="<?php echo e($cellPad); ?> text-center">
                             <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($editable): ?>
-                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(str_contains((string) $field, 'date') || $field === 'date'): ?>
+                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(((string) $field === 'date' || str_ends_with((string) $field, '_date') || preg_match('/^date[_\d]/', (string) $field))): ?>
                                         <?php if (isset($component)) { $__componentOriginal69d3fb3d18b8321247054b6f17c50ee8 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal69d3fb3d18b8321247054b6f17c50ee8 = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.audit-date-field','data' => ['wire:model.live' => 'page8Findings.'.e($fIndex).'.statsRows.'.e($rowIndex).'.'.e($field).'','format' => 'dmy','class' => 'w-full border-0 bg-transparent text-center text-[11px]']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
@@ -205,18 +199,34 @@
 <?php endif; ?>
         <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
+<?php $hCof = $tableHeaders['cof'] ?? \App\Support\AuditTableHeaders::defaults()['cof']; ?>
+<?php $cofWidths = ['w-[9%]', 'w-[10%]', 'w-[10%]', 'w-[10%]', 'w-[10%]', 'w-[11%]', 'w-[11%]', 'w-[12%]', 'w-[12%]']; ?>
 <table class="<?php echo e($tableClass); ?> min-w-full table-fixed">
                 <thead>
                     <tr class="bg-slate-100">
-                        <th class="<?php echo e($cellPad); ?> w-[9%] font-semibold leading-tight">মাসের নাম</th>
-                        <th class="<?php echo e($cellPad); ?> w-[10%] font-semibold leading-tight">ওপেনিং ব্যালেন্স</th>
-                        <th class="<?php echo e($cellPad); ?> w-[10%] font-semibold leading-tight">ক্লোজিং ব্যালেন্স</th>
-                        <th class="<?php echo e($cellPad); ?> w-[10%] font-semibold leading-tight">মোট ব্যালেন্স<br><span class="font-normal">(৪=২+৩)</span></th>
-                        <th class="<?php echo e($cellPad); ?> w-[10%] font-semibold leading-tight">গড় ব্যালেন্স<br><span class="font-normal">(৫=৪/২)</span></th>
-                        <th class="<?php echo e($cellPad); ?> w-[11%] font-semibold leading-tight">লাভের হার ১০%<br><span class="font-normal">(৬=৫×১০%)</span></th>
-                        <th class="<?php echo e($cellPad); ?> w-[11%] font-semibold leading-tight">মোট লাভ (১ মাস)<br><span class="font-normal">(৭=৬/১২)</span></th>
-                        <th class="<?php echo e($cellPad); ?> w-[12%] font-semibold leading-tight">শাখা কর্তৃক ধার্যকৃত লাভ মাসভিত্তিক</th>
-                        <th class="<?php echo e($cellPad); ?> w-[12%] font-semibold leading-tight">কম/বেশি লাভ<br><span class="font-normal">(৯=৭−৮)</span></th>
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $hCof; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $hi => $label): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
+                            <?php if (isset($component)) { $__componentOriginal0902e7c2ee22884dce85370b77fe36d7 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal0902e7c2ee22884dce85370b77fe36d7 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.audit-th','data' => ['editable' => $editable,'wire' => 'tableHeaders.cof.'.$hi,'class' => ''.e($cellPad).' '.e($cofWidths[$hi] ?? '').' font-semibold leading-tight']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('audit-th'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['editable' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($editable),'wire' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute('tableHeaders.cof.'.$hi),'class' => ''.e($cellPad).' '.e($cofWidths[$hi] ?? '').' font-semibold leading-tight']); ?>
+<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
+<?php echo e($label); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal0902e7c2ee22884dce85370b77fe36d7)): ?>
+<?php $attributes = $__attributesOriginal0902e7c2ee22884dce85370b77fe36d7; ?>
+<?php unset($__attributesOriginal0902e7c2ee22884dce85370b77fe36d7); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal0902e7c2ee22884dce85370b77fe36d7)): ?>
+<?php $component = $__componentOriginal0902e7c2ee22884dce85370b77fe36d7; ?>
+<?php unset($__componentOriginal0902e7c2ee22884dce85370b77fe36d7); ?>
+<?php endif; ?>
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                         <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($editable): ?>
                             <th class="<?php echo e($cellPad); ?> w-[5%]"></th>
                         <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>

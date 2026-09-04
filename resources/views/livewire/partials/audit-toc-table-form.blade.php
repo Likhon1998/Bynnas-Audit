@@ -1,26 +1,28 @@
 @php
     /** @var int $previewPage */
     $previewPage = $previewPage ?? 2;
+    $hToc = $tableHeaders['toc'] ?? \App\Support\AuditTableHeaders::defaults()['toc'];
+    $tocWidths = ['w-[70px]', '', 'w-[90px]', 'w-[130px]', 'w-[100px]', 'w-[70px]'];
 @endphp
 
 <div class="mb-2 flex flex-wrap items-center gap-2">
     <p class="mr-auto text-[11px] font-semibold uppercase tracking-wide text-slate-500">
         সূচিপত্র @if($previewPage === 2) (শুরু) @else (বাকি অংশ) @endif
+        <span class="ml-2 font-normal normal-case text-slate-400">· শুধু রিপোর্টের শিরোনাম (পৃষ্ঠা ৪ থেকে)</span>
     </p>
-    <button type="button" wire:click="addTocSection(-1, {{ $previewPage }})" class="h-7 rounded border border-slate-300 px-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50">+ Section</button>
-    <button type="button" wire:click="addTocRow(-1, {{ $previewPage }})" class="h-7 rounded border border-slate-300 px-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50">+ Row</button>
 </div>
 
 <div class="overflow-x-auto">
     <table class="w-full min-w-[900px] border-collapse text-[11px]">
         <thead>
             <tr class="bg-slate-200">
-                <th class="w-[70px] border border-slate-800 px-1 py-1.5 font-semibold">ক্রমিক নং</th>
-                <th class="border border-slate-800 px-1 py-1.5 font-semibold">নিরীক্ষায় প্রাপ্ত ঘটনা সমূহ</th>
-                <th class="w-[90px] border border-slate-800 px-1 py-1.5 font-semibold">টাকা</th>
-                <th class="w-[130px] border border-slate-800 px-1 py-1.5 font-semibold">রেটিং</th>
-                <th class="w-[100px] border border-slate-800 px-1 py-1.5 font-semibold">বর্তমান অবস্থা</th>
-                <th class="w-[70px] border border-slate-800 px-1 py-1.5 font-semibold">পৃষ্ঠা</th>
+                @foreach ($hToc as $hi => $label)
+                    <x-audit-th
+                        :editable="true"
+                        :wire="'tableHeaders.toc.'.$hi"
+                        class="{{ $tocWidths[$hi] ?? '' }} border border-slate-800 px-1 py-1.5 font-semibold"
+                    >{{ $label }}</x-audit-th>
+                @endforeach
                 <th class="w-[70px] border border-slate-800 px-1 py-1.5 font-semibold">Action</th>
             </tr>
         </thead>

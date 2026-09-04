@@ -96,17 +96,11 @@
     @endif
 
 <table class="{{ $compact ? 'a4-table a4-table-compact text-[9px]' : 'w-full border-collapse text-[10.5px]' }} mb-[2mm]">
-        <thead>
-            <tr>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Total Population/Sample size</th>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Sample Size(Checked)</th>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Instantans Found</th>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Persentange(%)</th>
-                @if ($editable)
-                    <th class="{{ $cellPad }} bg-[#5b2a86] text-white"></th>
-                @endif
-            </tr>
-        </thead>
+        @include('livewire.partials.audit-stats-thead', [
+            'editable' => $editable,
+            'cellPad' => $cellPad,
+            'variant' => 'stats_alt',
+        ])
         <tbody>
             @foreach (($finding['statsRows'] ?? []) as $rowIndex => $row)
                 <tr>
@@ -165,13 +159,13 @@
             />
         @endif
 
+@php $hDropoutRefund = $tableHeaders['dropout_refund'] ?? \App\Support\AuditTableHeaders::defaults()['dropout_refund']; @endphp
 <table class="{{ $compact ? 'a4-table a4-table-compact text-[8px]' : 'w-full border-collapse text-[9px]' }} min-w-full">
                 <thead>
                     <tr class="bg-slate-100">
-                        <th class="{{ $cellPad }} font-semibold text-center">তারিখ</th>
-                        <th class="{{ $cellPad }} font-semibold text-center">সমিতি/সদস্য নং</th>
-                        <th class="{{ $cellPad }} font-semibold text-center">সদস্যের নাম</th>
-                        <th class="{{ $cellPad }} font-semibold text-center">সঞ্চয় ফেরতের পরিমাণ</th>
+                        @foreach ($hDropoutRefund as $hi => $label)
+                            <x-audit-th :editable="$editable" :wire="'tableHeaders.dropout_refund.'.$hi" class="{{ $cellPad }} font-semibold text-center">{{ $label }}</x-audit-th>
+                        @endforeach
                         @if ($editable)
                             <th class="{{ $cellPad }}"></th>
                         @endif
@@ -223,13 +217,13 @@
             />
         @endif
 
+@php $hSavingsCompare = $tableHeaders['savings_compare'] ?? \App\Support\AuditTableHeaders::defaults()['savings_compare']; @endphp
 <table class="{{ $compact ? 'a4-table a4-table-compact text-[8px]' : 'w-full border-collapse text-[9px]' }} min-w-full">
                 <thead>
                     <tr class="bg-slate-100">
-                        <th class="{{ $cellPad }} font-semibold text-center">মাসের নাম</th>
-                        <th class="{{ $cellPad }} font-semibold text-center">ম্যানুয়ালী সঞ্চয় সমন্বয়</th>
-                        <th class="{{ $cellPad }} font-semibold text-center">সফটওয়্যার অনুযায়ী সঞ্চয় সমন্বয়</th>
-                        <th class="{{ $cellPad }} font-semibold text-center">পার্থক্য</th>
+                        @foreach ($hSavingsCompare as $hi => $label)
+                            <x-audit-th :editable="$editable" :wire="'tableHeaders.savings_compare.'.$hi" class="{{ $cellPad }} font-semibold text-center">{{ $label }}</x-audit-th>
+                        @endforeach
                         @if ($editable)
                             <th class="{{ $cellPad }}"></th>
                         @endif

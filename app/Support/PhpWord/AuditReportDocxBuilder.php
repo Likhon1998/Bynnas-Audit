@@ -5,7 +5,9 @@ namespace App\Support\PhpWord;
 use App\Livewire\MakeAuditReport;
 use App\Support\AuditDocumentLayout as Doc;
 use App\Support\AuditReportClassification;
+use App\Support\AuditTableHeaders;
 use App\Support\BanglaNumerals;
+use App\Support\CustomTableSchema;
 use Carbon\Carbon;
 use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\PhpWord;
@@ -48,7 +50,7 @@ class AuditReportDocxBuilder
         $section->addPageBreak();
         $this->buildOverview($section, $data);
         $this->buildSignatures($section, $data);
-        $this->buildClassification($section);
+        $this->buildClassification($section, $data);
 
         if ($this->hasFinancialSheet($data)) {
             $this->buildFinancial($section, $data);
@@ -265,7 +267,7 @@ class AuditReportDocxBuilder
         $this->addStaffTable($section, $data['staffColumns'] ?? [], $data['staffRows'] ?? []);
 
         $section->addText('সূচিপত্র', ['name' => self::FONT, 'size' => 12.5, 'bold' => true, 'underline' => 'single'], ['alignment' => Jc::CENTER, 'spaceBefore' => 240, 'spaceAfter' => 120]);
-        $this->addTocTable($section, $this->overviewRows($data));
+        $this->addTocTable($section, $this->overviewRows($data), $data);
     }
 
     /**
@@ -308,14 +310,18 @@ class AuditReportDocxBuilder
         }
     }
 
-    protected function buildClassification($section): void
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function buildClassification($section, array $data): void
     {
         $this->addSpacer($section, 200);
         $section->addText('প্রতিবেদনের শ্রেণীবিন্যাস', ['name' => self::FONT, 'size' => 12.5, 'bold' => true, 'underline' => 'single'], ['alignment' => Jc::CENTER, 'spaceAfter' => 120]);
 
         $table = $section->addTable($this->gridTable);
         $table->addRow();
-        foreach (['পর্যবেক্ষণসমূহের গুরুত্বের মাত্রা', 'কোড', 'রেটিং নির্বাচনের বিষদ, পয়েন্ট ও কারণ'] as $index => $heading) {
+        $importanceHeaders = AuditTableHeaders::get($data['tableHeaders'] ?? [], 'classification_importance');
+        foreach ($importanceHeaders as $index => $heading) {
             $widths = [16, 7, 77];
             $table->addCell($this->pct($widths[$index]), ['bgColor' => 'BDD7EE', 'valign' => 'center'])
                 ->addText($heading, ['name' => self::FONT, 'size' => 8.5, 'bold' => true], ['alignment' => $index === 2 ? Jc::START : Jc::CENTER]);
@@ -343,9 +349,9 @@ class AuditReportDocxBuilder
         $summary = $section->addTable($this->gridTable);
         $summary->addRow();
         $summary->addCell($this->pct(70), ['bgColor' => '2E5090', 'valign' => 'center'])
-            ->addText('নিরীক্ষাকার্যে ফলাফল মূল্যায়ন', ['name' => self::FONT, 'size' => 8.5, 'bold' => true, 'color' => 'FFFFFF'], ['alignment' => Jc::CENTER]);
+            ->addText($this->hdr($data, 'classification_eval', 0), ['name' => self::FONT, 'size' => 8.5, 'bold' => true, 'color' => 'FFFFFF'], ['alignment' => Jc::CENTER]);
         $summary->addCell($this->pct(30), ['bgColor' => '2E5090', 'valign' => 'center'])
-            ->addText('সমষ্টিগত কর্মসম্পাদনের হার', ['name' => self::FONT, 'size' => 8.5, 'bold' => true, 'color' => 'FFFFFF'], ['alignment' => Jc::CENTER]);
+            ->addText($this->hdr($data, 'classification_eval', 1), ['name' => self::FONT, 'size' => 8.5, 'bold' => true, 'color' => 'FFFFFF'], ['alignment' => Jc::CENTER]);
 
         foreach (AuditReportClassification::performanceSummaryRows() as $row) {
             $summary->addRow();
@@ -361,30 +367,228 @@ class AuditReportDocxBuilder
     protected function buildFinancial($section, array $data): void
     {
         $this->addSpacer($section, 240);
-        $section->addText($data['financial_section_title'] ?? '১.০ আর্থিক নিরীক্ষা (Financial Audit) :', $this->fontBold);
 
-        foreach ($data['financialFindings'] ?? [] as $finding) {
-            $table = $section->addTable($this->gridTable);
-            $table->addRow();
-            $widths = Doc::findingColumnWidths();
-            $table->addCell($this->pct($widths[0]), ['valign' => 'center'])
-                ->addText($finding['serial'] ?? '', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
-            $table->addCell($this->pct($widths[1]), ['valign' => 'center'])
-                ->addText($finding['title'] ?? 'শিরোনাম', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
-            $table->addCell($this->pct($widths[2]), ['valign' => 'top'])
-                ->addText($finding['body'] ?? '', $this->fontSmall, ['alignment' => Jc::BOTH]);
-            $ratingCell = $table->addCell($this->pct($widths[3]), ['valign' => 'center']);
-            $this->addRatingBox($ratingCell, $finding['rating'] ?? '');
-            $this->addSpacer($section, 80);
+        $blocks = $data['reportBlocks'] ?? [];
+        if ($blocks === []) {
+            $sections = $data['reportSections'] ?? [];
+            if ($sections === []) {
+                $sections = [[
+                    'serial' => '১.০',
+                    'title' => $data['financial_section_title'] ?? '১.০ আর্থিক নিরীক্ষা (Financial Audit) :',
+                    'findings' => $data['financialFindings'] ?? [],
+                ]];
+            }
+            foreach ($sections as $reportSection) {
+                $blocks[] = [
+                    'type' => 'section',
+                    'serial' => $reportSection['serial'] ?? '১.০',
+                    'title' => $reportSection['title'] ?? '',
+                ];
+                foreach ($reportSection['findings'] ?? [] as $finding) {
+                    $blocks[] = array_merge(['type' => 'finding'], is_array($finding) ? $finding : []);
+                }
+            }
+            $blocks[] = [
+                'type' => 'criteria',
+                'label' => 'প্রচলিত নিয়ম (Criteria):',
+                'body' => $data['financial_criteria'] ?? '',
+            ];
+            $blocks[] = [
+                'type' => 'observation',
+                'label' => 'পর্যবেক্ষণ (Observation) :',
+                'body' => '',
+            ];
+            $blocks[] = [
+                'type' => 'stats',
+                'heading' => 'Report Rating Box:',
+                'rows' => $data['vatObservationRows'] ?? [],
+            ];
+            $blocks[] = [
+                'type' => 'stats',
+                'heading' => 'Report Rating Box:',
+                'rows' => $data['taxObservationRows'] ?? [],
+            ];
         }
 
-        $section->addText('প্রচলিত নিয়ম (Criteria):', $this->fontBold, ['spaceBefore' => 120]);
-        $section->addText($data['financial_criteria'] ?? '', $this->fontBody, ['alignment' => Jc::BOTH]);
-        $section->addText('পর্যবেক্ষণ (Observation) :', $this->fontBold, ['spaceBefore' => 120]);
-        $section->addText(str_repeat('·', 40), $this->fontBody);
+        $widths = Doc::findingColumnWidths();
+        foreach ($blocks as $bIndex => $block) {
+            $type = $block['type'] ?? '';
+            if ($type === 'section') {
+                if ($bIndex > 0) {
+                    $this->addSpacer($section, 160);
+                }
+                $section->addText((string) ($block['title'] ?? $block['serial'] ?? ''), $this->fontBold);
+            } elseif ($type === 'finding') {
+                $table = $section->addTable($this->gridTable);
+                $table->addRow();
+                $table->addCell($this->pct($widths[0]), ['valign' => 'center'])
+                    ->addText($block['serial'] ?? '', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+                $table->addCell($this->pct($widths[1]), ['valign' => 'center'])
+                    ->addText($block['title'] ?? 'শিরোনাম', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+                $body = (string) ($block['body'] ?? '');
+                if (($block['amount'] ?? '') !== '') {
+                    $body .= ($body !== '' ? "\n" : '').'টাকার পরিমাণ: '.$block['amount'];
+                }
+                $table->addCell($this->pct($widths[2]), ['valign' => 'top'])
+                    ->addText($body, $this->fontSmall, ['alignment' => Jc::BOTH]);
+                $ratingCell = $table->addCell($this->pct($widths[3]), ['valign' => 'center']);
+                $this->addRatingBox($ratingCell, $block['rating'] ?? '');
+                $this->addSpacer($section, 80);
+            } elseif ($type === 'criteria') {
+                $section->addText((string) ($block['label'] ?? 'প্রচলিত নিয়ম (Criteria):'), $this->fontBold, ['spaceBefore' => 120]);
+                $section->addText((string) ($block['body'] ?? ($data['financial_criteria'] ?? '')), $this->fontBody, ['alignment' => Jc::BOTH]);
+            } elseif ($type === 'observation') {
+                $obsLabel = (string) ($block['label'] ?? 'পর্যবেক্ষণ (Observation) :');
+                if ($obsLabel !== '') {
+                    $section->addText($obsLabel, $this->fontBold, ['spaceBefore' => 120]);
+                }
+                $obsBody = trim((string) ($block['body'] ?? ''));
+                $section->addText($obsBody !== '' ? $obsBody : str_repeat('·', 40), $this->fontBody, ['alignment' => Jc::BOTH]);
+            } elseif (in_array($type, ['stats', 'vat', 'tax'], true)) {
+                $obsHeading = (string) ($block['heading'] ?? 'Report Rating Box:');
+                if (in_array($obsHeading, ['ভ্যাট সংক্রান্ত:', 'ট্যাক্স সংক্রান্ত:', 'সারণী:', 'নতুন সারণী:'], true)) {
+                    $obsHeading = 'Report Rating Box:';
+                }
+                $obsRows = array_values((array) ($block['rows'] ?? (
+                    $type === 'tax' ? ($data['taxObservationRows'] ?? []) : ($data['vatObservationRows'] ?? [])
+                )));
+                $this->addObservationTable($section, $obsHeading !== '' ? $obsHeading : 'Report Rating Box:', $obsRows, $data);
+            } elseif ($type === 'custom_table') {
+                $this->addCustomTable($section, is_array($block) ? $block : []);
+            } elseif ($type === 'jobab_table') {
+                $this->addJobabTable($section, is_array($block) ? $block : []);
+            }
+        }
+    }
 
-        $this->addObservationTable($section, 'ভ্যাট সংক্রান্ত:', $data['vatObservationRows'] ?? []);
-        $this->addObservationTable($section, 'ট্যাক্স সংক্রান্ত:', $data['taxObservationRows'] ?? []);
+    /**
+     * @param  array<string, mixed>  $block
+     */
+    protected function addJobabTable($section, array $block): void
+    {
+        $rows = array_values((array) ($block['rows'] ?? []));
+        if ($rows === []) {
+            return;
+        }
+        $colCount = 2;
+        foreach ($rows as $row) {
+            $colCount = max($colCount, count(array_values((array) ($row['cells'] ?? []))));
+        }
+        $table = $section->addTable($this->gridTable);
+        $widths = [];
+        if ($colCount === 2) {
+            $widths = [3400, 5600];
+        } else {
+            $each = (int) floor(9000 / max(1, $colCount));
+            $widths = array_fill(0, $colCount, $each);
+        }
+        foreach ($rows as $row) {
+            $cells = array_values((array) ($row['cells'] ?? []));
+            while (count($cells) < $colCount) {
+                $cells[] = '';
+            }
+            $table->addRow();
+            foreach ($cells as $ci => $text) {
+                $font = ['name' => self::FONT, 'size' => 9, 'bold' => $ci === 0];
+                $table->addCell($widths[$ci] ?? 1500, ['valign' => 'top'])
+                    ->addText((string) $text, $font, ['alignment' => Jc::START]);
+            }
+        }
+        $this->addSpacer($section, 80);
+    }
+
+    /**
+     * Nested-column custom table (gridSpan / vMerge from schema).
+     *
+     * @param  array<string, mixed>  $block
+     */
+    protected function addCustomTable($section, array $block): void
+    {
+        $tableData = CustomTableSchema::normalize($block);
+        $title = trim((string) ($tableData['title'] ?? ''));
+        if ($title !== '') {
+            $section->addText($title, $this->fontBold, ['spaceBefore' => 120]);
+        }
+
+        $columns = $tableData['columns'];
+        $rows = $tableData['rows'];
+        $leafCount = CustomTableSchema::leafCount($columns);
+        if ($leafCount < 1) {
+            return;
+        }
+
+        $matrix = CustomTableSchema::headerMatrix($columns);
+        $widthsPct = CustomTableSchema::leafWidths($columns);
+        $paint = CustomTableSchema::bodyPaintPlan($tableData);
+        $table = $section->addTable($this->gridTable);
+        $totalTwip = 9000;
+        $leafTwips = [];
+        foreach ($widthsPct as $pct) {
+            $leafTwips[] = max(400, (int) round($totalTwip * ($pct / 100)));
+        }
+        // Fix rounding drift
+        $sum = array_sum($leafTwips);
+        if ($sum !== $totalTwip && $leafTwips !== []) {
+            $leafTwips[count($leafTwips) - 1] += $totalTwip - $sum;
+        }
+
+        foreach ($matrix as $hRow) {
+            $table->addRow();
+            $leafCursor = 0;
+            foreach ($hRow as $hCell) {
+                $colspan = max(1, (int) ($hCell['colspan'] ?? 1));
+                $rowspan = max(1, (int) ($hCell['rowspan'] ?? 1));
+                $w = 0;
+                for ($i = 0; $i < $colspan && ($leafCursor + $i) < count($leafTwips); $i++) {
+                    $w += $leafTwips[$leafCursor + $i];
+                }
+                $leafCursor += $colspan;
+                $cellOpts = [
+                    'bgColor' => 'D9D9D9',
+                    'valign' => 'center',
+                    'gridSpan' => $colspan,
+                ];
+                if ($rowspan > 1) {
+                    $cellOpts['vMerge'] = 'restart';
+                }
+                $cell = $table->addCell(max(400, $w), $cellOpts);
+                $cell->addText(
+                    (string) ($hCell['text'] ?? ''),
+                    ['name' => self::FONT, 'size' => 8, 'bold' => true],
+                    ['alignment' => Jc::CENTER]
+                );
+            }
+        }
+
+        foreach ($rows as $rIndex => $row) {
+            $isTotal = (bool) ($row['is_total'] ?? false);
+            $font = ['name' => self::FONT, 'size' => 8, 'bold' => $isTotal];
+            $table->addRow();
+            for ($c = 0; $c < $leafCount; $c++) {
+                $cellPlan = $paint[$rIndex][$c] ?? null;
+                if (! $cellPlan || ($cellPlan['skip'] ?? false)) {
+                    continue;
+                }
+                $rs = max(1, (int) ($cellPlan['rowspan'] ?? 1));
+                $cs = max(1, (int) ($cellPlan['colspan'] ?? 1));
+                $w = 0;
+                for ($i = 0; $i < $cs && ($c + $i) < count($leafTwips); $i++) {
+                    $w += $leafTwips[$c + $i];
+                }
+                $opts = [
+                    'valign' => $rs > 1 ? 'center' : 'top',
+                    'gridSpan' => $cs,
+                ];
+                if ($rs > 1) {
+                    $opts['vMerge'] = 'restart';
+                }
+                $align = ($c === 2 && $cs === 1 && $rs === 1) ? Jc::START : Jc::CENTER;
+                $table->addCell(max(400, $w), $opts)
+                    ->addText((string) ($cellPlan['text'] ?? ''), $font, ['alignment' => $align]);
+            }
+        }
+
+        $this->addSpacer($section, 80);
     }
 
     /**
@@ -397,7 +601,11 @@ class AuditReportDocxBuilder
 
         $table = $section->addTable($this->gridTable);
         $table->addRow();
-        foreach (['তারিখ/মাস', 'ভাউচার', 'বিবরণ', 'খরচ', 'ভ্যাট প্রযোজ্য', 'ভ্যাট প্রদান', 'ভ্যাট কম/বেশি', 'ট্যাক্স প্রযোজ্য', 'ট্যাক্স প্রদান', 'ট্যাক্স কম/বেশি'] as $header) {
+        $expenseHeaders = array_merge(
+            array_slice(AuditTableHeaders::get($data['tableHeaders'] ?? [], 'expense_r1'), 0, 4),
+            AuditTableHeaders::get($data['tableHeaders'] ?? [], 'expense_r2')
+        );
+        foreach ($expenseHeaders as $header) {
             $table->addCell(900, ['bgColor' => 'D9D9D9', 'valign' => 'center'])
                 ->addText($header, ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
         }
@@ -450,11 +658,11 @@ class AuditReportDocxBuilder
         $section->addText('পর্যবেক্ষণ (Observation) :', $this->fontBold, ['spaceBefore' => 80]);
         $section->addText($data['finding13_observation'] ?: str_repeat('·', 40), $this->fontBody);
 
-        $this->addObservationTable($section, '', $data['finding13_statsRows'] ?? []);
+        $this->addObservationTable($section, '', $data['finding13_statsRows'] ?? [], $data);
 
         $deposit = $section->addTable($this->gridTable);
         $deposit->addRow();
-        foreach (['বিবরণ', 'মাস', 'উত্তোলন', 'জমা', 'টাকা', 'সময়কাল'] as $header) {
+        foreach (AuditTableHeaders::get($data['tableHeaders'] ?? [], 'deposit') as $header) {
             $deposit->addCell(1500, ['bgColor' => 'D9D9D9'])->addText($header, ['name' => self::FONT, 'size' => 8, 'bold' => true], ['alignment' => Jc::CENTER]);
         }
         foreach ($data['finding13_depositRows'] ?? [] as $row) {
@@ -539,12 +747,13 @@ class AuditReportDocxBuilder
 
     /**
      * @param  list<array<string, mixed>>  $rows
+     * @param  array<string, mixed>  $data
      */
-    protected function addTocTable($section, array $rows): void
+    protected function addTocTable($section, array $rows, array $data = []): void
     {
         $widths = Doc::tocColumnWidths();
         $table = $section->addTable($this->gridTable);
-        $headers = ['ক্রমিক নং', 'নিরীক্ষায় প্রাপ্ত ঘটনা সমূহ', 'টাকা', 'রেটিং', 'বর্তমান অবস্থা', 'পৃষ্ঠা নাম্বার'];
+        $headers = AuditTableHeaders::get($data['tableHeaders'] ?? [], 'toc');
         $table->addRow();
         foreach ($headers as $index => $heading) {
             $table->addCell($this->pct($widths[$index]), ['bgColor' => 'D9D9D9', 'valign' => 'center'])
@@ -579,12 +788,13 @@ class AuditReportDocxBuilder
 
     /**
      * @param  list<array<string, mixed>>  $rows
+     * @param  array<string, mixed>  $data
      */
-    protected function addObservationTable($section, string $label, array $rows): void
+    protected function addObservationTable($section, string $label, array $rows, array $data = []): void
     {
         $section->addText($label, $this->fontBold, ['spaceBefore' => 120, 'spaceAfter' => 60]);
         $table = $section->addTable($this->gridTable);
-        $headers = ['Total Population', 'Sample Size(Checked)', 'Instantans Found', 'Persentange(%)'];
+        $headers = AuditTableHeaders::get($data['tableHeaders'] ?? [], 'stats');
         $table->addRow();
         foreach ($headers as $heading) {
             $table->addCell($this->pct(25), ['bgColor' => '2E5090', 'valign' => 'center'])
@@ -809,12 +1019,12 @@ class AuditReportDocxBuilder
             $section->addText('পর্যবেক্ষণ (Observation) :', $this->fontBold, ['spaceBefore' => 80]);
             $section->addText($finding['observation'] ?: str_repeat('·', 40), $this->fontBody);
 
-            $this->addObservationTable($section, '', $finding['statsRows'] ?? []);
+            $this->addObservationTable($section, '', $finding['statsRows'] ?? [], $data);
 
             $section->addText($finding['detail_intro'] ?? 'বিস্তারিত নিম্নে দেওয়া হলো:', $this->fontBold, ['spaceBefore' => 80]);
             $vouchers = $section->addTable($this->gridTable);
             $vouchers->addRow();
-            foreach (['তারিখ', 'ভাউচার', 'বিবরণ', 'টাকা', 'মন্তব্য'] as $header) {
+            foreach (AuditTableHeaders::get($data['tableHeaders'] ?? [], 'voucher') as $header) {
                 $vouchers->addCell(1800, ['bgColor' => 'D9D9D9'])->addText($header, ['name' => self::FONT, 'size' => 8, 'bold' => true], ['alignment' => Jc::CENTER]);
             }
             foreach ($finding['voucherRows'] ?? [] as $row) {
@@ -872,14 +1082,21 @@ class AuditReportDocxBuilder
             $section->addText('পর্যবেক্ষণ (Observation) :', $this->fontBold, ['spaceBefore' => 80]);
             $section->addText($finding['observation'] ?: str_repeat('·', 40), $this->fontBody);
 
-            $this->addObservationTable($section, '', $finding['statsRows'] ?? []);
+            $this->addObservationTable($section, '', $finding['statsRows'] ?? [], $data);
 
             if (($finding['detail_type'] ?? 'none') === 'budget') {
                 $year = (string) ($finding['budget_year'] ?? '২০২২-২০২৩');
                 $section->addText($finding['detail_intro'] ?? 'নিম্নে বিস্তারিত দেওয়া হলো:', $this->fontBold, ['spaceBefore' => 80]);
                 $budget = $section->addTable($this->gridTable);
                 $budget->addRow();
-                foreach (['বাজেটের খাত', 'বাজেট '.$year.' (বাৎসরিক)', 'জুন পর্যন্ত', 'প্রকৃত খরচ', 'পার্থক্য'] as $header) {
+                $budgetHeaders = [
+                    $this->hdr($data, 'budget_r1', 0),
+                    trim($this->hdr($data, 'budget_r1', 1).' '.$year.' ('.$this->hdr($data, 'budget_r2', 0).')'),
+                    $this->hdr($data, 'budget_r2', 1),
+                    $this->hdr($data, 'budget_r1', 2),
+                    $this->hdr($data, 'budget_r1', 3),
+                ];
+                foreach ($budgetHeaders as $header) {
                     $budget->addCell(1800, ['bgColor' => 'D9D9D9'])->addText($header, ['name' => self::FONT, 'size' => 8, 'bold' => true], ['alignment' => Jc::CENTER]);
                 }
                 foreach ($finding['budgetRows'] ?? [] as $row) {
@@ -894,7 +1111,7 @@ class AuditReportDocxBuilder
                 $section->addText($finding['detail_intro'] ?? 'নিম্নে বিস্তারিত দেওয়া হলো:', $this->fontBold, ['spaceBefore' => 80]);
                 $bonus = $section->addTable($this->gridTable);
                 $bonus->addRow();
-                foreach (['যোগদানের তারিখ', 'বোনাস তারিখ ও ভাউচার', 'চাকরির বয়স', 'বোনাসের পরিমাণ'] as $header) {
+                foreach (AuditTableHeaders::get($data['tableHeaders'] ?? [], 'bonus') as $header) {
                     $bonus->addCell(2250, ['bgColor' => 'D9D9D9'])->addText($header, ['name' => self::FONT, 'size' => 8, 'bold' => true], ['alignment' => Jc::CENTER]);
                 }
                 foreach ($finding['bonusRows'] ?? [] as $row) {
@@ -967,12 +1184,12 @@ class AuditReportDocxBuilder
             $section->addText('পর্যবেক্ষণ (Observation) :', $this->fontBold, ['spaceBefore' => 80]);
             $section->addText($finding['observation'] ?: str_repeat('·', 40), $this->fontBody);
 
-            $this->addObservationTable($section, '', $finding['statsRows'] ?? []);
+            $this->addObservationTable($section, '', $finding['statsRows'] ?? [], $data);
 
             if (($finding['detail_type'] ?? 'cost_of_fund') === 'cost_of_fund') {
                 $cof = $section->addTable($this->gridTable);
                 $cof->addRow();
-                foreach (['মাস', 'ওপেনিং', 'ক্লোজিং', 'মোট', 'গড়', '১০%', 'লাভ', 'শাখা', 'পার্থক্য'] as $header) {
+                foreach (AuditTableHeaders::get($data['tableHeaders'] ?? [], 'cof') as $header) {
                     $cof->addCell(1000, ['bgColor' => 'D9D9D9'])->addText($header, ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
                 }
                 foreach ($finding['cofRows'] ?? [] as $row) {
@@ -1045,13 +1262,13 @@ class AuditReportDocxBuilder
             $section->addText('পর্যবেক্ষণ (Observation) :', $this->fontBold, ['spaceBefore' => 80]);
             $section->addText($finding['observation'] ?: str_repeat('·', 40), $this->fontBody);
 
-            $this->addObservationTable($section, '', $finding['statsRows'] ?? []);
+            $this->addObservationTable($section, '', $finding['statsRows'] ?? [], $data);
 
             if (($finding['detail_type'] ?? '') === 'cash') {
                 $section->addText($finding['detail_intro'] ?? 'নিম্নে বিস্তারিত দেওয়া হলো:', $this->fontBold, ['spaceBefore' => 80]);
                 $cash = $section->addTable($this->gridTable);
                 $cash->addRow();
-                foreach (['তারিখ', 'নগদ', 'তারিখ', 'নগদ', 'তারিখ', 'নগদ'] as $header) {
+                foreach (AuditTableHeaders::get($data['tableHeaders'] ?? [], 'cash') as $header) {
                     $cash->addCell(1500, ['bgColor' => 'D9D9D9'])->addText($header, ['name' => self::FONT, 'size' => 8, 'bold' => true], ['alignment' => Jc::CENTER]);
                 }
                 foreach ($finding['cashRows'] ?? [] as $row) {
@@ -1066,7 +1283,7 @@ class AuditReportDocxBuilder
                 $section->addText($finding['detail_intro'] ?? 'নিম্নে বিস্তারিত দেওয়া হলো:', $this->fontBold, ['spaceBefore' => 80]);
                 $stamp = $section->addTable($this->gridTable);
                 $stamp->addRow();
-                foreach (['তারিখ', 'ভাউচার', 'পরিমাণ', 'বিবরণ'] as $header) {
+                foreach (AuditTableHeaders::get($data['tableHeaders'] ?? [], 'stamp') as $header) {
                     $stamp->addCell(2250, ['bgColor' => 'D9D9D9'])->addText($header, ['name' => self::FONT, 'size' => 8, 'bold' => true], ['alignment' => Jc::CENTER]);
                 }
                 foreach ($finding['stampRows'] ?? [] as $row) {
@@ -1144,13 +1361,13 @@ class AuditReportDocxBuilder
             $section->addText('পর্যবেক্ষণ (Observation) :', $this->fontBold, ['spaceBefore' => 80]);
             $section->addText($finding['observation'] ?: str_repeat('·', 40), $this->fontBody);
 
-            $this->addObservationTable($section, '', $finding['statsRows'] ?? []);
+            $this->addObservationTable($section, '', $finding['statsRows'] ?? [], $data);
 
             if (($finding['detail_type'] ?? 'asset') === 'asset') {
                 $section->addText($finding['detail_intro'] ?? 'নিম্নে বিস্তারিত দেওয়া হলো:', $this->fontBold, ['spaceBefore' => 80]);
                 $assets = $section->addTable($this->gridTable);
                 $assets->addRow();
-                foreach (['ক্রয়ের তারিখ', 'ভাউচার', 'সম্পদের নাম', 'ক্রয়মূল্য', 'পূর্বের খাত', 'বর্তমান অবস্থান'] as $header) {
+                foreach (AuditTableHeaders::get($data['tableHeaders'] ?? [], 'asset') as $header) {
                     $assets->addCell(1500, ['bgColor' => 'D9D9D9'])->addText($header, ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
                 }
                 foreach ($finding['assetRows'] ?? [] as $row) {
@@ -1223,13 +1440,17 @@ class AuditReportDocxBuilder
             $section->addText('পর্যবেক্ষণ (Observation) :', $this->fontBold, ['spaceBefore' => 80]);
             $section->addText($finding['observation'] ?: str_repeat('·', 40), $this->fontBody);
 
-            $this->addObservationTable($section, '', $finding['statsRows'] ?? []);
+            $this->addObservationTable($section, '', $finding['statsRows'] ?? [], $data);
 
             if (($finding['detail_type'] ?? '') === 'dep_compare') {
                 $section->addText($finding['detail_intro'] ?? 'নিম্নে বিস্তারিত দেওয়া হলো:', $this->fontBold, ['spaceBefore' => 80]);
                 $dep = $section->addTable($this->gridTable);
                 $dep->addRow();
-                foreach (['গ্রুপ', 'মূল্য (প্রতিবেদন)', 'মূল্য (রেজিস্টার)', 'পার্থক্য', 'অবচয় (প্রতিবেদন)', 'অবচয় (রেজিস্টার)', 'পার্থক্য'] as $header) {
+                $depHeaders = array_merge(
+                    [$this->hdr($data, 'dep_r1', 0)],
+                    AuditTableHeaders::get($data['tableHeaders'] ?? [], 'dep_r2')
+                );
+                foreach ($depHeaders as $header) {
                     $dep->addCell(1285, ['bgColor' => 'D9D9D9'])->addText($header, ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
                 }
                 foreach ($finding['depRows'] ?? [] as $row) {
@@ -1242,7 +1463,7 @@ class AuditReportDocxBuilder
                 $section->addText($finding['detail_intro'] ?? 'বিস্তারিত নিম্নে দেওয়া হলো:', $this->fontBold, ['spaceBefore' => 80]);
                 $quotes = $section->addTable($this->gridTable);
                 $quotes->addRow();
-                foreach (['পণ্যের নাম', 'পণ্যের গ্রুপ', 'ক্রয়ের তারিখ', 'ভাউচার নং', 'টাকার পরিমাণ', 'কোটেশনের অবস্থা'] as $header) {
+                foreach (AuditTableHeaders::get($data['tableHeaders'] ?? [], 'quote') as $header) {
                     $quotes->addCell(1500, ['bgColor' => 'D9D9D9'])->addText($header, ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
                 }
                 foreach ($finding['quoteRows'] ?? [] as $row) {
@@ -1322,13 +1543,13 @@ class AuditReportDocxBuilder
             $section->addText('পর্যবেক্ষণ (Observation) :', $this->fontBold, ['spaceBefore' => 80]);
             $section->addText($finding['observation'] ?: str_repeat('·', 40), $this->fontBody);
 
-            $this->addObservationTable($section, '', $finding['statsRows'] ?? []);
+            $this->addObservationTable($section, '', $finding['statsRows'] ?? [], $data);
 
             if (($finding['detail_type'] ?? 'stock') === 'stock') {
                 $section->addText($finding['detail_intro'] ?? 'নিম্নে বিস্তারিত দেওয়া হলো:', $this->fontBold, ['spaceBefore' => 80]);
                 $stocks = $section->addTable($this->gridTable);
                 $stocks->addRow();
-                foreach (['পণ্যের নাম', 'ক্রয়ের তারিখ ও ভাউচার নং', 'ক্রয়কৃত পণ্যের মূল্য', 'স্টক রেজিস্টারের অবস্থা'] as $header) {
+                foreach (AuditTableHeaders::get($data['tableHeaders'] ?? [], 'stock') as $header) {
                     $stocks->addCell(2250, ['bgColor' => 'D9D9D9'])->addText($header, ['name' => self::FONT, 'size' => 8, 'bold' => true], ['alignment' => Jc::CENTER]);
                 }
                 foreach ($finding['stockRows'] ?? [] as $row) {
@@ -1406,13 +1627,27 @@ class AuditReportDocxBuilder
             $section->addText('পর্যবেক্ষণ (Observation) :', $this->fontBold, ['spaceBefore' => 80]);
             $section->addText($finding['observation'] ?: str_repeat('·', 40), $this->fontBody);
 
-            $this->addObservationTable($section, '', $finding['statsRows'] ?? []);
+            $this->addObservationTable($section, '', $finding['statsRows'] ?? [], $data);
 
             if (($finding['detail_type'] ?? '') === 'samity_collection') {
                 $section->addText($finding['detail_intro'] ?? 'বিস্তারিত নিম্নে দেওয়া হলো:', $this->fontBold, ['spaceBefore' => 80]);
                 $samity = $section->addTable($this->gridTable);
                 $samity->addRow();
-                foreach (['সমিতি', 'সদস্য/আইডি', 'তারিখ', 'বা:স:', 'স্বেচ্ছা', 'মেয়াদী', 'কিস্তি', 'মোট', 'জমা তারিখ', 'জমা টাকা', 'পার্থক্য', 'কর্মী'] as $header) {
+                $samityHeaders = [
+                    $this->hdr($data, 'samity_r1', 0),
+                    $this->hdr($data, 'samity_r1', 1),
+                    $this->hdr($data, 'samity_r1', 2),
+                    $this->hdr($data, 'samity_r2', 0),
+                    $this->hdr($data, 'samity_r2', 1),
+                    $this->hdr($data, 'samity_r2', 2),
+                    $this->hdr($data, 'samity_r2', 3),
+                    $this->hdr($data, 'samity_r2', 4),
+                    $this->hdr($data, 'samity_r2', 5),
+                    $this->hdr($data, 'samity_r2', 6),
+                    $this->hdr($data, 'samity_r1', 5),
+                    $this->hdr($data, 'samity_r1', 6),
+                ];
+                foreach ($samityHeaders as $header) {
                     $samity->addCell(750, ['bgColor' => 'D9D9D9'])->addText($header, ['name' => self::FONT, 'size' => 6, 'bold' => true], ['alignment' => Jc::CENTER]);
                 }
                 foreach ($finding['samityRows'] ?? [] as $row) {
@@ -1485,13 +1720,13 @@ class AuditReportDocxBuilder
             $section->addText('পর্যবেক্ষণ (Observation) :', $this->fontBold, ['spaceBefore' => 80]);
             $section->addText($finding['observation'] ?: str_repeat('·', 40), $this->fontBody);
 
-            $this->addObservationTable($section, '', $finding['statsRows'] ?? []);
+            $this->addObservationTable($section, '', $finding['statsRows'] ?? [], $data);
 
             if (($finding['detail_type'] ?? '') === 'passbook_installment') {
                 $section->addText($finding['detail_intro'] ?? 'নিম্নে বিস্তারিত দেওয়া হলো:', $this->fontBold, ['spaceBefore' => 80]);
                 $rows = $section->addTable($this->gridTable);
                 $rows->addRow();
-                foreach (['সমিতি নং', 'সদস্য/আইডি', 'তারিখ', 'সঞ্চয় আদায়', 'কিস্তি/সেবা', 'সঞ্চয় সমন্বয়'] as $header) {
+                foreach (AuditTableHeaders::get($data['tableHeaders'] ?? [], 'passbook') as $header) {
                     $rows->addCell(1500, ['bgColor' => 'D9D9D9'])->addText($header, ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
                 }
                 foreach ($finding['passbookRows'] ?? [] as $row) {
@@ -1504,7 +1739,7 @@ class AuditReportDocxBuilder
                 $section->addText($finding['detail_intro'] ?? 'নিম্নে বিস্তারিত দেওয়া হলো:', $this->fontBold, ['spaceBefore' => 80]);
                 $rows = $section->addTable($this->gridTable);
                 $rows->addRow();
-                foreach (['ক্রমিক', 'সমিতি/সদস্য', 'নাম', 'খাত', 'বিতরণ তারিখ', 'প্রকৃত মেয়াদ', 'শেষ তারিখ', 'সফট মেয়াদ', 'বিতরণ টাকা', 'অতিরিক্ত সেবা'] as $header) {
+                foreach (AuditTableHeaders::get($data['tableHeaders'] ?? [], 'sufolon') as $header) {
                     $rows->addCell(900, ['bgColor' => 'D9D9D9'])->addText($header, ['name' => self::FONT, 'size' => 6, 'bold' => true], ['alignment' => Jc::CENTER]);
                 }
                 foreach ($finding['sufolonRows'] ?? [] as $row) {
@@ -1577,17 +1812,13 @@ class AuditReportDocxBuilder
             $section->addText('পর্যবেক্ষণ (Observation) :', $this->fontBold, ['spaceBefore' => 80]);
             $section->addText($finding['observation'] ?: str_repeat('·', 40), $this->fontBody);
 
-            $this->addObservationTable($section, '', $finding['statsRows'] ?? []);
+            $this->addObservationTable($section, '', $finding['statsRows'] ?? [], $data);
 
             if (($finding['detail_type'] ?? 'none') === 'arrears_compare') {
                 $section->addText($finding['detail_intro'] ?: 'নিম্নে বিস্তারিত দেওয়া হলো:', $this->fontBold, ['spaceBefore' => 80]);
                 $arrears = $section->addTable($this->gridTable);
                 $arrears->addRow();
-                foreach ([
-                    'সমিতি নং', 'সদস্যের নাম ও আইডি', 'ঋণ বিতরণের তারিখ', 'ঋণের পরিমাণ',
-                    'প্রকৃত আদায়যোগ্য তারিখ', 'সফটওয়্যারে আদায়যোগ্য তারিখ', 'কিস্তি আদায়ের তারিখ',
-                    'প্রকৃত বকেয়া', 'সফটওয়্যারে বকেয়া',
-                ] as $header) {
+                foreach (AuditTableHeaders::get($data['tableHeaders'] ?? [], 'arrears') as $header) {
                     $arrears->addCell(1000)->addText($header, ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
                 }
                 foreach ($finding['arrearsRows'] ?? [] as $row) {
@@ -1664,15 +1895,12 @@ class AuditReportDocxBuilder
             $section->addText('পর্যবেক্ষণ (Observation) :', $this->fontBold, ['spaceBefore' => 80]);
             $section->addText($finding['observation'] ?: str_repeat('·', 40), $this->fontBody);
 
-            $this->addObservationTable($section, '', $finding['statsRows'] ?? []);
+            $this->addObservationTable($section, '', $finding['statsRows'] ?? [], $data);
 
             if (($finding['detail_type'] ?? 'none') === 'passbook_absent') {
                 $passbook = $section->addTable($this->gridTable);
                 $passbook->addRow();
-                foreach ([
-                    'কর্মীর নাম', 'সমিতি নং', 'মোট সদস্য', 'প্রাপ্ত পাসবই সংখ্যা',
-                    'অনুপস্থিত পাসবই সংখ্যা', 'নিরীক্ষা/ পরিবীক্ষণ কর্মকর্তার মন্তব্য',
-                ] as $header) {
+                foreach (AuditTableHeaders::get($data['tableHeaders'] ?? [], 'passbook_absent') as $header) {
                     $passbook->addCell(1200)->addText($header, ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
                 }
                 foreach ($finding['passbookAbsentRows'] ?? [] as $row) {
@@ -1748,20 +1976,20 @@ class AuditReportDocxBuilder
             $section->addText('পর্যবেক্ষণ (Observation) :', $this->fontBold, ['spaceBefore' => 80]);
             $section->addText($finding['observation'] ?: str_repeat('·', 40), $this->fontBody);
 
-            $this->addObservationTable($section, '', $finding['statsRows'] ?? []);
+            $this->addObservationTable($section, '', $finding['statsRows'] ?? [], $data);
 
             if (($finding['detail_type'] ?? 'none') === 'savings_partial_adjust') {
                 $section->addText($finding['detail_intro'] ?: 'বিস্তারিত নিম্নে দেওয়া হল:', $this->fontBold, ['spaceBefore' => 80]);
                 $adjust = $section->addTable($this->gridTable);
                 $adjust->addRow();
-                $adjust->addCell(1200, ['vMerge' => 'restart'])->addText('সমিতি নং', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
-                $adjust->addCell(1800, ['vMerge' => 'restart'])->addText('সদস্যের নাম ও আইডি', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
-                $adjust->addCell(2400, ['gridSpan' => 2])->addText('১ম দফা ঋণের আংশিক সমন্বয়', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                $adjust->addCell(1200, ['vMerge' => 'restart'])->addText($this->hdr($data, 'savings_adjust_r1', 0), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                $adjust->addCell(1800, ['vMerge' => 'restart'])->addText($this->hdr($data, 'savings_adjust_r1', 1), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                $adjust->addCell(2400, ['gridSpan' => 2])->addText($this->hdr($data, 'savings_adjust_r1', 2), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
                 $adjust->addRow();
                 $adjust->addCell(1200, ['vMerge' => 'continue']);
                 $adjust->addCell(1800, ['vMerge' => 'continue']);
-                $adjust->addCell(1200)->addText('তারিখ', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
-                $adjust->addCell(1200)->addText('টাকা', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                $adjust->addCell(1200)->addText($this->hdr($data, 'savings_adjust_r2', 0), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                $adjust->addCell(1200)->addText($this->hdr($data, 'savings_adjust_r2', 1), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
                 foreach ($finding['savingsAdjustRows'] ?? [] as $row) {
                     $adjust->addRow();
                     $adjust->addCell(1200)->addText((string) ($row['samity_no'] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
@@ -1833,16 +2061,16 @@ class AuditReportDocxBuilder
             $section->addText('পর্যবেক্ষণ (Observation) :', $this->fontBold, ['spaceBefore' => 80]);
             $section->addText($finding['observation'] ?: str_repeat('·', 40), $this->fontBody);
 
-            $this->addObservationTable($section, '', $finding['statsRows'] ?? []);
+            $this->addObservationTable($section, '', $finding['statsRows'] ?? [], $data);
 
             if (($finding['detail_type'] ?? 'none') === 'dropout_savings_refund') {
                 $section->addText($finding['detail_intro'] ?: 'বিস্তারিত নিম্নে দেওয়া হল:', $this->fontBold, ['spaceBefore' => 80]);
                 $refund = $section->addTable($this->gridTable);
                 $refund->addRow();
-                $refund->addCell(1500)->addText('তারিখ', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
-                $refund->addCell(1800)->addText('সমিতি/সদস্য নং', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
-                $refund->addCell(2400)->addText('সদস্যের নাম', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
-                $refund->addCell(1800)->addText('সঞ্চয় ফেরতের পরিমাণ', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                $refund->addCell(1500)->addText($this->hdr($data, 'dropout_refund', 0), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                $refund->addCell(1800)->addText($this->hdr($data, 'dropout_refund', 1), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                $refund->addCell(2400)->addText($this->hdr($data, 'dropout_refund', 2), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                $refund->addCell(1800)->addText($this->hdr($data, 'dropout_refund', 3), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
                 foreach ($finding['dropoutRefundRows'] ?? [] as $row) {
                     $refund->addRow();
                     $refund->addCell(1500)->addText((string) ($row['date'] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
@@ -1854,10 +2082,10 @@ class AuditReportDocxBuilder
                 $section->addText($finding['detail_intro'] ?: 'বিস্তারিত নিম্নে দেওয়া হল:', $this->fontBold, ['spaceBefore' => 80]);
                 $compare = $section->addTable($this->gridTable);
                 $compare->addRow();
-                $compare->addCell(1800)->addText('মাসের নাম', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
-                $compare->addCell(2200)->addText('ম্যানুয়ালী সঞ্চয় সমন্বয়', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
-                $compare->addCell(2200)->addText('সফটওয়্যার অনুযায়ী সঞ্চয় সমন্বয়', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
-                $compare->addCell(1800)->addText('পার্থক্য', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                $compare->addCell(1800)->addText($this->hdr($data, 'savings_compare', 0), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                $compare->addCell(2200)->addText($this->hdr($data, 'savings_compare', 1), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                $compare->addCell(2200)->addText($this->hdr($data, 'savings_compare', 2), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                $compare->addCell(1800)->addText($this->hdr($data, 'savings_compare', 3), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
                 foreach ($finding['savingsAdjustCompareRows'] ?? [] as $row) {
                     $compare->addRow();
                     $compare->addCell(1800)->addText((string) ($row['month_name'] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
@@ -1918,7 +2146,7 @@ class AuditReportDocxBuilder
 
         $compliance = $section->addTable($this->gridTable);
         $compliance->addRow();
-        foreach (['পূর্ববর্তী অনুচ্ছেদ নং', 'অনুসন্ধান/পর্যবেক্ষণ', 'প্রথম আবিষ্কারের নিরীক্ষাকাল', 'ব্যবস্থাপনার জবাব', 'বর্তমান অবস্থা', 'বর্তমান অনুচ্ছেদ নং'] as $header) {
+        foreach (AuditTableHeaders::get($data['tableHeaders'] ?? [], 'compliance') as $header) {
             $compliance->addCell(1500)->addText($header, ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
         }
         foreach ($data['page19ComplianceRows'] ?? [] as $row) {
@@ -1967,18 +2195,18 @@ class AuditReportDocxBuilder
 
         $checklist = $section->addTable($this->gridTable);
         $checklist->addRow();
-        $checklist->addCell(800, ['vMerge' => 'restart'])->addText('ক্রমিক', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
-        $checklist->addCell(2200, ['vMerge' => 'restart'])->addText('বিবরণ', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
-        $checklist->addCell(1800, ['gridSpan' => 3])->addText('Compliance', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
-        $checklist->addCell(1200, ['vMerge' => 'restart'])->addText('Action Owner', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
-        $checklist->addCell(1500, ['vMerge' => 'restart'])->addText('Management Comments', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
-        $checklist->addCell(1500, ['vMerge' => 'restart'])->addText('Recommendation', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+        $checklist->addCell(800, ['vMerge' => 'restart'])->addText($this->hdr($data, 'it_r1', 0), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+        $checklist->addCell(2200, ['vMerge' => 'restart'])->addText($this->hdr($data, 'it_r1', 1), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+        $checklist->addCell(1800, ['gridSpan' => 3])->addText($this->hdr($data, 'it_r1', 2), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+        $checklist->addCell(1200, ['vMerge' => 'restart'])->addText($this->hdr($data, 'it_r1', 3), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+        $checklist->addCell(1500, ['vMerge' => 'restart'])->addText($this->hdr($data, 'it_r1', 4), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+        $checklist->addCell(1500, ['vMerge' => 'restart'])->addText($this->hdr($data, 'it_r1', 5), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
         $checklist->addRow();
         $checklist->addCell(800, ['vMerge' => 'continue']);
         $checklist->addCell(2200, ['vMerge' => 'continue']);
-        $checklist->addCell(600)->addText('Yes', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
-        $checklist->addCell(600)->addText('No', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
-        $checklist->addCell(600)->addText('N/A', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+        $checklist->addCell(600)->addText($this->hdr($data, 'it_r2', 0), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+        $checklist->addCell(600)->addText($this->hdr($data, 'it_r2', 1), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+        $checklist->addCell(600)->addText($this->hdr($data, 'it_r2', 2), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
         $checklist->addCell(1200, ['vMerge' => 'continue']);
         $checklist->addCell(1500, ['vMerge' => 'continue']);
         $checklist->addCell(1500, ['vMerge' => 'continue']);
@@ -2026,14 +2254,7 @@ class AuditReportDocxBuilder
 
         $peachHeader = ['bgColor' => 'FCE5CD'];
         $peachHeaderAlt = ['bgColor' => 'F5D5B8'];
-        $headers = [
-            'Area of Observation',
-            'Compliance Area',
-            'Year of Reporting',
-            'External Observation',
-            'Compliance',
-            'Internal Index No',
-        ];
+        $headers = AuditTableHeaders::get($data['tableHeaders'] ?? [], 'external');
         $fields = ['area_of_observation', 'compliance_area', 'year_of_reporting', 'external_observation', 'compliance', 'internal_index_no'];
 
         $external = $section->addTable($this->gridTable);
@@ -2053,6 +2274,16 @@ class AuditReportDocxBuilder
         $section->addText($data['page21_sign_label'] ?? 'নিরীক্ষা কর্মকর্তার স্বাক্ষরঃ', $this->fontBold, ['spaceAfter' => 120]);
         $section->addText((string) ($data['page21_sign_name'] ?? ''), ['name' => self::FONT, 'size' => 8], ['spaceAfter' => 40]);
         $section->addText((string) ($data['page21_sign_designation'] ?? ''), ['name' => self::FONT, 'size' => 8]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function hdr(array $data, string $key, int $i): string
+    {
+        $headers = AuditTableHeaders::get($data['tableHeaders'] ?? [], $key);
+
+        return (string) ($headers[$i] ?? '');
     }
 
     protected function toBinary(): string

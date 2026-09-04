@@ -91,17 +91,11 @@
 <?php endif; ?>
 <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 <table class="<?php echo e($obsTableClass); ?> mb-[3mm]">
-    <thead>
-        <tr>
-            <th class="bg-[#5b2a86] text-white">Total Population</th>
-            <th class="bg-[#5b2a86] text-white">Sample Size(Checked)</th>
-            <th class="bg-[#5b2a86] text-white">Instantans Found</th>
-            <th class="bg-[#5b2a86] text-white">Persentange(%)</th>
-            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($editable): ?>
-                <th class="w-[8%] bg-[#5b2a86] text-white"></th>
-            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-        </tr>
-    </thead>
+    <?php echo $__env->make('livewire.partials.audit-stats-thead', [
+        'editable' => $editable,
+        'cellPad' => '',
+        'variant' => 'stats',
+    ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
     <tbody>
         <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $vatObservationRows; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $rowIndex => $row): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
             <tr>
@@ -156,17 +150,11 @@
 <?php endif; ?>
 <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 <table class="<?php echo e($obsTableClass); ?>">
-    <thead>
-        <tr>
-            <th class="bg-[#5b2a86] text-white">Total Population</th>
-            <th class="bg-[#5b2a86] text-white">Sample Size(Checked)</th>
-            <th class="bg-[#5b2a86] text-white">Instantans Found</th>
-            <th class="bg-[#5b2a86] text-white">Persentange(%)</th>
-            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($editable): ?>
-                <th class="w-[8%] bg-[#5b2a86] text-white"></th>
-            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-        </tr>
-    </thead>
+    <?php echo $__env->make('livewire.partials.audit-stats-thead', [
+        'editable' => $editable,
+        'cellPad' => '',
+        'variant' => 'stats',
+    ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
     <tbody>
         <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $taxObservationRows; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $rowIndex => $row): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
             <tr>

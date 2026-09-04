@@ -1,4 +1,4 @@
-﻿@php
+@php
     use App\Livewire\MakeAuditReport;
     $editable = $editable ?? false;
     $compact = $compact ?? false;
@@ -96,17 +96,11 @@
     @endif
 
 <table class="{{ $compact ? 'a4-table a4-table-compact text-[9px]' : 'w-full border-collapse text-[10.5px]' }} mb-[2mm]">
-        <thead>
-            <tr>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Total Population/Sample size</th>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Sample Size(Checked)</th>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Instantans Found</th>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Persentange(%)</th>
-                @if ($editable)
-                    <th class="{{ $cellPad }} bg-[#5b2a86] text-white"></th>
-                @endif
-            </tr>
-        </thead>
+        @include('livewire.partials.audit-stats-thead', [
+            'editable' => $editable,
+            'cellPad' => $cellPad,
+            'variant' => 'stats_alt',
+        ])
         <tbody>
             @foreach (($finding['statsRows'] ?? []) as $rowIndex => $row)
                 <tr>
@@ -154,19 +148,23 @@
             />
         @endif
 
+@php
+                    $hSavAdjR1 = $tableHeaders['savings_adjust_r1'] ?? \App\Support\AuditTableHeaders::defaults()['savings_adjust_r1'];
+                    $hSavAdjR2 = $tableHeaders['savings_adjust_r2'] ?? \App\Support\AuditTableHeaders::defaults()['savings_adjust_r2'];
+                @endphp
 <table class="{{ $compact ? 'a4-table a4-table-compact text-[8px]' : 'w-full border-collapse text-[9px]' }} min-w-full">
                 <thead>
                     <tr class="bg-slate-100">
-                        <th class="{{ $cellPad }} font-semibold text-center" rowspan="2">সমিতি নং</th>
-                        <th class="{{ $cellPad }} font-semibold text-center" rowspan="2">সদস্যের নাম ও আইডি</th>
-                        <th class="{{ $cellPad }} font-semibold text-center" colspan="2">১ম দফা ঋণের আংশিক সমন্বয়</th>
+                        <x-audit-th :editable="$editable" wire="tableHeaders.savings_adjust_r1.0" class="{{ $cellPad }} font-semibold text-center" rowspan="2">{{ $hSavAdjR1[0] }}</x-audit-th>
+                        <x-audit-th :editable="$editable" wire="tableHeaders.savings_adjust_r1.1" class="{{ $cellPad }} font-semibold text-center" rowspan="2">{{ $hSavAdjR1[1] }}</x-audit-th>
+                        <x-audit-th :editable="$editable" wire="tableHeaders.savings_adjust_r1.2" class="{{ $cellPad }} font-semibold text-center" colspan="2">{{ $hSavAdjR1[2] }}</x-audit-th>
                         @if ($editable)
                             <th class="{{ $cellPad }}" rowspan="2"></th>
                         @endif
                     </tr>
                     <tr class="bg-slate-100">
-                        <th class="{{ $cellPad }} font-semibold text-center">তারিখ</th>
-                        <th class="{{ $cellPad }} font-semibold text-center">টাকা</th>
+                        <x-audit-th :editable="$editable" wire="tableHeaders.savings_adjust_r2.0" class="{{ $cellPad }} font-semibold text-center">{{ $hSavAdjR2[0] }}</x-audit-th>
+                        <x-audit-th :editable="$editable" wire="tableHeaders.savings_adjust_r2.1" class="{{ $cellPad }} font-semibold text-center">{{ $hSavAdjR2[1] }}</x-audit-th>
                     </tr>
                 </thead>
                 <tbody>

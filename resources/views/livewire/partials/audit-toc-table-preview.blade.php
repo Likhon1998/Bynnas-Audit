@@ -3,6 +3,8 @@
     /** @var \Illuminate\Support\Collection|array $rows */
     $rows = $rows ?? [];
     $compact = $compact ?? false;
+    $hToc = $tableHeaders['toc'] ?? \App\Support\AuditTableHeaders::defaults()['toc'];
+    $tocPreviewWidths = ['w-[12mm]', '', 'w-[16mm]', 'w-[24mm]', 'w-[18mm]', 'w-[14mm]'];
 @endphp
 
 <div class="{{ ($showTitle ?? true) ? 'mt-[5mm]' : 'mt-0' }}">
@@ -13,12 +15,9 @@
     <table class="a4-table {{ $compact ? 'a4-table-compact' : '' }} text-[10px] leading-[1.3]">
         <thead>
             <tr>
-                <th class="w-[12mm]">ক্রমিক নং</th>
-                <th>নিরীক্ষায় প্রাপ্ত ঘটনা সমূহ</th>
-                <th class="w-[16mm]">টাকা</th>
-                <th class="w-[24mm]">রেটিং</th>
-                <th class="w-[18mm]">বর্তমান অবস্থা</th>
-                <th class="w-[14mm]">পৃষ্ঠা নাম্বার</th>
+                @foreach ($hToc as $hi => $label)
+                    <x-audit-th :editable="false" class="{{ $tocPreviewWidths[$hi] ?? '' }}">{{ $label }}</x-audit-th>
+                @endforeach
             </tr>
         </thead>
         <tbody>

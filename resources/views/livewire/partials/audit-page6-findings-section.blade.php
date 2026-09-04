@@ -1,4 +1,4 @@
-﻿@php
+@php
     use App\Livewire\MakeAuditReport;
     $editable = $editable ?? false;
     $compact = $compact ?? false;
@@ -92,17 +92,11 @@
     @endif
 
 <table class="{{ $tableClass }} mb-[2mm]">
-        <thead>
-            <tr>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Total Population</th>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Sample Size(Checked)</th>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Instantans Found</th>
-                <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Persentange(%)</th>
-                @if ($editable)
-                    <th class="{{ $cellPad }} bg-[#5b2a86] text-white"></th>
-                @endif
-            </tr>
-        </thead>
+        @include('livewire.partials.audit-stats-thead', [
+            'editable' => $editable,
+            'cellPad' => $cellPad,
+            'variant' => 'stats',
+        ])
         <tbody>
             @foreach (($finding['statsRows'] ?? []) as $rowIndex => $row)
                 <tr>
@@ -147,14 +141,13 @@
             />
         @endif
 
+@php $h = $tableHeaders['voucher'] ?? \App\Support\AuditTableHeaders::defaults()['voucher']; @endphp
 <table class="{{ $tableClass }} mb-[2mm]">
         <thead>
             <tr class="bg-slate-100">
-                <th class="{{ $cellPad }} font-semibold">তারিখ</th>
-                <th class="{{ $cellPad }} font-semibold">ভাউচারের ধরন ও নং</th>
-                <th class="{{ $cellPad }} font-semibold">খরচের বিবরণ</th>
-                <th class="{{ $cellPad }} font-semibold">টাকার পরিমাণ</th>
-                <th class="{{ $cellPad }} font-semibold">মন্তব্য</th>
+                @foreach ($h as $hi => $label)
+                    <x-audit-th :editable="$editable" :wire="'tableHeaders.voucher.'.$hi" class="{{ $cellPad }} font-semibold">{{ $label }}</x-audit-th>
+                @endforeach
                 @if ($editable)
                     <th class="{{ $cellPad }}"></th>
                 @endif

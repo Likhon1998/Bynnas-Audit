@@ -13,6 +13,28 @@
         <?php echo app('Illuminate\Foundation\Vite')(['resources/css/app.css', 'resources/js/app.js']); ?>
     </head>
     <body class="auth-canvas font-sans antialiased text-slate-800">
+        <?php if (isset($component)) { $__componentOriginalc5ad7eb21ddba49addb80e6944297ba0 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginalc5ad7eb21ddba49addb80e6944297ba0 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.app-loader','data' => []] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('app-loader'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes([]); ?>
+<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
+
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginalc5ad7eb21ddba49addb80e6944297ba0)): ?>
+<?php $attributes = $__attributesOriginalc5ad7eb21ddba49addb80e6944297ba0; ?>
+<?php unset($__attributesOriginalc5ad7eb21ddba49addb80e6944297ba0); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginalc5ad7eb21ddba49addb80e6944297ba0)): ?>
+<?php $component = $__componentOriginalc5ad7eb21ddba49addb80e6944297ba0; ?>
+<?php unset($__componentOriginalc5ad7eb21ddba49addb80e6944297ba0); ?>
+<?php endif; ?>
         <a href="<?php echo e(url('/')); ?>" class="absolute left-6 top-6 z-10 flex items-center gap-2.5">
             <?php if (isset($component)) { $__componentOriginal8892e718f3d0d7a916180885c6f012e7 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal8892e718f3d0d7a916180885c6f012e7 = $attributes; } ?>

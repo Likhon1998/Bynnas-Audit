@@ -1,6 +1,8 @@
 @php
     $rows = \App\Support\AuditReportClassification::ratingRows();
     $summaryRows = \App\Support\AuditReportClassification::performanceSummaryRows();
+    $hImportance = \App\Support\AuditTableHeaders::get($tableHeaders ?? [], 'classification_importance');
+    $hEval = \App\Support\AuditTableHeaders::get($tableHeaders ?? [], 'classification_eval');
 @endphp
 
 <h3>প্রতিবেদনের শ্রেণীবিন্যাস</h3>
@@ -13,9 +15,9 @@
     </colgroup>
     <thead>
         <tr>
-            <th style="background:#BDD7EE;">পর্যবেক্ষণসমূহের গুরুত্বের মাত্রা</th>
-            <th style="background:#BDD7EE;">কোড</th>
-            <th style="background:#BDD7EE;">রেটিং নির্বাচনের বিষদ, পয়েন্ট ও কারণ</th>
+            <th style="background:#BDD7EE;">{{ $hImportance[0] }}</th>
+            <th style="background:#BDD7EE;">{{ $hImportance[1] }}</th>
+            <th style="background:#BDD7EE;">{{ $hImportance[2] }}</th>
         </tr>
     </thead>
     <tbody>
@@ -46,8 +48,8 @@
     </colgroup>
     <tbody>
         <tr>
-            <th style="background:#2E5090;color:#fff;width:70%;">নিরীক্ষাকার্যে ফলাফল মূল্যায়ন</th>
-            <th style="background:#2E5090;color:#fff;width:30%;">সমষ্টিগত কর্মসম্পাদনের হার</th>
+            <th style="background:#2E5090;color:#fff;width:70%;">{{ $hEval[0] }}</th>
+            <th style="background:#2E5090;color:#fff;width:30%;">{{ $hEval[1] }}</th>
         </tr>
         @foreach ($summaryRows as $summary)
             <tr>

@@ -34,9 +34,14 @@ unset($__defined_vars, $__key, $__value); ?>
         : 'text-slate-300 hover:bg-white/[0.04] hover:text-white';
 ?>
 
-<a href="<?php echo e($href); ?>" <?php echo e($attributes->merge(['class' => 'group relative flex items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] tracking-tight transition '.$classes])); ?>>
+<a
+    href="<?php echo e($href); ?>"
+    <?php echo e($attributes->merge(['class' => 'sidebar-link group relative flex items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] tracking-tight transition '.$classes])); ?>
+
+    :class="sidebarCollapsed && 'lg:justify-center lg:px-1.5 lg:gap-0'"
+>
     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($active): ?>
-        <span class="absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-r-full bg-sky-300"></span>
+        <span class="absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-r-full bg-sky-300" :class="sidebarCollapsed && 'lg:hidden'"></span>
     <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
     <?php echo e($slot); ?>
 

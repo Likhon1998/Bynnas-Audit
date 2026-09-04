@@ -59,6 +59,8 @@
             @include('audits.partials.financial-audit-pdf', [
                 'financial_section_title' => $financial_section_title,
                 'financialFindings' => $financialFindings,
+                'reportSections' => $reportSections ?? [],
+                'reportBlocks' => $reportBlocks ?? [],
                 'financial_criteria' => $financial_criteria,
                 'vatObservationRows' => $vatObservationRows,
                 'taxObservationRows' => $taxObservationRows,

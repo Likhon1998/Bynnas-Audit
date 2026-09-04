@@ -102,7 +102,7 @@ class AuditReport extends Model
     public static function computeProgress(array $pages, array $coverHints = []): int
     {
         $done = (array) data_get($pages, 'meta.tabs_done', []);
-        $steps = ['cover', 'page2', 'page3', 'page4', 'page5', 'page6', 'page7', 'page8', 'page9', 'page10', 'page11', 'page12', 'page13', 'page14', 'page15', 'page16', 'page17', 'page18', 'page19', 'page20', 'page21'];
+        $steps = ['cover', 'page2', 'page3', 'page4'];
         $completed = 0;
 
         foreach ($steps as $step) {

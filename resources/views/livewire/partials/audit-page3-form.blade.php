@@ -11,7 +11,7 @@
 
         <div class="mt-8 border-t border-dashed border-slate-200 pt-5">
             <p class="mb-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">প্রতিবেদনের শ্রেণীবিন্যাস (নির্দেশিকা)</p>
-            @include('livewire.partials.audit-classification-table', ['compact' => false])
+            @include('livewire.partials.audit-classification-table', ['compact' => false, 'editable' => true])
         </div>
 
         <div class="mt-8 border-t border-dashed border-slate-200 pt-5">

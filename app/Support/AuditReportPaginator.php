@@ -15,23 +15,23 @@ class AuditReportPaginator
     public static function buildSheets(
         array $tocRows,
         bool $hasFinancial = true,
-        bool $hasFinancialDetail = true,
-        bool $hasFinancialPage6 = true,
-        bool $hasFinancialPage7 = true,
-        bool $hasFinancialPage8 = true,
-        bool $hasFinancialPage9 = true,
-        bool $hasFinancialPage10 = true,
-        bool $hasFinancialPage11 = true,
-        bool $hasFinancialPage12 = true,
-        bool $hasFinancialPage13 = true,
-        bool $hasFinancialPage14 = true,
-        bool $hasFinancialPage15 = true,
-        bool $hasFinancialPage16 = true,
-        bool $hasFinancialPage17 = true,
-        bool $hasFinancialPage18 = true,
-        bool $hasFinancialPage19 = true,
-        bool $hasFinancialPage20 = true,
-        bool $hasFinancialPage21 = true,
+        bool $hasFinancialDetail = false,
+        bool $hasFinancialPage6 = false,
+        bool $hasFinancialPage7 = false,
+        bool $hasFinancialPage8 = false,
+        bool $hasFinancialPage9 = false,
+        bool $hasFinancialPage10 = false,
+        bool $hasFinancialPage11 = false,
+        bool $hasFinancialPage12 = false,
+        bool $hasFinancialPage13 = false,
+        bool $hasFinancialPage14 = false,
+        bool $hasFinancialPage15 = false,
+        bool $hasFinancialPage16 = false,
+        bool $hasFinancialPage17 = false,
+        bool $hasFinancialPage18 = false,
+        bool $hasFinancialPage19 = false,
+        bool $hasFinancialPage20 = false,
+        bool $hasFinancialPage21 = false,
     ): array {
         $number = 1;
         $coverNo = $number++;
@@ -281,66 +281,66 @@ class AuditReportPaginator
 
         // ২.১ → page 10
         if (preg_match('/^২[\.٫]১$/u', $serial)) {
-            return $financialPage10 ?? $classificationPage ?? $financialPage;
+            return $financialPage10 ?? $financialPage ?? $classificationPage;
         }
 
         // ২.২+ → page 11
         if (preg_match('/^২[\.٫]/u', $serial)) {
-            return $financialPage11 ?? $financialPage10 ?? $classificationPage ?? $financialPage;
+            return $financialPage11 ?? $financialPage10 ?? $financialPage ?? $classificationPage;
         }
 
         // ৩.x → page 12
         if (preg_match('/^৩/u', $serial)) {
-            return $financialPage12 ?? $classificationPage ?? $financialPage;
+            return $financialPage12 ?? $financialPage ?? $classificationPage;
         }
 
         // ৪.১–৪.২ → page 13
         if (preg_match('/^৪[\.٫][১২]$/u', $serial)) {
-            return $financialPage13 ?? $classificationPage ?? $financialPage;
+            return $financialPage13 ?? $financialPage ?? $classificationPage;
         }
 
         // ৪.৩–৪.৪ → page 14
         if (preg_match('/^৪[\.٫][৩৪]$/u', $serial)) {
-            return $financialPage14 ?? $classificationPage ?? $financialPage;
+            return $financialPage14 ?? $financialPage ?? $classificationPage;
         }
 
         // ৪.৫–৪.৬ → page 15
         if (preg_match('/^৪[\.٫][৫৬]$/u', $serial)) {
-            return $financialPage15 ?? $classificationPage ?? $financialPage;
+            return $financialPage15 ?? $financialPage ?? $classificationPage;
         }
 
         // ৪.৭–৪.৮ → page 16
         if (preg_match('/^৪[\.٫][৭৮]$/u', $serial)) {
-            return $financialPage16 ?? $classificationPage ?? $financialPage;
+            return $financialPage16 ?? $financialPage ?? $classificationPage;
         }
 
         // ৪.৯ → page 17
         if (preg_match('/^৪[\.٫]৯$/u', $serial)) {
-            return $financialPage17 ?? $financialPage16 ?? $classificationPage ?? $financialPage;
+            return $financialPage17 ?? $financialPage16 ?? $financialPage ?? $classificationPage;
         }
 
         // ৪.১০–৪.১১ → page 18
         if (preg_match('/^৪[\.٫]১[০১]$/u', $serial)) {
-            return $financialPage18 ?? $financialPage17 ?? $financialPage16 ?? $classificationPage ?? $financialPage;
+            return $financialPage18 ?? $financialPage17 ?? $financialPage16 ?? $financialPage ?? $classificationPage;
         }
 
         // ৫.x → page 19
         if (preg_match('/^৫/u', $serial)) {
-            return $financialPage19 ?? $financialPage18 ?? $classificationPage ?? $financialPage;
+            return $financialPage19 ?? $financialPage18 ?? $financialPage ?? $classificationPage;
         }
 
         // ৬.x → page 20
         if (preg_match('/^৬/u', $serial)) {
-            return $financialPage20 ?? $financialPage19 ?? $financialPage18 ?? $classificationPage ?? $financialPage;
+            return $financialPage20 ?? $financialPage19 ?? $financialPage18 ?? $financialPage ?? $classificationPage;
         }
 
         // ৭.x → page 21
         if (preg_match('/^৭/u', $serial)) {
-            return $financialPage21 ?? $financialPage20 ?? $financialPage19 ?? $financialPage18 ?? $classificationPage ?? $financialPage;
+            return $financialPage21 ?? $financialPage20 ?? $financialPage19 ?? $financialPage18 ?? $financialPage ?? $classificationPage;
         }
 
         if (preg_match('/^[৪-৬]/u', $serial)) {
-            return $classificationPage ?? $financialPage;
+            return $financialPage ?? $classificationPage;
         }
 
         return $financialPage;

@@ -17,26 +17,27 @@
 @endif
 
 <div class="{{ $editable ? 'overflow-x-auto' : '' }}">
+    @php
+        $hExpenseR1 = $tableHeaders['expense_r1'] ?? \App\Support\AuditTableHeaders::defaults()['expense_r1'];
+        $hExpenseR2 = $tableHeaders['expense_r2'] ?? \App\Support\AuditTableHeaders::defaults()['expense_r2'];
+    @endphp
     <table class="{{ $tableClass }} mb-[3mm]">
         <thead>
             <tr class="bg-slate-100">
-                <th class="{{ $cellPad }} font-semibold" rowspan="2">তারিখ/মাসের নাম</th>
-                <th class="{{ $cellPad }} font-semibold" rowspan="2">ভাউচার নং</th>
-                <th class="{{ $cellPad }} font-semibold" rowspan="2">বিবরণ</th>
-                <th class="{{ $cellPad }} font-semibold" rowspan="2">খরচ (টাকা)</th>
-                <th class="{{ $cellPad }} font-semibold text-center" colspan="3">ভ্যাট সংক্রান্ত</th>
-                <th class="{{ $cellPad }} font-semibold text-center" colspan="3">ট্যাক্স সংক্রান্ত</th>
+                <x-audit-th :editable="$editable" wire="tableHeaders.expense_r1.0" class="{{ $cellPad }} font-semibold" rowspan="2">{{ $hExpenseR1[0] }}</x-audit-th>
+                <x-audit-th :editable="$editable" wire="tableHeaders.expense_r1.1" class="{{ $cellPad }} font-semibold" rowspan="2">{{ $hExpenseR1[1] }}</x-audit-th>
+                <x-audit-th :editable="$editable" wire="tableHeaders.expense_r1.2" class="{{ $cellPad }} font-semibold" rowspan="2">{{ $hExpenseR1[2] }}</x-audit-th>
+                <x-audit-th :editable="$editable" wire="tableHeaders.expense_r1.3" class="{{ $cellPad }} font-semibold" rowspan="2">{{ $hExpenseR1[3] }}</x-audit-th>
+                <x-audit-th :editable="$editable" wire="tableHeaders.expense_r1.4" class="{{ $cellPad }} font-semibold text-center" colspan="3">{{ $hExpenseR1[4] }}</x-audit-th>
+                <x-audit-th :editable="$editable" wire="tableHeaders.expense_r1.5" class="{{ $cellPad }} font-semibold text-center" colspan="3">{{ $hExpenseR1[5] }}</x-audit-th>
                 @if ($editable)
                     <th class="{{ $cellPad }}" rowspan="2"></th>
                 @endif
             </tr>
             <tr class="bg-slate-50">
-                <th class="{{ $cellPad }} font-semibold">প্রযোজ্য</th>
-                <th class="{{ $cellPad }} font-semibold">প্রদানকৃত</th>
-                <th class="{{ $cellPad }} font-semibold">কম/বেশি প্রদান</th>
-                <th class="{{ $cellPad }} font-semibold">প্রযোজ্য</th>
-                <th class="{{ $cellPad }} font-semibold">প্রদানকৃত</th>
-                <th class="{{ $cellPad }} font-semibold">কম/বেশি প্রদান</th>
+                @foreach ($hExpenseR2 as $hi => $label)
+                    <x-audit-th :editable="$editable" :wire="'tableHeaders.expense_r2.'.$hi" class="{{ $cellPad }} font-semibold">{{ $label }}</x-audit-th>
+                @endforeach
             </tr>
         </thead>
         <tbody>
@@ -216,17 +217,11 @@
     />
 @endif
 <table class="{{ $tableClass }} mb-[3mm]">
-    <thead>
-        <tr>
-            <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Total Population</th>
-            <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Sample Size(Checked)</th>
-            <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Instantans Found</th>
-            <th class="{{ $cellPad }} bg-[#5b2a86] font-semibold text-white">Persentange(%)</th>
-            @if ($editable)
-                <th class="{{ $cellPad }} bg-[#5b2a86] text-white"></th>
-            @endif
-        </tr>
-    </thead>
+    @include('livewire.partials.audit-stats-thead', [
+            'editable' => $editable,
+            'cellPad' => $cellPad,
+            'variant' => 'stats',
+        ])
     <tbody>
         @foreach ($finding13_statsRows as $rowIndex => $row)
             <tr>
@@ -265,15 +260,13 @@
         hint="Deposit detail: Excel থেকে ৬ কলাম একই ক্রমে পেস্ট করুন"
     />
 @endif
+@php $hDeposit = $tableHeaders['deposit'] ?? \App\Support\AuditTableHeaders::defaults()['deposit']; @endphp
 <table class="{{ $tableClass }} mb-[3mm]">
     <thead>
         <tr class="bg-slate-100">
-            <th class="{{ $cellPad }} font-semibold">বিবরণ</th>
-            <th class="{{ $cellPad }} font-semibold">মাসের নাম</th>
-            <th class="{{ $cellPad }} font-semibold">টাকা উত্তোলনের তারিখ</th>
-            <th class="{{ $cellPad }} font-semibold">সরকারী কোষাগারে টাকা জমা প্রদানের তারিখ</th>
-            <th class="{{ $cellPad }} font-semibold">টাকার পরিমাণ</th>
-            <th class="{{ $cellPad }} font-semibold">হস্তমজুদের সময়কাল</th>
+            @foreach ($hDeposit as $hi => $label)
+                <x-audit-th :editable="$editable" :wire="'tableHeaders.deposit.'.$hi" class="{{ $cellPad }} font-semibold">{{ $label }}</x-audit-th>
+            @endforeach
             @if ($editable)
                 <th class="{{ $cellPad }}"></th>
             @endif

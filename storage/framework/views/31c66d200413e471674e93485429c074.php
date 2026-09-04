@@ -7,6 +7,7 @@ $__propNames = \Illuminate\View\ComponentAttributeBag::extractPropNames(([
     'value' => '',
     'indicators' => [],
     'collection' => 'financialFindings',
+    'sectionIndex' => null,
     'wireKey' => null,
 ]));
 
@@ -28,6 +29,7 @@ foreach (array_filter(([
     'value' => '',
     'indicators' => [],
     'collection' => 'financialFindings',
+    'sectionIndex' => null,
     'wireKey' => null,
 ]), 'is_string', ARRAY_FILTER_USE_KEY) as $__key => $__value) {
     $$__key = $$__key ?? $__value;
@@ -49,6 +51,7 @@ unset($__defined_vars, $__key, $__value); ?>
         q: <?php echo \Illuminate\Support\Js::from($value)->toHtml() ?>,
         highlight: 0,
         collection: <?php echo \Illuminate\Support\Js::from($collection)->toHtml() ?>,
+        sectionIndex: <?php echo \Illuminate\Support\Js::from($sectionIndex)->toHtml() ?>,
         indicators: <?php echo \Illuminate\Support\Js::from($indicators)->toHtml() ?>,
         get filtered() {
             const q = this.q.trim().toLowerCase();
@@ -63,10 +66,19 @@ unset($__defined_vars, $__key, $__value); ?>
             if (!q) return null;
             return this.indicators.find((i) => i.title.trim().toLowerCase() === q) || null;
         },
+        apply(id, title) {
+            if (this.collection === 'reportBlocks') {
+                $wire.applyBlockFindingIndicator(<?php echo e((int) $index); ?>, id, title);
+            } else if (this.collection === 'reportSections' && this.sectionIndex !== null) {
+                $wire.applySectionFindingIndicator(this.sectionIndex, <?php echo e((int) $index); ?>, id, title);
+            } else {
+                $wire.applyFindingIndicator(this.collection, <?php echo e((int) $index); ?>, id, title);
+            }
+        },
         pick(item) {
             this.q = item.title;
             this.open = false;
-            $wire.applyFindingIndicator(this.collection, <?php echo e((int) $index); ?>, item.id, item.title);
+            this.apply(item.id, item.title);
         },
         commitCustom() {
             const title = this.q.trim();
@@ -76,7 +88,7 @@ unset($__defined_vars, $__key, $__value); ?>
                 return;
             }
             this.open = false;
-            $wire.applyFindingIndicator(this.collection, <?php echo e((int) $index); ?>, null, title);
+            this.apply(null, title);
         },
         onKey(e) {
             const list = this.filtered;

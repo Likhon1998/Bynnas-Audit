@@ -8,11 +8,12 @@
         <title>Bynnas Audit</title>
 
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700|hind-siliguri:400,500,600,700&display=swap" rel="stylesheet" />
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="auth-canvas font-sans antialiased text-slate-800">
+        <x-app-loader />
         <a href="{{ url('/') }}" class="absolute left-6 top-6 z-10 flex items-center gap-2.5">
             <x-application-logo class="h-9 w-9" />
             <span class="text-lg font-semibold tracking-tight text-slate-800">Bynnas Audit</span>

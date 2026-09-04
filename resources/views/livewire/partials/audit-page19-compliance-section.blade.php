@@ -39,10 +39,11 @@
             />
         @endif
         <table class="{{ $compact ? 'a4-table a4-table-compact text-[7.5px]' : 'w-full border-collapse text-[9px]' }} min-w-full">
+            @php $hCompliance = $tableHeaders['compliance'] ?? \App\Support\AuditTableHeaders::defaults()['compliance']; @endphp
             <thead>
                 <tr class="bg-slate-100">
-                    @foreach (['বিগত প্রতিবেদনের অনুচ্ছেদ নং', 'নিরীক্ষা ও পরিবীক্ষণে প্রাপ্ত ঘটনা সমূহ', 'প্রথম উদঘাটনের সময়কাল', 'ব্যবস্থাপনার জবাব', 'বর্তমান অবস্থা', 'বর্তমান প্রতিবেদনের অনুচ্ছেদ নং'] as $header)
-                        <th class="{{ $cellPad }} font-semibold text-center">{{ $header }}</th>
+                    @foreach ($hCompliance as $hi => $label)
+                        <x-audit-th :editable="$editable" :wire="'tableHeaders.compliance.'.$hi" class="{{ $cellPad }} font-semibold text-center">{{ $label }}</x-audit-th>
                     @endforeach
                     @if ($editable)
                         <th class="{{ $cellPad }}"></th>

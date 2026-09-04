@@ -8,17 +8,49 @@
         <title><?php echo e($title ?? config('app.name', 'Bynnas Audit')); ?></title>
 
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700|hind-siliguri:400,500,600,700&display=swap" rel="stylesheet" />
 
         <?php echo app('Illuminate\Foundation\Vite')(['resources/css/app.css', 'resources/js/app.js']); ?>
         <?php echo \Livewire\Mechanisms\FrontendAssets\FrontendAssets::styles(); ?>
 
         <?php echo $__env->yieldPushContent('styles'); ?>
     </head>
-        <body class="font-sans text-[13px] font-normal leading-relaxed antialiased text-slate-700" x-data="{ sidebarOpen: false, searchOpen: false }" @keydown.window.prevent.ctrl.k="searchOpen = true" @keydown.window.escape="searchOpen = false; sidebarOpen = false">
+        <body
+            class="font-sans text-[13px] font-normal leading-relaxed antialiased text-slate-700"
+            x-data="{
+                sidebarOpen: false,
+                sidebarCollapsed: localStorage.getItem('bynnasSidebarCollapsed') === '1',
+                searchOpen: false,
+                toggleSidebarCollapsed() {
+                    this.sidebarCollapsed = !this.sidebarCollapsed;
+                    localStorage.setItem('bynnasSidebarCollapsed', this.sidebarCollapsed ? '1' : '0');
+                },
+            }"
+            @keydown.window.prevent.ctrl.k="searchOpen = true"
+            @keydown.window.escape="searchOpen = false; sidebarOpen = false"
+        >
+        <?php if (isset($component)) { $__componentOriginalc5ad7eb21ddba49addb80e6944297ba0 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginalc5ad7eb21ddba49addb80e6944297ba0 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.app-loader','data' => []] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('app-loader'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes([]); ?>
+<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
+
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginalc5ad7eb21ddba49addb80e6944297ba0)): ?>
+<?php $attributes = $__attributesOriginalc5ad7eb21ddba49addb80e6944297ba0; ?>
+<?php unset($__attributesOriginalc5ad7eb21ddba49addb80e6944297ba0); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginalc5ad7eb21ddba49addb80e6944297ba0)): ?>
+<?php $component = $__componentOriginalc5ad7eb21ddba49addb80e6944297ba0; ?>
+<?php unset($__componentOriginalc5ad7eb21ddba49addb80e6944297ba0); ?>
+<?php endif; ?>
         <div class="flex h-screen overflow-hidden bg-canvas">
             <?php echo $__env->make('layouts.sidebar', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 

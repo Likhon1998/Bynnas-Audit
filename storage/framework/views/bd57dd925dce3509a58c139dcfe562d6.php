@@ -19,6 +19,28 @@
         <?php echo $__env->yieldPushContent('styles'); ?>
     </head>
         <body class="font-sans text-[13px] font-normal leading-relaxed antialiased text-slate-700" x-data="{ sidebarOpen: false, searchOpen: false }" @keydown.window.prevent.ctrl.k="searchOpen = true" @keydown.window.escape="searchOpen = false; sidebarOpen = false">
+        <?php if (isset($component)) { $__componentOriginalc5ad7eb21ddba49addb80e6944297ba0 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginalc5ad7eb21ddba49addb80e6944297ba0 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.app-loader','data' => []] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('app-loader'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes([]); ?>
+<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
+
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginalc5ad7eb21ddba49addb80e6944297ba0)): ?>
+<?php $attributes = $__attributesOriginalc5ad7eb21ddba49addb80e6944297ba0; ?>
+<?php unset($__attributesOriginalc5ad7eb21ddba49addb80e6944297ba0); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginalc5ad7eb21ddba49addb80e6944297ba0)): ?>
+<?php $component = $__componentOriginalc5ad7eb21ddba49addb80e6944297ba0; ?>
+<?php unset($__componentOriginalc5ad7eb21ddba49addb80e6944297ba0); ?>
+<?php endif; ?>
         <div class="flex h-screen overflow-hidden bg-canvas">
             <?php echo $__env->make('layouts.sidebar', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 

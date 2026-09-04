@@ -12,8 +12,9 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Inter', 'Noto Sans Bengali', ...defaultTheme.fontFamily.sans],
-                bengali: ['Noto Sans Bengali', 'Hind Siliguri', 'Nirmala UI', ...defaultTheme.fontFamily.sans],
+                // Hind Siliguri after Inter so Bangla glyphs (esp. ১) stay clean — Noto's ১ looks weak.
+                sans: ['Inter', 'Hind Siliguri', 'Nirmala UI', ...defaultTheme.fontFamily.sans],
+                bengali: ['Hind Siliguri', 'Nirmala UI', ...defaultTheme.fontFamily.sans],
             },
             colors: {
                 brand: {
