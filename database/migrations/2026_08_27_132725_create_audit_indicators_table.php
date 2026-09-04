@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('audit_indicators')) {
+            return;
+        }
+
         Schema::create('audit_indicators', function (Blueprint $table) {
             $table->id();
             $table->string('category')->nullable();

@@ -369,20 +369,44 @@
     {{ $p }}.copy-block { page-break-inside: avoid; }
 
     @php
+        // PDF: Hind Siliguri + OTL (mPDF-safe). Noto Sans Bengali crashes mPDF with GPOS Format 3 when OTL is on,
+        // and without OTL Bengali digits (esp. ১) look broken — so PDF must not use Noto.
         $bnFont = $forDoc
             ? "'Nirmala UI', 'Vrinda', 'Kalpurush', 'Segoe UI', sans-serif"
             : ($isPdf
-                ? 'notosansbengali, hindsiliguri, sans-serif'
+                ? 'hindsiliguri, sans-serif'
                 : "'Noto Sans Bengali', 'Hind Siliguri', 'Nirmala UI', sans-serif");
     @endphp
     {{ $p }}.bn-num {
         font-family: {{ $bnFont }};
-        font-variant-numeric: tabular-nums lining-nums;
-        font-feature-settings: "tnum" 1, "lnum" 1;
-        letter-spacing: 0.05em;
-        text-rendering: optimizeLegibility;
-        -webkit-font-smoothing: antialiased;
+        @if ($isPdf && ! $forDoc)
+            letter-spacing: 0;
+        @else
+            font-variant-numeric: tabular-nums lining-nums;
+            font-feature-settings: "tnum" 1, "lnum" 1;
+            letter-spacing: 0.05em;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+        @endif
     }
+    @if ($isPdf && ! $forDoc)
+    {{ $p }}body,
+    {{ $p }}.finding-heading,
+    {{ $p }}.section-heading,
+    {{ $p }}td,
+    {{ $p }}th,
+    {{ $p }}p,
+    {{ $p }}span {
+        font-family: hindsiliguri, sans-serif;
+    }
+    {{ $p }}.bn-serial,
+    {{ $p }}.bn-serial-section,
+    {{ $p }}.bn-page,
+    {{ $p }}.bn-index,
+    {{ $p }}.bn-stat {
+        letter-spacing: 0;
+    }
+    @endif
     {{ $p }}.bn-serial {
         display: inline-block;
         min-width: 2.2em;

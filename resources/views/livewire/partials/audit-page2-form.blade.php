@@ -22,7 +22,7 @@
 
         <p class="mb-3 flex flex-wrap items-center gap-2 text-[13px]">
             <span class="font-semibold">শাখা গঠনের তারিখ:</span>
-            <input type="date" wire:model.live="branch_opening_date" class="inline-input">
+            <x-audit-date-field wire:model.live="branch_opening_date" format="iso" class="inline-input" />
             <span>ইং</span>
         </p>
 
@@ -57,7 +57,7 @@
 
         <p class="mb-2 flex flex-wrap items-center gap-2 text-[13px]">
             <span class="font-semibold">শাখার কর্মীর তথ্য :</span>
-            <input type="date" wire:model.live="staff_info_as_of" class="inline-input">
+            <x-audit-date-field wire:model.live="staff_info_as_of" format="iso" class="inline-input" />
             <span>ইং</span>
         </p>
 

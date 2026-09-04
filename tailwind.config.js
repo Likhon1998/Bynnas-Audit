@@ -12,7 +12,8 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Inter', ...defaultTheme.fontFamily.sans],
+                sans: ['Inter', 'Noto Sans Bengali', ...defaultTheme.fontFamily.sans],
+                bengali: ['Noto Sans Bengali', 'Hind Siliguri', 'Nirmala UI', ...defaultTheme.fontFamily.sans],
             },
             colors: {
                 brand: {

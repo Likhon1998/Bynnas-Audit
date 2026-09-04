@@ -27,7 +27,7 @@
                         <input type="text" wire:model.live="sign_auditor_designation" class="mt-1 inline-input w-full">
                     </label>
                     <label class="block text-[11px] text-slate-600">তারিখ
-                        <input type="date" wire:model.live="sign_auditor_date" class="mt-1 inline-input w-full">
+                        <x-audit-date-field wire:model.live="sign_auditor_date" format="iso" class="mt-1 inline-input w-full" />
                     </label>
                 </div>
 
@@ -37,7 +37,7 @@
                         <input type="text" wire:model.live="sign_bm_name" class="mt-1 inline-input w-full">
                     </label>
                     <label class="block text-[11px] text-slate-600">তারিখ
-                        <input type="date" wire:model.live="sign_bm_date" class="mt-1 inline-input w-full">
+                        <x-audit-date-field wire:model.live="sign_bm_date" format="iso" class="mt-1 inline-input w-full" />
                     </label>
                 </div>
 
@@ -47,7 +47,7 @@
                         <input type="text" wire:model.live="sign_abm_name" class="mt-1 inline-input w-full">
                     </label>
                     <label class="block text-[11px] text-slate-600">তারিখ
-                        <input type="date" wire:model.live="sign_abm_date" class="mt-1 inline-input w-full">
+                        <x-audit-date-field wire:model.live="sign_abm_date" format="iso" class="mt-1 inline-input w-full" />
                     </label>
                 </div>
             </div>

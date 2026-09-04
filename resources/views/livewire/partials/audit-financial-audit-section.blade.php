@@ -6,7 +6,7 @@
     $obsTableClass = $compact ? 'a4-table a4-table-compact text-[9px]' : 'a4-table text-[10px]';
 @endphp
 
-<p class="mb-[2mm] font-bold">{{ $financial_section_title }}</p>
+<p class="mb-[2mm] font-bold finding-heading">{!! \App\Support\BanglaNumerals::highlight($financial_section_title ?? '', 'serial') !!}</p>
 
 @foreach ($financialFindings as $index => $finding)
     @php $anchor = MakeAuditReport::findingAnchorId($finding['serial'] ?? ''); @endphp
@@ -16,14 +16,20 @@
     <table class="{{ $tableClass }} mb-[2mm]">
         <tbody>
             <tr>
-                <td style="width:9%;" class="align-top text-center font-bold">{{ $finding['serial'] ?? '' }}</td>
+                <td style="width:9%;" class="align-top text-center font-bold finding-serial-cell">
+                    @include('livewire.partials.audit-finding-serial-cell', [
+                        'editable' => false,
+                        'value' => $finding['serial'] ?? '',
+                    ])
+                </td>
                 <td style="width:11%;" class="align-top text-center font-bold">{{ $finding['title'] ?? 'শিরোনাম' }}</td>
                 <td class="align-top">
                     @if ($editable)
                         @include('livewire.partials.audit-indicator-combobox', [
                             'index' => $index,
                             'value' => $finding['body'] ?? '',
-                            'indicators' => $financialIndicatorOptions ?? [],
+                            'indicators' => $indicatorOptions ?? $financialIndicatorOptions ?? [],
+                            'collection' => 'financialFindings',
                             'wireKey' => 'fin-ind-'.$index.'-'.md5((string) ($finding['body'] ?? '')),
                         ])
                     @else
@@ -60,6 +66,13 @@
 <p class="mb-[2mm] border-b border-dotted border-black">&nbsp;</p>
 
 <p class="mb-[1mm] font-bold">ভ্যাট সংক্রান্ত:</p>
+@if ($editable)
+    <x-audit-excel-paste-zone
+        path="vatObservationRows"
+        :columns="['total_population', 'sample_size', 'instances_found', 'percentage']"
+        hint="VAT stats: Excel থেকে ৪ কলাম কপি করে পেস্ট করুন"
+    />
+@endif
 <table class="{{ $obsTableClass }} mb-[3mm]">
     <thead>
         <tr>
@@ -100,6 +113,13 @@
 @endif
 
 <p class="mb-[1mm] font-bold">ট্যাক্স সংক্রান্ত:</p>
+@if ($editable)
+    <x-audit-excel-paste-zone
+        path="taxObservationRows"
+        :columns="['total_population', 'sample_size', 'instances_found', 'percentage']"
+        hint="Tax stats: Excel থেকে ৪ কলাম কপি করে পেস্ট করুন"
+    />
+@endif
 <table class="{{ $obsTableClass }}">
     <thead>
         <tr>

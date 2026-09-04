@@ -27,7 +27,28 @@
                         <input type="text" wire:model.live="sign_auditor_designation" class="mt-1 inline-input w-full">
                     </label>
                     <label class="block text-[11px] text-slate-600">তারিখ
-                        <input type="date" wire:model.live="sign_auditor_date" class="mt-1 inline-input w-full">
+                        <?php if (isset($component)) { $__componentOriginal69d3fb3d18b8321247054b6f17c50ee8 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal69d3fb3d18b8321247054b6f17c50ee8 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.audit-date-field','data' => ['wire:model.live' => 'sign_auditor_date','format' => 'iso','class' => 'mt-1 inline-input w-full']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('audit-date-field'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['wire:model.live' => 'sign_auditor_date','format' => 'iso','class' => 'mt-1 inline-input w-full']); ?>
+<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
+
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal69d3fb3d18b8321247054b6f17c50ee8)): ?>
+<?php $attributes = $__attributesOriginal69d3fb3d18b8321247054b6f17c50ee8; ?>
+<?php unset($__attributesOriginal69d3fb3d18b8321247054b6f17c50ee8); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal69d3fb3d18b8321247054b6f17c50ee8)): ?>
+<?php $component = $__componentOriginal69d3fb3d18b8321247054b6f17c50ee8; ?>
+<?php unset($__componentOriginal69d3fb3d18b8321247054b6f17c50ee8); ?>
+<?php endif; ?>
                     </label>
                 </div>
 
@@ -37,7 +58,28 @@
                         <input type="text" wire:model.live="sign_bm_name" class="mt-1 inline-input w-full">
                     </label>
                     <label class="block text-[11px] text-slate-600">তারিখ
-                        <input type="date" wire:model.live="sign_bm_date" class="mt-1 inline-input w-full">
+                        <?php if (isset($component)) { $__componentOriginal69d3fb3d18b8321247054b6f17c50ee8 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal69d3fb3d18b8321247054b6f17c50ee8 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.audit-date-field','data' => ['wire:model.live' => 'sign_bm_date','format' => 'iso','class' => 'mt-1 inline-input w-full']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('audit-date-field'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['wire:model.live' => 'sign_bm_date','format' => 'iso','class' => 'mt-1 inline-input w-full']); ?>
+<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
+
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal69d3fb3d18b8321247054b6f17c50ee8)): ?>
+<?php $attributes = $__attributesOriginal69d3fb3d18b8321247054b6f17c50ee8; ?>
+<?php unset($__attributesOriginal69d3fb3d18b8321247054b6f17c50ee8); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal69d3fb3d18b8321247054b6f17c50ee8)): ?>
+<?php $component = $__componentOriginal69d3fb3d18b8321247054b6f17c50ee8; ?>
+<?php unset($__componentOriginal69d3fb3d18b8321247054b6f17c50ee8); ?>
+<?php endif; ?>
                     </label>
                 </div>
 
@@ -47,7 +89,28 @@
                         <input type="text" wire:model.live="sign_abm_name" class="mt-1 inline-input w-full">
                     </label>
                     <label class="block text-[11px] text-slate-600">তারিখ
-                        <input type="date" wire:model.live="sign_abm_date" class="mt-1 inline-input w-full">
+                        <?php if (isset($component)) { $__componentOriginal69d3fb3d18b8321247054b6f17c50ee8 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal69d3fb3d18b8321247054b6f17c50ee8 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.audit-date-field','data' => ['wire:model.live' => 'sign_abm_date','format' => 'iso','class' => 'mt-1 inline-input w-full']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('audit-date-field'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['wire:model.live' => 'sign_abm_date','format' => 'iso','class' => 'mt-1 inline-input w-full']); ?>
+<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
+
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal69d3fb3d18b8321247054b6f17c50ee8)): ?>
+<?php $attributes = $__attributesOriginal69d3fb3d18b8321247054b6f17c50ee8; ?>
+<?php unset($__attributesOriginal69d3fb3d18b8321247054b6f17c50ee8); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal69d3fb3d18b8321247054b6f17c50ee8)): ?>
+<?php $component = $__componentOriginal69d3fb3d18b8321247054b6f17c50ee8; ?>
+<?php unset($__componentOriginal69d3fb3d18b8321247054b6f17c50ee8); ?>
+<?php endif; ?>
                     </label>
                 </div>
             </div>

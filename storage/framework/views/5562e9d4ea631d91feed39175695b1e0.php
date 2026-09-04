@@ -22,7 +22,28 @@
 
         <p class="mb-3 flex flex-wrap items-center gap-2 text-[13px]">
             <span class="font-semibold">শাখা গঠনের তারিখ:</span>
-            <input type="date" wire:model.live="branch_opening_date" class="inline-input">
+            <?php if (isset($component)) { $__componentOriginal69d3fb3d18b8321247054b6f17c50ee8 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal69d3fb3d18b8321247054b6f17c50ee8 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.audit-date-field','data' => ['wire:model.live' => 'branch_opening_date','format' => 'iso','class' => 'inline-input']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('audit-date-field'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['wire:model.live' => 'branch_opening_date','format' => 'iso','class' => 'inline-input']); ?>
+<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
+
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal69d3fb3d18b8321247054b6f17c50ee8)): ?>
+<?php $attributes = $__attributesOriginal69d3fb3d18b8321247054b6f17c50ee8; ?>
+<?php unset($__attributesOriginal69d3fb3d18b8321247054b6f17c50ee8); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal69d3fb3d18b8321247054b6f17c50ee8)): ?>
+<?php $component = $__componentOriginal69d3fb3d18b8321247054b6f17c50ee8; ?>
+<?php unset($__componentOriginal69d3fb3d18b8321247054b6f17c50ee8); ?>
+<?php endif; ?>
             <span>ইং</span>
         </p>
 
@@ -57,7 +78,28 @@
 
         <p class="mb-2 flex flex-wrap items-center gap-2 text-[13px]">
             <span class="font-semibold">শাখার কর্মীর তথ্য :</span>
-            <input type="date" wire:model.live="staff_info_as_of" class="inline-input">
+            <?php if (isset($component)) { $__componentOriginal69d3fb3d18b8321247054b6f17c50ee8 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal69d3fb3d18b8321247054b6f17c50ee8 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.audit-date-field','data' => ['wire:model.live' => 'staff_info_as_of','format' => 'iso','class' => 'inline-input']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('audit-date-field'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['wire:model.live' => 'staff_info_as_of','format' => 'iso','class' => 'inline-input']); ?>
+<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
+
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal69d3fb3d18b8321247054b6f17c50ee8)): ?>
+<?php $attributes = $__attributesOriginal69d3fb3d18b8321247054b6f17c50ee8; ?>
+<?php unset($__attributesOriginal69d3fb3d18b8321247054b6f17c50ee8); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal69d3fb3d18b8321247054b6f17c50ee8)): ?>
+<?php $component = $__componentOriginal69d3fb3d18b8321247054b6f17c50ee8; ?>
+<?php unset($__componentOriginal69d3fb3d18b8321247054b6f17c50ee8); ?>
+<?php endif; ?>
             <span>ইং</span>
         </p>
 

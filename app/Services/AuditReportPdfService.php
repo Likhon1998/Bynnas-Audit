@@ -48,11 +48,7 @@ class AuditReportPdfService
                 'hindsiliguri' => [
                     'R' => 'HindSiliguri-Regular.ttf',
                     'B' => 'HindSiliguri-Bold.ttf',
-                    'useOTL' => 0xFF,
-                ],
-                'notosansbengali' => [
-                    'R' => 'NotoSansBengali-Regular.ttf',
-                    'B' => 'NotoSansBengali-Bold.ttf',
+                    // 0x80 = complex scripts (Bengali); required for conjuncts and digits like ১
                     'useOTL' => 0xFF,
                 ],
             ],

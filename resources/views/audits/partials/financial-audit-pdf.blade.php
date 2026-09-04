@@ -4,7 +4,7 @@
     $widths = Doc::findingColumnWidths();
 @endphp
 
-<p class="section-heading bold">{{ $financial_section_title }}</p>
+<p class="section-heading bold finding-heading">{!! \App\Support\BanglaNumerals::highlight($financial_section_title ?? '', 'serial') !!}</p>
 
 @foreach ($financialFindings as $finding)
     @php $anchor = MakeAuditReport::findingAnchorId($finding['serial'] ?? ''); @endphp

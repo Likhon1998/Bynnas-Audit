@@ -1,8 +1,9 @@
-{{-- Searchable indicator picker for financial finding শিরোনাম / body --}}
+{{-- Searchable indicator picker for finding শিরোনাম / body --}}
 @props([
     'index',
     'value' => '',
     'indicators' => [],
+    'collection' => 'financialFindings',
     'wireKey' => null,
 ])
 
@@ -13,6 +14,7 @@
         open: false,
         q: @js($value),
         highlight: 0,
+        collection: @js($collection),
         indicators: @js($indicators),
         get filtered() {
             const q = this.q.trim().toLowerCase();
@@ -30,7 +32,7 @@
         pick(item) {
             this.q = item.title;
             this.open = false;
-            $wire.applyFinancialIndicator({{ (int) $index }}, item.id, item.title);
+            $wire.applyFindingIndicator(this.collection, {{ (int) $index }}, item.id, item.title);
         },
         commitCustom() {
             const title = this.q.trim();
@@ -40,7 +42,7 @@
                 return;
             }
             this.open = false;
-            $wire.applyFinancialIndicator({{ (int) $index }}, null, title);
+            $wire.applyFindingIndicator(this.collection, {{ (int) $index }}, null, title);
         },
         onKey(e) {
             const list = this.filtered;

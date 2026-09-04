@@ -33,7 +33,7 @@
                 ?>
                 <tr class="<?php echo e($isSection ? 'bg-slate-100' : ''); ?>">
                     <td class="border border-slate-800 px-1 py-1">
-                        <input type="text" wire:model.live="tocRows.<?php echo e($idx); ?>.serial" class="h-7 w-full border-0 bg-sky-50 px-1 text-center text-[11px] font-semibold focus:ring-1 focus:ring-sky-400">
+                        <input type="text" wire:model.live="tocRows.<?php echo e($idx); ?>.serial" class="finding-serial-input h-7 w-full border-0 bg-sky-50 px-1 text-center text-[11px] font-semibold focus:ring-1 focus:ring-sky-400">
                     </td>
                     <td class="border border-slate-800 px-1 py-1">
                         <input type="text" wire:model.live="tocRows.<?php echo e($idx); ?>.finding" class="h-7 w-full border-0 bg-sky-50 px-1 text-[11px] <?php echo e($isSection ? 'font-bold' : ''); ?> focus:ring-1 focus:ring-sky-400" placeholder="<?php echo e($isSection ? 'Section title' : 'Finding'); ?>">

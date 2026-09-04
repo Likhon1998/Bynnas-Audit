@@ -102,18 +102,20 @@ class AuditReport extends Model
     public static function computeProgress(array $pages, array $coverHints = []): int
     {
         $done = (array) data_get($pages, 'meta.tabs_done', []);
-        $steps = ['cover', 'page2', 'page3', 'page4'];
-        $score = 0;
+        $steps = ['cover', 'page2', 'page3', 'page4', 'page5', 'page6', 'page7', 'page8', 'page9', 'page10', 'page11', 'page12', 'page13', 'page14', 'page15', 'page16', 'page17', 'page18', 'page19', 'page20', 'page21'];
+        $completed = 0;
 
         foreach ($steps as $step) {
             if (! empty($done[$step])) {
-                $score += 25;
+                $completed++;
             }
         }
 
+        $score = (int) round(($completed / count($steps)) * 100);
+
         // Cover may not be marked yet but already has key fields.
         if (empty($done['cover']) && ! empty($coverHints['memo_no']) && ! empty($coverHints['auditor_name'])) {
-            $score = max($score, 10);
+            $score = max($score, 8);
         }
 
         return min(100, $score);

@@ -1,0 +1,19 @@
+<?php echo $__env->make('audits.partials.cover-page', [
+    'logoDataUri' => $logoUrl ?? null,
+    'ratingColor' => $ratingColor,
+    'control_rating' => $control_rating,
+    'memo_no' => $memo_no,
+    'report_date' => $report_date,
+    'shakha_display_name' => $shakha_display_name,
+    'area_display_name' => $area_display_name,
+    'audit_period_label' => $audit_period_label,
+    'audit_start_date' => $audit_start_date,
+    'audit_end_date' => $audit_end_date,
+    'working_days' => $working_days,
+    'period_scope' => $period_scope,
+    'draft_sent_date' => $draft_sent_date,
+    'comments_received_date' => $comments_received_date,
+    'auditor_name' => $auditor_name,
+    'auditor_designation' => $auditor_designation,
+], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+<?php /**PATH C:\xampp\htdocs\Bynnas-Audit\resources\views\livewire\partials\audit-cover-preview.blade.php ENDPATH**/ ?>

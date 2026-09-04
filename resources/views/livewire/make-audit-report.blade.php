@@ -125,12 +125,12 @@
                         type="button"
                         @if ($tab['ready']) wire:click="$set('activeTab', '{{ $tab['id'] }}')" @endif
                         @disabled(! $tab['ready'])
-                        class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium transition
+                        class="audit-tab-pill inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium transition
                             {{ $activeTab === $tab['id'] ? 'bg-[#2b579a] text-white' : ($tab['ready'] ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'cursor-not-allowed bg-slate-50 text-slate-400') }}"
                     >
-                        <span class="flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold
+                        <span class="audit-tab-index inline-flex h-5 min-w-[1.35rem] shrink-0 items-center justify-center rounded-full px-1 text-[10px] font-bold tabular-nums leading-none
                             {{ $activeTab === $tab['id'] ? 'bg-white/20 text-white' : 'bg-white text-slate-500' }}">{{ $tab['num'] }}</span>
-                        {{ $tab['label'] }}
+                        <span class="audit-tab-label">{!! \App\Support\BanglaNumerals::highlight($tab['label'], 'tab') !!}</span>
                     </button>
                     @if (! $loop->last)
                         <span class="text-slate-300">→</span>
@@ -166,7 +166,7 @@
                         </p>
                         <p class="flex flex-wrap items-center gap-2">
                             <span class="font-semibold shrink-0">তারিখ:</span>
-                            <input type="date" wire:model.live="report_date" class="inline-input">
+                            <x-audit-date-field wire:model.live="report_date" format="iso" class="inline-input" />
                         </p>
                     </div>
 
@@ -198,9 +198,9 @@
                         <p class="font-semibold">প্রিয় মহোদয়,</p>
                         <p class="mt-2 text-justify">
                             গত
-                            <input type="date" wire:model.live="audit_start_date" class="inline-input mx-1">
+                            <x-audit-date-field wire:model.live="audit_start_date" format="iso" class="inline-input mx-1" />
                             হতে
-                            <input type="date" wire:model.live="audit_end_date" class="inline-input mx-1">
+                            <x-audit-date-field wire:model.live="audit_end_date" format="iso" class="inline-input mx-1" />
                             পর্যন্ত মোট
                             <input type="number" min="0" wire:model.live="working_days" class="inline-input mx-1 w-16 text-center">
                             কর্ম দিবস
@@ -208,9 +208,9 @@
                             শাখা হতে
                             <input type="text" wire:model.live="period_scope" class="inline-input mx-1 min-w-[140px]">
                             সময়ের উপর অভ্যন্তরীণ নিরীক্ষা সম্পন্ন করা হয়। শাখার খসড়া প্রতিবেদন
-                            <input type="date" wire:model.live="draft_sent_date" class="inline-input mx-1">
+                            <x-audit-date-field wire:model.live="draft_sent_date" format="iso" class="inline-input mx-1" />
                             ইং তারিখে প্রেরণ করা হয় এবং
-                            <input type="date" wire:model.live="comments_received_date" class="inline-input mx-1">
+                            <x-audit-date-field wire:model.live="comments_received_date" format="iso" class="inline-input mx-1" />
                             তারিখে মতামত পাওয়া যায়। এতদসংক্রান্ত অভ্যন্তরীণ নিরীক্ষা প্রতিবেদন আপনার সদয় অবগতির জন্য পেশ করা হলো।
                         </p>
                     </div>
@@ -260,6 +260,40 @@
             @include('livewire.partials.audit-page3-form')
         @elseif ($activeTab === 'page4')
             @include('livewire.partials.audit-page4-form')
+        @elseif ($activeTab === 'page5')
+            @include('livewire.partials.audit-page5-form')
+        @elseif ($activeTab === 'page6')
+            @include('livewire.partials.audit-page6-form')
+        @elseif ($activeTab === 'page7')
+            @include('livewire.partials.audit-page7-form')
+        @elseif ($activeTab === 'page8')
+            @include('livewire.partials.audit-page8-form')
+        @elseif ($activeTab === 'page9')
+            @include('livewire.partials.audit-page9-form')
+        @elseif ($activeTab === 'page10')
+            @include('livewire.partials.audit-page10-form')
+        @elseif ($activeTab === 'page11')
+            @include('livewire.partials.audit-page11-form')
+        @elseif ($activeTab === 'page12')
+            @include('livewire.partials.audit-page12-form')
+        @elseif ($activeTab === 'page13')
+            @include('livewire.partials.audit-page13-form')
+        @elseif ($activeTab === 'page14')
+            @include('livewire.partials.audit-page14-form')
+        @elseif ($activeTab === 'page15')
+            @include('livewire.partials.audit-page15-form')
+        @elseif ($activeTab === 'page16')
+            @include('livewire.partials.audit-page16-form')
+        @elseif ($activeTab === 'page17')
+            @include('livewire.partials.audit-page17-form')
+        @elseif ($activeTab === 'page18')
+            @include('livewire.partials.audit-page18-form')
+        @elseif ($activeTab === 'page19')
+            @include('livewire.partials.audit-page19-form')
+        @elseif ($activeTab === 'page20')
+            @include('livewire.partials.audit-page20-form')
+        @elseif ($activeTab === 'page21')
+            @include('livewire.partials.audit-page21-form')
         @else
             <div class="px-4 py-16 text-center text-[13px] text-slate-500">
                 এই পৃষ্ঠা এখনো যোগ করা হয়নি। Cover Page শেষ করে পরের ছবি পাঠালে ট্যাব যোগ করা হবে।
@@ -269,9 +303,9 @@
         @if ($showPreview)
             @include('livewire.partials.audit-document-preview-styles')
 
-            <div class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 px-3 py-6" wire:click.self="closePreview">
-                <div class="mx-auto w-full max-w-[236mm]">
-                    <div class="mb-3 flex items-center justify-between rounded-lg bg-white px-4 py-2.5 shadow">
+            <div class="fixed inset-0 z-50 flex flex-col bg-slate-900/60" wire:click.self="closePreview">
+                <div class="mx-auto w-full max-w-[236mm] shrink-0 px-3 pt-4">
+                    <div class="flex items-center justify-between rounded-lg bg-white px-4 py-2.5 shadow-lg ring-1 ring-black/5">
                         <div>
                             <p class="text-[13px] font-semibold text-navy-900">Preview</p>
                             <p class="text-[11px] text-slate-500">A4 · Cover আলাদা · বাকি অংশ একসাথে বসে (ফাঁকা পৃষ্ঠা নয়)</p>
@@ -302,7 +336,10 @@
                             <button type="button" wire:click="closePreview" class="h-8 rounded-lg border border-slate-200 px-3 text-[12px] text-slate-600 hover:bg-slate-50">বন্ধ</button>
                         </div>
                     </div>
+                </div>
 
+                <div class="min-h-0 flex-1 overflow-y-auto px-3 py-4" wire:click.self="closePreview">
+                    <div class="mx-auto w-full max-w-[236mm]">
                     <div class="audit-doc-preview rounded-sm bg-[#8d8d8d] px-4 py-6">
                         @include('livewire.partials.audit-document-preview-pages', [
                             'documentSheets' => $documentSheets,
@@ -340,7 +377,65 @@
                             'financial_criteria' => $financial_criteria,
                             'vatObservationRows' => $vatObservationRows,
                             'taxObservationRows' => $taxObservationRows,
+                            'expenseDetailRows' => $expenseDetailRows,
+                            'expense_detail_risk' => $expense_detail_risk,
+                            'expense_detail_root_cause' => $expense_detail_root_cause,
+                            'expense_detail_recommendation' => $expense_detail_recommendation,
+                            'expense_detail_bm_reply' => $expense_detail_bm_reply,
+                            'expense_detail_responsible' => $expense_detail_responsible,
+                            'expense_detail_resolution_date' => $expense_detail_resolution_date,
+                            'finding13_serial' => $finding13_serial,
+                            'finding13_title' => $finding13_title,
+                            'finding13_body' => $finding13_body,
+                            'finding13_amount' => $finding13_amount,
+                            'finding13_rating' => $finding13_rating,
+                            'finding13_criteria' => $finding13_criteria,
+                            'finding13_observation' => $finding13_observation,
+                            'finding13_statsRows' => $finding13_statsRows,
+                            'finding13_depositRows' => $finding13_depositRows,
+                            'finding13_risk' => $finding13_risk,
+                            'finding13_root_cause' => $finding13_root_cause,
+                            'finding13_recommendation' => $finding13_recommendation,
+                            'finding13_bm_reply' => $finding13_bm_reply,
+                            'finding13_responsible' => $finding13_responsible,
+                            'finding13_resolution_date' => $finding13_resolution_date,
+                            'page6Findings' => $page6Findings,
+                            'page7Findings' => $page7Findings,
+                            'page8Findings' => $page8Findings,
+                            'page9Findings' => $page9Findings,
+                            'page10_section_title' => $page10_section_title,
+                            'page10Findings' => $page10Findings,
+                            'page11Findings' => $page11Findings,
+                            'page12_section_title' => $page12_section_title,
+                            'page12Findings' => $page12Findings,
+                            'page13_section_title' => $page13_section_title,
+                            'page13Findings' => $page13Findings,
+                            'page14Findings' => $page14Findings,
+                            'page15Findings' => $page15Findings,
+                            'page16Findings' => $page16Findings,
+                            'page17Findings' => $page17Findings,
+                            'page18Findings' => $page18Findings,
+                            'page19_compliance_title' => $page19_compliance_title,
+                            'page19_compliance_period' => $page19_compliance_period,
+                            'page19_compliance_followup_date' => $page19_compliance_followup_date,
+                            'page19ComplianceRows' => $page19ComplianceRows,
+                            'page20_it_title' => $page20_it_title,
+                            'page20_it_org_line1' => $page20_it_org_line1,
+                            'page20_it_org_line2' => $page20_it_org_line2,
+                            'page20_it_org_line3' => $page20_it_org_line3,
+                            'page20_it_program' => $page20_it_program,
+                            'page20_it_branch' => $page20_it_branch,
+                            'page20_it_instruction' => $page20_it_instruction,
+                            'page20ItChecklistRows' => $page20ItChecklistRows,
+                            'page21_section_title' => $page21_section_title,
+                            'page21_year_of_reporting' => $page21_year_of_reporting,
+                            'page21_branch_name' => $page21_branch_name,
+                            'page21ExternalAuditRows' => $page21ExternalAuditRows,
+                            'page21_sign_label' => $page21_sign_label,
+                            'page21_sign_name' => $page21_sign_name,
+                            'page21_sign_designation' => $page21_sign_designation,
                         ])
+                    </div>
                     </div>
                 </div>
             </div>
@@ -365,6 +460,7 @@
         background: #fff;
         padding: 0 10px;
         font-size: 13px;
+        font-family: inherit;
         color: #334155;
         line-height: 36px;
     }
@@ -385,6 +481,63 @@
         border-color: #2b579a;
         box-shadow: 0 0 0 1px #2b579a;
         background: #fff;
+    }
+    .audit-date-field {
+        vertical-align: middle;
+    }
+    .audit-date-field > input[type="text"] {
+        min-width: 0;
+        width: 100%;
+    }
+    table .audit-date-field {
+        min-width: 6.5rem;
+    }
+    table .audit-date-picker-hit {
+        width: 1.5rem;
+        min-width: 1.5rem;
+    }
+    /* Bengali digits (especially ১) need Noto — Inter has no proper Bengali numeral glyphs */
+    .audit-tab-pill,
+    .audit-tab-label {
+        font-family: 'Noto Sans Bengali', 'Hind Siliguri', 'Nirmala UI', Inter, system-ui, sans-serif;
+    }
+    .audit-tab-label .bn-num,
+    .bn-num.bn-tab {
+        font-family: 'Noto Sans Bengali', 'Hind Siliguri', 'Nirmala UI', sans-serif;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        font-feature-settings: "tnum" 1;
+        letter-spacing: 0.04em;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+    }
+    .audit-tab-index {
+        font-family: Inter, system-ui, sans-serif;
+        font-variant-numeric: tabular-nums;
+    }
+    /* Inputs must inherit Hind Siliguri — browsers otherwise use UI font and break ১ */
+    .audit-wizard input,
+    .audit-wizard textarea,
+    .audit-wizard select,
+    .audit-wizard button {
+        font-family: inherit;
+    }
+    .finding-serial-cell,
+    .finding-serial-input,
+    .finding-heading,
+    .finding-heading .bn-num,
+    .bn-num.bn-serial {
+        font-family: 'Hind Siliguri', 'Noto Sans Bengali', 'Nirmala UI', Arial, sans-serif !important;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        font-variant-numeric: tabular-nums;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+    }
+    .finding-serial-input {
+        font-size: inherit;
+        line-height: 1.35;
+        color: inherit;
     }
     /* Editor sheet — same A4 margins as submitted document */
     .cover-form {

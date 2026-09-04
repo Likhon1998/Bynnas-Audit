@@ -6,6 +6,16 @@
     display: none !important;
 }
 
+/* Prefer Noto for Bengali digit runs app-wide (Inter lacks proper ০–৯ glyphs). */
+.bn-num {
+    font-family: 'Noto Sans Bengali', 'Hind Siliguri', 'Nirmala UI', Inter, system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+    letter-spacing: 0.03em;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
 .dot-grid {
     background-color: #ffffff;
     background-image: radial-gradient(#d8dbe6 1.2px, transparent 1.2px);

@@ -54,6 +54,74 @@ class AuditReportDocxBuilder
             $this->buildFinancial($section, $data);
         }
 
+        if ($this->hasFinancialDetailSheet($data)) {
+            $this->buildFinancialDetail($section, $data);
+        }
+
+        if ($this->hasFinancialPage6Sheet($data)) {
+            $this->buildFinancialPage6($section, $data);
+        }
+
+        if ($this->hasFinancialPage7Sheet($data)) {
+            $this->buildFinancialPage7($section, $data);
+        }
+
+        if ($this->hasFinancialPage8Sheet($data)) {
+            $this->buildFinancialPage8($section, $data);
+        }
+
+        if ($this->hasFinancialPage9Sheet($data)) {
+            $this->buildFinancialPage9($section, $data);
+        }
+
+        if ($this->hasFinancialPage10Sheet($data)) {
+            $this->buildFinancialPage10($section, $data);
+        }
+
+        if ($this->hasFinancialPage11Sheet($data)) {
+            $this->buildFinancialPage11($section, $data);
+        }
+
+        if ($this->hasFinancialPage12Sheet($data)) {
+            $this->buildFinancialPage12($section, $data);
+        }
+
+        if ($this->hasFinancialPage13Sheet($data)) {
+            $this->buildFinancialPage13($section, $data);
+        }
+
+        if ($this->hasFinancialPage14Sheet($data)) {
+            $this->buildFinancialPage14($section, $data);
+        }
+
+        if ($this->hasFinancialPage15Sheet($data)) {
+            $this->buildFinancialPage15($section, $data);
+        }
+
+        if ($this->hasFinancialPage16Sheet($data)) {
+            $this->buildFinancialPage16($section, $data);
+        }
+
+        if ($this->hasFinancialPage17Sheet($data)) {
+            $this->buildFinancialPage17($section, $data);
+        }
+
+        if ($this->hasFinancialPage18Sheet($data)) {
+            $this->buildFinancialPage18($section, $data);
+        }
+
+        if ($this->hasFinancialPage19Sheet($data)) {
+            $this->buildFinancialPage19($section, $data);
+        }
+
+        if ($this->hasFinancialPage20Sheet($data)) {
+            $this->buildFinancialPage20($section, $data);
+        }
+
+        if ($this->hasFinancialPage21Sheet($data)) {
+            $this->buildFinancialPage21($section, $data);
+        }
+
         return $this->toBinary();
     }
 
@@ -320,6 +388,102 @@ class AuditReportDocxBuilder
     }
 
     /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function buildFinancialDetail($section, array $data): void
+    {
+        $this->addSpacer($section, 200);
+        $section->addText('বিস্তারিত নিম্নে দেওয়া হল:', $this->fontBold);
+
+        $table = $section->addTable($this->gridTable);
+        $table->addRow();
+        foreach (['তারিখ/মাস', 'ভাউচার', 'বিবরণ', 'খরচ', 'ভ্যাট প্রযোজ্য', 'ভ্যাট প্রদান', 'ভ্যাট কম/বেশি', 'ট্যাক্স প্রযোজ্য', 'ট্যাক্স প্রদান', 'ট্যাক্স কম/বেশি'] as $header) {
+            $table->addCell(900, ['bgColor' => 'D9D9D9', 'valign' => 'center'])
+                ->addText($header, ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+        }
+
+        foreach ($data['expenseDetailRows'] ?? [] as $row) {
+            $table->addRow();
+            foreach (['date_month', 'voucher_no', 'description', 'expense_amount', 'vat_applicable', 'vat_paid', 'vat_diff', 'tax_applicable', 'tax_paid', 'tax_diff'] as $field) {
+                $table->addCell(900, ['valign' => 'center'])
+                    ->addText((string) ($row[$field] ?? ''), ['name' => self::FONT, 'size' => 7.5], ['alignment' => Jc::CENTER]);
+            }
+        }
+
+        $section->addText('ঝুঁকি/প্রভাব (Risk/Implication):', $this->fontBold, ['spaceBefore' => 120]);
+        $section->addText($data['expense_detail_risk'] ?? '', $this->fontBody, ['alignment' => Jc::BOTH]);
+        $section->addText('মূল কারণ (Root Cause):', $this->fontBold, ['spaceBefore' => 80]);
+        $section->addText($data['expense_detail_root_cause'] ?: str_repeat('·', 40), $this->fontBody);
+        $section->addText('সুপারিশ (Recommendation):', $this->fontBold, ['spaceBefore' => 80]);
+        $section->addText($data['expense_detail_recommendation'] ?: str_repeat('·', 40), $this->fontBody);
+
+        $response = $section->addTable($this->gridTable);
+        foreach ([
+            ['শাখা ব্যবস্থাপকের জবাব', $data['expense_detail_bm_reply'] ?? ''],
+            ['দায়িত্বপ্রাপ্ত কর্মী/পদক্ষেপ', $data['expense_detail_responsible'] ?? ''],
+            ['সমাধানের সময়কাল (তারিখ)', $data['expense_detail_resolution_date'] ?? ''],
+        ] as [$label, $value]) {
+            $response->addRow();
+            $response->addCell(3500)->addText($label, $this->fontBold);
+            $response->addCell(5500)->addText((string) $value, $this->fontSmall);
+        }
+
+        $this->addSpacer($section, 160);
+        $findingTable = $section->addTable($this->gridTable);
+        $findingTable->addRow();
+        $widths = Doc::findingColumnWidths();
+        $findingTable->addCell($this->pct($widths[0]), ['valign' => 'center'])
+            ->addText($data['finding13_serial'] ?? '১.৩', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+        $findingTable->addCell($this->pct($widths[1]), ['valign' => 'center'])
+            ->addText($data['finding13_title'] ?? 'শিরোনাম', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+        $body = (string) ($data['finding13_body'] ?? '');
+        if (($data['finding13_amount'] ?? '') !== '') {
+            $body .= "\nটাকার পরিমাণ: ".$data['finding13_amount'];
+        }
+        $findingTable->addCell($this->pct($widths[2]), ['valign' => 'top'])
+            ->addText($body, $this->fontSmall, ['alignment' => Jc::BOTH]);
+        $ratingCell = $findingTable->addCell($this->pct($widths[3]), ['valign' => 'center']);
+        $this->addRatingBox($ratingCell, $data['finding13_rating'] ?? '');
+
+        $section->addText('প্রচলিত নিয়ম (Criteria):', $this->fontBold, ['spaceBefore' => 120]);
+        $section->addText($data['finding13_criteria'] ?? '', $this->fontBody, ['alignment' => Jc::BOTH]);
+        $section->addText('পর্যবেক্ষণ (Observation) :', $this->fontBold, ['spaceBefore' => 80]);
+        $section->addText($data['finding13_observation'] ?: str_repeat('·', 40), $this->fontBody);
+
+        $this->addObservationTable($section, '', $data['finding13_statsRows'] ?? []);
+
+        $deposit = $section->addTable($this->gridTable);
+        $deposit->addRow();
+        foreach (['বিবরণ', 'মাস', 'উত্তোলন', 'জমা', 'টাকা', 'সময়কাল'] as $header) {
+            $deposit->addCell(1500, ['bgColor' => 'D9D9D9'])->addText($header, ['name' => self::FONT, 'size' => 8, 'bold' => true], ['alignment' => Jc::CENTER]);
+        }
+        foreach ($data['finding13_depositRows'] ?? [] as $row) {
+            $deposit->addRow();
+            foreach (['description', 'month_name', 'withdrawal_date', 'deposit_date', 'amount', 'holding_period'] as $field) {
+                $deposit->addCell(1500)->addText((string) ($row[$field] ?? ''), ['name' => self::FONT, 'size' => 8], ['alignment' => Jc::CENTER]);
+            }
+        }
+
+        $section->addText('ঝুঁকি/প্রভাব (Risk/Implication):', $this->fontBold, ['spaceBefore' => 120]);
+        $section->addText($data['finding13_risk'] ?? '', $this->fontBody, ['alignment' => Jc::BOTH]);
+        $section->addText('মূল কারণ (Root Cause):', $this->fontBold, ['spaceBefore' => 80]);
+        $section->addText($data['finding13_root_cause'] ?: str_repeat('·', 40), $this->fontBody);
+        $section->addText('সুপারিশ (Recommendation):', $this->fontBold, ['spaceBefore' => 80]);
+        $section->addText($data['finding13_recommendation'] ?: str_repeat('·', 40), $this->fontBody);
+
+        $mgmt = $section->addTable($this->gridTable);
+        foreach ([
+            ['শাখা ব্যবস্থাপকের জবাব', $data['finding13_bm_reply'] ?? ''],
+            ['দায়িত্বপ্রাপ্ত কর্মী/পদক্ষেপ', $data['finding13_responsible'] ?? ''],
+            ['সমাধানের সময়কাল (তারিখ)', $data['finding13_resolution_date'] ?? ''],
+        ] as [$label, $value]) {
+            $mgmt->addRow();
+            $mgmt->addCell(3500)->addText($label, $this->fontBold);
+            $mgmt->addCell(5500)->addText((string) $value, $this->fontSmall);
+        }
+    }
+
+    /**
      * @param  list<array<string, mixed>>  $rows
      */
     protected function addGlanceTable($section, array $rows): void
@@ -573,6 +737,1322 @@ class AuditReportDocxBuilder
         }
 
         return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function hasFinancialDetailSheet(array $data): bool
+    {
+        foreach ($data['documentSheets'] ?? [] as $sheet) {
+            if (($sheet['type'] ?? '') === 'financial_detail') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function hasFinancialPage6Sheet(array $data): bool
+    {
+        foreach ($data['documentSheets'] ?? [] as $sheet) {
+            if (($sheet['type'] ?? '') === 'financial_page6') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function hasFinancialPage7Sheet(array $data): bool
+    {
+        foreach ($data['documentSheets'] ?? [] as $sheet) {
+            if (($sheet['type'] ?? '') === 'financial_page7') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function buildFinancialPage6($section, array $data): void
+    {
+        foreach ($data['page6Findings'] ?? [] as $finding) {
+            $this->addSpacer($section, 160);
+            $findingTable = $section->addTable($this->gridTable);
+            $findingTable->addRow();
+            $widths = Doc::findingColumnWidths();
+            $findingTable->addCell($this->pct($widths[0]), ['valign' => 'center'])
+                ->addText($finding['serial'] ?? '', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+            $findingTable->addCell($this->pct($widths[1]), ['valign' => 'center'])
+                ->addText($finding['title'] ?? 'শিরোনাম', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+            $body = (string) ($finding['body'] ?? '');
+            if (($finding['amount'] ?? '') !== '') {
+                $body .= "\nটাকার পরিমাণ: ".$finding['amount'];
+            }
+            $findingTable->addCell($this->pct($widths[2]), ['valign' => 'top'])
+                ->addText($body, $this->fontSmall, ['alignment' => Jc::BOTH]);
+            $ratingCell = $findingTable->addCell($this->pct($widths[3]), ['valign' => 'center']);
+            $this->addRatingBox($ratingCell, $finding['rating'] ?? '');
+
+            $section->addText('প্রচলিত নিয়ম (Criteria):', $this->fontBold, ['spaceBefore' => 120]);
+            $section->addText($finding['criteria'] ?? '', $this->fontBody, ['alignment' => Jc::BOTH]);
+            $section->addText('পর্যবেক্ষণ (Observation) :', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['observation'] ?: str_repeat('·', 40), $this->fontBody);
+
+            $this->addObservationTable($section, '', $finding['statsRows'] ?? []);
+
+            $section->addText($finding['detail_intro'] ?? 'বিস্তারিত নিম্নে দেওয়া হলো:', $this->fontBold, ['spaceBefore' => 80]);
+            $vouchers = $section->addTable($this->gridTable);
+            $vouchers->addRow();
+            foreach (['তারিখ', 'ভাউচার', 'বিবরণ', 'টাকা', 'মন্তব্য'] as $header) {
+                $vouchers->addCell(1800, ['bgColor' => 'D9D9D9'])->addText($header, ['name' => self::FONT, 'size' => 8, 'bold' => true], ['alignment' => Jc::CENTER]);
+            }
+            foreach ($finding['voucherRows'] ?? [] as $row) {
+                $vouchers->addRow();
+                foreach (['date', 'voucher_type_no', 'description', 'amount', 'remarks'] as $field) {
+                    $vouchers->addCell(1800)->addText((string) ($row[$field] ?? ''), ['name' => self::FONT, 'size' => 8], ['alignment' => Jc::CENTER]);
+                }
+            }
+
+            $section->addText('ঝুঁকি/প্রভাব (Risk/Implication):', $this->fontBold, ['spaceBefore' => 120]);
+            $section->addText($finding['risk'] ?? '', $this->fontBody, ['alignment' => Jc::BOTH]);
+            $section->addText('মূল কারণ (Root Cause):', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['root_cause'] ?: str_repeat('·', 40), $this->fontBody);
+            $section->addText('সুপারিশ (Recommendation):', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['recommendation'] ?: str_repeat('·', 40), $this->fontBody);
+
+            $mgmt = $section->addTable($this->gridTable);
+            foreach ([
+                ['শাখা ব্যবস্থাপকের জবাব', $finding['bm_reply'] ?? ''],
+                ['দায়িত্বপ্রাপ্ত কর্মী/পদক্ষেপ', $finding['responsible'] ?? ''],
+                ['সমাধানের সময়কাল (তারিখ)', $finding['resolution_date'] ?? ''],
+            ] as [$label, $value]) {
+                $mgmt->addRow();
+                $mgmt->addCell(3500)->addText($label, $this->fontBold);
+                $mgmt->addCell(5500)->addText((string) $value, $this->fontSmall);
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function buildFinancialPage7($section, array $data): void
+    {
+        foreach ($data['page7Findings'] ?? [] as $finding) {
+            $this->addSpacer($section, 160);
+            $findingTable = $section->addTable($this->gridTable);
+            $findingTable->addRow();
+            $widths = Doc::findingColumnWidths();
+            $findingTable->addCell($this->pct($widths[0]), ['valign' => 'center'])
+                ->addText($finding['serial'] ?? '', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+            $findingTable->addCell($this->pct($widths[1]), ['valign' => 'center'])
+                ->addText($finding['title'] ?? 'শিরোনাম', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+            $body = (string) ($finding['body'] ?? '');
+            if (($finding['amount'] ?? '') !== '') {
+                $body .= "\nটাকার পরিমাণ: ".$finding['amount'];
+            }
+            $findingTable->addCell($this->pct($widths[2]), ['valign' => 'top'])
+                ->addText($body, $this->fontSmall, ['alignment' => Jc::BOTH]);
+            $ratingCell = $findingTable->addCell($this->pct($widths[3]), ['valign' => 'center']);
+            $this->addRatingBox($ratingCell, $finding['rating'] ?? '');
+
+            $section->addText('প্রচলিত নিয়ম (Criteria):', $this->fontBold, ['spaceBefore' => 120]);
+            $section->addText($finding['criteria'] ?? '', $this->fontBody, ['alignment' => Jc::BOTH]);
+            $section->addText('পর্যবেক্ষণ (Observation) :', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['observation'] ?: str_repeat('·', 40), $this->fontBody);
+
+            $this->addObservationTable($section, '', $finding['statsRows'] ?? []);
+
+            if (($finding['detail_type'] ?? 'none') === 'budget') {
+                $year = (string) ($finding['budget_year'] ?? '২০২২-২০২৩');
+                $section->addText($finding['detail_intro'] ?? 'নিম্নে বিস্তারিত দেওয়া হলো:', $this->fontBold, ['spaceBefore' => 80]);
+                $budget = $section->addTable($this->gridTable);
+                $budget->addRow();
+                foreach (['বাজেটের খাত', 'বাজেট '.$year.' (বাৎসরিক)', 'জুন পর্যন্ত', 'প্রকৃত খরচ', 'পার্থক্য'] as $header) {
+                    $budget->addCell(1800, ['bgColor' => 'D9D9D9'])->addText($header, ['name' => self::FONT, 'size' => 8, 'bold' => true], ['alignment' => Jc::CENTER]);
+                }
+                foreach ($finding['budgetRows'] ?? [] as $row) {
+                    $budget->addRow();
+                    foreach (['budget_head', 'budget_annual', 'budget_upto_june', 'actual_expense', 'difference'] as $field) {
+                        $budget->addCell(1800)->addText((string) ($row[$field] ?? ''), ['name' => self::FONT, 'size' => 8], ['alignment' => Jc::CENTER]);
+                    }
+                }
+            }
+
+            if (($finding['detail_type'] ?? 'none') === 'bonus') {
+                $section->addText($finding['detail_intro'] ?? 'নিম্নে বিস্তারিত দেওয়া হলো:', $this->fontBold, ['spaceBefore' => 80]);
+                $bonus = $section->addTable($this->gridTable);
+                $bonus->addRow();
+                foreach (['যোগদানের তারিখ', 'বোনাস তারিখ ও ভাউচার', 'চাকরির বয়স', 'বোনাসের পরিমাণ'] as $header) {
+                    $bonus->addCell(2250, ['bgColor' => 'D9D9D9'])->addText($header, ['name' => self::FONT, 'size' => 8, 'bold' => true], ['alignment' => Jc::CENTER]);
+                }
+                foreach ($finding['bonusRows'] ?? [] as $row) {
+                    $bonus->addRow();
+                    foreach (['joining_date', 'bonus_date_voucher', 'service_age', 'bonus_amount'] as $field) {
+                        $bonus->addCell(2250)->addText((string) ($row[$field] ?? ''), ['name' => self::FONT, 'size' => 8], ['alignment' => Jc::CENTER]);
+                    }
+                }
+            }
+
+            $section->addText('ঝুঁকি/প্রভাব (Risk/Implication):', $this->fontBold, ['spaceBefore' => 120]);
+            $section->addText($finding['risk'] ?? '', $this->fontBody, ['alignment' => Jc::BOTH]);
+            $section->addText('মূল কারণ (Root Cause):', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['root_cause'] ?: str_repeat('·', 40), $this->fontBody);
+            $section->addText('সুপারিশ (Recommendation):', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['recommendation'] ?: str_repeat('·', 40), $this->fontBody);
+
+            $mgmt = $section->addTable($this->gridTable);
+            foreach ([
+                ['শাখা ব্যবস্থাপকের জবাব', $finding['bm_reply'] ?? ''],
+                ['দায়িত্বপ্রাপ্ত কর্মী/পদক্ষেপ', $finding['responsible'] ?? ''],
+                ['সমাধানের সময়কাল (তারিখ)', $finding['resolution_date'] ?? ''],
+            ] as [$label, $value]) {
+                $mgmt->addRow();
+                $mgmt->addCell(3500)->addText($label, $this->fontBold);
+                $mgmt->addCell(5500)->addText((string) $value, $this->fontSmall);
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function hasFinancialPage8Sheet(array $data): bool
+    {
+        foreach ($data['documentSheets'] ?? [] as $sheet) {
+            if (($sheet['type'] ?? '') === 'financial_page8') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function buildFinancialPage8($section, array $data): void
+    {
+        foreach ($data['page8Findings'] ?? [] as $finding) {
+            $this->addSpacer($section, 160);
+            $findingTable = $section->addTable($this->gridTable);
+            $findingTable->addRow();
+            $widths = Doc::findingColumnWidths();
+            $findingTable->addCell($this->pct($widths[0]), ['valign' => 'center'])
+                ->addText($finding['serial'] ?? '', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+            $findingTable->addCell($this->pct($widths[1]), ['valign' => 'center'])
+                ->addText($finding['title'] ?? 'শিরোনাম', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+            $body = (string) ($finding['body'] ?? '');
+            if (($finding['amount'] ?? '') !== '') {
+                $body .= "\nটাকার পরিমাণ: ".$finding['amount'];
+            }
+            $findingTable->addCell($this->pct($widths[2]), ['valign' => 'top'])
+                ->addText($body, $this->fontSmall, ['alignment' => Jc::BOTH]);
+            $ratingCell = $findingTable->addCell($this->pct($widths[3]), ['valign' => 'center']);
+            $this->addRatingBox($ratingCell, $finding['rating'] ?? '');
+
+            $section->addText('প্রচলিত নিয়ম (Criteria):', $this->fontBold, ['spaceBefore' => 120]);
+            $section->addText($finding['criteria'] ?? '', $this->fontBody, ['alignment' => Jc::BOTH]);
+            $section->addText('পর্যবেক্ষণ (Observation) :', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['observation'] ?: str_repeat('·', 40), $this->fontBody);
+
+            $this->addObservationTable($section, '', $finding['statsRows'] ?? []);
+
+            if (($finding['detail_type'] ?? 'cost_of_fund') === 'cost_of_fund') {
+                $cof = $section->addTable($this->gridTable);
+                $cof->addRow();
+                foreach (['মাস', 'ওপেনিং', 'ক্লোজিং', 'মোট', 'গড়', '১০%', 'লাভ', 'শাখা', 'পার্থক্য'] as $header) {
+                    $cof->addCell(1000, ['bgColor' => 'D9D9D9'])->addText($header, ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                }
+                foreach ($finding['cofRows'] ?? [] as $row) {
+                    $cof->addRow();
+                    foreach (['month_name', 'opening_balance', 'closing_balance', 'total_balance', 'avg_balance', 'profit_rate_10', 'monthly_profit', 'branch_charged', 'variance'] as $field) {
+                        $cof->addCell(1000)->addText((string) ($row[$field] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
+                    }
+                }
+            }
+
+            $section->addText('ঝুঁকি/প্রভাব (Risk/Implication):', $this->fontBold, ['spaceBefore' => 120]);
+            $section->addText($finding['risk'] ?? '', $this->fontBody, ['alignment' => Jc::BOTH]);
+            $section->addText('মূল কারণ (Root Cause):', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['root_cause'] ?: str_repeat('·', 40), $this->fontBody);
+            $section->addText('সুপারিশ (Recommendation):', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['recommendation'] ?: str_repeat('·', 40), $this->fontBody);
+
+            $mgmt = $section->addTable($this->gridTable);
+            foreach ([
+                ['শাখা ব্যবস্থাপকের জবাব', $finding['bm_reply'] ?? ''],
+                ['দায়িত্বপ্রাপ্ত কর্মী/পদক্ষেপ', $finding['responsible'] ?? ''],
+                ['সমাধানের সময়কাল (তারিখ)', $finding['resolution_date'] ?? ''],
+            ] as [$label, $value]) {
+                $mgmt->addRow();
+                $mgmt->addCell(3500)->addText($label, $this->fontBold);
+                $mgmt->addCell(5500)->addText((string) $value, $this->fontSmall);
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function hasFinancialPage9Sheet(array $data): bool
+    {
+        foreach ($data['documentSheets'] ?? [] as $sheet) {
+            if (($sheet['type'] ?? '') === 'financial_page9') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function buildFinancialPage9($section, array $data): void
+    {
+        foreach ($data['page9Findings'] ?? [] as $finding) {
+            $this->addSpacer($section, 160);
+            $findingTable = $section->addTable($this->gridTable);
+            $findingTable->addRow();
+            $widths = Doc::findingColumnWidths();
+            $findingTable->addCell($this->pct($widths[0]), ['valign' => 'center'])
+                ->addText($finding['serial'] ?? '', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+            $findingTable->addCell($this->pct($widths[1]), ['valign' => 'center'])
+                ->addText($finding['title'] ?? 'শিরোনাম', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+            $body = (string) ($finding['body'] ?? '');
+            if (($finding['amount'] ?? '') !== '') {
+                $body .= "\nটাকার পরিমাণ: ".$finding['amount'];
+            }
+            $findingTable->addCell($this->pct($widths[2]), ['valign' => 'top'])
+                ->addText($body, $this->fontSmall, ['alignment' => Jc::BOTH]);
+            $ratingCell = $findingTable->addCell($this->pct($widths[3]), ['valign' => 'center']);
+            $this->addRatingBox($ratingCell, $finding['rating'] ?? '');
+
+            $section->addText('প্রচলিত নিয়ম (Criteria):', $this->fontBold, ['spaceBefore' => 120]);
+            $section->addText($finding['criteria'] ?? '', $this->fontBody, ['alignment' => Jc::BOTH]);
+            $section->addText('পর্যবেক্ষণ (Observation) :', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['observation'] ?: str_repeat('·', 40), $this->fontBody);
+
+            $this->addObservationTable($section, '', $finding['statsRows'] ?? []);
+
+            if (($finding['detail_type'] ?? '') === 'cash') {
+                $section->addText($finding['detail_intro'] ?? 'নিম্নে বিস্তারিত দেওয়া হলো:', $this->fontBold, ['spaceBefore' => 80]);
+                $cash = $section->addTable($this->gridTable);
+                $cash->addRow();
+                foreach (['তারিখ', 'নগদ', 'তারিখ', 'নগদ', 'তারিখ', 'নগদ'] as $header) {
+                    $cash->addCell(1500, ['bgColor' => 'D9D9D9'])->addText($header, ['name' => self::FONT, 'size' => 8, 'bold' => true], ['alignment' => Jc::CENTER]);
+                }
+                foreach ($finding['cashRows'] ?? [] as $row) {
+                    $cash->addRow();
+                    foreach (['date_1', 'cash_1', 'date_2', 'cash_2', 'date_3', 'cash_3'] as $field) {
+                        $cash->addCell(1500)->addText((string) ($row[$field] ?? ''), ['name' => self::FONT, 'size' => 8], ['alignment' => Jc::CENTER]);
+                    }
+                }
+            }
+
+            if (($finding['detail_type'] ?? '') === 'stamp') {
+                $section->addText($finding['detail_intro'] ?? 'নিম্নে বিস্তারিত দেওয়া হলো:', $this->fontBold, ['spaceBefore' => 80]);
+                $stamp = $section->addTable($this->gridTable);
+                $stamp->addRow();
+                foreach (['তারিখ', 'ভাউচার', 'পরিমাণ', 'বিবরণ'] as $header) {
+                    $stamp->addCell(2250, ['bgColor' => 'D9D9D9'])->addText($header, ['name' => self::FONT, 'size' => 8, 'bold' => true], ['alignment' => Jc::CENTER]);
+                }
+                foreach ($finding['stampRows'] ?? [] as $row) {
+                    $stamp->addRow();
+                    foreach (['date', 'voucher_no', 'amount', 'description'] as $field) {
+                        $stamp->addCell(2250)->addText((string) ($row[$field] ?? ''), ['name' => self::FONT, 'size' => 8], ['alignment' => Jc::CENTER]);
+                    }
+                }
+            }
+
+            $section->addText('ঝুঁকি/প্রভাব (Risk/Implication):', $this->fontBold, ['spaceBefore' => 120]);
+            $section->addText($finding['risk'] ?? '', $this->fontBody, ['alignment' => Jc::BOTH]);
+            $section->addText('মূল কারণ (Root Cause):', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['root_cause'] ?: str_repeat('·', 40), $this->fontBody);
+            $section->addText('সুপারিশ (Recommendation):', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['recommendation'] ?: str_repeat('·', 40), $this->fontBody);
+
+            $mgmt = $section->addTable($this->gridTable);
+            foreach ([
+                ['শাখা ব্যবস্থাপকের জবাব', $finding['bm_reply'] ?? ''],
+                ['দায়িত্বপ্রাপ্ত কর্মী/পদক্ষেপ', $finding['responsible'] ?? ''],
+                ['সমাধানের সময়কাল (তারিখ)', $finding['resolution_date'] ?? ''],
+            ] as [$label, $value]) {
+                $mgmt->addRow();
+                $mgmt->addCell(3500)->addText($label, $this->fontBold);
+                $mgmt->addCell(5500)->addText((string) $value, $this->fontSmall);
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function hasFinancialPage10Sheet(array $data): bool
+    {
+        foreach ($data['documentSheets'] ?? [] as $sheet) {
+            if (($sheet['type'] ?? '') === 'financial_page10') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function buildFinancialPage10($section, array $data): void
+    {
+        $title = (string) ($data['page10_section_title'] ?? '');
+        if ($title !== '') {
+            $section->addText($title, ['name' => self::FONT, 'size' => 12, 'bold' => true, 'underline' => 'single'], ['alignment' => Jc::CENTER, 'spaceBefore' => 200, 'spaceAfter' => 160]);
+        }
+
+        foreach ($data['page10Findings'] ?? [] as $finding) {
+            $this->addSpacer($section, 120);
+            $findingTable = $section->addTable($this->gridTable);
+            $findingTable->addRow();
+            $widths = Doc::findingColumnWidths();
+            $findingTable->addCell($this->pct($widths[0]), ['valign' => 'center'])
+                ->addText($finding['serial'] ?? '', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+            $findingTable->addCell($this->pct($widths[1]), ['valign' => 'center'])
+                ->addText($finding['title'] ?? 'শিরোনাম', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+            $body = (string) ($finding['body'] ?? '');
+            if (($finding['amount'] ?? '') !== '') {
+                $body .= "\nটাকার পরিমাণ: ".$finding['amount'];
+            }
+            $findingTable->addCell($this->pct($widths[2]), ['valign' => 'top'])
+                ->addText($body, $this->fontSmall, ['alignment' => Jc::BOTH]);
+            $ratingCell = $findingTable->addCell($this->pct($widths[3]), ['valign' => 'center']);
+            $this->addRatingBox($ratingCell, $finding['rating'] ?? '');
+
+            $section->addText('প্রচলিত নিয়ম (Criteria):', $this->fontBold, ['spaceBefore' => 120]);
+            $section->addText($finding['criteria'] ?? '', $this->fontBody, ['alignment' => Jc::BOTH]);
+            $section->addText('পর্যবেক্ষণ (Observation) :', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['observation'] ?: str_repeat('·', 40), $this->fontBody);
+
+            $this->addObservationTable($section, '', $finding['statsRows'] ?? []);
+
+            if (($finding['detail_type'] ?? 'asset') === 'asset') {
+                $section->addText($finding['detail_intro'] ?? 'নিম্নে বিস্তারিত দেওয়া হলো:', $this->fontBold, ['spaceBefore' => 80]);
+                $assets = $section->addTable($this->gridTable);
+                $assets->addRow();
+                foreach (['ক্রয়ের তারিখ', 'ভাউচার', 'সম্পদের নাম', 'ক্রয়মূল্য', 'পূর্বের খাত', 'বর্তমান অবস্থান'] as $header) {
+                    $assets->addCell(1500, ['bgColor' => 'D9D9D9'])->addText($header, ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                }
+                foreach ($finding['assetRows'] ?? [] as $row) {
+                    $assets->addRow();
+                    foreach (['purchase_date', 'voucher_no', 'asset_name', 'purchase_price', 'previous_head', 'current_location'] as $field) {
+                        $assets->addCell(1500)->addText((string) ($row[$field] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
+                    }
+                }
+            }
+
+            $section->addText('ঝুঁকি/প্রভাব (Risk/Implication):', $this->fontBold, ['spaceBefore' => 120]);
+            $section->addText($finding['risk'] ?? '', $this->fontBody, ['alignment' => Jc::BOTH]);
+            $section->addText('মূল কারণ (Root Cause):', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['root_cause'] ?: str_repeat('·', 40), $this->fontBody);
+            $section->addText('সুপারিশ (Recommendation):', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['recommendation'] ?: str_repeat('·', 40), $this->fontBody);
+
+            $mgmt = $section->addTable($this->gridTable);
+            foreach ([
+                ['শাখা ব্যবস্থাপকের জবাব', $finding['bm_reply'] ?? ''],
+                ['দায়িত্বপ্রাপ্ত কর্মী/পদক্ষেপ', $finding['responsible'] ?? ''],
+                ['সমাধানের সময়কাল (তারিখ)', $finding['resolution_date'] ?? ''],
+            ] as [$label, $value]) {
+                $mgmt->addRow();
+                $mgmt->addCell(3500)->addText($label, $this->fontBold);
+                $mgmt->addCell(5500)->addText((string) $value, $this->fontSmall);
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function hasFinancialPage11Sheet(array $data): bool
+    {
+        foreach ($data['documentSheets'] ?? [] as $sheet) {
+            if (($sheet['type'] ?? '') === 'financial_page11') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function buildFinancialPage11($section, array $data): void
+    {
+        foreach ($data['page11Findings'] ?? [] as $finding) {
+            $this->addSpacer($section, 160);
+            $findingTable = $section->addTable($this->gridTable);
+            $findingTable->addRow();
+            $widths = Doc::findingColumnWidths();
+            $findingTable->addCell($this->pct($widths[0]), ['valign' => 'center'])
+                ->addText($finding['serial'] ?? '', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+            $findingTable->addCell($this->pct($widths[1]), ['valign' => 'center'])
+                ->addText($finding['title'] ?? 'শিরোনাম', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+            $body = (string) ($finding['body'] ?? '');
+            if (($finding['amount'] ?? '') !== '') {
+                $body .= "\nটাকার পরিমাণ: ".$finding['amount'];
+            }
+            $findingTable->addCell($this->pct($widths[2]), ['valign' => 'top'])
+                ->addText($body, $this->fontSmall, ['alignment' => Jc::BOTH]);
+            $ratingCell = $findingTable->addCell($this->pct($widths[3]), ['valign' => 'center']);
+            $this->addRatingBox($ratingCell, $finding['rating'] ?? '');
+
+            $section->addText('প্রচলিত নিয়ম (Criteria):', $this->fontBold, ['spaceBefore' => 120]);
+            $section->addText($finding['criteria'] ?? '', $this->fontBody, ['alignment' => Jc::BOTH]);
+            $section->addText('পর্যবেক্ষণ (Observation) :', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['observation'] ?: str_repeat('·', 40), $this->fontBody);
+
+            $this->addObservationTable($section, '', $finding['statsRows'] ?? []);
+
+            if (($finding['detail_type'] ?? '') === 'dep_compare') {
+                $section->addText($finding['detail_intro'] ?? 'নিম্নে বিস্তারিত দেওয়া হলো:', $this->fontBold, ['spaceBefore' => 80]);
+                $dep = $section->addTable($this->gridTable);
+                $dep->addRow();
+                foreach (['গ্রুপ', 'মূল্য (প্রতিবেদন)', 'মূল্য (রেজিস্টার)', 'পার্থক্য', 'অবচয় (প্রতিবেদন)', 'অবচয় (রেজিস্টার)', 'পার্থক্য'] as $header) {
+                    $dep->addCell(1285, ['bgColor' => 'D9D9D9'])->addText($header, ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                }
+                foreach ($finding['depRows'] ?? [] as $row) {
+                    $dep->addRow();
+                    foreach (['asset_group', 'value_report', 'value_register', 'value_diff', 'dep_report', 'dep_register', 'dep_diff'] as $field) {
+                        $dep->addCell(1285)->addText((string) ($row[$field] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
+                    }
+                }
+            } elseif (($finding['detail_type'] ?? '') === 'quote') {
+                $section->addText($finding['detail_intro'] ?? 'বিস্তারিত নিম্নে দেওয়া হলো:', $this->fontBold, ['spaceBefore' => 80]);
+                $quotes = $section->addTable($this->gridTable);
+                $quotes->addRow();
+                foreach (['পণ্যের নাম', 'পণ্যের গ্রুপ', 'ক্রয়ের তারিখ', 'ভাউচার নং', 'টাকার পরিমাণ', 'কোটেশনের অবস্থা'] as $header) {
+                    $quotes->addCell(1500, ['bgColor' => 'D9D9D9'])->addText($header, ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                }
+                foreach ($finding['quoteRows'] ?? [] as $row) {
+                    $quotes->addRow();
+                    foreach (['product_name', 'product_group', 'purchase_date', 'voucher_no', 'amount', 'quote_status'] as $field) {
+                        $quotes->addCell(1500)->addText((string) ($row[$field] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
+                    }
+                }
+            } elseif (($finding['detail_intro'] ?? '') !== '') {
+                $section->addText($finding['detail_intro'], $this->fontBold, ['spaceBefore' => 80]);
+            }
+
+            $section->addText('ঝুঁকি/প্রভাব (Risk/Implication):', $this->fontBold, ['spaceBefore' => 120]);
+            $section->addText($finding['risk'] ?? '', $this->fontBody, ['alignment' => Jc::BOTH]);
+            $section->addText('মূল কারণ (Root Cause):', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['root_cause'] ?: str_repeat('·', 40), $this->fontBody);
+            $section->addText('সুপারিশ (Recommendation):', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['recommendation'] ?: str_repeat('·', 40), $this->fontBody);
+
+            $mgmt = $section->addTable($this->gridTable);
+            foreach ([
+                ['শাখা ব্যবস্থাপকের জবাব', $finding['bm_reply'] ?? ''],
+                ['দায়িত্বপ্রাপ্ত কর্মী/পদক্ষেপ', $finding['responsible'] ?? ''],
+                ['সমাধানের সময়কাল (তারিখ)', $finding['resolution_date'] ?? ''],
+            ] as [$label, $value]) {
+                $mgmt->addRow();
+                $mgmt->addCell(3500)->addText($label, $this->fontBold);
+                $mgmt->addCell(5500)->addText((string) $value, $this->fontSmall);
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function hasFinancialPage12Sheet(array $data): bool
+    {
+        foreach ($data['documentSheets'] ?? [] as $sheet) {
+            if (($sheet['type'] ?? '') === 'financial_page12') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function buildFinancialPage12($section, array $data): void
+    {
+        $title = (string) ($data['page12_section_title'] ?? '');
+        if ($title !== '') {
+            $section->addText($title, ['name' => self::FONT, 'size' => 12, 'bold' => true, 'underline' => 'single'], ['alignment' => Jc::CENTER, 'spaceBefore' => 200, 'spaceAfter' => 160]);
+        }
+
+        foreach ($data['page12Findings'] ?? [] as $finding) {
+            $this->addSpacer($section, 120);
+            $findingTable = $section->addTable($this->gridTable);
+            $findingTable->addRow();
+            $widths = Doc::findingColumnWidths();
+            $findingTable->addCell($this->pct($widths[0]), ['valign' => 'center'])
+                ->addText($finding['serial'] ?? '', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+            $findingTable->addCell($this->pct($widths[1]), ['valign' => 'center'])
+                ->addText($finding['title'] ?? 'শিরোনাম', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+            $body = (string) ($finding['body'] ?? '');
+            if (($finding['amount'] ?? '') !== '') {
+                $body .= "\nটাকার পরিমাণ: ".$finding['amount'];
+            }
+            $findingTable->addCell($this->pct($widths[2]), ['valign' => 'top'])
+                ->addText($body, $this->fontSmall, ['alignment' => Jc::BOTH]);
+            $ratingCell = $findingTable->addCell($this->pct($widths[3]), ['valign' => 'center']);
+            $this->addRatingBox($ratingCell, $finding['rating'] ?? '');
+
+            $section->addText('প্রচলিত নিয়ম (Criteria):', $this->fontBold, ['spaceBefore' => 120]);
+            $section->addText($finding['criteria'] ?? '', $this->fontBody, ['alignment' => Jc::BOTH]);
+            $section->addText('পর্যবেক্ষণ (Observation) :', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['observation'] ?: str_repeat('·', 40), $this->fontBody);
+
+            $this->addObservationTable($section, '', $finding['statsRows'] ?? []);
+
+            if (($finding['detail_type'] ?? 'stock') === 'stock') {
+                $section->addText($finding['detail_intro'] ?? 'নিম্নে বিস্তারিত দেওয়া হলো:', $this->fontBold, ['spaceBefore' => 80]);
+                $stocks = $section->addTable($this->gridTable);
+                $stocks->addRow();
+                foreach (['পণ্যের নাম', 'ক্রয়ের তারিখ ও ভাউচার নং', 'ক্রয়কৃত পণ্যের মূল্য', 'স্টক রেজিস্টারের অবস্থা'] as $header) {
+                    $stocks->addCell(2250, ['bgColor' => 'D9D9D9'])->addText($header, ['name' => self::FONT, 'size' => 8, 'bold' => true], ['alignment' => Jc::CENTER]);
+                }
+                foreach ($finding['stockRows'] ?? [] as $row) {
+                    $stocks->addRow();
+                    foreach (['product_name', 'purchase_date_voucher', 'purchase_price', 'register_status'] as $field) {
+                        $stocks->addCell(2250)->addText((string) ($row[$field] ?? ''), ['name' => self::FONT, 'size' => 8], ['alignment' => Jc::CENTER]);
+                    }
+                }
+            }
+
+            $section->addText('ঝুঁকি (Risk) :', $this->fontBold, ['spaceBefore' => 120]);
+            $section->addText($finding['risk'] ?? '', $this->fontBody, ['alignment' => Jc::BOTH]);
+            $section->addText('মূল কারণ (Root Cause):', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['root_cause'] ?: str_repeat('·', 40), $this->fontBody);
+            $section->addText('সুপারিশ (Recommendation):', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['recommendation'] ?: str_repeat('·', 40), $this->fontBody);
+
+            $mgmt = $section->addTable($this->gridTable);
+            foreach ([
+                ['শাখা ব্যবস্থাপকের জবাব', $finding['bm_reply'] ?? ''],
+                ['দায়িত্বপ্রাপ্ত কর্মী/পদক্ষেপ', $finding['responsible'] ?? ''],
+                ['সমাধানের সময়কাল (তারিখ)', $finding['resolution_date'] ?? ''],
+            ] as [$label, $value]) {
+                $mgmt->addRow();
+                $mgmt->addCell(3500)->addText($label, $this->fontBold);
+                $mgmt->addCell(5500)->addText((string) $value, $this->fontSmall);
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function hasFinancialPage13Sheet(array $data): bool
+    {
+        foreach ($data['documentSheets'] ?? [] as $sheet) {
+            if (($sheet['type'] ?? '') === 'financial_page13') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function buildFinancialPage13($section, array $data): void
+    {
+        $title = (string) ($data['page13_section_title'] ?? '');
+        if ($title !== '') {
+            $section->addText($title, ['name' => self::FONT, 'size' => 12, 'bold' => true, 'underline' => 'single'], ['alignment' => Jc::CENTER, 'spaceBefore' => 200, 'spaceAfter' => 160]);
+        }
+
+        foreach ($data['page13Findings'] ?? [] as $finding) {
+            $this->addSpacer($section, 120);
+            $findingTable = $section->addTable($this->gridTable);
+            $findingTable->addRow();
+            $widths = Doc::findingColumnWidths();
+            $findingTable->addCell($this->pct($widths[0]), ['valign' => 'center'])
+                ->addText($finding['serial'] ?? '', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+            $findingTable->addCell($this->pct($widths[1]), ['valign' => 'center'])
+                ->addText($finding['title'] ?? 'শিরোনাম', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+            $body = (string) ($finding['body'] ?? '');
+            if (($finding['amount'] ?? '') !== '') {
+                $body .= "\nটাকার পরিমাণ: ".$finding['amount'];
+            }
+            $findingTable->addCell($this->pct($widths[2]), ['valign' => 'top'])
+                ->addText($body, $this->fontSmall, ['alignment' => Jc::BOTH]);
+            $ratingCell = $findingTable->addCell($this->pct($widths[3]), ['valign' => 'center']);
+            $this->addRatingBox($ratingCell, $finding['rating'] ?? '');
+
+            $section->addText('প্রচলিত নিয়ম (Criteria):', $this->fontBold, ['spaceBefore' => 120]);
+            $section->addText($finding['criteria'] ?: str_repeat('·', 40), $this->fontBody, ['alignment' => Jc::BOTH]);
+            $section->addText('পর্যবেক্ষণ (Observation) :', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['observation'] ?: str_repeat('·', 40), $this->fontBody);
+
+            $this->addObservationTable($section, '', $finding['statsRows'] ?? []);
+
+            if (($finding['detail_type'] ?? '') === 'samity_collection') {
+                $section->addText($finding['detail_intro'] ?? 'বিস্তারিত নিম্নে দেওয়া হলো:', $this->fontBold, ['spaceBefore' => 80]);
+                $samity = $section->addTable($this->gridTable);
+                $samity->addRow();
+                foreach (['সমিতি', 'সদস্য/আইডি', 'তারিখ', 'বা:স:', 'স্বেচ্ছা', 'মেয়াদী', 'কিস্তি', 'মোট', 'জমা তারিখ', 'জমা টাকা', 'পার্থক্য', 'কর্মী'] as $header) {
+                    $samity->addCell(750, ['bgColor' => 'D9D9D9'])->addText($header, ['name' => self::FONT, 'size' => 6, 'bold' => true], ['alignment' => Jc::CENTER]);
+                }
+                foreach ($finding['samityRows'] ?? [] as $row) {
+                    $samity->addRow();
+                    foreach (['samity_no', 'member_name_id', 'date', 'savings', 'voluntary', 'term', 'installment', 'total_collection', 'deposit_date', 'deposit_amount', 'difference', 'staff_name_id'] as $field) {
+                        $samity->addCell(750)->addText((string) ($row[$field] ?? ''), ['name' => self::FONT, 'size' => 6], ['alignment' => Jc::CENTER]);
+                    }
+                }
+            }
+
+            $section->addText('ঝুঁকি:-', $this->fontBold, ['spaceBefore' => 120]);
+            $section->addText($finding['risk'] ?? '', $this->fontBody, ['alignment' => Jc::BOTH]);
+            $section->addText('মূল কারণ (Root Cause):', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['root_cause'] ?: str_repeat('·', 40), $this->fontBody);
+            $section->addText('সুপারিশ (Recommendation) :', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['recommendation'] ?: str_repeat('·', 40), $this->fontBody);
+
+            $mgmt = $section->addTable($this->gridTable);
+            foreach ([
+                ['শাখা ব্যবস্থাপকের জবাব', $finding['bm_reply'] ?? ''],
+                ['দায়িত্বপ্রাপ্ত কর্মী/পদক্ষেপ', $finding['responsible'] ?? ''],
+                ['সমাধানের সময়কাল (তারিখ)', $finding['resolution_date'] ?? ''],
+            ] as [$label, $value]) {
+                $mgmt->addRow();
+                $mgmt->addCell(3500)->addText($label, $this->fontBold);
+                $mgmt->addCell(5500)->addText((string) $value, $this->fontSmall);
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function hasFinancialPage14Sheet(array $data): bool
+    {
+        foreach ($data['documentSheets'] ?? [] as $sheet) {
+            if (($sheet['type'] ?? '') === 'financial_page14') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function buildFinancialPage14($section, array $data): void
+    {
+        foreach ($data['page14Findings'] ?? [] as $finding) {
+            $this->addSpacer($section, 120);
+            $findingTable = $section->addTable($this->gridTable);
+            $findingTable->addRow();
+            $widths = Doc::findingColumnWidths();
+            $findingTable->addCell($this->pct($widths[0]), ['valign' => 'center'])
+                ->addText($finding['serial'] ?? '', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+            $findingTable->addCell($this->pct($widths[1]), ['valign' => 'center'])
+                ->addText($finding['title'] ?? 'শিরোনাম', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+            $body = (string) ($finding['body'] ?? '');
+            if (($finding['amount'] ?? '') !== '') {
+                $body .= "\nটাকার পরিমাণ: ".$finding['amount'];
+            }
+            $findingTable->addCell($this->pct($widths[2]), ['valign' => 'top'])
+                ->addText($body, $this->fontSmall, ['alignment' => Jc::BOTH]);
+            $ratingCell = $findingTable->addCell($this->pct($widths[3]), ['valign' => 'center']);
+            $this->addRatingBox($ratingCell, $finding['rating'] ?? '');
+
+            $section->addText('প্রচলিত নিয়ম (Criteria):', $this->fontBold, ['spaceBefore' => 120]);
+            $section->addText($finding['criteria'] ?: str_repeat('·', 40), $this->fontBody, ['alignment' => Jc::BOTH]);
+            $section->addText('পর্যবেক্ষণ (Observation) :', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['observation'] ?: str_repeat('·', 40), $this->fontBody);
+
+            $this->addObservationTable($section, '', $finding['statsRows'] ?? []);
+
+            if (($finding['detail_type'] ?? '') === 'passbook_installment') {
+                $section->addText($finding['detail_intro'] ?? 'নিম্নে বিস্তারিত দেওয়া হলো:', $this->fontBold, ['spaceBefore' => 80]);
+                $rows = $section->addTable($this->gridTable);
+                $rows->addRow();
+                foreach (['সমিতি নং', 'সদস্য/আইডি', 'তারিখ', 'সঞ্চয় আদায়', 'কিস্তি/সেবা', 'সঞ্চয় সমন্বয়'] as $header) {
+                    $rows->addCell(1500, ['bgColor' => 'D9D9D9'])->addText($header, ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                }
+                foreach ($finding['passbookRows'] ?? [] as $row) {
+                    $rows->addRow();
+                    foreach (['samity_no', 'member_name_id', 'date', 'savings_amount', 'installment_amount', 'savings_adjustment'] as $field) {
+                        $rows->addCell(1500)->addText((string) ($row[$field] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
+                    }
+                }
+            } elseif (($finding['detail_type'] ?? '') === 'sufolon_term') {
+                $section->addText($finding['detail_intro'] ?? 'নিম্নে বিস্তারিত দেওয়া হলো:', $this->fontBold, ['spaceBefore' => 80]);
+                $rows = $section->addTable($this->gridTable);
+                $rows->addRow();
+                foreach (['ক্রমিক', 'সমিতি/সদস্য', 'নাম', 'খাত', 'বিতরণ তারিখ', 'প্রকৃত মেয়াদ', 'শেষ তারিখ', 'সফট মেয়াদ', 'বিতরণ টাকা', 'অতিরিক্ত সেবা'] as $header) {
+                    $rows->addCell(900, ['bgColor' => 'D9D9D9'])->addText($header, ['name' => self::FONT, 'size' => 6, 'bold' => true], ['alignment' => Jc::CENTER]);
+                }
+                foreach ($finding['sufolonRows'] ?? [] as $row) {
+                    $rows->addRow();
+                    foreach (['sl_no', 'samity_member_id', 'member_name', 'disbursement_sector', 'disbursement_date', 'actual_term', 'software_last_date', 'software_term', 'disbursed_amount', 'excess_service_charge'] as $field) {
+                        $rows->addCell(900)->addText((string) ($row[$field] ?? ''), ['name' => self::FONT, 'size' => 6], ['alignment' => Jc::CENTER]);
+                    }
+                }
+            }
+
+            $section->addText('ঝুঁকি (Risk):', $this->fontBold, ['spaceBefore' => 120]);
+            $section->addText($finding['risk'] ?? '', $this->fontBody, ['alignment' => Jc::BOTH]);
+            $section->addText('মূল কারণ (Root Cause):', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['root_cause'] ?: str_repeat('·', 40), $this->fontBody);
+            $section->addText('সুপারিশ (Recommendation):', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['recommendation'] ?: str_repeat('·', 40), $this->fontBody);
+
+            $mgmt = $section->addTable($this->gridTable);
+            foreach ([
+                ['শাখা ব্যবস্থাপকের জবাব', $finding['bm_reply'] ?? ''],
+                ['দায়িত্বপ্রাপ্ত কর্মী/পদক্ষেপ', $finding['responsible'] ?? ''],
+                ['সমাধানের সময়কাল (তারিখ)', $finding['resolution_date'] ?? ''],
+            ] as [$label, $value]) {
+                $mgmt->addRow();
+                $mgmt->addCell(3500)->addText($label, $this->fontBold);
+                $mgmt->addCell(5500)->addText((string) $value, $this->fontSmall);
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function hasFinancialPage15Sheet(array $data): bool
+    {
+        foreach ($data['documentSheets'] ?? [] as $sheet) {
+            if (($sheet['type'] ?? '') === 'financial_page15') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function buildFinancialPage15($section, array $data): void
+    {
+        foreach ($data['page15Findings'] ?? [] as $finding) {
+            $this->addSpacer($section, 120);
+            $findingTable = $section->addTable($this->gridTable);
+            $findingTable->addRow();
+            $widths = Doc::findingColumnWidths();
+            $findingTable->addCell($this->pct($widths[0]), ['valign' => 'center'])
+                ->addText($finding['serial'] ?? '', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+            $findingTable->addCell($this->pct($widths[1]), ['valign' => 'center'])
+                ->addText($finding['title'] ?? 'শিরোনাম', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+            $body = (string) ($finding['body'] ?? '');
+            if (($finding['amount'] ?? '') !== '') {
+                $body .= "\nটাকার পরিমাণ: ".$finding['amount'];
+            }
+            $findingTable->addCell($this->pct($widths[2]), ['valign' => 'top'])
+                ->addText($body, $this->fontSmall, ['alignment' => Jc::BOTH]);
+            $ratingCell = $findingTable->addCell($this->pct($widths[3]), ['valign' => 'center']);
+            $this->addRatingBox($ratingCell, $finding['rating'] ?? '');
+
+            $section->addText('প্রচলিত নিয়ম (Criteria):', $this->fontBold, ['spaceBefore' => 120]);
+            $section->addText($finding['criteria'] ?: str_repeat('·', 40), $this->fontBody, ['alignment' => Jc::BOTH]);
+            $section->addText('পর্যবেক্ষণ (Observation) :', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['observation'] ?: str_repeat('·', 40), $this->fontBody);
+
+            $this->addObservationTable($section, '', $finding['statsRows'] ?? []);
+
+            if (($finding['detail_type'] ?? 'none') === 'arrears_compare') {
+                $section->addText($finding['detail_intro'] ?: 'নিম্নে বিস্তারিত দেওয়া হলো:', $this->fontBold, ['spaceBefore' => 80]);
+                $arrears = $section->addTable($this->gridTable);
+                $arrears->addRow();
+                foreach ([
+                    'সমিতি নং', 'সদস্যের নাম ও আইডি', 'ঋণ বিতরণের তারিখ', 'ঋণের পরিমাণ',
+                    'প্রকৃত আদায়যোগ্য তারিখ', 'সফটওয়্যারে আদায়যোগ্য তারিখ', 'কিস্তি আদায়ের তারিখ',
+                    'প্রকৃত বকেয়া', 'সফটওয়্যারে বকেয়া',
+                ] as $header) {
+                    $arrears->addCell(1000)->addText($header, ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                }
+                foreach ($finding['arrearsRows'] ?? [] as $row) {
+                    $arrears->addRow();
+                    foreach ([
+                        'samity_no', 'member_name_id', 'disbursement_date', 'loan_amount',
+                        'actual_due_date', 'software_due_date', 'installment_date',
+                        'actual_arrears', 'software_arrears',
+                    ] as $field) {
+                        $arrears->addCell(1000)->addText((string) ($row[$field] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
+                    }
+                }
+            }
+
+            $section->addText('ঝুঁকি (Risk):', $this->fontBold, ['spaceBefore' => 120]);
+            $section->addText($finding['risk'] ?? '', $this->fontBody, ['alignment' => Jc::BOTH]);
+            $section->addText('মূল কারণ (Root Cause):', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['root_cause'] ?: str_repeat('·', 40), $this->fontBody);
+            $section->addText('সুপারিশ (Recommendation):', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['recommendation'] ?: str_repeat('·', 40), $this->fontBody);
+
+            $mgmt = $section->addTable($this->gridTable);
+            foreach ([
+                ['শাখা ব্যবস্থাপকের জবাব', $finding['bm_reply'] ?? ''],
+                ['দায়িত্বপ্রাপ্ত কর্মী/পদক্ষেপ', $finding['responsible'] ?? ''],
+                ['সমাধানের সময়কাল (তারিখ)', $finding['resolution_date'] ?? ''],
+            ] as [$label, $value]) {
+                $mgmt->addRow();
+                $mgmt->addCell(3500)->addText($label, $this->fontBold);
+                $mgmt->addCell(5500)->addText((string) $value, $this->fontSmall);
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function hasFinancialPage16Sheet(array $data): bool
+    {
+        foreach ($data['documentSheets'] ?? [] as $sheet) {
+            if (($sheet['type'] ?? '') === 'financial_page16') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function buildFinancialPage16($section, array $data): void
+    {
+        foreach ($data['page16Findings'] ?? [] as $finding) {
+            $this->addSpacer($section, 120);
+            $findingTable = $section->addTable($this->gridTable);
+            $findingTable->addRow();
+            $widths = Doc::findingColumnWidths();
+            $findingTable->addCell($this->pct($widths[0]), ['valign' => 'center'])
+                ->addText($finding['serial'] ?? '', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+            $findingTable->addCell($this->pct($widths[1]), ['valign' => 'center'])
+                ->addText($finding['title'] ?? 'শিরোনাম', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+            $body = (string) ($finding['body'] ?? '');
+            if (($finding['amount'] ?? '') !== '') {
+                $body .= "\nটাকার পরিমাণ: ".$finding['amount'];
+            }
+            $findingTable->addCell($this->pct($widths[2]), ['valign' => 'top'])
+                ->addText($body, $this->fontSmall, ['alignment' => Jc::BOTH]);
+            $ratingCell = $findingTable->addCell($this->pct($widths[3]), ['valign' => 'center']);
+            $this->addRatingBox($ratingCell, $finding['rating'] ?? '');
+
+            $section->addText('প্রচলিত নিয়ম (Criteria):', $this->fontBold, ['spaceBefore' => 120]);
+            $section->addText($finding['criteria'] ?: str_repeat('·', 40), $this->fontBody, ['alignment' => Jc::BOTH]);
+            $section->addText('পর্যবেক্ষণ (Observation) :', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['observation'] ?: str_repeat('·', 40), $this->fontBody);
+
+            $this->addObservationTable($section, '', $finding['statsRows'] ?? []);
+
+            if (($finding['detail_type'] ?? 'none') === 'passbook_absent') {
+                $passbook = $section->addTable($this->gridTable);
+                $passbook->addRow();
+                foreach ([
+                    'কর্মীর নাম', 'সমিতি নং', 'মোট সদস্য', 'প্রাপ্ত পাসবই সংখ্যা',
+                    'অনুপস্থিত পাসবই সংখ্যা', 'নিরীক্ষা/ পরিবীক্ষণ কর্মকর্তার মন্তব্য',
+                ] as $header) {
+                    $passbook->addCell(1200)->addText($header, ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                }
+                foreach ($finding['passbookAbsentRows'] ?? [] as $row) {
+                    $passbook->addRow();
+                    foreach ([
+                        'staff_name', 'samity_no', 'total_members',
+                        'passbooks_received', 'passbooks_absent', 'officer_comment',
+                    ] as $field) {
+                        $passbook->addCell(1200)->addText((string) ($row[$field] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
+                    }
+                }
+            }
+
+            $section->addText('ঝুঁকি (Risk):', $this->fontBold, ['spaceBefore' => 120]);
+            $section->addText($finding['risk'] ?? '', $this->fontBody, ['alignment' => Jc::BOTH]);
+            $section->addText('মূল কারণ (Root Cause):', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['root_cause'] ?: str_repeat('·', 40), $this->fontBody);
+            $section->addText('সুপারিশ (Recommendation):', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['recommendation'] ?: str_repeat('·', 40), $this->fontBody);
+
+            $mgmt = $section->addTable($this->gridTable);
+            foreach ([
+                ['শাখা ব্যবস্থাপকের জবাব', $finding['bm_reply'] ?? ''],
+                ['দায়িত্বপ্রাপ্ত কর্মী/পদক্ষেপ', $finding['responsible'] ?? ''],
+                ['সমাধানের সময়কাল (তারিখ)', $finding['resolution_date'] ?? ''],
+            ] as [$label, $value]) {
+                $mgmt->addRow();
+                $mgmt->addCell(3500)->addText($label, $this->fontBold);
+                $mgmt->addCell(5500)->addText((string) $value, $this->fontSmall);
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function hasFinancialPage17Sheet(array $data): bool
+    {
+        foreach ($data['documentSheets'] ?? [] as $sheet) {
+            if (($sheet['type'] ?? '') === 'financial_page17') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function buildFinancialPage17($section, array $data): void
+    {
+        foreach ($data['page17Findings'] ?? [] as $finding) {
+            $this->addSpacer($section, 120);
+            $findingTable = $section->addTable($this->gridTable);
+            $findingTable->addRow();
+            $widths = Doc::findingColumnWidths();
+            $findingTable->addCell($this->pct($widths[0]), ['valign' => 'center'])
+                ->addText($finding['serial'] ?? '', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+            $findingTable->addCell($this->pct($widths[1]), ['valign' => 'center'])
+                ->addText($finding['title'] ?? 'শিরোনাম', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+            $body = (string) ($finding['body'] ?? '');
+            if (($finding['amount'] ?? '') !== '') {
+                $body .= "\nটাকার পরিমাণ: ".$finding['amount'];
+            }
+            $findingTable->addCell($this->pct($widths[2]), ['valign' => 'top'])
+                ->addText($body, $this->fontSmall, ['alignment' => Jc::BOTH]);
+            $ratingCell = $findingTable->addCell($this->pct($widths[3]), ['valign' => 'center']);
+            $this->addRatingBox($ratingCell, $finding['rating'] ?? '');
+
+            $section->addText('প্রচলিত নিয়ম (Criteria):', $this->fontBold, ['spaceBefore' => 120]);
+            $section->addText($finding['criteria'] ?: str_repeat('·', 40), $this->fontBody, ['alignment' => Jc::BOTH]);
+            $section->addText('পর্যবেক্ষণ (Observation) :', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['observation'] ?: str_repeat('·', 40), $this->fontBody);
+
+            $this->addObservationTable($section, '', $finding['statsRows'] ?? []);
+
+            if (($finding['detail_type'] ?? 'none') === 'savings_partial_adjust') {
+                $section->addText($finding['detail_intro'] ?: 'বিস্তারিত নিম্নে দেওয়া হল:', $this->fontBold, ['spaceBefore' => 80]);
+                $adjust = $section->addTable($this->gridTable);
+                $adjust->addRow();
+                $adjust->addCell(1200, ['vMerge' => 'restart'])->addText('সমিতি নং', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                $adjust->addCell(1800, ['vMerge' => 'restart'])->addText('সদস্যের নাম ও আইডি', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                $adjust->addCell(2400, ['gridSpan' => 2])->addText('১ম দফা ঋণের আংশিক সমন্বয়', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                $adjust->addRow();
+                $adjust->addCell(1200, ['vMerge' => 'continue']);
+                $adjust->addCell(1800, ['vMerge' => 'continue']);
+                $adjust->addCell(1200)->addText('তারিখ', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                $adjust->addCell(1200)->addText('টাকা', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                foreach ($finding['savingsAdjustRows'] ?? [] as $row) {
+                    $adjust->addRow();
+                    $adjust->addCell(1200)->addText((string) ($row['samity_no'] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
+                    $adjust->addCell(1800)->addText((string) ($row['member_name_id'] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
+                    $adjust->addCell(1200)->addText((string) ($row['adjust_date'] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
+                    $adjust->addCell(1200)->addText((string) ($row['adjust_amount'] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
+                }
+            }
+
+            $section->addText('ঝুঁকি (Risk):', $this->fontBold, ['spaceBefore' => 120]);
+            $section->addText($finding['risk'] ?? '', $this->fontBody, ['alignment' => Jc::BOTH]);
+            $section->addText('মূল কারণ (Root Cause):', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['root_cause'] ?: str_repeat('·', 40), $this->fontBody);
+            $section->addText('সুপারিশ (Recommendation):', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['recommendation'] ?: str_repeat('·', 40), $this->fontBody);
+
+            $mgmt = $section->addTable($this->gridTable);
+            foreach ([
+                ['শাখা ব্যবস্থাপকের জবাব', $finding['bm_reply'] ?? ''],
+                ['দায়িত্বপ্রাপ্ত কর্মী/পদক্ষেপ', $finding['responsible'] ?? ''],
+                ['সমাধানের সময়কাল (তারিখ)', $finding['resolution_date'] ?? ''],
+            ] as [$label, $value]) {
+                $mgmt->addRow();
+                $mgmt->addCell(3500)->addText($label, $this->fontBold);
+                $mgmt->addCell(5500)->addText((string) $value, $this->fontSmall);
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function hasFinancialPage18Sheet(array $data): bool
+    {
+        foreach ($data['documentSheets'] ?? [] as $sheet) {
+            if (($sheet['type'] ?? '') === 'financial_page18') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function buildFinancialPage18($section, array $data): void
+    {
+        foreach ($data['page18Findings'] ?? [] as $finding) {
+            $this->addSpacer($section, 120);
+            $findingTable = $section->addTable($this->gridTable);
+            $findingTable->addRow();
+            $widths = Doc::findingColumnWidths();
+            $findingTable->addCell($this->pct($widths[0]), ['valign' => 'center'])
+                ->addText($finding['serial'] ?? '', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+            $findingTable->addCell($this->pct($widths[1]), ['valign' => 'center'])
+                ->addText($finding['title'] ?? 'শিরোনাম', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+            $body = (string) ($finding['body'] ?? '');
+            if (($finding['amount'] ?? '') !== '') {
+                $body .= "\nটাকার পরিমাণ: ".$finding['amount'];
+            }
+            $findingTable->addCell($this->pct($widths[2]), ['valign' => 'top'])
+                ->addText($body, $this->fontSmall, ['alignment' => Jc::BOTH]);
+            $ratingCell = $findingTable->addCell($this->pct($widths[3]), ['valign' => 'center']);
+            $this->addRatingBox($ratingCell, $finding['rating'] ?? '');
+
+            $section->addText('প্রচলিত নিয়ম (Criteria):', $this->fontBold, ['spaceBefore' => 120]);
+            $section->addText($finding['criteria'] ?: str_repeat('·', 40), $this->fontBody, ['alignment' => Jc::BOTH]);
+            $section->addText('পর্যবেক্ষণ (Observation) :', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['observation'] ?: str_repeat('·', 40), $this->fontBody);
+
+            $this->addObservationTable($section, '', $finding['statsRows'] ?? []);
+
+            if (($finding['detail_type'] ?? 'none') === 'dropout_savings_refund') {
+                $section->addText($finding['detail_intro'] ?: 'বিস্তারিত নিম্নে দেওয়া হল:', $this->fontBold, ['spaceBefore' => 80]);
+                $refund = $section->addTable($this->gridTable);
+                $refund->addRow();
+                $refund->addCell(1500)->addText('তারিখ', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                $refund->addCell(1800)->addText('সমিতি/সদস্য নং', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                $refund->addCell(2400)->addText('সদস্যের নাম', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                $refund->addCell(1800)->addText('সঞ্চয় ফেরতের পরিমাণ', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                foreach ($finding['dropoutRefundRows'] ?? [] as $row) {
+                    $refund->addRow();
+                    $refund->addCell(1500)->addText((string) ($row['date'] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
+                    $refund->addCell(1800)->addText((string) ($row['samity_member_no'] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
+                    $refund->addCell(2400)->addText((string) ($row['member_name'] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
+                    $refund->addCell(1800)->addText((string) ($row['refund_amount'] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
+                }
+            } elseif (($finding['detail_type'] ?? 'none') === 'savings_adjust_compare') {
+                $section->addText($finding['detail_intro'] ?: 'বিস্তারিত নিম্নে দেওয়া হল:', $this->fontBold, ['spaceBefore' => 80]);
+                $compare = $section->addTable($this->gridTable);
+                $compare->addRow();
+                $compare->addCell(1800)->addText('মাসের নাম', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                $compare->addCell(2200)->addText('ম্যানুয়ালী সঞ্চয় সমন্বয়', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                $compare->addCell(2200)->addText('সফটওয়্যার অনুযায়ী সঞ্চয় সমন্বয়', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                $compare->addCell(1800)->addText('পার্থক্য', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+                foreach ($finding['savingsAdjustCompareRows'] ?? [] as $row) {
+                    $compare->addRow();
+                    $compare->addCell(1800)->addText((string) ($row['month_name'] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
+                    $compare->addCell(2200)->addText((string) ($row['manual_adjust'] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
+                    $compare->addCell(2200)->addText((string) ($row['software_adjust'] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
+                    $compare->addCell(1800)->addText((string) ($row['difference'] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
+                }
+            } elseif (($finding['detail_intro'] ?? '') !== '') {
+                $section->addText($finding['detail_intro'], $this->fontBold, ['spaceBefore' => 80]);
+            }
+
+            $section->addText('ঝুঁকি (Risk):', $this->fontBold, ['spaceBefore' => 120]);
+            $section->addText($finding['risk'] ?? '', $this->fontBody, ['alignment' => Jc::BOTH]);
+            $section->addText('মূল কারণ (Root Cause):', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['root_cause'] ?: str_repeat('·', 40), $this->fontBody);
+            $section->addText('সুপারিশ (Recommendation):', $this->fontBold, ['spaceBefore' => 80]);
+            $section->addText($finding['recommendation'] ?: str_repeat('·', 40), $this->fontBody);
+
+            $mgmt = $section->addTable($this->gridTable);
+            foreach ([
+                ['শাখা ব্যবস্থাপকের জবাব', $finding['bm_reply'] ?? ''],
+                ['দায়িত্বপ্রাপ্ত কর্মী/পদক্ষেপ', $finding['responsible'] ?? ''],
+                ['সমাধানের সময়কাল (তারিখ)', $finding['resolution_date'] ?? ''],
+            ] as [$label, $value]) {
+                $mgmt->addRow();
+                $mgmt->addCell(3500)->addText($label, $this->fontBold);
+                $mgmt->addCell(5500)->addText((string) $value, $this->fontSmall);
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function hasFinancialPage19Sheet(array $data): bool
+    {
+        foreach ($data['documentSheets'] ?? [] as $sheet) {
+            if (($sheet['type'] ?? '') === 'financial_page19') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function buildFinancialPage19($section, array $data): void
+    {
+        $this->addSpacer($section, 120);
+        $section->addText($data['page19_compliance_title'] ?? '', $this->fontBold, ['spaceAfter' => 80]);
+        $section->addText(
+            'নিরীক্ষাকাল: '.($data['page19_compliance_period'] ?? '').'    ফলোআপের তারিখ: '.($data['page19_compliance_followup_date'] ?? ''),
+            ['name' => self::FONT, 'size' => 8],
+            ['spaceAfter' => 80]
+        );
+
+        $compliance = $section->addTable($this->gridTable);
+        $compliance->addRow();
+        foreach (['পূর্ববর্তী অনুচ্ছেদ নং', 'অনুসন্ধান/পর্যবেক্ষণ', 'প্রথম আবিষ্কারের নিরীক্ষাকাল', 'ব্যবস্থাপনার জবাব', 'বর্তমান অবস্থা', 'বর্তমান অনুচ্ছেদ নং'] as $header) {
+            $compliance->addCell(1500)->addText($header, ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+        }
+        foreach ($data['page19ComplianceRows'] ?? [] as $row) {
+            $compliance->addRow();
+            $compliance->addCell(1500)->addText((string) ($row['prev_para_no'] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
+            $compliance->addCell(2000)->addText((string) ($row['findings'] ?? ''), ['name' => self::FONT, 'size' => 7]);
+            $compliance->addCell(1500)->addText((string) ($row['first_discovery_period'] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
+            $compliance->addCell(2000)->addText((string) ($row['management_reply'] ?? ''), ['name' => self::FONT, 'size' => 7]);
+            $compliance->addCell(1500)->addText((string) ($row['current_status'] ?? ''), ['name' => self::FONT, 'size' => 7]);
+            $compliance->addCell(1500)->addText((string) ($row['current_para_no'] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function hasFinancialPage20Sheet(array $data): bool
+    {
+        foreach ($data['documentSheets'] ?? [] as $sheet) {
+            if (($sheet['type'] ?? '') === 'financial_page20') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function buildFinancialPage20($section, array $data): void
+    {
+        $this->addSpacer($section, 120);
+        $section->addText($data['page20_it_title'] ?? '', $this->fontBold, ['alignment' => Jc::CENTER, 'spaceAfter' => 80]);
+        $section->addText(
+            trim(($data['page20_it_org_line1'] ?? '')."\n".($data['page20_it_org_line2'] ?? '')."\n".($data['page20_it_org_line3'] ?? '')),
+            ['name' => self::FONT, 'size' => 9],
+            ['alignment' => Jc::CENTER, 'spaceAfter' => 80]
+        );
+        $section->addText(
+            'কর্মসূচীর নাম: '.($data['page20_it_program'] ?? '').'    শাখার নাম: '.($data['page20_it_branch'] ?? ''),
+            ['name' => self::FONT, 'size' => 8],
+            ['alignment' => Jc::CENTER, 'spaceAfter' => 80]
+        );
+        $section->addText($data['page20_it_instruction'] ?? 'প্রযোজ্য ক্ষেত্রে টিক চিহ্ন দিন', $this->fontBold, ['alignment' => Jc::CENTER, 'spaceAfter' => 80]);
+
+        $checklist = $section->addTable($this->gridTable);
+        $checklist->addRow();
+        $checklist->addCell(800, ['vMerge' => 'restart'])->addText('ক্রমিক', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+        $checklist->addCell(2200, ['vMerge' => 'restart'])->addText('বিবরণ', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+        $checklist->addCell(1800, ['gridSpan' => 3])->addText('Compliance', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+        $checklist->addCell(1200, ['vMerge' => 'restart'])->addText('Action Owner', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+        $checklist->addCell(1500, ['vMerge' => 'restart'])->addText('Management Comments', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+        $checklist->addCell(1500, ['vMerge' => 'restart'])->addText('Recommendation', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+        $checklist->addRow();
+        $checklist->addCell(800, ['vMerge' => 'continue']);
+        $checklist->addCell(2200, ['vMerge' => 'continue']);
+        $checklist->addCell(600)->addText('Yes', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+        $checklist->addCell(600)->addText('No', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+        $checklist->addCell(600)->addText('N/A', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+        $checklist->addCell(1200, ['vMerge' => 'continue']);
+        $checklist->addCell(1500, ['vMerge' => 'continue']);
+        $checklist->addCell(1500, ['vMerge' => 'continue']);
+
+        foreach ($data['page20ItChecklistRows'] ?? [] as $row) {
+            $compliance = (string) ($row['compliance'] ?? '');
+            $checklist->addRow();
+            $checklist->addCell(800)->addText((string) ($row['sl_no'] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
+            $checklist->addCell(2200)->addText((string) ($row['description'] ?? ''), ['name' => self::FONT, 'size' => 7]);
+            $checklist->addCell(600)->addText($compliance === 'yes' ? '✓' : '', ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
+            $checklist->addCell(600)->addText($compliance === 'no' ? '✓' : '', ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
+            $checklist->addCell(600)->addText($compliance === 'na' ? '✓' : '', ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
+            $checklist->addCell(1200)->addText((string) ($row['action_owner'] ?? ''), ['name' => self::FONT, 'size' => 7]);
+            $checklist->addCell(1500)->addText((string) ($row['management_comments'] ?? ''), ['name' => self::FONT, 'size' => 7]);
+            $checklist->addCell(1500)->addText((string) ($row['recommendation'] ?? ''), ['name' => self::FONT, 'size' => 7]);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function hasFinancialPage21Sheet(array $data): bool
+    {
+        foreach ($data['documentSheets'] ?? [] as $sheet) {
+            if (($sheet['type'] ?? '') === 'financial_page21') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function buildFinancialPage21($section, array $data): void
+    {
+        $this->addSpacer($section, 120);
+        $section->addText($data['page21_section_title'] ?? '', $this->fontBold, ['spaceAfter' => 80]);
+        $section->addText(
+            'Year of reporting: '.($data['page21_year_of_reporting'] ?? '').'    Name of Branch: '.($data['page21_branch_name'] ?? ''),
+            ['name' => self::FONT, 'size' => 8],
+            ['spaceAfter' => 80]
+        );
+
+        $peachHeader = ['bgColor' => 'FCE5CD'];
+        $peachHeaderAlt = ['bgColor' => 'F5D5B8'];
+        $headers = [
+            'Area of Observation',
+            'Compliance Area',
+            'Year of Reporting',
+            'External Observation',
+            'Compliance',
+            'Internal Index No',
+        ];
+        $fields = ['area_of_observation', 'compliance_area', 'year_of_reporting', 'external_observation', 'compliance', 'internal_index_no'];
+
+        $external = $section->addTable($this->gridTable);
+        $external->addRow();
+        foreach ($headers as $index => $header) {
+            $external->addCell(1500, $index % 2 === 0 ? $peachHeader : $peachHeaderAlt)
+                ->addText($header, ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+        }
+        foreach ($data['page21ExternalAuditRows'] ?? [] as $row) {
+            $external->addRow();
+            foreach ($fields as $field) {
+                $external->addCell(1500)->addText((string) ($row[$field] ?? ''), ['name' => self::FONT, 'size' => 7]);
+            }
+        }
+
+        $this->addSpacer($section, 160);
+        $section->addText($data['page21_sign_label'] ?? 'নিরীক্ষা কর্মকর্তার স্বাক্ষরঃ', $this->fontBold, ['spaceAfter' => 120]);
+        $section->addText((string) ($data['page21_sign_name'] ?? ''), ['name' => self::FONT, 'size' => 8], ['spaceAfter' => 40]);
+        $section->addText((string) ($data['page21_sign_designation'] ?? ''), ['name' => self::FONT, 'size' => 8]);
     }
 
     protected function toBinary(): string
