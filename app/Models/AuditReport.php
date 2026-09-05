@@ -44,6 +44,29 @@ class AuditReport extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function checklistFiles(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(AuditReportChecklistFile::class, 'audit_report_id')
+            ->orderByDesc('id');
+    }
+
+    public function checklistSubmissions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(AuditChecklistSubmission::class, 'audit_report_id')
+            ->orderByDesc('saved_at')
+            ->orderByDesc('id');
+    }
+
+    public function checklistFormats(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(
+            AuditChecklistFormat::class,
+            'audit_report_checklist_format',
+            'audit_report_id',
+            'audit_checklist_format_id'
+        )->withTimestamps()->orderBy('format_number');
+    }
+
     public function scopeOwnedBy(Builder $query, int $userId): Builder
     {
         return $query->where('user_id', $userId);

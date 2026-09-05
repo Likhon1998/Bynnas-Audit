@@ -196,7 +196,7 @@
 
     <?php elseif(in_array($type, ['stats', 'vat', 'tax'], true)): ?>
         <?php
-            $obsHeading = (string) ($block['heading'] ?? ($type === 'tax' ? 'Report Rating Box:' : ($type === 'vat' ? 'Report Rating Box:' : 'Report Rating Box:')));
+            $obsHeading = (string) ($block['heading'] ?? 'Report Rating Box:');
             if ($obsHeading === 'ভ্যাট সংক্রান্ত:' || $obsHeading === 'ট্যাক্স সংক্রান্ত:' || $obsHeading === 'সারণী:' || $obsHeading === 'নতুন সারণী:') {
                 $obsHeading = 'Report Rating Box:';
             }
@@ -206,6 +206,11 @@
             if ($obsRows === []) {
                 $obsRows = [['total_population' => '', 'sample_size' => '', 'instances_found' => '', 'percentage' => '']];
             }
+            $linkedSerial = trim((string) ($block['linked_finding_serial'] ?? ''));
+            $linkedTitle = trim((string) ($block['linked_finding_title'] ?? ''));
+            $linkedCode = trim((string) ($block['linked_indicator_code'] ?? ''));
+            $linkedIndicatorId = (int) ($block['linked_indicator_id'] ?? 0);
+            $hasMatrixLink = $linkedIndicatorId > 0;
         ?>
         <div class="mt-[3mm]">
             <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($editable): ?>
@@ -220,8 +225,51 @@
                     <button type="button" wire:click="moveBlock(<?php echo e($bIndex); ?>, 'down')" class="text-[11px] text-slate-600 hover:underline">↓</button>
                     <button type="button" wire:click="removeBlock(<?php echo e($bIndex); ?>)" class="text-[11px] text-rose-600 hover:underline">মুছুন</button>
                 </div>
+
+                <div class="mb-2 rounded-lg border <?php echo e($hasMatrixLink ? 'border-emerald-200 bg-emerald-50/70' : 'border-amber-200 bg-amber-50/80'); ?> px-2.5 py-2">
+                    <div class="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                        <p class="text-[10px] font-bold uppercase tracking-wide <?php echo e($hasMatrixLink ? 'text-emerald-800' : 'text-amber-800'); ?>">
+                            <?php echo e($hasMatrixLink ? '✓ Matrix indicator confirmed' : '⚠ Matrix indicator missing'); ?>
+
+                        </p>
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($hasMatrixLink && $linkedCode !== ''): ?>
+                            <span class="rounded bg-white/80 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-emerald-800"><?php echo e($linkedCode); ?></span>
+                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                    </div>
+
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($hasMatrixLink): ?>
+                        <p class="mb-1.5 text-[11px] font-semibold leading-snug text-emerald-950">
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($linkedSerial !== ''): ?>
+                                <span class="text-emerald-700"><?php echo e($linkedSerial); ?></span> ·
+                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                            <?php echo e($linkedTitle !== '' ? $linkedTitle : 'Selected indicator'); ?>
+
+                        </p>
+                        <p class="mb-1.5 text-[10px] text-emerald-800/80">এই বক্সের Sample / Instances / Amount এই indicator-এর Findings Matrix সারিতে যাবে (শাখা × মাস)।</p>
+                    <?php else: ?>
+                        <p class="mb-1.5 text-[10px] text-amber-900">নিচ থেকে indicator বেছে নিন — না হলে Matrix-এ ডেটা যাবে না।</p>
+                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+
+                    <label class="mb-0.5 block text-[10px] font-semibold text-slate-600">এই Rating Box কোন indicator-এর?</label>
+                    <?php echo $__env->make('livewire.partials.audit-indicator-combobox', [
+                        'index' => $bIndex,
+                        'value' => $hasMatrixLink ? $linkedTitle : '',
+                        'indicators' => $indicatorOptions ?? $financialIndicatorOptions ?? [],
+                        'collection' => 'statsBlocks',
+                        'wireKey' => 'stats-ind-'.$bIndex.'-'.(int) $linkedIndicatorId,
+                    ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+                </div>
             <?php elseif($obsHeading !== ''): ?>
                 <p class="mb-[1mm] font-bold"><?php echo e($obsHeading); ?></p>
+                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($hasMatrixLink): ?>
+                    <p class="mb-[1mm] text-[10px] text-slate-600">
+                        Indicator:
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($linkedSerial !== ''): ?> <?php echo e($linkedSerial); ?> · <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                        <?php echo e($linkedTitle); ?>
+
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($linkedCode !== ''): ?> (<?php echo e($linkedCode); ?>) <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                    </p>
+                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
             <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
             <table class="<?php echo e($obsTableClass); ?> mb-[2mm]">
@@ -268,6 +316,10 @@
             'customTableEditorIndex' => $customTableEditorIndex ?? null,
             'customTableSizeCols' => $customTableSizeCols ?? null,
             'customTableSizeRows' => $customTableSizeRows ?? null,
+            'customTableSelR' => $customTableSelR ?? null,
+            'customTableSelC' => $customTableSelC ?? null,
+            'customTableMergeRows' => $customTableMergeRows ?? 2,
+            'customTableMergeCols' => $customTableMergeCols ?? 1,
         ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
     <?php elseif($type === 'jobab_table'): ?>

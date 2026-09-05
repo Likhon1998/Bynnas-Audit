@@ -1,9 +1,12 @@
 <?php
     $parts = \App\Livewire\MakeAuditReport::findingRatingParts($rating ?? '');
+    $style = \App\Livewire\MakeAuditReport::findingRatingStyle($rating ?? '');
     $label = $parts['label'] ?: '—';
     $code = $parts['code'] ?: '—';
     $editable = $editable ?? false;
     $wireModel = $wireModel ?? null;
+    $cellBg = $style['bg'] ?? '#FCE4D6';
+    $cellColor = $style['color'] ?? '#111111';
 ?>
 <table class="w-full border-collapse text-[10px]">
     <tr>
@@ -13,19 +16,23 @@
     </tr>
     <tr>
         <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($editable && $wireModel): ?>
-            <td colspan="2" class="border border-black bg-[#F8CBAD] p-[1.5mm] text-center font-bold">
-                <select wire:model.live="<?php echo e($wireModel); ?>" class="w-full border-0 bg-transparent text-center text-[10px] font-bold">
+            <td colspan="2" class="border border-black p-[1.5mm] text-center font-bold" style="background: <?php echo e($cellBg); ?>; color: <?php echo e($cellColor); ?>;">
+                <select
+                    wire:model.live="<?php echo e($wireModel); ?>"
+                    class="w-full border-0 bg-transparent text-center text-[10px] font-bold"
+                    style="color: <?php echo e($cellColor); ?>;"
+                >
                     <option value="">—</option>
                     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $findingRatings ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $option): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
                         <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($option !== ''): ?>
-                            <option value="<?php echo e($option); ?>"><?php echo e($option); ?></option>
+                            <option value="<?php echo e($option); ?>" style="background:#ffffff;color:#111111;"><?php echo e($option); ?></option>
                         <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                 </select>
             </td>
         <?php else: ?>
-            <td class="w-1/2 border border-black bg-[#F8CBAD] p-[1.5mm] text-center font-bold"><?php echo e($label); ?></td>
-            <td class="w-1/2 border border-black bg-[#F8CBAD] p-[1.5mm] text-center text-[11px] font-bold"><?php echo e($code); ?></td>
+            <td class="w-1/2 border border-black p-[1.5mm] text-center font-bold" style="background: <?php echo e($cellBg); ?>; color: <?php echo e($cellColor); ?>;"><?php echo e($label); ?></td>
+            <td class="w-1/2 border border-black p-[1.5mm] text-center text-[11px] font-bold" style="background: <?php echo e($cellBg); ?>; color: <?php echo e($cellColor); ?>;"><?php echo e($code); ?></td>
         <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
     </tr>
 </table>

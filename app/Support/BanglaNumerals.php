@@ -32,6 +32,41 @@ class BanglaNumerals
         return self::fromLatin($value);
     }
 
+    /**
+     * Normalize Bangla/ASCII digit strings to a float (empty → null).
+     */
+    public static function toFloat(mixed $value): ?float
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $raw = trim((string) $value);
+        if ($raw === '') {
+            return null;
+        }
+
+        $latin = strtr($raw, array_flip(self::LATIN_TO_BANGLA));
+        $latin = str_replace([',', ' ', '٫'], ['', '', '.'], $latin);
+        $latin = preg_replace('/[^0-9.\-]/', '', $latin) ?? '';
+
+        if ($latin === '' || $latin === '-' || $latin === '.') {
+            return null;
+        }
+
+        return is_numeric($latin) ? (float) $latin : null;
+    }
+
+    public static function toInt(mixed $value): ?int
+    {
+        $float = self::toFloat($value);
+        if ($float === null) {
+            return null;
+        }
+
+        return (int) round($float);
+    }
+
     public static function markup(?string $text, string $variant = 'default'): string
     {
         $text = trim((string) $text);

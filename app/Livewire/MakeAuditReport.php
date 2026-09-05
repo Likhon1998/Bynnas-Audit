@@ -7,6 +7,7 @@ use App\Models\AuditReport;
 use App\Models\Shakha;
 use App\Services\AuditReportDocService;
 use App\Services\AuditReportPdfService;
+use App\Services\AuditSummaryService;
 use App\Services\UserAccessService;
 use App\Support\AuditReportPaginator;
 use App\Support\AuditTableHeaders;
@@ -310,21 +311,42 @@ class MakeAuditReport extends Component
     /** @var list<string> */
     public array $findingRatings = [
         '',
+        'Unsatisfactory (F)',
+        'Unsatisfactory (A)',
         'Major (B)',
         'Medium (C)',
         'Minor (D)',
-        'Unsatisfactory (F)',
+        'Satisfactory (E)',
     ];
 
     public ?string $lastAutoSavedAt = null;
 
     public string $autoSaveHint = '';
 
+    /** Dashboard: find reports by month / year / branch (0 = all months). */
+    public int $listFilterMonth = 0;
+
+    public int $listFilterYear = 0;
+
+    public string $listFilterQ = '';
+
+    /** all | draft | completed */
+    public string $listFilterStatus = 'all';
+
+    /**
+     * In-session undo stack for report body (blocks / tables / columns).
+     *
+     * @var list<array{label:string,blocks:list<array<string,mixed>>}>
+     */
+    public array $undoStack = [];
+
     public function mount(): void
     {
         $this->auditor_name = (string) (auth()->user()?->name ?? '');
         $this->report_month = (int) now()->month;
         $this->report_year = (int) now()->year;
+        $this->listFilterMonth = (int) now()->month;
+        $this->listFilterYear = (int) now()->year;
         $this->report_date = now()->toDateString();
         $this->memo_no = 'অডিট/শাখা - ';
         $this->applyMonthYearDefaults();
@@ -420,6 +442,51 @@ class MakeAuditReport extends Component
     public function clearShakha(): void
     {
         $this->shakha_id = null;
+    }
+
+    public function clearReportListFilters(): void
+    {
+        $this->listFilterMonth = 0;
+        $this->listFilterYear = (int) now()->year;
+        $this->listFilterQ = '';
+        $this->listFilterStatus = 'all';
+    }
+
+    public function showCurrentMonthReports(): void
+    {
+        $this->listFilterMonth = (int) now('Asia/Dhaka')->month;
+        $this->listFilterYear = (int) now('Asia/Dhaka')->year;
+        $this->listFilterStatus = 'all';
+    }
+
+    /**
+     * @param  \Illuminate\Database\Eloquent\Builder<\App\Models\AuditReport>  $query
+     * @return \Illuminate\Database\Eloquent\Builder<\App\Models\AuditReport>
+     */
+    protected function applyReportListFilters($query)
+    {
+        if ($this->listFilterMonth >= 1 && $this->listFilterMonth <= 12) {
+            $query->where('report_month', $this->listFilterMonth);
+        }
+        if ($this->listFilterYear >= 2000 && $this->listFilterYear <= 2100) {
+            $query->where('report_year', $this->listFilterYear);
+        }
+
+        $q = trim($this->listFilterQ);
+        if ($q !== '') {
+            $like = '%'.$q.'%';
+            $query->where(function ($w) use ($like) {
+                $w->where('shakha_display_name', 'like', $like)
+                    ->orWhere('memo_no', 'like', $like)
+                    ->orWhere('area_display_name', 'like', $like)
+                    ->orWhereHas('shakha', function ($s) use ($like) {
+                        $s->where('name', 'like', $like)
+                            ->orWhere('code', 'like', $like);
+                    });
+            });
+        }
+
+        return $query;
     }
 
     public function startReport($shakhaId = null): void
@@ -551,6 +618,7 @@ class MakeAuditReport extends Component
         $this->reportId = $report->id;
         $this->step = 'wizard';
         $this->activeTab = 'cover';
+        $this->undoStack = [];
         $this->lastAutoSavedAt = now('Asia/Dhaka')->format('h:i A');
         $this->autoSaveHint = 'Draft saved '.$this->lastAutoSavedAt;
         $this->sign_auditor_name = $this->auditor_name;
@@ -567,6 +635,7 @@ class MakeAuditReport extends Component
         $this->hydrateFromReport($report);
         $this->step = 'wizard';
         $this->showPreview = false;
+        $this->undoStack = [];
         $this->resetErrorBag();
     }
 
@@ -592,11 +661,62 @@ class MakeAuditReport extends Component
 
         try {
             $this->persistDraft(markTab: null, flash: false);
-            $this->lastAutoSavedAt = now('Asia/Dhaka')->format('h:i A');
+            $this->lastAutoSavedAt = now('Asia/Dhaka')->format('h:i:s A');
             $this->autoSaveHint = 'Auto-saved '.$this->lastAutoSavedAt;
         } catch (\Throwable $e) {
             report($e);
             $this->autoSaveHint = 'Auto-save failed';
+        }
+    }
+
+    /**
+     * Restore the last snapshot (deleted block / column / row / table).
+     */
+    public function undoLastChange(): void
+    {
+        if ($this->undoStack === []) {
+            $this->autoSaveHint = 'Undo করার মতো কিছু নেই';
+
+            return;
+        }
+
+        $snap = array_pop($this->undoStack);
+        $this->reportBlocks = array_values((array) ($snap['blocks'] ?? []));
+        $this->closeCustomTableEditor();
+        $this->syncSectionsFromReportBlocks();
+        $this->syncLegacyFinancialFromReportSections();
+        $this->syncLegacyUtilityFromBlocks();
+        $this->rebuildTocFromReportBlocks();
+
+        if ($this->reportId) {
+            $this->autoSaveDraft();
+        }
+
+        $label = (string) ($snap['label'] ?? 'change');
+        $this->autoSaveHint = 'Undo · '.$label;
+    }
+
+    /**
+     * Snapshot report body before a destructive edit.
+     */
+    protected function pushUndoSnapshot(string $label): void
+    {
+        if ($this->step !== 'wizard') {
+            return;
+        }
+
+        $copy = json_decode(json_encode($this->reportBlocks, JSON_UNESCAPED_UNICODE), true);
+        if (! is_array($copy)) {
+            $copy = [];
+        }
+
+        $this->undoStack[] = [
+            'label' => $label,
+            'blocks' => array_values($copy),
+        ];
+
+        if (count($this->undoStack) > 12) {
+            $this->undoStack = array_values(array_slice($this->undoStack, -12));
         }
     }
 
@@ -608,7 +728,9 @@ class MakeAuditReport extends Component
 
         $this->ensureFinancialAuditDefaults();
         $this->syncAllFinancialFindingsToToc();
+        $this->relinkStatsBlocksToFindings();
         $this->persistDraft(markTab: 'page4', flash: false);
+        $synced = $this->syncReportToFindingsMatrix();
 
         AuditReport::query()->whereKey($this->reportId)->update([
             'status' => AuditReport::STATUS_COMPLETED,
@@ -618,7 +740,13 @@ class MakeAuditReport extends Component
             'last_saved_at' => now(),
         ]);
 
-        session()->flash('status', 'প্রতিবেদন সম্পন্ন ও সংরক্ষিত হয়েছে।');
+        $msg = 'প্রতিবেদন সম্পন্ন ও সংরক্ষিত হয়েছে।';
+        if ($synced > 0) {
+            $msg .= ' Findings Matrix-এ '.$synced.'টি indicator (শাখা × মাস) আপডেট হয়েছে।';
+        } else {
+            $msg .= ' Matrix আপডেট করতে শিরোনামে Indicator বেছে নিন ও Report Rating Box পূরণ করুন।';
+        }
+        session()->flash('status', $msg);
         $this->backToSelect(saveFirst: false);
     }
 
@@ -697,6 +825,20 @@ class MakeAuditReport extends Component
         $this->activeTab = 'page2';
     }
 
+    /**
+     * Toolbar “সংরক্ষণ” — save the tab the user is actually on (not always cover).
+     */
+    public function saveCurrentTab(): void
+    {
+        match ($this->activeTab) {
+            'cover' => $this->saveCover(),
+            'page2' => $this->savePage2(),
+            'page3' => $this->savePage3(),
+            'page4' => $this->savePage4(),
+            default => $this->autoSaveDraft(),
+        };
+    }
+
     public function savePage2(): void
     {
         $this->ensureTocDefaults();
@@ -717,7 +859,12 @@ class MakeAuditReport extends Component
     {
         $this->ensureFinancialAuditDefaults();
         $this->syncAllFinancialFindingsToToc();
+        $this->relinkStatsBlocksToFindings();
         $this->persistDraft(markTab: 'page4', flash: true, flashMessage: 'পৃষ্ঠা ৪ (আর্থিক নিরীক্ষা) সংরক্ষণ হয়েছে।');
+        $synced = $this->syncReportToFindingsMatrix();
+        if ($synced > 0) {
+            session()->flash('status', 'পৃষ্ঠা ৪ সংরক্ষণ হয়েছে · Findings Matrix-এ '.$synced.'টি indicator আপডেট।');
+        }
     }
 
     public function savePage5(): void
@@ -1007,19 +1154,47 @@ class MakeAuditReport extends Component
 
     /**
      * Insert a block at any absolute index (0 = top of page body).
-     * $type: section|finding|criteria|observation|stats|custom_table|risk|root_cause|recommendation|jobab_table|followup_pack
+     * $type: section|finding|criteria|observation|stats|custom_table|risk|root_cause|recommendation|jobab_table|followup_pack|finding_format_pack
      */
     public function insertBlockAt(int $index, string $type = 'finding'): void
     {
         $this->ensureReportBlocksDefaults();
         $allowed = [
             'section', 'finding', 'criteria', 'observation', 'stats', 'custom_table',
-            'risk', 'root_cause', 'recommendation', 'jobab_table', 'followup_pack', 'text_box',
+            'risk', 'root_cause', 'recommendation', 'jobab_table', 'followup_pack',
+            'finding_format_pack', 'text_box',
         ];
         $type = in_array($type, $allowed, true) ? $type : 'finding';
         $index = max(0, min($index, count($this->reportBlocks)));
 
-        if ($type === 'section') {
+        if ($type === 'finding_format_pack') {
+            $sectionSerial = $this->nextSectionSerialFromBlocks();
+            $findingRow = $this->blankFindingRow($this->nextFindingSerialForSectionSerial($sectionSerial));
+            $pack = [
+                [
+                    'type' => 'section',
+                    'serial' => $sectionSerial,
+                    'title' => $sectionSerial.' নতুন বিভাগ',
+                ],
+                [
+                    'type' => 'finding',
+                    ...$findingRow,
+                ],
+                $this->blankCriteriaBlock(''),
+                $this->blankObservationBlock('পর্যবেক্ষণ (Observation) :', ''),
+                $this->blankStatsBlock('Report Rating Box:', null, [
+                    'linked_indicator_id' => $findingRow['indicator_id'] ?? null,
+                    'linked_indicator_code' => $findingRow['indicator_code'] ?? null,
+                    'linked_finding_serial' => $findingRow['serial'] ?? null,
+                    'linked_finding_title' => $findingRow['title'] ?? null,
+                ]),
+                $this->blankRiskBox(),
+                $this->blankRootCauseBox(),
+                $this->blankRecommendationBox(),
+                $this->blankJobabBlock(),
+            ];
+            array_splice($this->reportBlocks, $index, 0, $pack);
+        } elseif ($type === 'section') {
             $serial = $this->nextSectionSerialFromBlocks();
             $block = [
                 'type' => 'section',
@@ -1029,7 +1204,7 @@ class MakeAuditReport extends Component
             array_splice($this->reportBlocks, $index, 0, [$block]);
             array_splice($this->reportBlocks, $index + 1, 0, [[
                 'type' => 'finding',
-                ...$this->blankFindingRow($this->nextFindingSerialNearIndex($index + 1)),
+                ...$this->blankFindingRow($this->nextFindingSerialForSectionSerial($serial)),
             ]]);
         } elseif ($type === 'criteria') {
             array_splice($this->reportBlocks, $index, 0, [$this->blankCriteriaBlock('')]);
@@ -1052,7 +1227,11 @@ class MakeAuditReport extends Component
             ];
             array_splice($this->reportBlocks, $index, 0, $pack);
         } elseif ($type === 'stats') {
-            array_splice($this->reportBlocks, $index, 0, [$this->blankStatsBlock('Report Rating Box:')]);
+            array_splice($this->reportBlocks, $index, 0, [$this->blankStatsBlock(
+                'Report Rating Box:',
+                null,
+                $this->findingContextBeforeIndex($index)
+            )]);
         } elseif ($type === 'custom_table') {
             array_splice($this->reportBlocks, $index, 0, [CustomTableSchema::blank(4, 5)]);
         } else {
@@ -1073,6 +1252,7 @@ class MakeAuditReport extends Component
         }
 
         $type = $this->reportBlocks[$index]['type'] ?? '';
+        $this->pushUndoSnapshot('মুছে ফেলা ব্লক পুনরুদ্ধার ('.$type.')');
 
         if ($type === 'section') {
             $end = count($this->reportBlocks);
@@ -1136,6 +1316,7 @@ class MakeAuditReport extends Component
         if (! isset($rows[$rowIndex]) || count($rows) <= 1) {
             return;
         }
+        $this->pushUndoSnapshot('Rating Box সারি পুনরুদ্ধার');
         unset($rows[$rowIndex]);
         $this->reportBlocks[$blockIndex]['rows'] = array_values($rows);
         $this->afterBlocksChanged();
@@ -1146,6 +1327,7 @@ class MakeAuditReport extends Component
         if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'custom_table') {
             return;
         }
+        $this->pushUndoSnapshot('টেবিল টেমপ্লেট আগের অবস্থা');
         $this->reportBlocks[$blockIndex] = $template === 'blank'
             ? CustomTableSchema::blank(4, 5)
             : CustomTableSchema::expenseVatTaxTemplate();
@@ -1188,6 +1370,7 @@ class MakeAuditReport extends Component
 
     public function removeCustomTableColumn(int $blockIndex, string $columnId): void
     {
+        $this->pushUndoSnapshot('টেবিল কলাম পুনরুদ্ধার');
         if (! $this->mutateCustomTable($blockIndex, function (array $block) use ($columnId) {
             $path = CustomTableSchema::findColumnPath($block['columns'], $columnId);
             if ($path === null) {
@@ -1200,6 +1383,8 @@ class MakeAuditReport extends Component
 
             return CustomTableSchema::syncRowWidths($block);
         })) {
+            array_pop($this->undoStack);
+
             return;
         }
         if ($this->customTableEditorIndex === $blockIndex) {
@@ -1224,6 +1409,7 @@ class MakeAuditReport extends Component
 
     public function removeCustomTableRow(int $blockIndex, int $rowIndex): void
     {
+        $this->pushUndoSnapshot('টেবিল সারি পুনরুদ্ধার');
         if (! $this->mutateCustomTable($blockIndex, function (array $block) use ($rowIndex) {
             $rows = $block['rows'];
             if (! isset($rows[$rowIndex]) || count($rows) <= 1) {
@@ -1239,6 +1425,8 @@ class MakeAuditReport extends Component
 
             return $block;
         })) {
+            array_pop($this->undoStack);
+
             return;
         }
         if ($this->customTableEditorIndex === $blockIndex) {
@@ -1546,8 +1734,60 @@ class MakeAuditReport extends Component
             $this->reportBlocks[$blockIndex]['rating'] = $this->mapRiskToFindingRating((string) $indicator->risk_rating);
         }
 
+        // Propagate to following rating boxes that still share this finding (or have no link yet).
+        for ($i = $blockIndex + 1; $i < count($this->reportBlocks); $i++) {
+            $type = $this->reportBlocks[$i]['type'] ?? '';
+            if ($type === 'finding' || $type === 'section') {
+                break;
+            }
+            if (! $this->isStatsLike((string) $type)) {
+                continue;
+            }
+            $existing = (int) ($this->reportBlocks[$i]['linked_indicator_id'] ?? 0);
+            $manual = (bool) ($this->reportBlocks[$i]['link_manual'] ?? false);
+            if ($manual && $existing > 0 && $existing !== (int) $indicator->id) {
+                continue;
+            }
+            $this->reportBlocks[$i]['linked_indicator_id'] = $indicator->id;
+            $this->reportBlocks[$i]['linked_indicator_code'] = $indicator->indicator_code;
+            $this->reportBlocks[$i]['linked_finding_serial'] = (string) ($this->reportBlocks[$blockIndex]['serial'] ?? '');
+            $this->reportBlocks[$i]['linked_finding_title'] = $indicator->title;
+            $this->reportBlocks[$i]['link_manual'] = false;
+        }
+
         $this->afterBlocksChanged();
         $this->autoSaveHint = 'Indicator সংযুক্ত · সূচিপত্রে আপডেট';
+    }
+
+    /**
+     * Explicitly set which Findings Matrix indicator a Report Rating Box belongs to.
+     */
+    public function applyStatsBlockIndicator(int $blockIndex, ?int $indicatorId, string $title): void
+    {
+        $this->ensureReportBlocksDefaults();
+        if (! isset($this->reportBlocks[$blockIndex]) || ! $this->isStatsLike((string) ($this->reportBlocks[$blockIndex]['type'] ?? ''))) {
+            return;
+        }
+
+        $title = trim($title);
+        if ($title === '') {
+            return;
+        }
+
+        $indicator = $this->resolveOrCreateIndicator($indicatorId, $title, 'নিরীক্ষা প্রতিবেদন');
+        $ctx = $this->findingContextBeforeIndex($blockIndex);
+
+        $this->reportBlocks[$blockIndex]['linked_indicator_id'] = $indicator->id;
+        $this->reportBlocks[$blockIndex]['linked_indicator_code'] = $indicator->indicator_code;
+        $this->reportBlocks[$blockIndex]['linked_finding_title'] = $indicator->title;
+        $this->reportBlocks[$blockIndex]['linked_finding_serial'] = $ctx['linked_finding_serial'] ?? '';
+        $this->reportBlocks[$blockIndex]['link_manual'] = true;
+
+        if ($this->reportId) {
+            $this->autoSaveDraft();
+        }
+
+        $this->autoSaveHint = 'Rating Box → Matrix indicator: '.$indicator->indicator_code;
     }
 
     protected function afterBlocksChanged(): void
@@ -1555,9 +1795,108 @@ class MakeAuditReport extends Component
         $this->syncSectionsFromReportBlocks();
         $this->syncLegacyFinancialFromReportSections();
         $this->syncLegacyUtilityFromBlocks();
+        $this->relinkStatsBlocksToFindings();
         $this->rebuildTocFromReportBlocks();
         if ($this->reportId) {
             $this->autoSaveDraft();
+        }
+    }
+
+    /**
+     * Each Report Rating Box inherits the nearest preceding finding's indicator
+     * so the matrix knows which heading/indicator the numbers belong to.
+     * Does not overwrite a manually chosen link on the rating box.
+     */
+    protected function relinkStatsBlocksToFindings(): void
+    {
+        $ctx = [
+            'linked_indicator_id' => null,
+            'linked_indicator_code' => null,
+            'linked_finding_serial' => null,
+            'linked_finding_title' => null,
+        ];
+
+        foreach ($this->reportBlocks as $i => $block) {
+            $type = $block['type'] ?? '';
+            if ($type === 'finding') {
+                $indicatorId = (int) ($block['indicator_id'] ?? 0);
+                $body = trim((string) ($block['body'] ?? ''));
+                $ctx = [
+                    'linked_indicator_id' => $indicatorId > 0 ? $indicatorId : null,
+                    'linked_indicator_code' => $indicatorId > 0 ? (string) ($block['indicator_code'] ?? '') : null,
+                    'linked_finding_serial' => (string) ($block['serial'] ?? ''),
+                    'linked_finding_title' => $body !== '' ? $body : (string) ($block['title'] ?? ''),
+                ];
+                continue;
+            }
+
+            if (! $this->isStatsLike((string) $type)) {
+                continue;
+            }
+
+            if (! empty($block['link_manual']) && (int) ($block['linked_indicator_id'] ?? 0) > 0) {
+                continue;
+            }
+
+            $this->reportBlocks[$i]['linked_indicator_id'] = $ctx['linked_indicator_id'];
+            $this->reportBlocks[$i]['linked_indicator_code'] = $ctx['linked_indicator_code'];
+            $this->reportBlocks[$i]['linked_finding_serial'] = $ctx['linked_finding_serial'];
+            $this->reportBlocks[$i]['linked_finding_title'] = $ctx['linked_finding_title'];
+            $this->reportBlocks[$i]['link_manual'] = false;
+        }
+    }
+
+    /**
+     * @return array{linked_indicator_id:?int,linked_indicator_code:?string,linked_finding_serial:?string,linked_finding_title:?string}
+     */
+    protected function findingContextBeforeIndex(int $index): array
+    {
+        $ctx = [
+            'linked_indicator_id' => null,
+            'linked_indicator_code' => null,
+            'linked_finding_serial' => null,
+            'linked_finding_title' => null,
+        ];
+
+        for ($i = min($index, count($this->reportBlocks)) - 1; $i >= 0; $i--) {
+            if (($this->reportBlocks[$i]['type'] ?? '') !== 'finding') {
+                continue;
+            }
+            $block = $this->reportBlocks[$i];
+            $indicatorId = (int) ($block['indicator_id'] ?? 0);
+            $body = trim((string) ($block['body'] ?? ''));
+
+            return [
+                'linked_indicator_id' => $indicatorId > 0 ? $indicatorId : null,
+                'linked_indicator_code' => $indicatorId > 0 ? (string) ($block['indicator_code'] ?? '') : null,
+                'linked_finding_serial' => (string) ($block['serial'] ?? ''),
+                'linked_finding_title' => $body !== '' ? $body : (string) ($block['title'] ?? ''),
+            ];
+        }
+
+        return $ctx;
+    }
+
+    /**
+     * Persist rating-box numbers into Findings Matrix for this report's shakha/period.
+     */
+    protected function syncReportToFindingsMatrix(): int
+    {
+        if (! $this->reportId) {
+            return 0;
+        }
+
+        $report = AuditReport::query()->find($this->reportId);
+        if (! $report) {
+            return 0;
+        }
+
+        try {
+            return app(AuditSummaryService::class)->syncFromReport($report);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return 0;
         }
     }
 
@@ -1762,9 +2101,10 @@ class MakeAuditReport extends Component
      * Report Rating Box (stats table).
      *
      * @param  list<array{total_population:string,sample_size:string,instances_found:string,percentage:string}>|null  $rows
-     * @return array{type:string,heading:string,rows:list<array<string,string>>}
+     * @param  array{linked_indicator_id:?int,linked_indicator_code:?string,linked_finding_serial:?string,linked_finding_title:?string}|null  $link
+     * @return array{type:string,heading:string,rows:list<array<string,string>>,linked_indicator_id:?int,linked_indicator_code:?string,linked_finding_serial:?string,linked_finding_title:?string}
      */
-    protected function blankStatsBlock(string $heading = 'Report Rating Box:', ?array $rows = null): array
+    protected function blankStatsBlock(string $heading = 'Report Rating Box:', ?array $rows = null, ?array $link = null): array
     {
         $heading = $this->normalizeStatsHeading($heading);
         $normalizedRows = [];
@@ -1775,10 +2115,22 @@ class MakeAuditReport extends Component
             $normalizedRows = [$this->blankObservationRow()];
         }
 
+        $link = $link ?? [
+            'linked_indicator_id' => null,
+            'linked_indicator_code' => null,
+            'linked_finding_serial' => null,
+            'linked_finding_title' => null,
+        ];
+
         return [
             'type' => 'stats',
             'heading' => $heading,
             'rows' => $normalizedRows,
+            'linked_indicator_id' => $link['linked_indicator_id'] ?? null,
+            'linked_indicator_code' => $link['linked_indicator_code'] ?? null,
+            'linked_finding_serial' => $link['linked_finding_serial'] ?? null,
+            'linked_finding_title' => $link['linked_finding_title'] ?? null,
+            'link_manual' => false,
         ];
     }
 
@@ -2222,6 +2574,7 @@ class MakeAuditReport extends Component
         $this->logoUpload = null;
         $this->autoSaveHint = '';
         $this->lastAutoSavedAt = null;
+        $this->undoStack = [];
     }
 
     protected function persistDraft(?string $markTab = null, bool $flash = false, string $flashMessage = ''): void
@@ -2252,25 +2605,7 @@ class MakeAuditReport extends Component
         $pages['toc'] = $this->tocPayload();
         $pages['page3'] = $this->page3Payload();
         $pages['page4'] = $this->page4Payload();
-        unset(
-            $pages['page5'],
-            $pages['page6'],
-            $pages['page7'],
-            $pages['page8'],
-            $pages['page9'],
-            $pages['page10'],
-            $pages['page11'],
-            $pages['page12'],
-            $pages['page13'],
-            $pages['page14'],
-            $pages['page15'],
-            $pages['page16'],
-            $pages['page17'],
-            $pages['page18'],
-            $pages['page19'],
-            $pages['page20'],
-            $pages['page21'],
-        );
+        // Keep legacy page5–21 payloads if present (UI ends at page4; do not wipe older drafts on autosave).
         $progress = AuditReport::computeProgress($pages, [
             'memo_no' => $this->memo_no,
             'auditor_name' => $this->auditor_name,
@@ -2523,17 +2858,19 @@ class MakeAuditReport extends Component
     {
         $code = self::findingRatingParts($rating)['code'];
 
+        // Colors match the official observation severity chart (A–F).
         return match ($code) {
-            'B' => ['bg' => '#f8d5b8', 'color' => '#111111'],
-            'C' => ['bg' => '#e67e22', 'color' => '#111111'],
-            'D' => ['bg' => '#f5e6a3', 'color' => '#111111'],
-            'E' => ['bg' => '#16a34a', 'color' => '#ffffff'],
-            'F', 'A' => ['bg' => '#dc2626', 'color' => '#ffffff'],
-            default => match ($rating) {
-                'Major (B)' => ['bg' => '#f8d5b8', 'color' => '#111111'],
-                'Medium (C)' => ['bg' => '#e67e22', 'color' => '#111111'],
-                'Minor (D)' => ['bg' => '#f5e6a3', 'color' => '#111111'],
-                'Unsatisfactory (F)' => ['bg' => '#dc2626', 'color' => '#ffffff'],
+            'A', 'F' => ['bg' => '#FF0000', 'color' => '#ffffff'],
+            'B' => ['bg' => '#FCE4D6', 'color' => '#111111'],
+            'C' => ['bg' => '#F4B084', 'color' => '#111111'],
+            'D' => ['bg' => '#FFF2CC', 'color' => '#111111'],
+            'E' => ['bg' => '#70AD47', 'color' => '#ffffff'],
+            default => match ((string) $rating) {
+                'Unsatisfactory (A)', 'Unsatisfactory (F)' => ['bg' => '#FF0000', 'color' => '#ffffff'],
+                'Major (B)' => ['bg' => '#FCE4D6', 'color' => '#111111'],
+                'Medium (C)' => ['bg' => '#F4B084', 'color' => '#111111'],
+                'Minor (D)' => ['bg' => '#FFF2CC', 'color' => '#111111'],
+                'Satisfactory (E)' => ['bg' => '#70AD47', 'color' => '#ffffff'],
                 default => ['bg' => '#ffffff', 'color' => '#111111'],
             },
         };
@@ -2665,7 +3002,7 @@ class MakeAuditReport extends Component
         ];
     }
 
-    protected function ensureFinancialAuditDefaults(): void
+    protected function ensureFinancialAuditDefaults(bool $rebuildToc = true): void
     {
         if ($this->financial_criteria === '') {
             $this->financial_criteria = 'প্রতিষ্ঠানের নির্দেশনা ও জাতীয় রাজস্ব বোর্ড (এনবিআর)-এর নির্দেশনা অনুযায়ী প্রযোজ্য ভ্যাট ও ট্যাক্স নির্ধারিত হারে সরকারি কোষাগারে জমা দিতে হবে।';
@@ -2680,7 +3017,9 @@ class MakeAuditReport extends Component
         }
 
         $this->ensureReportBlocksDefaults();
-        $this->rebuildTocFromReportBlocks();
+        if ($rebuildToc) {
+            $this->rebuildTocFromReportBlocks();
+        }
     }
 
     protected function ensureReportBlocksDefaults(): void
@@ -2908,7 +3247,10 @@ class MakeAuditReport extends Component
         return \App\Support\BanglaNumerals::fromInt(max(1, $max + 1)).'.০';
     }
 
-    protected function nextFindingSerialNearIndex(int $index): string
+    /**
+     * Next finding serial (e.g. ২.১) for a known section serial (e.g. ২.০).
+     */
+    protected function nextFindingSerialForSectionSerial(string $sectionSerial): string
     {
         $map = [
             '০' => '0', '১' => '1', '২' => '2', '৩' => '3', '৪' => '4',
@@ -2916,28 +3258,10 @@ class MakeAuditReport extends Component
         ];
         $rev = array_flip($map);
 
+        $latinSection = strtr(trim($sectionSerial), $map);
         $prefix = '1';
-        for ($i = min($index, count($this->reportBlocks) - 1); $i >= 0; $i--) {
-            if (($this->reportBlocks[$i]['type'] ?? '') !== 'section') {
-                continue;
-            }
-            $latin = strtr((string) ($this->reportBlocks[$i]['serial'] ?? '১.০'), $map);
-            if (preg_match('/^(\d+)/', $latin, $m)) {
-                $prefix = $m[1];
-            }
-            break;
-        }
-        // Also scan backward from index-1 if inserting at 0 with no prior section yet
-        if ($index === 0) {
-            foreach ($this->reportBlocks as $block) {
-                if (($block['type'] ?? '') === 'section') {
-                    $latin = strtr((string) ($block['serial'] ?? '১.০'), $map);
-                    if (preg_match('/^(\d+)/', $latin, $m)) {
-                        $prefix = $m[1];
-                    }
-                    break;
-                }
-            }
+        if (preg_match('/^(\d+)/', $latinSection, $m)) {
+            $prefix = $m[1];
         }
 
         $max = 0;
@@ -2952,6 +3276,36 @@ class MakeAuditReport extends Component
         }
 
         return strtr($prefix, $rev).'.'.\App\Support\BanglaNumerals::fromInt(max(1, $max + 1));
+    }
+
+    protected function nextFindingSerialNearIndex(int $index): string
+    {
+        $sectionSerial = '১.০';
+        $found = false;
+
+        if ($this->reportBlocks !== []) {
+            $start = min(max(0, $index), count($this->reportBlocks) - 1);
+            for ($i = $start; $i >= 0; $i--) {
+                if (($this->reportBlocks[$i]['type'] ?? '') !== 'section') {
+                    continue;
+                }
+                $sectionSerial = (string) ($this->reportBlocks[$i]['serial'] ?? '১.০');
+                $found = true;
+                break;
+            }
+        }
+
+        // Inserting above the first section: use the first section ahead.
+        if (! $found) {
+            foreach ($this->reportBlocks as $block) {
+                if (($block['type'] ?? '') === 'section') {
+                    $sectionSerial = (string) ($block['serial'] ?? '১.০');
+                    break;
+                }
+            }
+        }
+
+        return $this->nextFindingSerialForSectionSerial($sectionSerial);
     }
 
     protected function rebuildTocFromReportBlocks(): void
@@ -7541,71 +7895,106 @@ class MakeAuditReport extends Component
 
     public function render()
     {
-        $shakhas = app(UserAccessService::class)->accessibleShakhas(auth()->user());
+        $isWizard = $this->step === 'wizard';
 
-        $branchOptions = $shakhas->values()->map(function ($shakha, $index) {
-            return [
-                'id' => (string) $shakha->id,
-                'serial' => $index + 1,
-                'name' => $shakha->name,
-                'code' => (string) ($shakha->code ?: ''),
-                'area' => (string) ($shakha->area?->name ?: ''),
-                'division' => (string) ($shakha->area?->division ?: ''),
-                'focal' => (string) ($shakha->focal_person_name ?: ''),
-                'active' => $shakha->isActive(),
-                'opening' => optional($shakha->opening_date ?? $shakha->opened_at)->format('d M Y') ?: '',
-            ];
-        })->values();
-
-        $this->ensurePage2Defaults();
-        $this->ensureTocDefaults();
-        $this->ensureSignatureDefaults();
-        $this->ensureFinancialAuditDefaults();
-        $document = $this->stampedDocument();
-
-        $userId = (int) (auth()->id() ?? 0);
+        $shakhas = collect();
+        $branchOptions = collect();
         $ongoingReports = collect();
         $completedReports = collect();
         $ongoingCount = 0;
         $completedCount = 0;
         $pendingSlots = AuditReport::MAX_CONCURRENT_DRAFTS;
 
-        if ($userId > 0) {
-            $ongoingReports = AuditReport::query()
-                ->ownedBy($userId)
-                ->drafts()
-                ->with('shakha.area')
-                ->latest('last_saved_at')
-                ->latest('updated_at')
-                ->get();
+        // Dashboard lists only on select step — keep wizard updates light.
+        if (! $isWizard) {
+            $shakhas = app(UserAccessService::class)->accessibleShakhas(auth()->user());
 
-            $completedReports = AuditReport::query()
-                ->ownedBy($userId)
-                ->completed()
-                ->with('shakha.area')
-                ->latest('completed_at')
-                ->limit(8)
-                ->get();
+            $branchOptions = $shakhas->values()->map(function ($shakha, $index) {
+                return [
+                    'id' => (string) $shakha->id,
+                    'serial' => $index + 1,
+                    'name' => $shakha->name,
+                    'code' => (string) ($shakha->code ?: ''),
+                    'area' => (string) ($shakha->area?->name ?: ''),
+                    'division' => (string) ($shakha->area?->division ?: ''),
+                    'focal' => (string) ($shakha->focal_person_name ?: ''),
+                    'active' => $shakha->isActive(),
+                    'opening' => optional($shakha->opening_date ?? $shakha->opened_at)->format('d M Y') ?: '',
+                ];
+            })->values();
 
-            $ongoingCount = $ongoingReports->count();
-            $completedCount = AuditReport::query()->ownedBy($userId)->completed()->count();
-            $pendingSlots = max(0, AuditReport::MAX_CONCURRENT_DRAFTS - $ongoingCount);
+            $userId = (int) (auth()->id() ?? 0);
+            if ($userId > 0) {
+                $status = in_array($this->listFilterStatus, ['all', 'draft', 'completed'], true)
+                    ? $this->listFilterStatus
+                    : 'all';
+
+                $ongoingReports = collect();
+                if ($status === 'all' || $status === 'draft') {
+                    $ongoingQuery = AuditReport::query()
+                        ->ownedBy($userId)
+                        ->drafts()
+                        ->with('shakha.area');
+                    $this->applyReportListFilters($ongoingQuery);
+                    $ongoingReports = $ongoingQuery
+                        ->latest('last_saved_at')
+                        ->latest('updated_at')
+                        ->get();
+                }
+
+                $completedReports = collect();
+                if ($status === 'all' || $status === 'completed') {
+                    $completedQuery = AuditReport::query()
+                        ->ownedBy($userId)
+                        ->completed()
+                        ->with('shakha.area');
+                    $this->applyReportListFilters($completedQuery);
+                    // When filtering by month/search, show all matches; otherwise keep a short recent list.
+                    $filtered = ($this->listFilterMonth >= 1 && $this->listFilterMonth <= 12)
+                        || ($this->listFilterYear >= 2000)
+                        || trim($this->listFilterQ) !== ''
+                        || $status === 'completed';
+                    $completedReports = $completedQuery
+                        ->latest('completed_at')
+                        ->when(! $filtered, fn ($q) => $q->limit(8))
+                        ->when($filtered, fn ($q) => $q->limit(100))
+                        ->get();
+                }
+
+                $ongoingCount = AuditReport::query()->ownedBy($userId)->drafts()->count();
+                $completedCount = AuditReport::query()->ownedBy($userId)->completed()->count();
+                $pendingSlots = max(0, AuditReport::MAX_CONCURRENT_DRAFTS - $ongoingCount);
+            }
         }
 
-        $financialIndicatorOptions = AuditIndicator::query()
-            ->active()
-            ->orderBy('category')
-            ->orderBy('indicator_code')
-            ->get(['id', 'indicator_code', 'title', 'category', 'risk_rating'])
-            ->map(fn (AuditIndicator $indicator) => [
-                'id' => $indicator->id,
-                'code' => (string) $indicator->indicator_code,
-                'title' => (string) $indicator->title,
-                'category' => (string) ($indicator->category ?: ''),
-                'risk' => (string) ($indicator->risk_rating ?: ''),
-            ])
-            ->values()
-            ->all();
+        if ($isWizard) {
+            // Same defaults as before — custom tables, jobab, risk packs, TOC blocks all need this.
+            $this->ensurePage2Defaults();
+            $this->ensureTocDefaults();
+            $this->ensureSignatureDefaults();
+            // Do not rebuild TOC on every paint (that wiped edits while typing / customizing).
+            $this->ensureFinancialAuditDefaults(rebuildToc: false);
+        }
+
+        $document = $this->showPreview ? $this->stampedDocument() : ['sheets' => []];
+
+        $financialIndicatorOptions = [];
+        if ($isWizard && ($this->activeTab === 'page4' || $this->showPreview || $this->customTableEditorIndex !== null)) {
+            $financialIndicatorOptions = AuditIndicator::query()
+                ->active()
+                ->orderBy('category')
+                ->orderBy('indicator_code')
+                ->get(['id', 'indicator_code', 'title', 'category', 'risk_rating'])
+                ->map(fn (AuditIndicator $indicator) => [
+                    'id' => $indicator->id,
+                    'code' => (string) $indicator->indicator_code,
+                    'title' => (string) $indicator->title,
+                    'category' => (string) ($indicator->category ?: ''),
+                    'risk' => (string) ($indicator->risk_rating ?: ''),
+                ])
+                ->values()
+                ->all();
+        }
 
         return view('livewire.make-audit-report', [
             'branchOptions' => $branchOptions,
@@ -7622,7 +8011,7 @@ class MakeAuditReport extends Component
                 ['id' => 'page3', 'num' => 3, 'label' => 'সূচিপত্র + শ্রেণীবিন্যাস', 'ready' => true],
                 ['id' => 'page4', 'num' => 4, 'label' => 'আর্থিক নিরীক্ষা', 'ready' => true],
             ],
-            'outlineNav' => $this->outlineNavItems(),
+            'outlineNav' => $isWizard ? $this->outlineNavItems() : [],
             'findingRatings' => $this->findingRatings,
             'financial_section_title' => $this->financial_section_title,
             'financialFindings' => $this->financialFindings,
@@ -7639,6 +8028,17 @@ class MakeAuditReport extends Component
             'pendingSlots' => $pendingSlots,
             'maxConcurrentDrafts' => AuditReport::MAX_CONCURRENT_DRAFTS,
             'canStartNewReport' => $pendingSlots > 0,
+            'listFilterMonth' => $this->listFilterMonth,
+            'listFilterYear' => $this->listFilterYear,
+            'listFilterQ' => $this->listFilterQ,
+            'listFilterStatus' => $this->listFilterStatus,
+            'customTableEditorIndex' => $this->customTableEditorIndex,
+            'customTableSizeCols' => $this->customTableSizeCols,
+            'customTableSizeRows' => $this->customTableSizeRows,
+            'customTableSelR' => $this->customTableSelR,
+            'customTableSelC' => $this->customTableSelC,
+            'customTableMergeRows' => $this->customTableMergeRows,
+            'customTableMergeCols' => $this->customTableMergeCols,
         ]);
     }
 }

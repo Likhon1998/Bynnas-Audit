@@ -195,7 +195,7 @@
 
     @elseif (in_array($type, ['stats', 'vat', 'tax'], true))
         @php
-            $obsHeading = (string) ($block['heading'] ?? ($type === 'tax' ? 'Report Rating Box:' : ($type === 'vat' ? 'Report Rating Box:' : 'Report Rating Box:')));
+            $obsHeading = (string) ($block['heading'] ?? 'Report Rating Box:');
             if ($obsHeading === 'ভ্যাট সংক্রান্ত:' || $obsHeading === 'ট্যাক্স সংক্রান্ত:' || $obsHeading === 'সারণী:' || $obsHeading === 'নতুন সারণী:') {
                 $obsHeading = 'Report Rating Box:';
             }
@@ -205,6 +205,11 @@
             if ($obsRows === []) {
                 $obsRows = [['total_population' => '', 'sample_size' => '', 'instances_found' => '', 'percentage' => '']];
             }
+            $linkedSerial = trim((string) ($block['linked_finding_serial'] ?? ''));
+            $linkedTitle = trim((string) ($block['linked_finding_title'] ?? ''));
+            $linkedCode = trim((string) ($block['linked_indicator_code'] ?? ''));
+            $linkedIndicatorId = (int) ($block['linked_indicator_id'] ?? 0);
+            $hasMatrixLink = $linkedIndicatorId > 0;
         @endphp
         <div class="mt-[3mm]">
             @if ($editable)
@@ -219,8 +224,48 @@
                     <button type="button" wire:click="moveBlock({{ $bIndex }}, 'down')" class="text-[11px] text-slate-600 hover:underline">↓</button>
                     <button type="button" wire:click="removeBlock({{ $bIndex }})" class="text-[11px] text-rose-600 hover:underline">মুছুন</button>
                 </div>
+
+                <div class="mb-2 rounded-lg border {{ $hasMatrixLink ? 'border-emerald-200 bg-emerald-50/70' : 'border-amber-200 bg-amber-50/80' }} px-2.5 py-2">
+                    <div class="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                        <p class="text-[10px] font-bold uppercase tracking-wide {{ $hasMatrixLink ? 'text-emerald-800' : 'text-amber-800' }}">
+                            {{ $hasMatrixLink ? '✓ Matrix indicator confirmed' : '⚠ Matrix indicator missing' }}
+                        </p>
+                        @if ($hasMatrixLink && $linkedCode !== '')
+                            <span class="rounded bg-white/80 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-emerald-800">{{ $linkedCode }}</span>
+                        @endif
+                    </div>
+
+                    @if ($hasMatrixLink)
+                        <p class="mb-1.5 text-[11px] font-semibold leading-snug text-emerald-950">
+                            @if ($linkedSerial !== '')
+                                <span class="text-emerald-700">{{ $linkedSerial }}</span> ·
+                            @endif
+                            {{ $linkedTitle !== '' ? $linkedTitle : 'Selected indicator' }}
+                        </p>
+                        <p class="mb-1.5 text-[10px] text-emerald-800/80">এই বক্সের Sample / Instances / Amount এই indicator-এর Findings Matrix সারিতে যাবে (শাখা × মাস)।</p>
+                    @else
+                        <p class="mb-1.5 text-[10px] text-amber-900">নিচ থেকে indicator বেছে নিন — না হলে Matrix-এ ডেটা যাবে না।</p>
+                    @endif
+
+                    <label class="mb-0.5 block text-[10px] font-semibold text-slate-600">এই Rating Box কোন indicator-এর?</label>
+                    @include('livewire.partials.audit-indicator-combobox', [
+                        'index' => $bIndex,
+                        'value' => $hasMatrixLink ? $linkedTitle : '',
+                        'indicators' => $indicatorOptions ?? $financialIndicatorOptions ?? [],
+                        'collection' => 'statsBlocks',
+                        'wireKey' => 'stats-ind-'.$bIndex.'-'.(int) $linkedIndicatorId,
+                    ])
+                </div>
             @elseif ($obsHeading !== '')
                 <p class="mb-[1mm] font-bold">{{ $obsHeading }}</p>
+                @if ($hasMatrixLink)
+                    <p class="mb-[1mm] text-[10px] text-slate-600">
+                        Indicator:
+                        @if ($linkedSerial !== '') {{ $linkedSerial }} · @endif
+                        {{ $linkedTitle }}
+                        @if ($linkedCode !== '') ({{ $linkedCode }}) @endif
+                    </p>
+                @endif
             @endif
 
             <table class="{{ $obsTableClass }} mb-[2mm]">
@@ -266,6 +311,10 @@
             'customTableEditorIndex' => $customTableEditorIndex ?? null,
             'customTableSizeCols' => $customTableSizeCols ?? null,
             'customTableSizeRows' => $customTableSizeRows ?? null,
+            'customTableSelR' => $customTableSelR ?? null,
+            'customTableSelC' => $customTableSelC ?? null,
+            'customTableMergeRows' => $customTableMergeRows ?? 2,
+            'customTableMergeCols' => $customTableMergeCols ?? 1,
         ])
 
     @elseif ($type === 'jobab_table')

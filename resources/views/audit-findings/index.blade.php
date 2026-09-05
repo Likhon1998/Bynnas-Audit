@@ -93,7 +93,7 @@
             <div>
                 <h1 class="text-[16px] font-semibold tracking-tight text-navy-900">Audit Findings Consolidated</h1>
                 <p class="mt-0.5 text-[11px] text-slate-500">
-                    Excel matrix → normalized rows · Filters update instantly · Only violated rules store cells
+                    Indicator totals across branches · Report Rating Box data syncs from audit reports · Front columns = org totals
                 </p>
             </div>
             <form method="GET" action="{{ route('audit-findings.index') }}" class="flex flex-wrap items-center gap-1.5">

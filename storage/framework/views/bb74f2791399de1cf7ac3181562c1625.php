@@ -2,7 +2,7 @@
 <style>
     /* Professional A4 desk preview — isolate from Tailwind utilities */
     .audit-doc-preview {
-        font-family: 'Hind Siliguri', 'Nirmala UI', 'Noto Sans Bengali', Arial, sans-serif;
+        font-family: 'Hind Siliguri', 'Nirmala UI', Arial, sans-serif;
         color: #111;
         overflow-x: auto;
         -webkit-font-smoothing: antialiased;

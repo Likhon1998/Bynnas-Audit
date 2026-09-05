@@ -69,6 +69,8 @@ unset($__defined_vars, $__key, $__value); ?>
         apply(id, title) {
             if (this.collection === 'reportBlocks') {
                 $wire.applyBlockFindingIndicator(<?php echo e((int) $index); ?>, id, title);
+            } else if (this.collection === 'statsBlocks') {
+                $wire.applyStatsBlockIndicator(<?php echo e((int) $index); ?>, id, title);
             } else if (this.collection === 'reportSections' && this.sectionIndex !== null) {
                 $wire.applySectionFindingIndicator(this.sectionIndex, <?php echo e((int) $index); ?>, id, title);
             } else {

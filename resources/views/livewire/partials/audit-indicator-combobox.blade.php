@@ -34,6 +34,8 @@
         apply(id, title) {
             if (this.collection === 'reportBlocks') {
                 $wire.applyBlockFindingIndicator({{ (int) $index }}, id, title);
+            } else if (this.collection === 'statsBlocks') {
+                $wire.applyStatsBlockIndicator({{ (int) $index }}, id, title);
             } else if (this.collection === 'reportSections' && this.sectionIndex !== null) {
                 $wire.applySectionFindingIndicator(this.sectionIndex, {{ (int) $index }}, id, title);
             } else {

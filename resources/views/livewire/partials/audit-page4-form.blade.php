@@ -21,6 +21,10 @@
             'customTableEditorIndex' => $customTableEditorIndex ?? null,
             'customTableSizeCols' => $customTableSizeCols ?? 4,
             'customTableSizeRows' => $customTableSizeRows ?? 5,
+            'customTableSelR' => $customTableSelR ?? null,
+            'customTableSelC' => $customTableSelC ?? null,
+            'customTableMergeRows' => $customTableMergeRows ?? 2,
+            'customTableMergeCols' => $customTableMergeCols ?? 1,
         ])
 
         <div class="mt-6 flex items-center justify-between border-t border-dashed border-slate-200 pt-3">

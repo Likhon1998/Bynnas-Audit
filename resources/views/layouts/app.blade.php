@@ -18,11 +18,20 @@
             class="font-sans text-[13px] font-normal leading-relaxed antialiased text-slate-700"
             x-data="{
                 sidebarOpen: false,
-                sidebarCollapsed: localStorage.getItem('bynnasSidebarCollapsed') === '1',
+                sidebarCollapsed: false,
                 searchOpen: false,
+                init() {
+                    try {
+                        this.sidebarCollapsed = localStorage.getItem('bynnasSidebarCollapsed') === '1';
+                    } catch (e) {
+                        this.sidebarCollapsed = false;
+                    }
+                },
                 toggleSidebarCollapsed() {
                     this.sidebarCollapsed = !this.sidebarCollapsed;
-                    localStorage.setItem('bynnasSidebarCollapsed', this.sidebarCollapsed ? '1' : '0');
+                    try {
+                        localStorage.setItem('bynnasSidebarCollapsed', this.sidebarCollapsed ? '1' : '0');
+                    } catch (e) {}
                 },
             }"
             @keydown.window.prevent.ctrl.k="searchOpen = true"
@@ -35,7 +44,7 @@
             <div class="flex min-w-0 flex-1 flex-col">
                 @include('layouts.topbar')
 
-                <main class="min-h-0 flex-1 overflow-y-auto">
+                <main class="flex min-h-0 flex-1 flex-col overflow-y-auto">
                     {{ $slot }}
                 </main>
             </div>

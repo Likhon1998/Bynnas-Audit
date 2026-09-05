@@ -283,4 +283,203 @@ class AuditSummaryService
             'categories' => $categories,
         ];
     }
+
+    /**
+     * Push Report Rating Box / finding data from a completed (or saved) audit report
+     * into the Findings Matrix (shakha × indicator × month × year).
+     *
+     * Link rule: each stats table belongs to the nearest preceding finding that has
+     * an indicator_id (copied onto the stats block as linked_indicator_id).
+     *
+     * @return int Number of matrix cells upserted/deleted
+     */
+    public function syncFromReport(AuditReport $report): int
+    {
+        $shakhaId = (int) ($report->shakha_id ?? 0);
+        $month = (int) ($report->report_month ?? 0);
+        $year = (int) ($report->report_year ?? 0);
+
+        if ($shakhaId < 1 || $month < 1 || $month > 12 || $year < 2000) {
+            return 0;
+        }
+
+        $pages = is_array($report->pages_data) ? $report->pages_data : [];
+        $page4 = is_array($pages['page4'] ?? null) ? $pages['page4'] : [];
+        $blocks = array_values((array) ($page4['reportBlocks'] ?? []));
+
+        $rows = $this->extractMatrixRowsFromBlocks($blocks);
+        $touched = 0;
+
+        foreach ($rows as $row) {
+            $this->upsertFinding(
+                $shakhaId,
+                (int) $row['indicator_id'],
+                $month,
+                $year,
+                [
+                    'amount' => $row['amount'],
+                    'sample_size_checked' => $row['sample_size_checked'],
+                    'irregularity_count' => $row['irregularity_count'],
+                    'observation' => $row['observation'],
+                    'responsible_staff_name' => $row['responsible_staff_name'] ?? null,
+                ]
+            );
+            $touched++;
+        }
+
+        return $touched;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $blocks
+     * @return list<array{
+     *   indicator_id:int,
+     *   amount:?float,
+     *   sample_size_checked:?int,
+     *   irregularity_count:?int,
+     *   observation:?string,
+     *   responsible_staff_name:?string
+     * }>
+     */
+    public function extractMatrixRowsFromBlocks(array $blocks): array
+    {
+        /** @var array<int, array{indicator_id:int, amount:?float, sample_size_checked:?int, irregularity_count:?int, observation:?string, responsible_staff_name:?string}> $byIndicator */
+        $byIndicator = [];
+
+        /** @var list<array{indicator_id:int, amount:?float, observation:?string}> $pendingFindings */
+        $pendingFindings = [];
+        $lastFindingById = [];
+
+        foreach ($blocks as $block) {
+            if (! is_array($block)) {
+                continue;
+            }
+
+            $type = (string) ($block['type'] ?? '');
+
+            if ($type === 'finding') {
+                $indicatorId = (int) ($block['indicator_id'] ?? $block['linked_indicator_id'] ?? 0);
+                if ($indicatorId < 1) {
+                    continue;
+                }
+
+                $amount = \App\Support\BanglaNumerals::toFloat($block['amount'] ?? null);
+                $body = trim((string) ($block['body'] ?? ''));
+                $observation = $body !== '' ? $body : null;
+                $meta = [
+                    'indicator_id' => $indicatorId,
+                    'amount' => $amount,
+                    'observation' => $observation,
+                ];
+                $pendingFindings[] = $meta;
+                $lastFindingById[$indicatorId] = $meta;
+
+                continue;
+            }
+
+            if (! in_array($type, ['stats', 'vat', 'tax'], true)) {
+                continue;
+            }
+
+            $sampleSum = 0;
+            $irregularSum = 0;
+            $hasSample = false;
+            $hasIrregular = false;
+
+            foreach (array_values((array) ($block['rows'] ?? [])) as $statsRow) {
+                if (! is_array($statsRow)) {
+                    continue;
+                }
+                $sample = \App\Support\BanglaNumerals::toInt($statsRow['sample_size'] ?? null);
+                $irregular = \App\Support\BanglaNumerals::toInt($statsRow['instances_found'] ?? null);
+                if ($sample !== null) {
+                    $sampleSum += $sample;
+                    $hasSample = true;
+                }
+                if ($irregular !== null) {
+                    $irregularSum += $irregular;
+                    $hasIrregular = true;
+                }
+            }
+
+            // Skip empty rating tables — they must not wipe / create blank matrix cells.
+            if (! $hasSample && ! $hasIrregular) {
+                continue;
+            }
+
+            $indicatorId = (int) ($block['linked_indicator_id'] ?? $block['indicator_id'] ?? 0);
+
+            // Explicit link on the box wins; otherwise FIFO-match the next unused finding
+            // so "heading, heading, rating box" still maps the first filled box to the first heading.
+            $findingMeta = null;
+            if ($indicatorId > 0) {
+                $findingMeta = $lastFindingById[$indicatorId] ?? [
+                    'indicator_id' => $indicatorId,
+                    'amount' => null,
+                    'observation' => null,
+                ];
+            } elseif ($pendingFindings !== []) {
+                $findingMeta = array_shift($pendingFindings);
+                $indicatorId = (int) $findingMeta['indicator_id'];
+            }
+
+            if ($indicatorId < 1) {
+                continue;
+            }
+
+            $byIndicator[$indicatorId] = $this->mergeMatrixRow(
+                $byIndicator[$indicatorId] ?? null,
+                [
+                    'indicator_id' => $indicatorId,
+                    'amount' => $findingMeta['amount'] ?? null,
+                    'sample_size_checked' => $hasSample ? $sampleSum : null,
+                    'irregularity_count' => $hasIrregular ? $irregularSum : null,
+                    'observation' => $findingMeta['observation'] ?? null,
+                    'responsible_staff_name' => null,
+                ]
+            );
+        }
+
+        // Findings that have an amount but no rating box still enter the matrix.
+        foreach ($pendingFindings as $findingMeta) {
+            $indicatorId = (int) $findingMeta['indicator_id'];
+            if ($indicatorId < 1 || ($findingMeta['amount'] ?? null) === null) {
+                continue;
+            }
+            if (isset($byIndicator[$indicatorId])) {
+                continue;
+            }
+            $byIndicator[$indicatorId] = [
+                'indicator_id' => $indicatorId,
+                'amount' => $findingMeta['amount'],
+                'sample_size_checked' => null,
+                'irregularity_count' => null,
+                'observation' => $findingMeta['observation'],
+                'responsible_staff_name' => null,
+            ];
+        }
+
+        return array_values($byIndicator);
+    }
+
+    /**
+     * @param  array{indicator_id:int, amount:?float, sample_size_checked:?int, irregularity_count:?int, observation:?string, responsible_staff_name:?string}|null  $existing
+     * @param  array{indicator_id:int, amount:?float, sample_size_checked:?int, irregularity_count:?int, observation:?string, responsible_staff_name:?string}  $incoming
+     * @return array{indicator_id:int, amount:?float, sample_size_checked:?int, irregularity_count:?int, observation:?string, responsible_staff_name:?string}
+     */
+    protected function mergeMatrixRow(?array $existing, array $incoming): array
+    {
+        if ($existing === null) {
+            return $incoming;
+        }
+
+        return [
+            'indicator_id' => $incoming['indicator_id'],
+            'amount' => $incoming['amount'] ?? $existing['amount'],
+            'sample_size_checked' => $incoming['sample_size_checked'] ?? $existing['sample_size_checked'],
+            'irregularity_count' => $incoming['irregularity_count'] ?? $existing['irregularity_count'],
+            'observation' => $incoming['observation'] ?? $existing['observation'],
+            'responsible_staff_name' => $incoming['responsible_staff_name'] ?? $existing['responsible_staff_name'],
+        ];
+    }
 }

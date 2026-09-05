@@ -15,24 +15,34 @@ class MakeAuditReportStartTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function makeShakha(): Shakha
+    private function makeShakha(?string $name = 'Test Branch 1', ?string $code = 'TST-001'): Shakha
     {
         $area = Area::query()->create([
-            'name' => 'Test Area',
+            'name' => 'Test Area '.$code,
             'division' => 'Test Division',
         ]);
 
         return Shakha::query()->create([
             'area_id' => $area->id,
-            'name' => 'Test Branch 1',
-            'code' => 'TST-001',
+            'name' => $name,
+            'code' => $code,
             'status' => 'active',
+        ]);
+    }
+
+    /** User who can open /audits and start reports for any shakha. */
+    private function makeAuditUser(): User
+    {
+        return User::factory()->create([
+            'email_verified_at' => now(),
+            'is_superadmin' => true,
+            'is_active' => true,
         ]);
     }
 
     public function test_audits_page_loads_with_start_controls(): void
     {
-        $user = User::factory()->create(['email_verified_at' => now()]);
+        $user = $this->makeAuditUser();
         $this->makeShakha();
 
         $this->actingAs($user)
@@ -46,7 +56,7 @@ class MakeAuditReportStartTest extends TestCase
 
     public function test_start_report_without_shakha_fails_validation(): void
     {
-        $user = User::factory()->create(['email_verified_at' => now()]);
+        $user = $this->makeAuditUser();
 
         Livewire::actingAs($user)
             ->test(MakeAuditReport::class)
@@ -57,7 +67,7 @@ class MakeAuditReportStartTest extends TestCase
 
     public function test_start_report_with_shakha_opens_wizard_and_creates_draft(): void
     {
-        $user = User::factory()->create(['email_verified_at' => now()]);
+        $user = $this->makeAuditUser();
         $shakha = $this->makeShakha();
 
         $component = Livewire::actingAs($user)
@@ -87,7 +97,7 @@ class MakeAuditReportStartTest extends TestCase
 
     public function test_user_cannot_start_more_than_three_concurrent_drafts(): void
     {
-        $user = User::factory()->create(['email_verified_at' => now()]);
+        $user = $this->makeAuditUser();
         $area = Area::query()->create(['name' => 'Area', 'division' => 'Div']);
 
         for ($i = 1; $i <= 3; $i++) {
@@ -126,7 +136,7 @@ class MakeAuditReportStartTest extends TestCase
 
     public function test_auto_save_and_resume_persists_draft(): void
     {
-        $user = User::factory()->create(['email_verified_at' => now()]);
+        $user = $this->makeAuditUser();
         $shakha = $this->makeShakha();
 
         $component = Livewire::actingAs($user)
@@ -153,7 +163,7 @@ class MakeAuditReportStartTest extends TestCase
 
     public function test_complete_report_marks_completed_and_frees_slot(): void
     {
-        $user = User::factory()->create(['email_verified_at' => now()]);
+        $user = $this->makeAuditUser();
         $shakha = $this->makeShakha();
 
         Livewire::actingAs($user)
@@ -170,9 +180,23 @@ class MakeAuditReportStartTest extends TestCase
         ]);
     }
 
+    public function test_toolbar_save_uses_current_tab_not_always_cover(): void
+    {
+        $user = $this->makeAuditUser();
+        $shakha = $this->makeShakha();
+
+        Livewire::actingAs($user)
+            ->test(MakeAuditReport::class)
+            ->call('startReport', $shakha->id)
+            ->set('activeTab', 'page4')
+            ->call('saveCurrentTab')
+            ->assertHasNoErrors()
+            ->assertSet('activeTab', 'page4');
+    }
+
     public function test_pdf_download_streams_a_pdf_file(): void
     {
-        $user = User::factory()->create(['email_verified_at' => now()]);
+        $user = $this->makeAuditUser();
         $shakha = $this->makeShakha();
 
         Livewire::actingAs($user)
@@ -184,7 +208,7 @@ class MakeAuditReportStartTest extends TestCase
 
     public function test_doc_download_streams_a_word_file(): void
     {
-        $user = User::factory()->create(['email_verified_at' => now()]);
+        $user = $this->makeAuditUser();
         $shakha = $this->makeShakha();
 
         Livewire::actingAs($user)

@@ -126,11 +126,89 @@
     </div>
 </div>
 
+{{-- Find saved reports by month / year / branch --}}
+<div class="mb-3 overflow-hidden rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+    <div class="mb-2 flex flex-wrap items-start justify-between gap-2">
+        <div>
+            <p class="text-[13px] font-semibold text-navy-900">রিপোর্ট খুঁজুন (মাস অনুযায়ী)</p>
+            <p class="text-[11px] text-slate-500">প্রতিটি রিপোর্ট মাস + বছর দিয়ে সংরক্ষিত · এখান থেকে খুঁজে Continue / Open করুন</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-1.5">
+            <button type="button" wire:click="showCurrentMonthReports" class="h-7 rounded-md border border-sky-200 bg-sky-50 px-2.5 text-[11px] font-medium text-sky-800 hover:bg-sky-100">এই মাস</button>
+            <button type="button" wire:click="clearReportListFilters" class="h-7 rounded-md border border-slate-200 px-2.5 text-[11px] font-medium text-slate-600 hover:bg-slate-50">সব দেখুন</button>
+        </div>
+    </div>
+    <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.2fr)_130px_100px_140px]">
+        <div>
+            <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Branch / memo</label>
+            <input
+                type="search"
+                wire:model.live.debounce.300ms="listFilterQ"
+                placeholder="শাখার নাম, কোড বা সূত্র…"
+                class="h-9 w-full rounded-lg border-slate-200 py-0 text-[12px] shadow-sm focus:border-[#2b579a] focus:ring-[#2b579a]"
+            >
+        </div>
+        <div>
+            <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Month</label>
+            <select wire:model.live="listFilterMonth" class="h-9 w-full rounded-lg border-slate-200 py-0 text-[12px]">
+                <option value="0">All months</option>
+                @for ($m = 1; $m <= 12; $m++)
+                    <option value="{{ $m }}">{{ date('F', mktime(0, 0, 0, $m, 1)) }}</option>
+                @endfor
+            </select>
+        </div>
+        <div>
+            <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Year</label>
+            <select wire:model.live="listFilterYear" class="h-9 w-full rounded-lg border-slate-200 py-0 text-[12px]">
+                <option value="0">All years</option>
+                @for ($y = now()->year + 1; $y >= now()->year - 6; $y--)
+                    <option value="{{ $y }}">{{ $y }}</option>
+                @endfor
+            </select>
+        </div>
+        <div>
+            <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Status</label>
+            <select wire:model.live="listFilterStatus" class="h-9 w-full rounded-lg border-slate-200 py-0 text-[12px]">
+                <option value="all">All</option>
+                <option value="draft">Ongoing only</option>
+                <option value="completed">Completed only</option>
+            </select>
+        </div>
+    </div>
+    @php
+        $filterLabel = [];
+        if ((int) $listFilterMonth >= 1 && (int) $listFilterMonth <= 12) {
+            $filterLabel[] = date('F', mktime(0, 0, 0, (int) $listFilterMonth, 1));
+        }
+        if ((int) $listFilterYear >= 2000) {
+            $filterLabel[] = (string) $listFilterYear;
+        }
+        if (($listFilterStatus ?? 'all') === 'draft') {
+            $filterLabel[] = 'Ongoing';
+        } elseif (($listFilterStatus ?? 'all') === 'completed') {
+            $filterLabel[] = 'Completed';
+        }
+        if (trim((string) ($listFilterQ ?? '')) !== '') {
+            $filterLabel[] = '“'.trim($listFilterQ).'”';
+        }
+    @endphp
+    <p class="mt-2 text-[11px] text-slate-500">
+        Showing
+        <span class="font-semibold text-slate-700">{{ $ongoingReports->count() }}</span> ongoing
+        ·
+        <span class="font-semibold text-slate-700">{{ $completedReports->count() }}</span> completed
+        @if ($filterLabel !== [])
+            <span class="text-slate-400">· Filter:</span>
+            <span class="font-medium text-[#2b579a]">{{ implode(' · ', $filterLabel) }}</span>
+        @endif
+    </p>
+</div>
+
 @if ($ongoingReports->isNotEmpty())
     <div class="mb-3 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <div class="border-b border-slate-100 px-3 py-2">
             <p class="text-[13px] font-semibold text-navy-900">চলমান রিপোর্ট</p>
-            <p class="text-[10px] text-slate-500">Continue · Auto-save চালু</p>
+            <p class="text-[10px] text-slate-500">Continue · Auto-save চালু · মাস অনুযায়ী ফিল্টার করা</p>
         </div>
         <div class="divide-y divide-slate-100">
             @foreach ($ongoingReports as $report)
@@ -160,6 +238,10 @@
                             class="h-7 rounded-md bg-[#2b579a] px-2.5 text-[11px] font-semibold text-white hover:bg-[#204072]"
                         >Continue</button>
                         <a
+                            href="{{ route('audits.checklist', $report) }}"
+                            class="inline-flex h-7 items-center rounded-md border border-indigo-200 bg-indigo-50 px-2.5 text-[11px] font-medium text-indigo-800 hover:bg-indigo-100"
+                        >Check List</a>
+                        <a
                             href="{{ route('audit-findings.entry', ['report' => $report->id]) }}"
                             class="inline-flex h-7 items-center rounded-md border border-slate-200 px-2.5 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
                         >Findings</a>
@@ -179,7 +261,8 @@
 @if ($completedReports->isNotEmpty())
     <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <div class="border-b border-slate-100 px-3 py-2">
-            <p class="text-[13px] font-semibold text-navy-900">সম্প্রতি সম্পন্ন</p>
+            <p class="text-[13px] font-semibold text-navy-900">সম্পন্ন রিপোর্ট</p>
+            <p class="text-[10px] text-slate-500">মাস / বছর দিয়ে খুঁজে Open করুন</p>
         </div>
         <div class="divide-y divide-slate-100">
             @foreach ($completedReports as $report)
@@ -197,6 +280,10 @@
                     </div>
                     <div class="flex items-center gap-1.5">
                         <a
+                            href="{{ route('audits.checklist', $report) }}"
+                            class="inline-flex h-7 items-center rounded-md border border-indigo-200 bg-indigo-50 px-2.5 text-[11px] font-medium text-indigo-800 hover:bg-indigo-100"
+                        >Check List</a>
+                        <a
                             href="{{ route('audit-findings.entry', ['report' => $report->id]) }}"
                             class="inline-flex h-7 items-center rounded-md border border-emerald-200 bg-emerald-50 px-2.5 text-[11px] font-medium text-emerald-800 hover:bg-emerald-100"
                         >Findings</a>
@@ -209,5 +296,13 @@
                 </div>
             @endforeach
         </div>
+    </div>
+@endif
+
+@if ($ongoingReports->isEmpty() && $completedReports->isEmpty())
+    <div class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center">
+        <p class="text-[13px] font-semibold text-slate-700">এই ফিল্টারে কোনো রিপোর্ট নেই</p>
+        <p class="mt-1 text-[11px] text-slate-500">অন্য মাস/বছর বেছে নিন, অথবা “সব দেখুন” চাপুন</p>
+        <button type="button" wire:click="clearReportListFilters" class="mt-3 inline-flex h-8 items-center rounded-md border border-slate-200 bg-white px-3 text-[12px] font-medium text-slate-700 hover:bg-slate-50">সব দেখুন</button>
     </div>
 @endif

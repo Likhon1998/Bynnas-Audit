@@ -419,21 +419,21 @@ class AuditReportDocxBuilder
                 }
                 $section->addText((string) ($block['title'] ?? $block['serial'] ?? ''), $this->fontBold);
             } elseif ($type === 'finding') {
-                $table = $section->addTable($this->gridTable);
-                $table->addRow();
-                $table->addCell($this->pct($widths[0]), ['valign' => 'center'])
+            $table = $section->addTable($this->gridTable);
+            $table->addRow();
+            $table->addCell($this->pct($widths[0]), ['valign' => 'center'])
                     ->addText($block['serial'] ?? '', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
-                $table->addCell($this->pct($widths[1]), ['valign' => 'center'])
+            $table->addCell($this->pct($widths[1]), ['valign' => 'center'])
                     ->addText($block['title'] ?? 'শিরোনাম', ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
                 $body = (string) ($block['body'] ?? '');
                 if (($block['amount'] ?? '') !== '') {
                     $body .= ($body !== '' ? "\n" : '').'টাকার পরিমাণ: '.$block['amount'];
                 }
-                $table->addCell($this->pct($widths[2]), ['valign' => 'top'])
+            $table->addCell($this->pct($widths[2]), ['valign' => 'top'])
                     ->addText($body, $this->fontSmall, ['alignment' => Jc::BOTH]);
-                $ratingCell = $table->addCell($this->pct($widths[3]), ['valign' => 'center']);
+            $ratingCell = $table->addCell($this->pct($widths[3]), ['valign' => 'center']);
                 $this->addRatingBox($ratingCell, $block['rating'] ?? '');
-                $this->addSpacer($section, 80);
+            $this->addSpacer($section, 80);
             } elseif ($type === 'criteria') {
                 $section->addText((string) ($block['label'] ?? 'প্রচলিত নিয়ম (Criteria):'), $this->fontBold, ['spaceBefore' => 120]);
                 $section->addText((string) ($block['body'] ?? ($data['financial_criteria'] ?? '')), $this->fontBody, ['alignment' => Jc::BOTH]);
@@ -818,6 +818,9 @@ class AuditReportDocxBuilder
         }
 
         $parts = MakeAuditReport::findingRatingParts($rating);
+        $style = MakeAuditReport::findingRatingStyle($rating);
+        $bg = ltrim((string) ($style['bg'] ?? '#FCE4D6'), '#');
+        $fg = ltrim((string) ($style['color'] ?? '#111111'), '#');
         $inner = $cell->addTable([
             'borderSize' => 6,
             'borderColor' => '111111',
@@ -829,10 +832,10 @@ class AuditReportDocxBuilder
         $inner->addCell($this->pct(100), ['gridSpan' => 2, 'bgColor' => '4472C4', 'valign' => 'center'])
             ->addText('রেটিং (Rating)', ['name' => self::FONT, 'size' => 8, 'bold' => true, 'color' => 'FFFFFF'], ['alignment' => Jc::CENTER]);
         $inner->addRow();
-        $inner->addCell($this->pct(50), ['bgColor' => 'F8CBAD', 'valign' => 'center'])
-            ->addText($parts['label'] ?: '—', ['name' => self::FONT, 'size' => 9, 'bold' => true], ['alignment' => Jc::CENTER]);
-        $inner->addCell($this->pct(50), ['bgColor' => 'F8CBAD', 'valign' => 'center'])
-            ->addText($parts['code'] ?: '—', ['name' => self::FONT, 'size' => 9, 'bold' => true], ['alignment' => Jc::CENTER]);
+        $inner->addCell($this->pct(50), ['bgColor' => $bg, 'valign' => 'center'])
+            ->addText($parts['label'] ?: '—', ['name' => self::FONT, 'size' => 9, 'bold' => true, 'color' => $fg], ['alignment' => Jc::CENTER]);
+        $inner->addCell($this->pct(50), ['bgColor' => $bg, 'valign' => 'center'])
+            ->addText($parts['code'] ?: '—', ['name' => self::FONT, 'size' => 9, 'bold' => true, 'color' => $fg], ['alignment' => Jc::CENTER]);
     }
 
     /**
