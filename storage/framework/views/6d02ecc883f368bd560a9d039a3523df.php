@@ -6,7 +6,7 @@
 
     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($step === 'select'): ?>
         <div
-            class="px-4 py-5 lg:px-6"
+            class="px-3 py-3 lg:px-5"
             x-data="{
                 q: '',
                 open: false,
@@ -57,18 +57,7 @@
                 }
             }"
         >
-            <div class="px-4 py-4 lg:px-6">
-                <div class="mb-3">
-                    <h1 class="text-[16px] font-semibold text-navy-900">Audit Report Dashboard</h1>
-                    <p class="mt-0.5 text-[11px] text-slate-500">একসাথে সর্বোচ্চ <?php echo e($maxConcurrentDrafts); ?>টি রিপোর্ট · Auto-save · Continue দিয়ে আগের কাজ চালিয়ে যান</p>
-                </div>
-
-                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(session('status')): ?>
-                    <div class="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] text-emerald-800"><?php echo e(session('status')); ?></div>
-                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-
-                <?php echo $__env->make('livewire.partials.audit-reports-dashboard', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
-            </div>
+            <?php echo $__env->make('livewire.partials.audit-reports-dashboard', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
         </div>
     <?php else: ?>
         

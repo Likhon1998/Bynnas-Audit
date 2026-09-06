@@ -132,9 +132,12 @@
             </div>
 
             <div>
-                <label class="mb-1 flex items-center gap-2 text-[12px] text-slate-700">
-                    <input type="checkbox" name="is_active" value="1" class="rounded border-slate-300 text-[#2b579a]" @checked(old('is_active', $user?->is_active ?? true))>
-                    Account active
+                <label class="mb-1 flex items-start gap-2 text-[12px] text-slate-700">
+                    <input type="checkbox" name="is_active" value="1" class="mt-0.5 rounded border-slate-300 text-[#2b579a]" @checked(old('is_active', $user?->is_active ?? true))>
+                    <span>
+                        <span class="font-semibold">Account active</span>
+                        <span class="mt-0.5 block text-[10px] text-slate-400">Uncheck to deactivate — blocks login without deleting the account.</span>
+                    </span>
                 </label>
             </div>
 
@@ -169,8 +172,8 @@
                         type="submit"
                         form="delete-user"
                         class="text-[12px] font-medium text-rose-600 hover:underline"
-                        onclick="return confirm('Delete this user account?')"
-                    >Delete user</button>
+                        onclick="return confirm('Permanently delete this login? The organogram employee (if linked) will be kept.')"
+                    >Delete login</button>
                 @else
                     <span></span>
                 @endif

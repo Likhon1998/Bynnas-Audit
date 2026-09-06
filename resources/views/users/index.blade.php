@@ -3,7 +3,7 @@
         <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div>
                 <h1 class="text-[16px] font-semibold tracking-tight text-navy-900">Users &amp; Access</h1>
-                <p class="mt-0.5 text-[12px] text-slate-500">Create logins · link employees · assign roles &amp; branch access</p>
+                <p class="mt-0.5 text-[12px] text-slate-500">Create logins · deactivate / delete credentials · assign roles &amp; branch access</p>
             </div>
             <a href="{{ route('users.create') }}" class="inline-flex h-8 items-center rounded-lg bg-navy-900 px-3 text-[12px] font-medium text-white hover:bg-navy-800">
                 + New login
@@ -18,14 +18,22 @@
         @enderror
 
         {{-- Role cheat sheet --}}
-        <div class="mb-4 grid gap-2 sm:grid-cols-3">
+        <div class="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             @foreach ($roleCatalog as $key => $role)
                 <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-                    <p class="text-[12px] font-semibold text-navy-900">{{ $role['label'] }}</p>
+                    <div class="flex items-start justify-between gap-2">
+                        <p class="text-[12px] font-semibold text-navy-900">{{ $role['label'] }}</p>
+                        @unless (\App\Support\RoleAccess::isSystemRole($key))
+                            <span class="rounded-full bg-sky-50 px-1.5 py-0.5 text-[9px] font-semibold text-sky-700">Custom</span>
+                        @endunless
+                    </div>
                     <p class="text-[10px] text-slate-500">{{ $role['summary'] }}</p>
                     <p class="mt-1.5 text-[10px] leading-relaxed text-slate-400">{{ $role['notes'] }}</p>
                 </div>
             @endforeach
+        </div>
+        <div class="mb-4">
+            <a href="{{ route('roles.index') }}" class="text-[11px] font-semibold text-[#2b579a] hover:underline">Manage roles →</a>
         </div>
 
         @if ($employeesWithoutLogin->isNotEmpty())
@@ -86,7 +94,7 @@
                                 @endif
                             </td>
                             <td class="px-3 py-2.5 text-slate-600">
-                                @if ($user->hasAnyRole(['superadmin', 'audit_manager']))
+                                @if ($user->can('shakhas.view_all') || $user->hasAnyRole(['superadmin', 'audit_manager']))
                                     <span class="text-[11px] text-slate-400">All (by role)</span>
                                 @else
                                     {{ $user->assignedShakhas->count() }} explicit
@@ -94,13 +102,35 @@
                             </td>
                             <td class="px-3 py-2.5">
                                 @if ($user->is_active)
-                                    <span class="text-[11px] font-semibold text-emerald-700">Active</span>
+                                    <span class="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Active</span>
                                 @else
-                                    <span class="text-[11px] font-semibold text-rose-600">Inactive</span>
+                                    <span class="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-700">Deactivated</span>
                                 @endif
                             </td>
-                            <td class="px-3 py-2.5 text-right">
-                                <a href="{{ route('users.edit', $user) }" class="text-[11px] font-semibold text-[#2b579a] hover:underline">Edit</a>
+                            <td class="px-3 py-2.5">
+                                <div class="flex flex-wrap items-center justify-end gap-2">
+                                    <a href="{{ route('users.edit', $user) }}" class="text-[11px] font-semibold text-[#2b579a] hover:underline">Edit</a>
+                                    @if ($user->id !== auth()->id())
+                                        <form method="POST" action="{{ route('users.toggle-active', $user) }}" class="inline">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button
+                                                type="submit"
+                                                class="text-[11px] font-semibold {{ $user->is_active ? 'text-amber-700 hover:underline' : 'text-emerald-700 hover:underline' }}"
+                                                onclick="return confirm('{{ $user->is_active ? 'Deactivate this login? They will not be able to sign in.' : 'Reactivate this login?' }}')"
+                                            >{{ $user->is_active ? 'Deactivate' : 'Activate' }}</button>
+                                        </form>
+                                        <form method="POST" action="{{ route('users.destroy', $user) }}" class="inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button
+                                                type="submit"
+                                                class="text-[11px] font-semibold text-rose-600 hover:underline"
+                                                onclick="return confirm('Permanently delete this login? The organogram employee record (if linked) will be kept.')"
+                                            >Delete</button>
+                                        </form>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                     @empty

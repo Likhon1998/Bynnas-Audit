@@ -25,6 +25,15 @@ export default {
                     600: '#2F4BC0',
                     700: '#243A9E',
                 },
+                // Logo gradient: magenta → purple → blue
+                bynnas: {
+                    pink: '#FF2D9B',
+                    magenta: '#C026D3',
+                    purple: '#7C3AED',
+                    violet: '#6D28D9',
+                    blue: '#2563EB',
+                    cyan: '#0EA5E9',
+                },
                 navy: {
                     800: '#152A4A',
                     900: '#0B1B36',

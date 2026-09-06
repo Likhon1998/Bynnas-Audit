@@ -43,9 +43,4 @@ class AuditPlan extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
-
-    public function isPublished(): bool
-    {
-        return $this->status === 'published';
-    }
 }

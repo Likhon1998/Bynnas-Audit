@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Area extends Model
@@ -20,6 +21,11 @@ class Area extends Model
     public function shakhas(): HasMany
     {
         return $this->hasMany(Shakha::class);
+    }
+
+    public function employees(): HasManyThrough
+    {
+        return $this->hasManyThrough(ShakhaEmployee::class, Shakha::class);
     }
 
     public function schedules(): MorphMany

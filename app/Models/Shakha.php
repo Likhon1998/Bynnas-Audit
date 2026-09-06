@@ -61,6 +61,11 @@ class Shakha extends Model
         return $this->hasMany(AuditFinding::class);
     }
 
+    public function employees(): HasMany
+    {
+        return $this->hasMany(ShakhaEmployee::class)->orderBy('sort_order')->orderBy('name');
+    }
+
     public function latestRiskAssessment(): HasOne
     {
         return $this->hasOne(ShakhaRiskAssessment::class)->latestOfMany([

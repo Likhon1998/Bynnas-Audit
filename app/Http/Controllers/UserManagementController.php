@@ -33,7 +33,7 @@ class UserManagementController extends Controller
         return view('users.index', [
             'users' => $users,
             'employeesWithoutLogin' => $employeesWithoutLogin,
-            'roleCatalog' => RoleAccess::catalog(),
+            'roleCatalog' => RoleAccess::catalogWithCustom(),
         ]);
     }
 
@@ -134,11 +134,62 @@ class UserManagementController extends Controller
             return back()->withErrors(['user' => 'You cannot delete your own account.']);
         }
 
+        if ($user->isSuperAdmin()) {
+            $otherAdmins = User::query()
+                ->where('id', '!=', $user->id)
+                ->where(function ($q) {
+                    $q->where('is_superadmin', true)
+                        ->orWhereHas('roles', fn ($r) => $r->where('name', 'superadmin'));
+                })
+                ->where('is_active', true)
+                ->count();
+
+            if ($otherAdmins === 0) {
+                return back()->withErrors(['user' => 'Cannot delete the last active Super Admin.']);
+            }
+        }
+
+        $name = $user->name;
+        $user->assignedShakhas()->detach();
+        $user->syncRoles([]);
         $user->delete();
 
         return redirect()
             ->route('users.index')
-            ->with('status', 'User deleted.');
+            ->with('status', 'Login deleted for '.$name.'. Organogram employee (if any) was kept.');
+    }
+
+    public function toggleActive(User $user): RedirectResponse
+    {
+        if ($user->id === auth()->id()) {
+            return back()->withErrors(['user' => 'You cannot deactivate your own account.']);
+        }
+
+        if ($user->is_active && $user->isSuperAdmin()) {
+            $otherAdmins = User::query()
+                ->where('id', '!=', $user->id)
+                ->where(function ($q) {
+                    $q->where('is_superadmin', true)
+                        ->orWhereHas('roles', fn ($r) => $r->where('name', 'superadmin'));
+                })
+                ->where('is_active', true)
+                ->count();
+
+            if ($otherAdmins === 0) {
+                return back()->withErrors(['user' => 'Cannot deactivate the last active Super Admin.']);
+            }
+        }
+
+        $user->is_active = ! $user->is_active;
+        $user->save();
+
+        $status = $user->is_active
+            ? 'Login reactivated for '.$user->name.'.'
+            : 'Login deactivated for '.$user->name.'. They can no longer sign in.';
+
+        return redirect()
+            ->route('users.index')
+            ->with('status', $status);
     }
 
     /**
@@ -148,7 +199,7 @@ class UserManagementController extends Controller
     {
         return [
             'roles' => Role::query()->orderBy('name')->pluck('name'),
-            'roleCatalog' => RoleAccess::catalog(),
+            'roleCatalog' => RoleAccess::catalogWithCustom(),
             'employees' => Employee::query()->with(['position', 'user'])->orderBy('name')->get(),
             'positions' => Position::query()->orderBy('serial')->get(),
             'shakhas' => Shakha::query()->orderBy('name')->get(['id', 'name', 'code']),

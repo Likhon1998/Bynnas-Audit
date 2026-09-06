@@ -6,7 +6,7 @@
 
     @if ($step === 'select')
         <div
-            class="px-4 py-5 lg:px-6"
+            class="px-3 py-3 lg:px-5"
             x-data="{
                 q: '',
                 open: false,
@@ -57,18 +57,7 @@
                 }
             }"
         >
-            <div class="px-4 py-4 lg:px-6">
-                <div class="mb-3">
-                    <h1 class="text-[16px] font-semibold text-navy-900">Audit Report Dashboard</h1>
-                    <p class="mt-0.5 text-[11px] text-slate-500">একসাথে সর্বোচ্চ {{ $maxConcurrentDrafts }}টি রিপোর্ট · Auto-save · Continue দিয়ে আগের কাজ চালিয়ে যান</p>
-                </div>
-
-                @if (session('status'))
-                    <div class="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] text-emerald-800">{{ session('status') }}</div>
-                @endif
-
-                @include('livewire.partials.audit-reports-dashboard')
-            </div>
+            @include('livewire.partials.audit-reports-dashboard')
         </div>
     @else
         {{-- Fixed toolbar — does not scroll away --}}

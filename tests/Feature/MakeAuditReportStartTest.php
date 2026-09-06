@@ -49,9 +49,9 @@ class MakeAuditReportStartTest extends TestCase
             ->get(route('audits.index'))
             ->assertOk()
             ->assertSeeLivewire(MakeAuditReport::class)
-            ->assertSee('Audit Report Dashboard')
-            ->assertSee('নতুন রিপোর্ট শুরু করুন')
-            ->assertSee('Start new');
+            ->assertSee('Audit Reports')
+            ->assertSee('Start new')
+            ->assertSee('Start');
     }
 
     public function test_start_report_without_shakha_fails_validation(): void

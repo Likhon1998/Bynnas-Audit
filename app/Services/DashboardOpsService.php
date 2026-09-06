@@ -8,6 +8,8 @@ use App\Models\AuditPlan;
 use App\Models\AuditReport;
 use App\Models\MonthlyAssignment;
 use App\Models\MonthlyWorkItem;
+use App\Models\PlanSchedule;
+use App\Models\Project;
 use App\Models\Shakha;
 use App\Models\ShakhaAnnualKpi;
 use App\Models\ShakhaRiskAssessment;
@@ -46,6 +48,8 @@ class DashboardOpsService
         $myWork = $this->myWork($userId);
         $impact = $this->impact($calendarMonth, $calendarYear);
         $health = $this->health($fy, $calendarMonth, $calendarYear);
+        $shakhaRisk = $this->shakhaRiskSummary();
+        $sights = $this->crossModuleSights($fy, $plan, $monthIndex, $act, $myWork, $shakhaRisk);
 
         return [
             'fy_label' => $fy->label,
@@ -63,6 +67,190 @@ class DashboardOpsService
             'my_work' => $myWork,
             'impact' => $impact,
             'health' => $health,
+            'shakha_risk' => $shakhaRisk,
+            'sights' => $sights,
+        ];
+    }
+
+    /**
+     * Cross-module counts for the ops dashboard layout.
+     *
+     * @param  list<array{key:string,count:int}>  $act
+     * @param  array{ongoing:int,slots_left:int}  $myWork
+     * @param  array{significant:int,high:int,medium:int,low:int,not_assessed:int,active:int}  $shakhaRisk
+     * @return array<string, int|float|string>
+     */
+    protected function crossModuleSights(
+        FinancialYear $fy,
+        ?AuditPlan $plan,
+        int $monthIndex,
+        array $act,
+        array $myWork,
+        array $shakhaRisk,
+    ): array {
+        $activeShakhaIds = Schema::hasTable('shakhas')
+            ? Shakha::query()->where('status', 'active')->pluck('id')
+            : collect();
+
+        $kpiEntered = 0;
+        $kpiMissing = 0;
+        $kpiTotal = $activeShakhaIds->count();
+        if (Schema::hasTable('shakha_annual_kpis') && $activeShakhaIds->isNotEmpty()) {
+            $withKpi = ShakhaAnnualKpi::query()
+                ->where('fy_label', $fy->label)
+                ->whereIn('shakha_id', $activeShakhaIds)
+                ->pluck('shakha_id')
+                ->unique();
+            $kpiEntered = $withKpi->count();
+            $kpiMissing = $activeShakhaIds->diff($withKpi)->count();
+        }
+        $kpiPct = $kpiTotal > 0 ? round(($kpiEntered / $kpiTotal) * 100, 1) : 0.0;
+
+        $activeProjects = 0;
+        $projectLocations = 0;
+        if (Schema::hasTable('projects')) {
+            $activeProjects = Project::query()->where('status', 'active')->count();
+            if (Schema::hasTable('project_locations')) {
+                $projectLocations = Project::query()
+                    ->where('status', 'active')
+                    ->withCount(['locations' => fn ($q) => $q->where('status', 'active')])
+                    ->get()
+                    ->sum('locations_count');
+            }
+        }
+
+        $planSchedules = 0;
+        $annualPlanShakhas = 0;
+        $monthlyPlanShakhas = 0;
+        $annualTargetPct = 0.0;
+        $annualPlannedYtd = 0;
+        $annualCompletedYtd = 0;
+
+        if ($plan && Schema::hasTable('plan_schedules')) {
+            $planSchedules = PlanSchedule::query()->where('audit_plan_id', $plan->id)->count();
+            $annualPlanShakhas = PlanSchedule::query()
+                ->where('audit_plan_id', $plan->id)
+                ->where('schedulable_type', Shakha::class)
+                ->pluck('schedulable_id')
+                ->unique()
+                ->count();
+        } elseif ($plan && Schema::hasTable('monthly_work_items')) {
+            $planSchedules = MonthlyWorkItem::query()->where('audit_plan_id', $plan->id)->count();
+            $annualPlanShakhas = MonthlyWorkItem::query()
+                ->where('audit_plan_id', $plan->id)
+                ->where('schedulable_type', Shakha::class)
+                ->pluck('schedulable_id')
+                ->unique()
+                ->count();
+        }
+
+        if ($plan && Schema::hasTable('monthly_work_items')) {
+            $monthlyPlanShakhas = MonthlyWorkItem::query()
+                ->where('audit_plan_id', $plan->id)
+                ->where('month_index', $monthIndex)
+                ->where('schedulable_type', Shakha::class)
+                ->pluck('schedulable_id')
+                ->unique()
+                ->count();
+
+            for ($m = 0; $m <= $monthIndex; $m++) {
+                $totals = $this->worklists->performanceSummary($plan, $m)['totals'];
+                $annualPlannedYtd += (int) ($totals['planned'] ?? 0);
+                $annualCompletedYtd += (int) ($totals['completed'] ?? 0);
+            }
+            $annualTargetPct = $annualPlannedYtd > 0
+                ? round(($annualCompletedYtd / $annualPlannedYtd) * 100, 1)
+                : 0.0;
+        }
+
+        $actByKey = collect($act)->keyBy('key');
+        $agedDrafts = (int) ($actByKey->get('aged_drafts')['count'] ?? 0);
+        $orgDrafts = Schema::hasTable('audit_reports')
+            ? AuditReport::query()->drafts()->count()
+            : (int) ($myWork['ongoing'] ?? 0);
+
+        return [
+            'kpi_missing' => $kpiMissing,
+            'kpi_entered' => $kpiEntered,
+            'kpi_total' => $kpiTotal,
+            'kpi_pct' => $kpiPct,
+            'active_projects' => $activeProjects,
+            'project_locations' => (int) $projectLocations,
+            'plan_schedules' => $planSchedules,
+            'plan_status' => $plan?->status ?? 'missing',
+            'annual_plan_shakhas' => $annualPlanShakhas,
+            'monthly_plan_shakhas' => $monthlyPlanShakhas,
+            'annual_target_pct' => $annualTargetPct,
+            'annual_planned_ytd' => $annualPlannedYtd,
+            'annual_completed_ytd' => $annualCompletedYtd,
+            'critical_risk' => (int) ($shakhaRisk['significant'] ?? 0) + (int) ($shakhaRisk['high'] ?? 0),
+            'draft_reports' => $orgDrafts,
+            'aged_drafts' => $agedDrafts,
+        ];
+    }
+
+    /**
+     * Latest risk category counts for active shakhas.
+     *
+     * @return array{
+     *     active:int,
+     *     significant:int,
+     *     high:int,
+     *     medium:int,
+     *     low:int,
+     *     other:int,
+     *     not_assessed:int
+     * }
+     */
+    protected function shakhaRiskSummary(): array
+    {
+        $empty = [
+            'active' => 0,
+            'significant' => 0,
+            'high' => 0,
+            'medium' => 0,
+            'low' => 0,
+            'other' => 0,
+            'not_assessed' => 0,
+        ];
+
+        if (! Schema::hasTable('shakhas')) {
+            return $empty;
+        }
+
+        $activeIds = Shakha::query()->where('status', 'active')->pluck('id');
+        $active = $activeIds->count();
+
+        if ($active === 0 || ! Schema::hasTable('shakha_risk_assessments')) {
+            return array_merge($empty, [
+                'active' => $active,
+                'not_assessed' => $active,
+            ]);
+        }
+
+        $latest = ShakhaRiskAssessment::query()
+            ->whereIn('shakha_id', $activeIds)
+            ->orderByDesc('assessment_year')
+            ->orderByDesc('assessment_month')
+            ->orderByDesc('id')
+            ->get(['shakha_id', 'risk_category'])
+            ->unique('shakha_id');
+
+        $significant = $latest->where('risk_category', 'Significant Risk')->count();
+        $high = $latest->where('risk_category', 'High Risk')->count();
+        $medium = $latest->where('risk_category', 'Medium Risk')->count();
+        $low = $latest->where('risk_category', 'Low Risk')->count();
+        $named = $significant + $high + $medium + $low;
+        $misc = max(0, $latest->count() - $named);
+
+        return [
+            'active' => $active,
+            'significant' => $significant,
+            'high' => $high,
+            'medium' => $medium,
+            'low' => $low,
+            'other' => $medium + $low + $misc,
+            'not_assessed' => max(0, $active - $latest->count()),
         ];
     }
 

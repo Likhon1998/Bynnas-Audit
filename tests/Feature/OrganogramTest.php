@@ -95,13 +95,14 @@ class OrganogramTest extends TestCase
     public function test_authenticated_users_can_view_the_dashboard(): void
     {
         $this->seed(OrganogramSeeder::class);
-        $user = User::factory()->create();
+        $user = User::factory()->create(['name' => 'Dashboard Viewer']);
 
         $this->actingAs($user)
             ->get(route('dashboard'))
             ->assertOk()
-            ->assertSee('Welcome back')
-            ->assertSee('Organogram')
+            ->assertSee('Hello, Dashboard')
+            ->assertSee('Visits today')
+            ->assertSee('Monthly visits')
             ->assertDontSee('Audit organogram ranks');
     }
 }

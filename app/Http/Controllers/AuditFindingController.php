@@ -7,17 +7,68 @@ use App\Models\AuditIndicator;
 use App\Models\AuditReport;
 use App\Models\Shakha;
 use App\Services\AuditSummaryService;
+use App\Services\FindingsAuthoritySummaryExcelExporter;
+use App\Services\FindingsMatrixExcelExporter;
 use App\Services\UserAccessService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AuditFindingController extends Controller
 {
+    public function summary(Request $request, AuditSummaryService $summary): View
+    {
+        $month = max(1, min(12, (int) $request->integer('month', now('Asia/Dhaka')->month)));
+        $year = max(2000, min(2100, (int) $request->integer('year', now('Asia/Dhaka')->year)));
+
+        $brief = $summary->getAuthorityMonthSummary($month, $year);
+
+        $monthsWithData = AuditFinding::query()
+            ->where('audit_year', $year)
+            ->selectRaw('audit_month, COUNT(*) as cells')
+            ->groupBy('audit_month')
+            ->get()
+            ->keyBy(fn ($r) => (int) $r->audit_month);
+
+        $monthStrip = collect(range(1, 12))->map(function (int $m) use ($monthsWithData, $month, $year) {
+            $stat = $monthsWithData->get($m);
+
+            return [
+                'month' => $m,
+                'label' => date('M', mktime(0, 0, 0, $m, 1)),
+                'full' => date('F', mktime(0, 0, 0, $m, 1)),
+                'active' => $m === $month,
+                'has_data' => $stat !== null && (int) $stat->cells > 0,
+                'url' => route('audit-findings.summary', ['month' => $m, 'year' => $year]),
+            ];
+        });
+
+        return view('audit-findings.summary', [
+            'brief' => $brief,
+            'month' => $month,
+            'year' => $year,
+            'monthStrip' => $monthStrip,
+            'yearOptions' => range(now()->year + 1, now()->year - 6),
+            'exportUrl' => route('audit-findings.summary.export', ['month' => $month, 'year' => $year]),
+            'matrixUrl' => route('audit-findings.index', ['month' => $month, 'year' => $year]),
+        ]);
+    }
+
+    public function exportSummary(Request $request, FindingsAuthoritySummaryExcelExporter $exporter): StreamedResponse
+    {
+        $month = max(1, min(12, (int) $request->integer('month', now('Asia/Dhaka')->month)));
+        $year = max(2000, min(2100, (int) $request->integer('year', now('Asia/Dhaka')->year)));
+
+        return $exporter->download($month, $year);
+    }
+
     public function index(Request $request, AuditSummaryService $summary): View
     {
         $month = (int) $request->integer('month', now('Asia/Dhaka')->month);
         $year = (int) $request->integer('year', now('Asia/Dhaka')->year);
+        $month = max(1, min(12, $month));
+        $year = max(2000, min(2100, $year));
 
         $totals = $summary->getOrganizationTotals($month, $year);
 
@@ -71,6 +122,28 @@ class AuditFindingController extends Controller
             ->sortByDesc(fn ($row) => $row['is_new'] ? 1 : 0)
             ->values();
 
+        $monthsWithData = AuditFinding::query()
+            ->where('audit_year', $year)
+            ->selectRaw('audit_month, COUNT(*) as cells, COUNT(DISTINCT shakha_id) as branches')
+            ->groupBy('audit_month')
+            ->get()
+            ->keyBy(fn ($r) => (int) $r->audit_month);
+
+        $monthStrip = collect(range(1, 12))->map(function (int $m) use ($monthsWithData, $month, $year) {
+            $stat = $monthsWithData->get($m);
+
+            return [
+                'month' => $m,
+                'label' => date('M', mktime(0, 0, 0, $m, 1)),
+                'full' => date('F', mktime(0, 0, 0, $m, 1)),
+                'active' => $m === $month,
+                'has_data' => $stat !== null && (int) $stat->cells > 0,
+                'cells' => (int) ($stat->cells ?? 0),
+                'branches' => (int) ($stat->branches ?? 0),
+                'url' => route('audit-findings.index', ['month' => $m, 'year' => $year]),
+            ];
+        });
+
         return view('audit-findings.index', [
             'month' => $month,
             'year' => $year,
@@ -82,7 +155,27 @@ class AuditFindingController extends Controller
             'newIndicatorsThisMonth' => $newIndicatorsThisMonth,
             'newIndicatorsThisMonthCount' => $newIndicatorsThisMonth->count(),
             'newIndicatorsMonthLabel' => $monthStart->format('F Y'),
+            'monthStrip' => $monthStrip,
+            'exportUrl' => route('audit-findings.export', ['month' => $month, 'year' => $year]),
+            'exportYearUrl' => route('audit-findings.export', ['year' => $year, 'scope' => 'year']),
+            'monthLabel' => date('F', mktime(0, 0, 0, $month, 1)),
         ]);
+    }
+
+    public function export(Request $request, FindingsMatrixExcelExporter $exporter): StreamedResponse
+    {
+        $year = (int) $request->integer('year', now('Asia/Dhaka')->year);
+        $year = max(2000, min(2100, $year));
+        $scope = $request->string('scope')->toString();
+
+        if ($scope === 'year') {
+            return $exporter->downloadYear($year);
+        }
+
+        $month = (int) $request->integer('month', now('Asia/Dhaka')->month);
+        $month = max(1, min(12, $month));
+
+        return $exporter->downloadMonth($month, $year);
     }
 
     public function show(Request $request, AuditIndicator $indicator, AuditSummaryService $summary): View

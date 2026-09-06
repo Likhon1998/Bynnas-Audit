@@ -14,6 +14,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // cPanel / reverse-proxy HTTPS
         $middleware->trustProxies(at: '*');
 
+        $middleware->redirectGuestsTo('/login');
+        $middleware->redirectUsersTo('/dashboard');
+
         $middleware->alias([
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,

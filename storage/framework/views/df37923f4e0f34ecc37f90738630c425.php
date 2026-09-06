@@ -7,7 +7,7 @@
 >
     <div class="relative z-10 flex items-center gap-2 px-2.5 pb-1.5 pt-3.5" :class="sidebarCollapsed && 'lg:flex-col lg:gap-2 lg:px-1.5'">
         <a href="<?php echo e(route('dashboard')); ?>" class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg" title="Bynnas Audit">
-            <img src="<?php echo e(asset('images/bynnas-logo.png')); ?>" alt="Bynnas" class="h-9 w-9 object-contain">
+            <img src="<?php echo e(asset('images/bynnas-logo.png')); ?>?v=3" alt="Bynnas" class="h-9 w-9 object-contain">
         </a>
         <div class="sidebar-brand-text min-w-0 flex-1" :class="sidebarCollapsed && 'lg:hidden'">
             <p class="truncate text-[13px] font-semibold leading-tight tracking-tight">
@@ -63,35 +63,6 @@
 <?php $component = $__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300; ?>
 <?php unset($__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300); ?>
 <?php endif; ?>
-
-            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(auth()->user()?->can('users.manage') || auth()->user()?->isSuperAdmin()): ?>
-                <?php if (isset($component)) { $__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300 = $component; } ?>
-<?php if (isset($attributes)) { $__attributesOriginal3d3185cbc95d2b4d3b41182ae7d7a300 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.sidebar-link','data' => ['href' => route('users.index'),'active' => request()->routeIs('users.*'),'title' => 'Users & Access']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
-<?php $component->withName('sidebar-link'); ?>
-<?php if ($component->shouldRender()): ?>
-<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
-<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
-<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
-<?php endif; ?>
-<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('users.index')),'active' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(request()->routeIs('users.*')),'title' => 'Users & Access']); ?>
-<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
-
-                    <svg class="h-3.5 w-3.5 shrink-0 <?php echo e(request()->routeIs('users.*') ? 'text-white' : 'text-slate-400'); ?>" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                    </svg>
-                    <span class="sidebar-link-label truncate">Users & Access</span>
-                 <?php echo $__env->renderComponent(); ?>
-<?php endif; ?>
-<?php if (isset($__attributesOriginal3d3185cbc95d2b4d3b41182ae7d7a300)): ?>
-<?php $attributes = $__attributesOriginal3d3185cbc95d2b4d3b41182ae7d7a300; ?>
-<?php unset($__attributesOriginal3d3185cbc95d2b4d3b41182ae7d7a300); ?>
-<?php endif; ?>
-<?php if (isset($__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300)): ?>
-<?php $component = $__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300; ?>
-<?php unset($__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300); ?>
-<?php endif; ?>
-            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
             <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->any(['organogram.view', 'organogram.manage'])): ?>
                 <?php if (isset($component)) { $__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300 = $component; } ?>
@@ -324,15 +295,15 @@
             <?php endif; ?>
 
             <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->any(['shakhas.manage', 'shakhas.view_all', 'areas.manage'])): ?>
-                <div x-data="{ shakhaOpen: <?php echo e(request()->routeIs('shakhas.*') || request()->routeIs('areas.*') ? 'true' : 'false'); ?> }">
+                <div x-data="{ shakhaOpen: <?php echo e(request()->routeIs('shakhas.*') || request()->routeIs('areas.*') || request()->routeIs('shakha-employees.*') ? 'true' : 'false'); ?> }">
                     
                     <a
                         href="<?php echo e(route('shakhas.index')); ?>"
                         title="Shakha"
-                        class="sidebar-link group relative hidden items-center justify-center rounded-lg px-1.5 py-1.5 text-[12px] tracking-tight transition <?php echo e(request()->routeIs('shakhas.*') || request()->routeIs('areas.*') ? 'sidebar-link-active text-white font-medium shadow-[0_6px_16px_rgba(37,99,235,0.3)]' : 'text-slate-300 hover:bg-white/[0.04] hover:text-white'); ?>"
+                        class="sidebar-link group relative hidden items-center justify-center rounded-lg px-1.5 py-1.5 text-[12px] tracking-tight transition <?php echo e(request()->routeIs('shakhas.*') || request()->routeIs('areas.*') || request()->routeIs('shakha-employees.*') ? 'sidebar-link-active text-white font-medium shadow-[0_6px_16px_rgba(37,99,235,0.3)]' : 'text-slate-300 hover:bg-white/[0.04] hover:text-white'); ?>"
                         :class="sidebarCollapsed && 'lg:!flex'"
                     >
-                        <svg class="h-3.5 w-3.5 shrink-0 <?php echo e(request()->routeIs('shakhas.*') || request()->routeIs('areas.*') ? 'text-white' : 'text-slate-400'); ?>" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <svg class="h-3.5 w-3.5 shrink-0 <?php echo e(request()->routeIs('shakhas.*') || request()->routeIs('areas.*') || request()->routeIs('shakha-employees.*') ? 'text-white' : 'text-slate-400'); ?>" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
                         </svg>
                     </a>
@@ -356,6 +327,7 @@
                         <div x-show="shakhaOpen" x-cloak class="mt-0.5 space-y-0.5 border-l border-white/10 py-0.5 pl-2 ml-3">
                             <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->any(['shakhas.manage', 'shakhas.view_all'])): ?>
                                 <a href="<?php echo e(route('shakhas.index')); ?>" class="block rounded-md px-2 py-1 text-[11px] <?php echo e(request()->routeIs('shakhas.index') ? 'bg-blue-500/20 text-white' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white'); ?>">All Shakha</a>
+                                <a href="<?php echo e(route('shakha-employees.index')); ?>" class="block rounded-md px-2 py-1 text-[11px] <?php echo e(request()->routeIs('shakha-employees.*') ? 'bg-blue-500/20 text-white' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white'); ?>">Shakha Employees</a>
                             <?php endif; ?>
                             <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('shakhas.manage')): ?>
                                 <a href="<?php echo e(route('shakhas.create')); ?>" class="block rounded-md px-2 py-1 text-[11px] <?php echo e(request()->routeIs('shakhas.create') ? 'bg-blue-500/20 text-white' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white'); ?>">Add Shakha</a>
@@ -372,27 +344,82 @@
 
         <div class="sidebar-section-label mb-1.5 mt-4 flex items-center gap-1.5 px-1.5" :class="sidebarCollapsed && 'lg:hidden'">
             <span class="h-px w-2.5 rounded-full bg-sky-400/80"></span>
-            <p class="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-400">Others</p>
+            <p class="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-400">Settings</p>
         </div>
         <div class="sidebar-section-rule mb-1.5 mt-3 hidden h-px bg-white/10 lg:mx-1" :class="sidebarCollapsed ? 'lg:block' : 'lg:hidden'"></div>
         <nav class="space-y-0.5">
-            <?php if (isset($component)) { $__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300 = $component; } ?>
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(auth()->user()?->can('users.manage') || auth()->user()?->isSuperAdmin()): ?>
+                <?php if (isset($component)) { $__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal3d3185cbc95d2b4d3b41182ae7d7a300 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.sidebar-link','data' => ['href' => route('profile.edit'),'active' => request()->routeIs('profile.*'),'title' => 'Settings']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.sidebar-link','data' => ['href' => route('users.index'),'active' => request()->routeIs('users.*'),'title' => 'Users & Access']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('sidebar-link'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('profile.edit')),'active' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(request()->routeIs('profile.*')),'title' => 'Settings']); ?>
+<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('users.index')),'active' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(request()->routeIs('users.*')),'title' => 'Users & Access']); ?>
+<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
+
+                    <svg class="h-3.5 w-3.5 shrink-0 <?php echo e(request()->routeIs('users.*') ? 'text-white' : 'text-slate-400'); ?>" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <span class="sidebar-link-label truncate">Users & Access</span>
+                 <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal3d3185cbc95d2b4d3b41182ae7d7a300)): ?>
+<?php $attributes = $__attributesOriginal3d3185cbc95d2b4d3b41182ae7d7a300; ?>
+<?php unset($__attributesOriginal3d3185cbc95d2b4d3b41182ae7d7a300); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300)): ?>
+<?php $component = $__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300; ?>
+<?php unset($__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300); ?>
+<?php endif; ?>
+                <?php if (isset($component)) { $__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal3d3185cbc95d2b4d3b41182ae7d7a300 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.sidebar-link','data' => ['href' => route('roles.index'),'active' => request()->routeIs('roles.*'),'title' => 'Roles']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('sidebar-link'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('roles.index')),'active' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(request()->routeIs('roles.*')),'title' => 'Roles']); ?>
+<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
+
+                    <svg class="h-3.5 w-3.5 shrink-0 <?php echo e(request()->routeIs('roles.*') ? 'text-white' : 'text-slate-400'); ?>" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                    </svg>
+                    <span class="sidebar-link-label truncate">Roles</span>
+                 <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal3d3185cbc95d2b4d3b41182ae7d7a300)): ?>
+<?php $attributes = $__attributesOriginal3d3185cbc95d2b4d3b41182ae7d7a300; ?>
+<?php unset($__attributesOriginal3d3185cbc95d2b4d3b41182ae7d7a300); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300)): ?>
+<?php $component = $__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300; ?>
+<?php unset($__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300); ?>
+<?php endif; ?>
+            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+
+            <?php if (isset($component)) { $__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal3d3185cbc95d2b4d3b41182ae7d7a300 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.sidebar-link','data' => ['href' => route('profile.edit'),'active' => request()->routeIs('profile.*'),'title' => 'Profile']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('sidebar-link'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('profile.edit')),'active' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(request()->routeIs('profile.*')),'title' => 'Profile']); ?>
 <?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
 
                 <svg class="h-3.5 w-3.5 shrink-0 <?php echo e(request()->routeIs('profile.*') ? 'text-white' : 'text-slate-400'); ?>" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                <span class="sidebar-link-label truncate">Settings</span>
+                <span class="sidebar-link-label truncate">Profile</span>
              <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginal3d3185cbc95d2b4d3b41182ae7d7a300)): ?>

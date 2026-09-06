@@ -6,7 +6,7 @@
         <meta name="csrf-token" content="<?php echo e(csrf_token()); ?>">
 
         <title><?php echo e($title ?? config('app.name', 'Bynnas Audit')); ?></title>
-        <link rel="icon" type="image/png" href="<?php echo e(asset('images/bynnas-logo.png')); ?>">
+        <link rel="icon" type="image/png" href="<?php echo e(asset('images/bynnas-logo.png')); ?>?v=3">
 
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700|hind-siliguri:400,500,600,700&display=swap" rel="stylesheet" />

@@ -90,24 +90,62 @@
         <link href="https://fonts.bunny.net/css?family=hind-siliguri:400,500,600,700&display=swap" rel="stylesheet" />
 
         <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
-            <div>
-                <h1 class="text-[16px] font-semibold tracking-tight text-navy-900">Audit Findings Consolidated</h1>
-                <p class="mt-0.5 text-[11px] text-slate-500">
-                    Indicator totals across branches · Report Rating Box data syncs from audit reports · Front columns = org totals
-                </p>
+            <div class="min-w-0">
+                <h1 class="text-[16px] font-semibold tracking-tight text-navy-900">Findings Matrix</h1>
+                <p class="mt-0.5 text-[11px] text-slate-500">Monthly summary · indicators × shakhas</p>
+                @include('audit-findings.partials.view-tabs', ['activeTab' => 'matrix', 'month' => $month, 'year' => $year])
             </div>
-            <form method="GET" action="{{ route('audit-findings.index') }}" class="flex flex-wrap items-center gap-1.5">
-                <select name="month" class="h-8 rounded-lg border-slate-200 py-0 text-[12px]" onchange="this.form.submit()">
-                    @for ($m = 1; $m <= 12; $m++)
-                        <option value="{{ $m }}" @selected($m === $month)>{{ date('F', mktime(0, 0, 0, $m, 1)) }}</option>
-                    @endfor
-                </select>
-                <select name="year" class="h-8 rounded-lg border-slate-200 py-0 text-[12px]" onchange="this.form.submit()">
-                    @foreach ($yearOptions as $y)
-                        <option value="{{ $y }}" @selected($y === $year)>{{ $y }}</option>
-                    @endforeach
-                </select>
-            </form>
+            <div class="ml-auto flex flex-wrap items-center justify-end gap-1.5">
+                <form method="GET" action="{{ route('audit-findings.index') }}" class="flex flex-wrap items-center gap-1.5">
+                    <select name="month" class="h-8 rounded-lg border-slate-200 py-0 text-[12px]" onchange="this.form.submit()">
+                        @for ($m = 1; $m <= 12; $m++)
+                            <option value="{{ $m }}" @selected($m === $month)>{{ date('F', mktime(0, 0, 0, $m, 1)) }}</option>
+                        @endfor
+                    </select>
+                    <select name="year" class="h-8 rounded-lg border-slate-200 py-0 text-[12px]" onchange="this.form.submit()">
+                        @foreach ($yearOptions as $y)
+                            <option value="{{ $y }}" @selected($y === $year)>{{ $y }}</option>
+                        @endforeach
+                    </select>
+                </form>
+                <a
+                    href="{{ $exportYearUrl }}"
+                    class="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
+                    title="All 12 months — each tab is indicators × shakhas"
+                >All months {{ $year }}</a>
+                <a
+                    href="{{ $exportUrl }}"
+                    class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-emerald-700 px-3.5 text-[12px] font-semibold text-white shadow-sm hover:bg-emerald-800"
+                    title="Download {{ $monthLabel }} {{ $year }} — indicators × shakhas matrix"
+                >
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
+                    Download {{ $monthLabel }} {{ $year }}
+                </a>
+            </div>
+        </div>
+
+        <div class="mb-3 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-3 py-2">
+                <p class="text-[12px] font-semibold text-navy-900">{{ $year }} — pick a month</p>
+                <p class="text-[10px] text-slate-400">Dots = months with findings · summary below is for the selected month only</p>
+            </div>
+            <div class="grid grid-cols-4 gap-1 p-2 sm:grid-cols-6 lg:grid-cols-12">
+                @foreach ($monthStrip as $chip)
+                    <a
+                        href="{{ $chip['url'] }}"
+                        class="rounded-md px-1.5 py-1.5 text-center transition
+                            {{ $chip['active']
+                                ? 'bg-navy-900 text-white shadow-sm'
+                                : ($chip['has_data'] ? 'bg-sky-50 text-sky-900 hover:bg-sky-100' : 'bg-slate-50 text-slate-500 hover:bg-slate-100') }}"
+                        title="{{ $chip['full'] }}{{ $chip['has_data'] ? ' · '.$chip['cells'].' cells · '.$chip['branches'].' branches' : '' }}"
+                    >
+                        <span class="block text-[11px] font-semibold">{{ $chip['label'] }}</span>
+                        <span class="mt-0.5 block text-[9px] tabular-nums {{ $chip['active'] ? 'text-slate-300' : 'text-slate-400' }}">
+                            {{ $chip['has_data'] ? $chip['cells'] : '—' }}
+                        </span>
+                    </a>
+                @endforeach
+            </div>
         </div>
 
         @if (session('status'))
@@ -238,8 +276,8 @@
 
         <div id="findings-matrix-table" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <div class="border-b border-slate-100 px-3 py-2">
-                <p class="text-[12px] font-semibold text-navy-900">Organization totals (Excel left columns)</p>
-                <p class="text-[10px] text-slate-500">Realtime filter · paginated · নতুন indicators appear in this list</p>
+                <p class="text-[12px] font-semibold text-navy-900">{{ date('F', mktime(0, 0, 0, $month, 1)) }} {{ $year }} — organization totals</p>
+                <p class="text-[10px] text-slate-500">On-screen summary for this month · Excel download adds every shakha as columns next to these indicators</p>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full border-collapse text-left text-[12px]">

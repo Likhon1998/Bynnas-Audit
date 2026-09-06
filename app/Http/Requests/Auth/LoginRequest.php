@@ -50,6 +50,15 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        $user = Auth::user();
+        if ($user && method_exists($user, 'isActiveAccount') && ! $user->isActiveAccount()) {
+            Auth::logout();
+
+            throw ValidationException::withMessages([
+                'email' => 'This account is deactivated. Contact the administrator.',
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
     }
 

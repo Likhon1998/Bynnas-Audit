@@ -82,6 +82,96 @@ class AuditSummaryService
             ->values();
     }
 
+    /**
+     * Full month matrix: indicator rows × shakha columns (+ org totals).
+     *
+     * @return array{
+     *     month:int,
+     *     year:int,
+     *     period_label:string,
+     *     indicators:list<array{id:int,category:string,sub_category:string,code:string,title:string,risk_rating:string,total_amount:float,total_samples_checked:int,total_irregularities:int,objected_branch_count:int}>,
+     *     shakhas:list<array{id:int,name:string,code:string,area:string}>,
+     *     cells:array<int, array<int, array{amount:float|null,sample_size_checked:int|null,irregularity_count:int|null,observation:string|null,responsible_staff_name:string|null}>>
+     * }
+     */
+    public function getMonthConsolidatedMatrix(int $month, int $year): array
+    {
+        $month = max(1, min(12, $month));
+        $year = max(2000, min(2100, $year));
+
+        $orgTotals = $this->getOrganizationTotals($month, $year)->keyBy('indicator_id');
+
+        $indicators = AuditIndicator::query()
+            ->active()
+            ->orderBy('category')
+            ->orderBy('sub_category')
+            ->orderBy('indicator_code')
+            ->get(['id', 'category', 'sub_category', 'indicator_code', 'title', 'risk_rating'])
+            ->map(function (AuditIndicator $indicator) use ($orgTotals) {
+                $org = $orgTotals->get($indicator->id);
+
+                return [
+                    'id' => (int) $indicator->id,
+                    'category' => (string) ($indicator->category ?: '—'),
+                    'sub_category' => (string) ($indicator->sub_category ?: '—'),
+                    'code' => (string) $indicator->indicator_code,
+                    'title' => (string) $indicator->title,
+                    'risk_rating' => (string) ($indicator->risk_rating ?: '—'),
+                    'total_amount' => (float) ($org->total_amount ?? 0),
+                    'total_samples_checked' => (int) ($org->total_samples_checked ?? 0),
+                    'total_irregularities' => (int) ($org->total_irregularities ?? 0),
+                    'objected_branch_count' => (int) ($org->objected_branch_count ?? 0),
+                ];
+            })
+            ->values()
+            ->all();
+
+        $findings = AuditFinding::query()
+            ->with(['shakha.area'])
+            ->where('audit_month', $month)
+            ->where('audit_year', $year)
+            ->get();
+
+        $shakhaMap = [];
+        $cells = [];
+
+        foreach ($findings as $finding) {
+            $shakhaId = (int) $finding->shakha_id;
+            $indicatorId = (int) $finding->audit_indicator_id;
+
+            if (! isset($shakhaMap[$shakhaId])) {
+                $shakhaMap[$shakhaId] = [
+                    'id' => $shakhaId,
+                    'name' => (string) ($finding->shakha?->name ?: 'Branch #'.$shakhaId),
+                    'code' => (string) ($finding->shakha?->code ?: ''),
+                    'area' => (string) ($finding->shakha?->area?->name ?: ''),
+                ];
+            }
+
+            $cells[$indicatorId][$shakhaId] = [
+                'amount' => $finding->amount !== null ? (float) $finding->amount : null,
+                'sample_size_checked' => $finding->sample_size_checked !== null ? (int) $finding->sample_size_checked : null,
+                'irregularity_count' => $finding->irregularity_count !== null ? (int) $finding->irregularity_count : null,
+                'observation' => $finding->observation !== null ? (string) $finding->observation : null,
+                'responsible_staff_name' => $finding->responsible_staff_name !== null ? (string) $finding->responsible_staff_name : null,
+            ];
+        }
+
+        $shakhas = collect($shakhaMap)
+            ->sortBy(fn ($s) => mb_strtolower($s['name']))
+            ->values()
+            ->all();
+
+        return [
+            'month' => $month,
+            'year' => $year,
+            'period_label' => date('F', mktime(0, 0, 0, $month, 1)).' '.$year,
+            'indicators' => $indicators,
+            'shakhas' => $shakhas,
+            'cells' => $cells,
+        ];
+    }
+
     public function upsertFinding(
         int $shakhaId,
         int $indicatorId,
@@ -282,6 +372,123 @@ class AuditSummaryService
             'top_branches' => $topBranches,
             'categories' => $categories,
         ];
+    }
+
+    /**
+     * Authority / admin month brief — clear irregularities picture for leadership.
+     *
+     * @return array<string, mixed>
+     */
+    public function getAuthorityMonthSummary(int $month, int $year): array
+    {
+        $base = $this->getDashboardFindingInsights($month, $year);
+
+        $prev = now('Asia/Dhaka')->setDate($year, $month, 1)->subMonth();
+        $prevInsights = $this->getDashboardFindingInsights((int) $prev->month, (int) $prev->year);
+
+        $delta = function (int|float $current, int|float $previous): array {
+            $diff = $current - $previous;
+            $pct = $previous != 0 ? round(($diff / abs($previous)) * 100, 1) : null;
+
+            return [
+                'diff' => $diff,
+                'pct' => $pct,
+                'direction' => $diff > 0 ? 'up' : ($diff < 0 ? 'down' : 'flat'),
+            ];
+        };
+
+        $branchRows = AuditFinding::query()
+            ->select([
+                'shakha_id',
+                DB::raw('COALESCE(SUM(amount), 0) as total_amount'),
+                DB::raw('COALESCE(SUM(irregularity_count), 0) as total_irregularities'),
+                DB::raw('COALESCE(SUM(sample_size_checked), 0) as total_samples'),
+                DB::raw('COUNT(*) as cells'),
+            ])
+            ->where('audit_month', $month)
+            ->where('audit_year', $year)
+            ->groupBy('shakha_id')
+            ->orderByDesc('total_irregularities')
+            ->orderByDesc('total_amount')
+            ->with('shakha:id,name,code')
+            ->get()
+            ->map(function (AuditFinding $row) {
+                $irregs = (int) $row->total_irregularities;
+                $samples = (int) $row->total_samples;
+
+                return [
+                    'shakha_id' => (int) $row->shakha_id,
+                    'name' => (string) ($row->shakha?->name ?: 'Branch #'.$row->shakha_id),
+                    'code' => (string) ($row->shakha?->code ?: ''),
+                    'amount' => (float) $row->total_amount,
+                    'amount_fmt' => number_format((float) $row->total_amount, 2),
+                    'irregularities' => $irregs,
+                    'samples' => $samples,
+                    'cells' => (int) $row->cells,
+                    'defect_rate' => $samples > 0 ? round(($irregs / $samples) * 100, 1) : 0.0,
+                ];
+            })
+            ->values()
+            ->all();
+
+        $maxBranchIrregs = max(1, (int) collect($branchRows)->max('irregularities'));
+
+        $issueRows = $this->getOrganizationTotals($month, $year)
+            ->filter(fn ($row) => $row->objected_branch_count > 0 || $row->total_irregularities > 0 || $row->total_amount > 0)
+            ->sortByDesc('total_irregularities')
+            ->take(12)
+            ->values()
+            ->map(function ($row) use ($month, $year) {
+                return [
+                    'indicator_id' => (int) $row->indicator_id,
+                    'code' => (string) $row->code,
+                    'title' => (string) $row->title,
+                    'category' => (string) $row->category,
+                    'risk_rating' => (string) $row->risk_rating,
+                    'amount' => (float) $row->total_amount,
+                    'amount_fmt' => number_format($row->total_amount, 2),
+                    'irregularities' => (int) $row->total_irregularities,
+                    'objected_branches' => (int) $row->objected_branch_count,
+                    'url' => route('audit-findings.show', [
+                        'indicator' => $row->indicator_id,
+                        'month' => $month,
+                        'year' => $year,
+                    ]),
+                ];
+            })
+            ->all();
+
+        $maxIssueIrregs = max(1, (int) collect($issueRows)->max('irregularities'));
+
+        $categoryMax = max(1, (int) collect($base['categories'])->max('hits'));
+
+        $headline = $base['total_irregularities'] > 0
+            ? sprintf(
+                '%s irregularities across %d branches · ৳%s under observation',
+                number_format($base['total_irregularities']),
+                $base['branches_with_findings'],
+                $base['total_amount_fmt']
+            )
+            : 'No irregularities recorded for this month yet.';
+
+        return array_merge($base, [
+            'prev_period_label' => $prev->format('F Y'),
+            'deltas' => [
+                'irregularities' => $delta($base['total_irregularities'], $prevInsights['total_irregularities']),
+                'amount' => $delta($base['total_amount'], $prevInsights['total_amount']),
+                'branches' => $delta($base['branches_with_findings'], $prevInsights['branches_with_findings']),
+                'indicators_hit' => $delta($base['indicators_hit'], $prevInsights['indicators_hit']),
+            ],
+            'headline' => $headline,
+            'branch_rows' => $branchRows,
+            'issue_rows' => $issueRows,
+            'max_branch_irregularities' => $maxBranchIrregs,
+            'max_issue_irregularities' => $maxIssueIrregs,
+            'category_max_hits' => $categoryMax,
+            'coverage_pct' => $base['active_shakhas'] > 0
+                ? round(($base['branches_with_findings'] / $base['active_shakhas']) * 100, 1)
+                : 0.0,
+        ]);
     }
 
     /**

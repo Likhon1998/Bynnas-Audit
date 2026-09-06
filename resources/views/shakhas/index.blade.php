@@ -223,6 +223,10 @@
                                             >Risk locked</span>
                                         </template>
                                         <a
+                                            :href="row.staff_url"
+                                            class="inline-flex rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800"
+                                        >Staff</a>
+                                        <a
                                             :href="row.edit_url"
                                             class="inline-flex rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
                                         >Edit</a>

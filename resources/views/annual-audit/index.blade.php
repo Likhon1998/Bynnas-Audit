@@ -102,15 +102,6 @@
                         </button>
                     </form>
                 @endif
-                @if ($plan->status !== 'published')
-                    <form method="POST" action="{{ route('annual-audit.publish') }}" class="inline">
-                        @csrf
-                        <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
-                        <button type="submit" class="inline-flex h-7 items-center rounded-md border border-slate-200 bg-white px-2.5 text-[11px] font-medium text-slate-700 hover:bg-slate-50">
-                            Publish
-                        </button>
-                    </form>
-                @endif
             </div>
         </div>
 

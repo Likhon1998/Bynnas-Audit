@@ -132,7 +132,7 @@ class AnnualPlanGenerator
 
             $plan->update([
                 'generated_at' => now(),
-                'status' => $plan->status === 'published' ? 'published' : 'generated',
+                'status' => 'generated',
             ]);
         });
 
@@ -287,7 +287,7 @@ class AnnualPlanGenerator
         if ($added > 0 && ! $plan->generated_at) {
             $plan->update([
                 'generated_at' => now(),
-                'status' => $plan->status === 'published' ? 'published' : 'generated',
+                'status' => 'generated',
             ]);
         }
 

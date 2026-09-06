@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\AuditReport;
 use App\Models\MonthlyAssignment;
 use App\Models\Shakha;
+use App\Models\ShakhaRiskAssessment;
 use App\Models\User;
 use App\Models\VisitExecution;
 use App\Support\FinancialYear;
@@ -75,6 +76,7 @@ class OfficerDashboardService
         })->count();
 
         $accessibleShakhas = $this->access->accessibleShakhas($user);
+        $shakhaRisk = $this->shakhaRiskForAccessible($accessibleShakhas);
 
         $myDrafts = AuditReport::query()
             ->ownedBy((int) $user->id)
@@ -84,10 +86,66 @@ class OfficerDashboardService
             ->limit(8)
             ->get();
 
+        $delayed = $monthAssignments->filter(
+            fn (MonthlyAssignment $a) => ($a->execution?->status ?? '') === VisitExecution::STATUS_DELAYED
+        )->count();
+
         $today = now('Asia/Dhaka')->startOfDay();
+        $todayAssignments = $assignments->filter(function (MonthlyAssignment $a) use ($today) {
+            if (! $a->start_date || ! $a->end_date) {
+                return false;
+            }
+
+            return $a->start_date->lte($today) && $a->end_date->gte($today);
+        })->values();
+
+        $todayActive = $todayAssignments->filter(function (MonthlyAssignment $a) {
+            $status = $a->execution?->status ?? VisitExecution::STATUS_PLANNED;
+
+            return ! in_array($status, [
+                VisitExecution::STATUS_COMPLETED,
+                VisitExecution::STATUS_CANCELLED,
+            ], true);
+        })->count();
+
+        $todayCompleted = $todayAssignments->filter(
+            fn (MonthlyAssignment $a) => ($a->execution?->status ?? '') === VisitExecution::STATUS_COMPLETED
+        )->count();
+
+        $overdue = $assignments->filter(function (MonthlyAssignment $a) use ($today) {
+            if (! $a->end_date || $a->end_date->gte($today)) {
+                return false;
+            }
+            $status = $a->execution?->status ?? VisitExecution::STATUS_PLANNED;
+
+            return ! in_array($status, [
+                VisitExecution::STATUS_COMPLETED,
+                VisitExecution::STATUS_CANCELLED,
+            ], true);
+        })->count();
+
+        $monthCompletionPct = $monthAssignments->count() > 0
+            ? round(($completed / $monthAssignments->count()) * 100, 1)
+            : 0.0;
+
         $todayDay = ($today->year === (int) $monthMeta['year'] && $today->month === (int) $monthMeta['month'])
             ? (int) $today->day
             : null;
+
+        $todayList = $todayAssignments->map(function (MonthlyAssignment $a) {
+            $status = $a->execution?->status ?? VisitExecution::STATUS_PLANNED;
+
+            return [
+                'id' => $a->id,
+                'label' => $this->entityLabel($a),
+                'purpose' => $a->purpose ?: ($a->workItem?->activityType?->name ?? 'Visit'),
+                'dates' => $a->visitDateRangeLabel(),
+                'status' => $status,
+                'status_label' => str_replace('_', ' ', $status),
+                'tone' => $this->statusTone($status),
+                'execution_url' => route('monthly-visits.execution', $a),
+            ];
+        })->values()->all();
 
         return [
             'fy' => $fy,
@@ -95,6 +153,7 @@ class OfficerDashboardService
             'monthMeta' => $monthMeta,
             'monthLabel' => $monthMeta['label'].' '.$monthMeta['year'],
             'monthOptions' => $fy->months(),
+            'todayLabel' => $today->format('d M Y'),
             'fyMonthStrip' => collect($fy->months())->map(fn (array $m) => [
                 'index' => $m['index'],
                 'label' => $m['label'],
@@ -104,15 +163,27 @@ class OfficerDashboardService
                 'is_selected' => $m['index'] === $monthIndex,
             ])->all(),
             'stats' => [
+                'visits_today' => $todayAssignments->count(),
+                'today_active' => $todayActive,
+                'today_completed' => $todayCompleted,
                 'shakhas_month' => $shakhasThisMonth,
                 'visits_month' => $monthAssignments->count(),
                 'completed' => $completed,
                 'in_progress' => $inProgress,
                 'planned' => $planned,
+                'delayed' => $delayed,
+                'overdue' => $overdue,
+                'month_completion_pct' => $monthCompletionPct,
                 'total_access' => $accessibleShakhas->count(),
                 'drafts' => $myDrafts->count(),
                 'slots_left' => max(0, AuditReport::MAX_CONCURRENT_DRAFTS - $myDrafts->count()),
+                'risk_significant' => $shakhaRisk['significant'],
+                'risk_high' => $shakhaRisk['high'],
+                'risk_critical' => $shakhaRisk['significant'] + $shakhaRisk['high'],
+                'risk_other' => $shakhaRisk['other'],
+                'risk_not_assessed' => $shakhaRisk['not_assessed'],
             ],
+            'todayVisits' => $todayList,
             'timeline' => [
                 'days_in_month' => $daysInMonth,
                 'month_start' => $monthStart,
@@ -160,6 +231,48 @@ class OfficerDashboardService
             })->values()->all(),
             'assignedShakhas' => $accessibleShakhas,
             'myDrafts' => $myDrafts,
+        ];
+    }
+
+    /**
+     * Risk breakdown for shakhas this officer can access.
+     *
+     * @param  Collection<int, Shakha>  $shakhas
+     * @return array{significant:int,high:int,other:int,not_assessed:int}
+     */
+    protected function shakhaRiskForAccessible(Collection $shakhas): array
+    {
+        $ids = $shakhas->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $total = count($ids);
+
+        if ($total === 0 || ! Schema::hasTable('shakha_risk_assessments')) {
+            return [
+                'significant' => 0,
+                'high' => 0,
+                'other' => 0,
+                'not_assessed' => $total,
+            ];
+        }
+
+        $latest = ShakhaRiskAssessment::query()
+            ->whereIn('shakha_id', $ids)
+            ->orderByDesc('assessment_year')
+            ->orderByDesc('assessment_month')
+            ->orderByDesc('id')
+            ->get(['shakha_id', 'risk_category'])
+            ->unique('shakha_id');
+
+        $significant = $latest->where('risk_category', 'Significant Risk')->count();
+        $high = $latest->where('risk_category', 'High Risk')->count();
+        $other = $latest->filter(
+            fn (ShakhaRiskAssessment $a) => ! in_array($a->risk_category, ['Significant Risk', 'High Risk'], true)
+        )->count();
+
+        return [
+            'significant' => $significant,
+            'high' => $high,
+            'other' => $other,
+            'not_assessed' => max(0, $total - $latest->count()),
         ];
     }
 

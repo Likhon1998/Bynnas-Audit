@@ -6,24 +6,26 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
         <title>Bynnas Audit</title>
-        <link rel="icon" type="image/png" href="{{ asset('images/bynnas-logo.png') }}">
+        <link rel="icon" type="image/png" href="{{ asset('images/bynnas-logo.png') }}?v=3">
 
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700|hind-siliguri:400,500,600,700&display=swap" rel="stylesheet" />
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="auth-canvas font-sans antialiased text-slate-800">
+    <body class="auth-canvas font-sans antialiased text-slate-800 h-screen overflow-hidden">
         <x-app-loader />
-        <a href="{{ url('/') }}" class="absolute left-6 top-6 z-10 flex items-center gap-2.5">
-            <span class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-slate-950 shadow-sm ring-1 ring-slate-800">
-                <x-application-logo class="h-10 w-10" />
-            </span>
-            <span class="text-lg font-semibold tracking-tight text-slate-800">Bynnas Audit</span>
+        <a href="{{ url('/') }}" class="absolute left-5 top-4 z-10 flex items-center gap-2">
+            <img
+                src="{{ asset('images/bynnas-logo.png') }}?v=3"
+                alt="Bynnas"
+                class="h-9 w-9 object-contain"
+            >
+            <span class="text-[13px] font-semibold tracking-tight text-slate-800">Bynnas Audit</span>
         </a>
 
-        <div class="flex min-h-screen items-center justify-center px-4 py-16">
-            <div class="w-full max-w-[460px] rounded-2xl bg-white/90 p-8 shadow-[0_20px_60px_rgba(80,90,140,0.12)] backdrop-blur-md sm:p-10">
+        <div class="flex h-screen items-center justify-center overflow-hidden px-4 py-6">
+            <div class="w-full max-w-[400px] rounded-2xl bg-white/95 px-6 py-6 shadow-[0_16px_40px_rgba(80,90,140,0.12)] backdrop-blur-md sm:px-7 sm:py-7">
                 {{ $slot }}
             </div>
         </div>

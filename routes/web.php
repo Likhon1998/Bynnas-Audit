@@ -11,12 +11,16 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\RiskAssessmentController;
 use App\Http\Controllers\ShakhaController;
+use App\Http\Controllers\ShakhaEmployeeController;
 use App\Http\Controllers\ShakhaKpiController;
 use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\RoleManagementController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return redirect()->route('login');
+    return auth()->check()
+        ? redirect()->route('dashboard')
+        : redirect()->route('login');
 });
 
 Route::middleware(['auth', 'verified', 'active'])->group(function () {
@@ -28,7 +32,15 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
         Route::post('/users', [UserManagementController::class, 'store'])->name('users.store');
         Route::get('/users/{user}/edit', [UserManagementController::class, 'edit'])->name('users.edit');
         Route::put('/users/{user}', [UserManagementController::class, 'update'])->name('users.update');
+        Route::patch('/users/{user}/toggle-active', [UserManagementController::class, 'toggleActive'])->name('users.toggle-active');
         Route::delete('/users/{user}', [UserManagementController::class, 'destroy'])->name('users.destroy');
+
+        Route::get('/roles', [RoleManagementController::class, 'index'])->name('roles.index');
+        Route::get('/roles/create', [RoleManagementController::class, 'create'])->name('roles.create');
+        Route::post('/roles', [RoleManagementController::class, 'store'])->name('roles.store');
+        Route::get('/roles/{role}/edit', [RoleManagementController::class, 'edit'])->name('roles.edit');
+        Route::put('/roles/{role}', [RoleManagementController::class, 'update'])->name('roles.update');
+        Route::delete('/roles/{role}', [RoleManagementController::class, 'destroy'])->name('roles.destroy');
     });
 
     Route::middleware('permission:organogram.view|organogram.manage')->group(function () {
@@ -56,6 +68,9 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
 
     Route::middleware('permission:findings.view_all|findings.enter')->group(function () {
         Route::get('/audit-findings', [AuditFindingController::class, 'index'])->name('audit-findings.index');
+        Route::get('/audit-findings/summary', [AuditFindingController::class, 'summary'])->name('audit-findings.summary');
+        Route::get('/audit-findings/summary/export', [AuditFindingController::class, 'exportSummary'])->name('audit-findings.summary.export');
+        Route::get('/audit-findings/export', [AuditFindingController::class, 'export'])->name('audit-findings.export');
         Route::get('/audit-findings/entry', [AuditFindingController::class, 'entry'])->name('audit-findings.entry');
         Route::post('/audit-findings/entry', [AuditFindingController::class, 'storeEntry'])->name('audit-findings.entry.store');
         Route::get('/audit-findings/{indicator}', [AuditFindingController::class, 'show'])->name('audit-findings.show');
@@ -63,12 +78,18 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
 
     Route::middleware('permission:shakhas.manage|shakhas.view_all')->group(function () {
         Route::get('/shakhas', [ShakhaController::class, 'index'])->name('shakhas.index');
+        Route::get('/shakha-employees', [ShakhaEmployeeController::class, 'index'])->name('shakha-employees.index');
+        Route::get('/shakhas/{shakha}/employees', [ShakhaEmployeeController::class, 'manage'])->name('shakha-employees.manage');
     });
     Route::middleware('permission:shakhas.manage')->group(function () {
         Route::get('/shakhas/create', [ShakhaController::class, 'create'])->name('shakhas.create');
         Route::post('/shakhas', [ShakhaController::class, 'store'])->name('shakhas.store');
         Route::get('/shakhas/{shakha}/edit', [ShakhaController::class, 'edit'])->name('shakhas.edit');
         Route::put('/shakhas/{shakha}', [ShakhaController::class, 'update'])->name('shakhas.update');
+        Route::post('/shakhas/{shakha}/employees', [ShakhaEmployeeController::class, 'store'])->name('shakha-employees.store');
+        Route::get('/shakha-employees/{shakhaEmployee}/edit', [ShakhaEmployeeController::class, 'edit'])->name('shakha-employees.edit');
+        Route::put('/shakha-employees/{shakhaEmployee}', [ShakhaEmployeeController::class, 'update'])->name('shakha-employees.update');
+        Route::delete('/shakha-employees/{shakhaEmployee}', [ShakhaEmployeeController::class, 'destroy'])->name('shakha-employees.destroy');
     });
     Route::middleware('permission:risk.manage')->group(function () {
         Route::get('/shakhas/risk/export', [RiskAssessmentController::class, 'export'])->name('shakhas.risk.export');
@@ -88,7 +109,6 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
         Route::delete('/annual-audit/years', [AnnualAuditController::class, 'destroyYear'])->name('annual-audit.years.destroy');
         Route::post('/annual-audit/generate', [AnnualAuditController::class, 'generate'])->name('annual-audit.generate');
         Route::post('/annual-audit/sync-missing', [AnnualAuditController::class, 'syncMissing'])->name('annual-audit.sync-missing');
-        Route::post('/annual-audit/publish', [AnnualAuditController::class, 'publish'])->name('annual-audit.publish');
         Route::post('/annual-audit/policies', [AnnualAuditController::class, 'updatePolicies'])->name('annual-audit.policies');
         Route::post('/annual-audit/toggle-month', [AnnualAuditController::class, 'toggleMonth'])->name('annual-audit.toggle-month');
         Route::get('/annual-audit/export', [AnnualAuditController::class, 'export'])->name('annual-audit.export');

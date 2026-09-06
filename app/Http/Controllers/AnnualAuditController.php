@@ -172,19 +172,6 @@ class AnnualAuditController extends Controller
             ->with('status', 'Annual plan generated for FY '.$plan->fy_label.'. Manual month picks were kept.');
     }
 
-    public function publish(Request $request): RedirectResponse
-    {
-        $plan = $this->resolvePlan($request);
-        $plan->update([
-            'status' => 'published',
-            'published_at' => now(),
-        ]);
-
-        return redirect()
-            ->route('annual-audit.index', $this->fyParams($plan, ['tab' => 'total']))
-            ->with('status', 'Plan published for FY '.$plan->fy_label.'.');
-    }
-
     public function updatePolicies(Request $request): RedirectResponse
     {
         $plan = $this->resolvePlan($request);

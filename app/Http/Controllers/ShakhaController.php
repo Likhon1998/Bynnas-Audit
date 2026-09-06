@@ -48,6 +48,7 @@ class ShakhaController extends Controller
                 'risk_period' => $risk?->periodLabel(),
                 'added_on' => $shakha->created_at?->format('d M Y') ?: '—',
                 'edit_url' => route('shakhas.edit', $shakha),
+                'staff_url' => route('shakha-employees.manage', $shakha),
                 'risk_url' => route('shakhas.risk.create', $shakha),
                 'kpi_url' => route('kpis.edit', ['shakha' => $shakha, 'fy' => $fyLabel]),
             ];

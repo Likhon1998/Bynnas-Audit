@@ -106,6 +106,46 @@ class UserAccessManagementTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_superadmin_can_deactivate_login_and_block_sign_in(): void
+    {
+        $admin = User::query()->where('email', 'admin@bynnasaudit.com')->firstOrFail();
+        $officer = User::factory()->create([
+            'email' => 'blocked@example.com',
+            'password' => 'password',
+            'is_active' => true,
+        ]);
+        $officer->assignRole('audit_officer');
+
+        $this->actingAs($admin)
+            ->patch(route('users.toggle-active', $officer))
+            ->assertRedirect(route('users.index'));
+
+        $this->assertFalse($officer->fresh()->is_active);
+
+        auth()->logout();
+
+        $this->post('/login', [
+            'email' => 'blocked@example.com',
+            'password' => 'password',
+        ])->assertSessionHasErrors('email');
+
+        $this->assertGuest();
+    }
+
+    public function test_superadmin_can_delete_employee_login(): void
+    {
+        $admin = User::query()->where('email', 'admin@bynnasaudit.com')->firstOrFail();
+        $officer = User::factory()->create(['is_active' => true]);
+        $officer->assignRole('audit_officer');
+        $id = $officer->id;
+
+        $this->actingAs($admin)
+            ->delete(route('users.destroy', $officer))
+            ->assertRedirect(route('users.index'));
+
+        $this->assertDatabaseMissing('users', ['id' => $id]);
+    }
+
     public function test_officer_dashboard_shows_my_work_not_ops_pulse(): void
     {
         $officer = User::factory()->create(['is_active' => true, 'name' => 'Officer One']);
@@ -114,10 +154,12 @@ class UserAccessManagementTest extends TestCase
         $this->actingAs($officer)
             ->get(route('dashboard'))
             ->assertOk()
-            ->assertSee('My field work')
-            ->assertSee('Officer One')
-            ->assertSee('Allocation year')
-            ->assertDontSee('Operations pulse');
+            ->assertSee('Hello, Officer')
+            ->assertSee('Visits today')
+            ->assertSee('Monthly visits')
+            ->assertSee('Today’s visits')
+            ->assertDontSee('Unassigned visits')
+            ->assertDontSee('Active projects');
     }
 
     public function test_manager_sees_ops_dashboard_and_not_users_menu_route(): void
@@ -128,7 +170,12 @@ class UserAccessManagementTest extends TestCase
         $this->actingAs($manager)
             ->get(route('dashboard'))
             ->assertOk()
-            ->assertSee('Operations pulse');
+            ->assertSee('Total shakha')
+            ->assertSee('Significant')
+            ->assertSee('Annual plan shakhas')
+            ->assertSee('Monthly plan shakhas')
+            ->assertSee('Annual target achieved')
+            ->assertSee('KPI entered');
 
         $this->actingAs($manager)
             ->get(route('users.index'))
