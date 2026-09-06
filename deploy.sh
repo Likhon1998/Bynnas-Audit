@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Run from the live app directory, e.g.:
-#   cd /home/bynnsuou/audit.bynnas.com && bash deploy.sh
+# Safe update deploy (does NOT wipe DB).
+# Run on the LIVE app directory:
+#   cd ~/audit.bynnas.com && bash deploy.sh
 #
-# Or after pulling the Git clone:
-#   cd /home/bynnsuou/repositories/Bynnas-Audit && git pull
-#   rsync ... then run this in audit.bynnas.com
+# Typical full flow:
+#   cd ~/repositories/Bynnas-Audit && git fetch origin && git reset --hard origin/main
+#   rsync -a --delete \
+#     --exclude '.env' --exclude 'storage/' --exclude 'bootstrap/cache/' \
+#     --exclude 'node_modules/' --exclude '.git/' --exclude 'vendor/' \
+#     ~/repositories/Bynnas-Audit/ ~/audit.bynnas.com/
+#   cd ~/audit.bynnas.com && bash deploy.sh
 
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$APP_DIR"
@@ -23,13 +28,18 @@ if [[ ! -f public/index.php ]]; then
   exit 1
 fi
 
+# Ensure root entry exists when docroot is project root (cPanel/LiteSpeed).
+if [[ ! -f index.php ]]; then
+  printf '%s\n' '<?php' "require __DIR__.'/public/index.php';" > index.php
+fi
+
 # Vite "hot" file must never exist on production (breaks CSS/JS).
 rm -f public/hot
 
 if [[ ! -f public/build/manifest.json ]]; then
   echo "ERROR: public/build/manifest.json missing."
   echo "On your PC run: npm run build"
-  echo "Then upload the public/build folder to the server."
+  echo "Then upload/sync the public/build folder to the server."
   exit 1
 fi
 
@@ -50,11 +60,13 @@ fi
 echo "==> composer install"
 "${COMPOSER[@]}" install --no-dev --optimize-autoloader --no-interaction
 
-echo "==> migrate + seed (full demo dataset)"
-# First deploy / broken partial DB: wipe then migrate cleanly.
-php artisan db:wipe --force
+if [[ ! -f vendor/autoload.php ]]; then
+  echo "ERROR: vendor/autoload.php still missing after composer install."
+  exit 1
+fi
+
+echo "==> migrate (no wipe)"
 php artisan migrate --force
-php artisan db:seed --force
 
 echo "==> storage link + permissions"
 php artisan storage:link || true
@@ -66,5 +78,6 @@ php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
-echo "==> Done. Document root must be: $APP_DIR/public"
-echo "==> Login: admin@bynnasaudit.com / 12345678 (change after login)"
+echo "==> Done."
+echo "==> Prefer document root: $APP_DIR/public"
+echo "==> Fallback root index.php is present for project-root docroots."
