@@ -331,6 +331,34 @@ class DemoDataSeeder extends Seeder
             });
         }
 
+        /** @var array<int, list<array{0:string,1:string}>> $busyByEmployee */
+        $busyByEmployee = [];
+        foreach ($employees as $emp) {
+            $busyByEmployee[(int) $emp->id] = [];
+        }
+
+        // Respect already-seeded bookings so re-runs stay conflict-free.
+        MonthlyAssignment::query()
+            ->where(function ($q) use ($employees) {
+                $ids = $employees->pluck('id')->all();
+                $q->whereIn('employee_id', $ids)
+                    ->orWhereHas('visitors', fn ($v) => $v->whereIn('employees.id', $ids));
+            })
+            ->whereNotNull('start_date')
+            ->whereNotNull('end_date')
+            ->with('visitors')
+            ->get()
+            ->each(function (MonthlyAssignment $assignment) use (&$busyByEmployee) {
+                $range = [$assignment->start_date->toDateString(), $assignment->end_date->toDateString()];
+                foreach ($assignment->visitorList() as $visitor) {
+                    $eid = (int) $visitor->id;
+                    if (! isset($busyByEmployee[$eid])) {
+                        $busyByEmployee[$eid] = [];
+                    }
+                    $busyByEmployee[$eid][] = $range;
+                }
+            });
+
         foreach ($schedules as $index => $schedule) {
             $shakhaId = $schedule->schedulable_id;
             $shakha = $schedule->entity ?? Shakha::query()->find($shakhaId);
@@ -352,7 +380,7 @@ class DemoDataSeeder extends Seeder
                     'fy_label' => $plan->fy_label,
                     'activity_type_id' => $activity->id,
                     'plan_schedule_id' => $schedule->id ?? null,
-                    'status' => MonthlyWorkItem::STATUS_ASSIGNED,
+                    'status' => MonthlyWorkItem::STATUS_UNASSIGNED,
                     'entity_label' => $shakha->name,
                     'notes' => '[DEMO] Auto-assigned monthly visit',
                     'created_by' => $admin?->id,
@@ -363,9 +391,26 @@ class DemoDataSeeder extends Seeder
                 continue;
             }
 
-            $employee = $employees[$index % $employees->count()];
-            $start = now()->startOfMonth()->addMonths($monthIndex)->addDays(2 + ($index % 10));
-            $end = (clone $start)->addDays(1 + ($index % 3));
+            $monthStart = now('Asia/Dhaka')->startOfMonth()->addMonthsNoOverflow($monthIndex)->startOfDay();
+            $monthEnd = $monthStart->copy()->endOfMonth()->startOfDay();
+            $duration = 1 + ($index % 3); // 1–3 calendar days
+
+            $placement = $this->findConflictFreeDemoSlot(
+                $employees,
+                $busyByEmployee,
+                $monthStart,
+                $monthEnd,
+                $duration,
+                $index
+            );
+
+            if ($placement === null) {
+                // Leave unassigned rather than create an illegal overlap.
+                continue;
+            }
+
+            [$employee, $start, $end] = $placement;
+            $busyByEmployee[(int) $employee->id][] = [$start->toDateString(), $end->toDateString()];
 
             $assignment = MonthlyAssignment::query()->create([
                 'monthly_work_item_id' => $workItem->id,
@@ -413,6 +458,66 @@ class DemoDataSeeder extends Seeder
 
             $workItem->update(['status' => MonthlyWorkItem::STATUS_ASSIGNED]);
         }
+
+        // Safety net: clear any illegal same-person overlaps left from older demo runs.
+        $worklist = app(\App\Services\MonthlyWorklistService::class);
+        foreach ([0, 1, 2] as $monthIndex) {
+            $worklist->resolveOverlappingAllocations($plan, $monthIndex, $admin?->id);
+        }
+    }
+
+    /**
+     * Pick employee + dates with no overlap against already-booked demo ranges.
+     *
+     * @param  \Illuminate\Support\Collection<int, Employee>  $employees
+     * @param  array<int, list<array{0:string,1:string}>>  $busyByEmployee
+     * @return array{0:Employee,1:\Carbon\Carbon,2:\Carbon\Carbon}|null
+     */
+    protected function findConflictFreeDemoSlot(
+        $employees,
+        array $busyByEmployee,
+        \Carbon\Carbon $monthStart,
+        \Carbon\Carbon $monthEnd,
+        int $durationDays,
+        int $seedIndex,
+    ): ?array {
+        $count = $employees->count();
+        if ($count === 0 || $durationDays < 1) {
+            return null;
+        }
+
+        $overlaps = static function (string $start, string $end, array $ranges): bool {
+            foreach ($ranges as [$bStart, $bEnd]) {
+                if ($start <= $bEnd && $end >= $bStart) {
+                    return true;
+                }
+            }
+
+            return false;
+        };
+
+        for ($attempt = 0; $attempt < $count; $attempt++) {
+            $employee = $employees[($seedIndex + $attempt) % $count];
+            $empId = (int) $employee->id;
+            $busy = $busyByEmployee[$empId] ?? [];
+
+            // Prefer day 2 onward; walk the month looking for a free window.
+            $cursor = $monthStart->copy()->addDay();
+            while ($cursor->copy()->addDays($durationDays - 1)->lte($monthEnd)) {
+                $start = $cursor->copy();
+                $end = $cursor->copy()->addDays($durationDays - 1);
+                $startStr = $start->toDateString();
+                $endStr = $end->toDateString();
+
+                if (! $overlaps($startStr, $endStr, $busy)) {
+                    return [$employee, $start, $end];
+                }
+
+                $cursor->addDay();
+            }
+        }
+
+        return null;
     }
 
     protected function seedAuditReports(): void

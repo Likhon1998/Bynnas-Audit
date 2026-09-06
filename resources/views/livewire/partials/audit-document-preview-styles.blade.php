@@ -106,8 +106,8 @@
 
     .audit-doc-preview .page table.cover-rating {
         display: table !important;
-        width: 42mm !important;
-        max-width: 42mm !important;
+        width: 36mm !important;
+        max-width: 36mm !important;
         table-layout: fixed !important;
         border-collapse: collapse !important;
         margin-left: auto !important;
@@ -116,6 +116,25 @@
     .audit-doc-preview .page table.cover-rating td {
         display: table-cell !important;
         float: none !important;
+        word-wrap: break-word !important;
+        overflow-wrap: anywhere !important;
+    }
+    .audit-doc-preview .page table.cover-rating td.cr-label {
+        font-size: 7pt !important;
+        padding: 1.4mm 1mm !important;
+    }
+    .audit-doc-preview .page table.cover-rating td.cr-value {
+        font-size: 8.5pt !important;
+        padding: 1.6mm 1mm !important;
+    }
+    .audit-doc-preview .page table.rating-box td {
+        font-size: 7.5pt !important;
+        padding: 0.6mm 0.4mm !important;
+        word-wrap: break-word !important;
+    }
+    .audit-doc-preview .page table.toc-table td.center {
+        font-size: 8pt !important;
+        word-wrap: break-word !important;
     }
     .audit-doc-preview .page.page-body {
         min-height: 297mm !important;

@@ -113,7 +113,6 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
     Route::middleware('permission:monthly_visits.manage')->group(function () {
         Route::post('/monthly-visits/generate', [MonthlyVisitController::class, 'generate'])->name('monthly-visits.generate');
         Route::post('/monthly-visits/bulk-allocate', [MonthlyVisitController::class, 'bulkAllocate'])->name('monthly-visits.bulk-allocate');
-        Route::post('/monthly-visits/resolve-conflicts', [MonthlyVisitController::class, 'resolveConflicts'])->name('monthly-visits.resolve-conflicts');
         Route::post('/monthly-visits/special', [MonthlyVisitController::class, 'storeSpecial'])->name('monthly-visits.special.store');
         Route::get('/monthly-visits/items/{workItem}/assign', [MonthlyVisitController::class, 'assignForm'])->name('monthly-visits.assign');
         Route::post('/monthly-visits/items/{workItem}/assign', [MonthlyVisitController::class, 'assign'])->name('monthly-visits.assign.store');

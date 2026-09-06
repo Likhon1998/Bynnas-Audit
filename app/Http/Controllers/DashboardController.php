@@ -2,16 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AuditReport;
 use App\Services\DashboardOpsService;
-use App\Services\UserAccessService;
+use App\Services\OfficerDashboardService;
+use App\Support\RoleAccess;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function index(Request $request, DashboardOpsService $ops, UserAccessService $access): View
-    {
+    public function index(
+        Request $request,
+        DashboardOpsService $ops,
+        OfficerDashboardService $officerDashboard,
+    ): View {
         $user = $request->user();
 
         if ($user && $user->can('dashboard.ops')) {
@@ -33,23 +36,25 @@ class DashboardController extends Controller
             return view('dashboard', [
                 'mode' => 'ops',
                 'pulse' => $pulse,
+                'roleCatalog' => RoleAccess::catalog(),
             ]);
         }
 
-        $shakhas = $access->accessibleShakhas($user);
-        $myDrafts = AuditReport::query()
-            ->ownedBy((int) $user->id)
-            ->drafts()
-            ->with('shakha:id,name')
-            ->latest('last_saved_at')
-            ->limit(8)
-            ->get();
+        $fyLabel = $request->string('fy')->toString() ?: null;
+        if ($fyLabel && ! preg_match('/^\d{4}-\d{4}$/', $fyLabel)) {
+            $fyLabel = null;
+        }
 
-        return view('dashboard', [
+        $monthIndex = $request->has('month')
+            ? (int) $request->integer('month')
+            : null;
+
+        $board = $officerDashboard->build($user, $fyLabel, $monthIndex);
+
+        return view('dashboard', array_merge($board, [
             'mode' => 'officer',
-            'assignedShakhas' => $shakhas,
-            'myDrafts' => $myDrafts,
-            'slotsLeft' => max(0, AuditReport::MAX_CONCURRENT_DRAFTS - $myDrafts->count()),
-        ]);
+            'roleInfo' => RoleAccess::catalog()[$user->roleKey()] ?? null,
+            'slotsLeft' => $board['stats']['slots_left'],
+        ]));
     }
 }

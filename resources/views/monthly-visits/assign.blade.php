@@ -91,10 +91,11 @@
                 </div>
 
                 @if (session('conflict_warning'))
-                    <label class="flex items-center gap-2 text-[12px] text-amber-800">
-                        <input type="checkbox" name="override_conflict" value="1" class="rounded border-amber-300 text-amber-600">
-                        Override conflict and assign anyway
-                    </label>
+                    <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] text-rose-900">
+                        <p class="font-semibold">Cannot allocate — same person at two places</p>
+                        <p class="mt-1">{{ session('conflict_warning') }}</p>
+                        <p class="mt-1 text-[11px] font-medium">Change visitors or dates. Overlap is never allowed.</p>
+                    </div>
                 @endif
 
                 <div class="flex justify-end gap-2 border-t border-slate-100 pt-3">

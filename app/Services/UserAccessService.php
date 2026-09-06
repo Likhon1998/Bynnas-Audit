@@ -3,18 +3,20 @@
 namespace App\Services;
 
 use App\Models\MonthlyAssignment;
+use App\Models\MonthlyWorkItem;
 use App\Models\Shakha;
 use App\Models\User;
-use App\Support\FinancialYear;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 
 /**
  * Resolves which shakhas a user may access for reports / findings / officer dashboard.
  *
- * Sources (union):
- * 1. Explicit user_shakha assignments (superadmin-managed)
- * 2. Monthly visit assignments where the linked employee is lead or visitor
+ * Officers (no view-all):
+ *  1. Automatic — shakhas from Monthly Visits where linked employee is allocated
+ *  2. Extra — optional explicit user_shakha grants from Users & Access
+ *
+ * Managers / superadmin see all.
  */
 class UserAccessService
 {
@@ -26,6 +28,14 @@ class UserAccessService
 
         return $user->hasAnyRole(['superadmin', 'audit_manager'])
             || $user->can('shakhas.view_all');
+    }
+
+    /**
+     * Field staff scoped to visit allocations (+ optional extras).
+     */
+    public function isAllocationScoped(?User $user): bool
+    {
+        return $user !== null && ! $this->canAccessAllShakhas($user);
     }
 
     /**
@@ -43,12 +53,14 @@ class UserAccessService
 
         $ids = collect();
 
-        if (Schema::hasTable('user_shakha')) {
-            $ids = $ids->merge($user->assignedShakhas()->pluck('shakhas.id'));
-        }
-
+        // 1) Automatic: monthly visit allocations for the linked employee
         if ($user->employee_id && Schema::hasTable('monthly_assignments')) {
             $ids = $ids->merge($this->visitAssignedShakhaIds((int) $user->employee_id));
+        }
+
+        // 2) Extra: admin-granted shakhas on Users & Access (optional)
+        if (Schema::hasTable('user_shakha')) {
+            $ids = $ids->merge($user->assignedShakhas()->pluck('shakhas.id'));
         }
 
         return $ids->map(fn ($id) => (int) $id)->unique()->values()->all();
@@ -83,21 +95,80 @@ class UserAccessService
         return in_array($shakhaId, $ids, true);
     }
 
+    public function employeeIsOnAssignment(int $employeeId, MonthlyAssignment $assignment): bool
+    {
+        if ((int) $assignment->employee_id === $employeeId) {
+            return true;
+        }
+
+        $visitors = $assignment->relationLoaded('visitors')
+            ? $assignment->visitors
+            : $assignment->visitors()->get();
+
+        return $visitors->contains(fn ($e) => (int) $e->id === $employeeId);
+    }
+
+    public function userCanAccessAssignment(?User $user, MonthlyAssignment $assignment): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        if (! $this->isAllocationScoped($user)) {
+            return true;
+        }
+
+        if (! $user->employee_id) {
+            return false;
+        }
+
+        return $this->employeeIsOnAssignment((int) $user->employee_id, $assignment);
+    }
+
     /**
+     * Keep only work items where the user's linked employee is allocated.
+     *
+     * @param  Collection<int, MonthlyWorkItem>  $items
+     * @return Collection<int, MonthlyWorkItem>
+     */
+    public function filterWorkItemsForUser(Collection $items, ?User $user): Collection
+    {
+        if (! $user || ! $this->isAllocationScoped($user)) {
+            return $items;
+        }
+
+        if (! $user->employee_id) {
+            return collect();
+        }
+
+        $employeeId = (int) $user->employee_id;
+
+        return $items
+            ->filter(function (MonthlyWorkItem $item) use ($employeeId) {
+                $assignment = $item->assignment;
+                if (! $assignment) {
+                    return false;
+                }
+
+                return $this->employeeIsOnAssignment($employeeId, $assignment);
+            })
+            ->values();
+    }
+
+    /**
+     * Shakha IDs from monthly visits where this employee is allocated (any FY/month).
+     *
      * @return list<int>
      */
     protected function visitAssignedShakhaIds(int $employeeId): array
     {
-        $fy = FinancialYear::current(now('Asia/Dhaka'));
-
         $assignments = MonthlyAssignment::query()
             ->where(function ($q) use ($employeeId) {
                 $q->where('employee_id', $employeeId)
                     ->orWhereHas('visitors', fn ($v) => $v->where('employees.id', $employeeId));
             })
-            ->whereHas('workItem', function ($q) use ($fy) {
-                $q->where('fy_label', $fy->label)
-                    ->where('schedulable_type', Shakha::class);
+            ->whereHas('workItem', function ($q) {
+                $q->where('schedulable_type', Shakha::class);
             })
             ->with('workItem:id,schedulable_id,schedulable_type')
             ->get();

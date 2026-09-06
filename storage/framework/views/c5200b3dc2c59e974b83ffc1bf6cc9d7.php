@@ -1,33 +1,46 @@
-<x-app-layout>
+<?php if (isset($component)) { $__componentOriginal9ac128a9029c0e4701924bd2d73d7f54 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal9ac128a9029c0e4701924bd2d73d7f54 = $attributes; } ?>
+<?php $component = App\View\Components\AppLayout::resolve([] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('app-layout'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\App\View\Components\AppLayout::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes([]); ?>
+<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
+
     <div
         class="px-4 py-4 lg:px-6"
         x-data="monthlyAllocate({
-            items: @js($allocatePayload),
-            employees: @js($employeeAvailability),
-            calendar: @js($calendarPayload),
-            openId: @js($openAllocateId),
-            oldVisitorIds: @js(array_map('intval', (array) old('employee_ids', []))),
-            oldStart: @js(old('start_date')),
-            oldEnd: @js(old('end_date')),
-            oldPurpose: @js(old('purpose')),
-            oldRemarks: @js(old('remarks')),
-            oldLastUpto: @js(old('last_audit_upto')),
-            oldCountOffDays: @js((bool) old('count_off_days', false)),
-            hasConflict: @js((bool) $conflictWarning),
-            conflictWarning: @js($conflictWarning),
+            items: <?php echo \Illuminate\Support\Js::from($allocatePayload)->toHtml() ?>,
+            employees: <?php echo \Illuminate\Support\Js::from($employeeAvailability)->toHtml() ?>,
+            calendar: <?php echo \Illuminate\Support\Js::from($calendarPayload)->toHtml() ?>,
+            openId: <?php echo \Illuminate\Support\Js::from($openAllocateId)->toHtml() ?>,
+            oldVisitorIds: <?php echo \Illuminate\Support\Js::from(array_map('intval', (array) old('employee_ids', [])))->toHtml() ?>,
+            oldStart: <?php echo \Illuminate\Support\Js::from(old('start_date'))->toHtml() ?>,
+            oldEnd: <?php echo \Illuminate\Support\Js::from(old('end_date'))->toHtml() ?>,
+            oldPurpose: <?php echo \Illuminate\Support\Js::from(old('purpose'))->toHtml() ?>,
+            oldRemarks: <?php echo \Illuminate\Support\Js::from(old('remarks'))->toHtml() ?>,
+            oldLastUpto: <?php echo \Illuminate\Support\Js::from(old('last_audit_upto'))->toHtml() ?>,
+            oldCountOffDays: <?php echo \Illuminate\Support\Js::from((bool) old('count_off_days', false))->toHtml() ?>,
+            hasConflict: <?php echo \Illuminate\Support\Js::from((bool) $conflictWarning)->toHtml() ?>,
+            conflictWarning: <?php echo \Illuminate\Support\Js::from($conflictWarning)->toHtml() ?>,
         })"
     >
-        {{-- Header --}}
+        
         <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
             <div class="min-w-0">
                 <h1 class="text-[15px] font-semibold tracking-tight text-navy-900">
-                    {{ ($officerView ?? false) ? 'My monthly visits' : 'Monthly Field Visits' }}
+                    <?php echo e(($officerView ?? false) ? 'My monthly visits' : 'Monthly Field Visits'); ?>
+
                 </h1>
                 <p class="text-[11px] text-slate-500">
-                    FY {{ $plan->fy_label }} · {{ $monthLabel }}
-                    @if ($officerView ?? false)
+                    FY <?php echo e($plan->fy_label); ?> · <?php echo e($monthLabel); ?>
+
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($officerView ?? false): ?>
                         · only shakhas allocated to you
-                    @endif
+                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </p>
             </div>
             <details class="relative">
@@ -36,39 +49,39 @@
                     <svg class="h-3 w-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                 </summary>
                 <div class="absolute right-0 z-40 mt-1 w-40 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
-                    <a href="{{ route('monthly-visits.schedule.print', ['fy' => $plan->fy_label, 'month' => $monthIndex]) }}" class="block px-3 py-1.5 text-[12px] text-slate-700 hover:bg-slate-50">Print</a>
-                    <a href="{{ route('monthly-visits.schedule.pdf', ['fy' => $plan->fy_label, 'month' => $monthIndex]) }}" class="block px-3 py-1.5 text-[12px] text-slate-700 hover:bg-slate-50">PDF</a>
-                    <a href="{{ route('monthly-visits.schedule.doc', ['fy' => $plan->fy_label, 'month' => $monthIndex]) }}" class="block px-3 py-1.5 text-[12px] text-slate-700 hover:bg-slate-50">DOC</a>
-                    <a href="{{ route('monthly-visits.schedule.excel', ['fy' => $plan->fy_label, 'month' => $monthIndex]) }}" class="block px-3 py-1.5 text-[12px] text-slate-700 hover:bg-slate-50">Excel</a>
-                    <a href="{{ route('monthly-visits.report', ['fy' => $plan->fy_label, 'month' => $monthIndex, 'type' => 'schedule']) }}" class="block border-t border-slate-100 px-3 py-1.5 text-[12px] text-slate-700 hover:bg-slate-50">Reports</a>
+                    <a href="<?php echo e(route('monthly-visits.schedule.print', ['fy' => $plan->fy_label, 'month' => $monthIndex])); ?>" class="block px-3 py-1.5 text-[12px] text-slate-700 hover:bg-slate-50">Print</a>
+                    <a href="<?php echo e(route('monthly-visits.schedule.pdf', ['fy' => $plan->fy_label, 'month' => $monthIndex])); ?>" class="block px-3 py-1.5 text-[12px] text-slate-700 hover:bg-slate-50">PDF</a>
+                    <a href="<?php echo e(route('monthly-visits.schedule.doc', ['fy' => $plan->fy_label, 'month' => $monthIndex])); ?>" class="block px-3 py-1.5 text-[12px] text-slate-700 hover:bg-slate-50">DOC</a>
+                    <a href="<?php echo e(route('monthly-visits.schedule.excel', ['fy' => $plan->fy_label, 'month' => $monthIndex])); ?>" class="block px-3 py-1.5 text-[12px] text-slate-700 hover:bg-slate-50">Excel</a>
+                    <a href="<?php echo e(route('monthly-visits.report', ['fy' => $plan->fy_label, 'month' => $monthIndex, 'type' => 'schedule'])); ?>" class="block border-t border-slate-100 px-3 py-1.5 text-[12px] text-slate-700 hover:bg-slate-50">Reports</a>
                 </div>
             </details>
         </div>
 
-        @if (session('status'))
-            <div class="mb-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-800">{{ session('status') }}</div>
-        @endif
-        @if ($errors->any())
-            <div class="mb-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] text-rose-800">{{ $errors->first() }}</div>
-        @endif
-        @unless ($plan->generated_at)
+        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(session('status')): ?>
+            <div class="mb-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-800"><?php echo e(session('status')); ?></div>
+        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($errors->any()): ?>
+            <div class="mb-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] text-rose-800"><?php echo e($errors->first()); ?></div>
+        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if (! ($plan->generated_at)): ?>
             <div class="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-900">
                 Yearly plan is not generated yet — create it under Annual Audit first.
             </div>
-        @endunless
+        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
-        {{-- Controls: period · search · actions --}}
+        
         <div class="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-2">
-            <form method="GET" action="{{ route('monthly-visits.index') }}" class="flex flex-wrap items-center gap-2">
+            <form method="GET" action="<?php echo e(route('monthly-visits.index')); ?>" class="flex flex-wrap items-center gap-2">
                 <select name="fy" class="h-8 rounded-md border-slate-200 !py-0 pl-2 pr-7 text-[12px]" onchange="this.form.submit()" title="Financial year">
-                    @foreach ($availablePlans as $p)
-                        <option value="{{ $p->fy_label }}" @selected($p->fy_label === $plan->fy_label)>{{ $p->fy_label }}</option>
-                    @endforeach
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $availablePlans; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $p): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
+                        <option value="<?php echo e($p->fy_label); ?>" <?php if($p->fy_label === $plan->fy_label): echo 'selected'; endif; ?>><?php echo e($p->fy_label); ?></option>
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                 </select>
                 <select name="month" class="h-8 rounded-md border-slate-200 !py-0 pl-2 pr-7 text-[12px]" onchange="this.form.submit()" title="Month">
-                    @foreach ($monthOptions as $opt)
-                        <option value="{{ $opt['index'] }}" @selected((int) $opt['index'] === (int) $monthIndex)>{{ $opt['label'] }}</option>
-                    @endforeach
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $monthOptions; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $opt): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
+                        <option value="<?php echo e($opt['index']); ?>" <?php if((int) $opt['index'] === (int) $monthIndex): echo 'selected'; endif; ?>><?php echo e($opt['label']); ?></option>
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                 </select>
             </form>
 
@@ -90,62 +103,63 @@
                 >Clear</button>
             </div>
 
-            @can('monthly_visits.manage')
-            <form method="POST" action="{{ route('monthly-visits.generate') }}">
-                @csrf
-                <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
-                <input type="hidden" name="month" value="{{ $monthIndex }}">
+            <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('monthly_visits.manage')): ?>
+            <form method="POST" action="<?php echo e(route('monthly-visits.generate')); ?>">
+                <?php echo csrf_field(); ?>
+                <input type="hidden" name="fy" value="<?php echo e($plan->fy_label); ?>">
+                <input type="hidden" name="month" value="<?php echo e($monthIndex); ?>">
                 <button type="submit" class="inline-flex h-8 items-center rounded-md border border-slate-200 bg-white px-2.5 text-[12px] font-medium text-slate-700 hover:bg-slate-50" title="Pull latest rows from yearly plan">
                     Re-sync
                 </button>
             </form>
             <form
                 method="POST"
-                action="{{ route('monthly-visits.bulk-allocate') }}"
-                onsubmit="return confirm('Auto-allocate {{ $monthLabel }} with conflict-safe dates? Existing non-completed plans may be rebalanced so every office is covered. Same person will never be placed on overlapping dates.')"
+                action="<?php echo e(route('monthly-visits.bulk-allocate')); ?>"
+                onsubmit="return confirm('Auto-allocate <?php echo e($monthLabel); ?> with conflict-safe dates? Existing non-completed plans may be rebalanced so every office is covered. Same person will never be placed on overlapping dates.')"
             >
-                @csrf
-                <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
-                <input type="hidden" name="month" value="{{ $monthIndex }}">
+                <?php echo csrf_field(); ?>
+                <input type="hidden" name="fy" value="<?php echo e($plan->fy_label); ?>">
+                <input type="hidden" name="month" value="<?php echo e($monthIndex); ?>">
                 <button type="submit" class="inline-flex h-8 items-center rounded-md bg-emerald-600 px-3 text-[12px] font-medium text-white hover:bg-emerald-500">
                     Auto-allocate
                 </button>
             </form>
-            @endcan
+            <?php endif; ?>
         </div>
 
-        @if (($officerView ?? false) && ! ($employeeLinked ?? true))
+        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(($officerView ?? false) && ! ($employeeLinked ?? true)): ?>
             <div class="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-900">
                 Your login is not linked to an organogram employee, so no visit allocations can be matched. Ask Super Admin to link your employee on Users &amp; Access.
             </div>
-        @endif
+        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
-        {{-- Compact status strip --}}
+        
         <div class="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[12px]">
-            <span class="text-slate-500">{{ ($officerView ?? false) ? 'My visits' : 'Planned' }} <strong class="text-navy-900">{{ number_format($performance['totals']['planned']) }}</strong></span>
-            @unless ($officerView ?? false)
+            <span class="text-slate-500"><?php echo e(($officerView ?? false) ? 'My visits' : 'Planned'); ?> <strong class="text-navy-900"><?php echo e(number_format($performance['totals']['planned'])); ?></strong></span>
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if (! ($officerView ?? false)): ?>
                 <span class="text-slate-300">|</span>
-                <span class="text-slate-500">Assigned <strong class="text-emerald-700">{{ number_format($performance['totals']['assigned']) }}</strong></span>
+                <span class="text-slate-500">Assigned <strong class="text-emerald-700"><?php echo e(number_format($performance['totals']['assigned'])); ?></strong></span>
                 <span class="text-slate-300">|</span>
-                <span class="text-slate-500">Unassigned <strong class="text-amber-700">{{ number_format($performance['totals']['pending']) }}</strong></span>
-            @endunless
+                <span class="text-slate-500">Unassigned <strong class="text-amber-700"><?php echo e(number_format($performance['totals']['pending'])); ?></strong></span>
+            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
             <span class="text-slate-300">|</span>
-            <span class="text-slate-500">Completed <strong class="text-sky-700">{{ number_format($performance['totals']['completed']) }}</strong></span>
+            <span class="text-slate-500">Completed <strong class="text-sky-700"><?php echo e(number_format($performance['totals']['completed'])); ?></strong></span>
             <span class="text-slate-300">|</span>
-            <span class="text-slate-500">Cancelled <strong class="text-rose-700">{{ number_format($performance['totals']['cancelled']) }}</strong></span>
+            <span class="text-slate-500">Cancelled <strong class="text-rose-700"><?php echo e(number_format($performance['totals']['cancelled'])); ?></strong></span>
             <span class="text-slate-300">|</span>
-            <span class="text-slate-500">Overdue <strong class="text-orange-700">{{ number_format($performance['totals']['overdue']) }}</strong></span>
+            <span class="text-slate-500">Overdue <strong class="text-orange-700"><?php echo e(number_format($performance['totals']['overdue'])); ?></strong></span>
         </div>
 
-        <div class="grid gap-3 {{ ($officerView ?? false) ? '' : 'xl:grid-cols-12' }}">
-            {{-- Unassigned --}}
-            @can('monthly_visits.manage')
+        <div class="grid gap-3 <?php echo e(($officerView ?? false) ? '' : 'xl:grid-cols-12'); ?>">
+            
+            <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('monthly_visits.manage')): ?>
             <section class="overflow-hidden rounded-lg border border-slate-200 bg-white xl:col-span-5">
                 <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-3 py-2">
                     <div>
                         <h2 class="text-[13px] font-semibold text-navy-900">Unassigned</h2>
                         <p class="text-[11px] text-slate-500">
-                            <span x-text="visibleUnassignedCount"></span> / {{ $unassigned->count() }}
+                            <span x-text="visibleUnassignedCount"></span> / <?php echo e($unassigned->count()); ?>
+
                             <span x-show="listQuery" x-cloak> · filtered</span>
                         </p>
                     </div>
@@ -158,16 +172,16 @@
                 </div>
 
                 <div x-show="showSpecial" x-cloak class="border-b border-slate-100 bg-slate-50 px-3 py-2.5">
-                    <form method="POST" action="{{ route('monthly-visits.special.store') }}" class="grid gap-2 sm:grid-cols-2">
-                        @csrf
-                        <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
-                        <input type="hidden" name="month" value="{{ $monthIndex }}">
+                    <form method="POST" action="<?php echo e(route('monthly-visits.special.store')); ?>" class="grid gap-2 sm:grid-cols-2">
+                        <?php echo csrf_field(); ?>
+                        <input type="hidden" name="fy" value="<?php echo e($plan->fy_label); ?>">
+                        <input type="hidden" name="month" value="<?php echo e($monthIndex); ?>">
                         <div>
                             <label class="mb-0.5 block text-[10px] font-medium text-slate-500">Type</label>
                             <select name="activity_type_id" required class="h-8 w-full rounded-md border-slate-200 text-[12px]">
-                                @foreach ($activityTypes as $type)
-                                    <option value="{{ $type->id }}">{{ $type->name }}</option>
-                                @endforeach
+                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $activityTypes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $type): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
+                                    <option value="<?php echo e($type->id); ?>"><?php echo e($type->name); ?></option>
+                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                             </select>
                         </div>
                         <div>
@@ -195,69 +209,72 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
-                            @forelse ($unassigned as $i => $item)
-                                @php
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__empty_1 = true; $__currentLoopData = $unassigned; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $i => $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
+                                <?php
                                     $unassignedSearch = strtolower(trim(implode(' ', [
                                         $item->entity_label,
                                         $item->activityType?->name,
                                         str_replace('_', ' ', $item->category),
                                         $item->isSpecial() ? 'special' : 'yearly',
                                     ])));
-                                @endphp
+                                ?>
                                 <tr
                                     class="text-[12px] unassigned-row"
-                                    data-search="{{ e($unassignedSearch) }}"
+                                    data-search="<?php echo e(e($unassignedSearch)); ?>"
                                     x-show="rowMatch($el.dataset.search, listQuery)"
                                 >
-                                    <td class="px-3 py-2 text-slate-400">{{ $i + 1 }}</td>
+                                    <td class="px-3 py-2 text-slate-400"><?php echo e($i + 1); ?></td>
                                     <td class="px-3 py-2">
-                                        <p class="font-medium text-navy-900">{{ $item->entity_label }}</p>
+                                        <p class="font-medium text-navy-900"><?php echo e($item->entity_label); ?></p>
                                         <p class="text-[10px] text-slate-400">
-                                            {{ $item->isSpecial() ? 'Special' : 'Yearly' }}
-                                            · {{ str_replace('_', ' ', $item->category) }}
+                                            <?php echo e($item->isSpecial() ? 'Special' : 'Yearly'); ?>
+
+                                            · <?php echo e(str_replace('_', ' ', $item->category)); ?>
+
                                         </p>
                                     </td>
-                                    <td class="px-3 py-2 text-slate-600">{{ $item->activityType?->name }}</td>
+                                    <td class="px-3 py-2 text-slate-600"><?php echo e($item->activityType?->name); ?></td>
                                     <td class="px-3 py-2 text-right">
                                         <button
                                             type="button"
-                                            @click="openAllocate({{ $item->id }})"
+                                            @click="openAllocate(<?php echo e($item->id); ?>)"
                                             class="rounded-md bg-navy-900 px-2 py-1 text-[11px] font-medium text-white hover:bg-navy-800"
                                         >Allocate</button>
                                     </td>
                                 </tr>
-                            @empty
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                                 <tr>
                                     <td colspan="4" class="px-3 py-8 text-center text-[12px] text-slate-400">
-                                        @if ($items->isEmpty())
-                                            @if ($plan->generated_at)
-                                                No yearly schedules for {{ $monthLabel }}.
-                                            @else
+                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($items->isEmpty()): ?>
+                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($plan->generated_at): ?>
+                                                No yearly schedules for <?php echo e($monthLabel); ?>.
+                                            <?php else: ?>
                                                 Generate the yearly plan first.
-                                            @endif
-                                        @else
-                                            All items for {{ $monthLabel }} are allocated.
-                                        @endif
+                                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                        <?php else: ?>
+                                            All items for <?php echo e($monthLabel); ?> are allocated.
+                                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                     </td>
                                 </tr>
-                            @endforelse
-                            @if ($unassigned->isNotEmpty())
+                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($unassigned->isNotEmpty()): ?>
                                 <tr x-show="visibleUnassignedCount === 0 && listQuery" x-cloak>
                                     <td colspan="4" class="px-3 py-6 text-center text-[12px] text-slate-400">No matches.</td>
                                 </tr>
-                            @endif
+                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                         </tbody>
                     </table>
                 </div>
             </section>
-            @endcan
+            <?php endif; ?>
 
-            {{-- Assigned --}}
-            <section class="overflow-hidden rounded-lg border border-slate-200 bg-white {{ ($officerView ?? false) ? '' : 'xl:col-span-7' }}">
+            
+            <section class="overflow-hidden rounded-lg border border-slate-200 bg-white <?php echo e(($officerView ?? false) ? '' : 'xl:col-span-7'); ?>">
                 <div class="border-b border-slate-100 px-3 py-2">
-                    <h2 class="text-[13px] font-semibold text-navy-900">{{ ($officerView ?? false) ? 'My allocated shakhas' : 'Allocated schedule' }}</h2>
+                    <h2 class="text-[13px] font-semibold text-navy-900"><?php echo e(($officerView ?? false) ? 'My allocated shakhas' : 'Allocated schedule'); ?></h2>
                     <p class="text-[11px] text-slate-500">
-                        <span x-text="visibleAssignedCount"></span> / {{ $assigned->count() }}
+                        <span x-text="visibleAssignedCount"></span> / <?php echo e($assigned->count()); ?>
+
                         <span x-show="listQuery" x-cloak> · filtered</span>
                     </p>
                 </div>
@@ -275,8 +292,8 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
-                            @forelse ($assigned as $i => $item)
-                                @php
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__empty_1 = true; $__currentLoopData = $assigned; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $i => $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
+                                <?php
                                     $a = $item->assignment;
                                     $status = str_replace('_', ' ', $a?->execution?->status ?? 'planned');
                                     $assignedSearch = strtolower(trim(implode(' ', [
@@ -290,65 +307,66 @@
                                         $status,
                                         $item->isSpecial() ? 'special' : '',
                                     ])));
-                                @endphp
+                                ?>
                                 <tr
                                     class="text-[12px] assigned-row"
-                                    data-search="{{ e($assignedSearch) }}"
+                                    data-search="<?php echo e(e($assignedSearch)); ?>"
                                     x-show="rowMatch($el.dataset.search, listQuery)"
                                 >
-                                    <td class="px-3 py-2 text-slate-400">{{ $i + 1 }}</td>
-                                    <td class="px-3 py-2 font-medium text-navy-900 whitespace-pre-line">{{ $a?->visitorNames("\n") ?: '—' }}</td>
+                                    <td class="px-3 py-2 text-slate-400"><?php echo e($i + 1); ?></td>
+                                    <td class="px-3 py-2 font-medium text-navy-900 whitespace-pre-line"><?php echo e($a?->visitorNames("\n") ?: '—'); ?></td>
                                     <td class="px-3 py-2 text-slate-700">
-                                        <p>{{ $item->entity_label }}</p>
+                                        <p><?php echo e($item->entity_label); ?></p>
                                         <p class="text-[10px] text-slate-400">
-                                            {{ $a?->purpose ?? $item->activityType?->name }}
-                                            @if ($item->isSpecial()) · Special @endif
-                                            @if ($a?->last_audit_upto) · Last {{ $a->last_audit_upto->format('M-Y') }} @endif
+                                            <?php echo e($a?->purpose ?? $item->activityType?->name); ?>
+
+                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($item->isSpecial()): ?> · Special <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($a?->last_audit_upto): ?> · Last <?php echo e($a->last_audit_upto->format('M-Y')); ?> <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                         </p>
                                     </td>
-                                    <td class="px-3 py-2 whitespace-nowrap text-slate-600">{{ $a?->visitDateRangeLabel() }}</td>
-                                    <td class="px-3 py-2 tabular-nums text-slate-600">{{ $a?->duration_days ?: '—' }}</td>
-                                    <td class="px-3 py-2 capitalize text-slate-600">{{ $status }}</td>
+                                    <td class="px-3 py-2 whitespace-nowrap text-slate-600"><?php echo e($a?->visitDateRangeLabel()); ?></td>
+                                    <td class="px-3 py-2 tabular-nums text-slate-600"><?php echo e($a?->duration_days ?: '—'); ?></td>
+                                    <td class="px-3 py-2 capitalize text-slate-600"><?php echo e($status); ?></td>
                                     <td class="px-3 py-2 text-right whitespace-nowrap">
-                                        @can('monthly_visits.manage')
-                                            <button type="button" @click="openAllocate({{ $item->id }})" class="font-medium text-brand-600 hover:underline">Edit</button>
-                                            @if ($a)
+                                        <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('monthly_visits.manage')): ?>
+                                            <button type="button" @click="openAllocate(<?php echo e($item->id); ?>)" class="font-medium text-brand-600 hover:underline">Edit</button>
+                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($a): ?>
                                                 <span class="text-slate-300">·</span>
-                                            @endif
-                                        @endcan
-                                        @if ($a)
-                                            <a href="{{ route('monthly-visits.execution', $a) }}" class="font-medium text-slate-600 hover:underline">Execute</a>
-                                            @can('monthly_visits.manage')
+                                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                        <?php endif; ?>
+                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($a): ?>
+                                            <a href="<?php echo e(route('monthly-visits.execution', $a)); ?>" class="font-medium text-slate-600 hover:underline">Execute</a>
+                                            <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('monthly_visits.manage')): ?>
                                                 <span class="text-slate-300">·</span>
-                                                <a href="{{ route('monthly-visits.reschedule', $a) }}" class="font-medium text-slate-500 hover:underline">Move</a>
-                                            @endcan
-                                        @endif
+                                                <a href="<?php echo e(route('monthly-visits.reschedule', $a)); ?>" class="font-medium text-slate-500 hover:underline">Move</a>
+                                            <?php endif; ?>
+                                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                     </td>
                                 </tr>
-                            @empty
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                                 <tr>
                                     <td colspan="7" class="px-3 py-8 text-center text-[12px] text-slate-400">
-                                        @if ($officerView ?? false)
-                                            No visits allocated to you for {{ $monthLabel }}.
-                                        @else
+                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($officerView ?? false): ?>
+                                            No visits allocated to you for <?php echo e($monthLabel); ?>.
+                                        <?php else: ?>
                                             No allocations yet. Allocate from the left list or use Auto-allocate.
-                                        @endif
+                                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                     </td>
                                 </tr>
-                            @endforelse
-                            @if ($assigned->isNotEmpty())
+                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($assigned->isNotEmpty()): ?>
                                 <tr x-show="visibleAssignedCount === 0 && listQuery" x-cloak>
                                     <td colspan="7" class="px-3 py-6 text-center text-[12px] text-slate-400">No matches.</td>
                                 </tr>
-                            @endif
+                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                         </tbody>
                     </table>
                 </div>
             </section>
         </div>
 
-        {{-- Allocation modal (managers only) --}}
-        @can('monthly_visits.manage')
+        
+        <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('monthly_visits.manage')): ?>
         <div
             x-show="open"
             x-cloak
@@ -384,7 +402,7 @@
 
                 <template x-if="current">
                     <form method="POST" :action="current.assign_url" class="flex min-h-0 flex-1 flex-col">
-                        @csrf
+                        <?php echo csrf_field(); ?>
                         <input type="hidden" name="duration_mode" value="working">
                         <input type="hidden" name="duration_days" :value="autoDays">
 
@@ -497,18 +515,20 @@
                                     <li x-text="line"></li>
                                 </template>
                             </ul>
-                            @if ($conflictFlash)
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($conflictFlash): ?>
                                 <ul class="mt-1 list-disc pl-4 text-[11px] text-rose-900">
-                                    @foreach ($conflictFlash as $c)
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $conflictFlash; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $c): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
                                         <li>
-                                            <strong>{{ is_array($c) ? ($c['names'] ?? 'Staff') : '' }}</strong>
+                                            <strong><?php echo e(is_array($c) ? ($c['names'] ?? 'Staff') : ''); ?></strong>
                                             already booked
-                                            {{ is_array($c) ? ($c['dates'] ?? '') : '' }}
-                                            at {{ is_array($c) ? ($c['entity'] ?? 'another place') : '' }}
+                                            <?php echo e(is_array($c) ? ($c['dates'] ?? '') : ''); ?>
+
+                                            at <?php echo e(is_array($c) ? ($c['entity'] ?? 'another place') : ''); ?>
+
                                         </li>
-                                    @endforeach
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                                 </ul>
-                            @endif
+                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                             <p class="mt-2 text-[11px] font-medium">Change visitors or dates. Overlap is never allowed.</p>
                         </div>
 
@@ -526,7 +546,7 @@
                 </template>
             </div>
         </div>
-        @endcan
+        <?php endif; ?>
     </div>
 
     <script>
@@ -727,4 +747,14 @@
             };
         }
     </script>
-</x-app-layout>
+ <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal9ac128a9029c0e4701924bd2d73d7f54)): ?>
+<?php $attributes = $__attributesOriginal9ac128a9029c0e4701924bd2d73d7f54; ?>
+<?php unset($__attributesOriginal9ac128a9029c0e4701924bd2d73d7f54); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal9ac128a9029c0e4701924bd2d73d7f54)): ?>
+<?php $component = $__componentOriginal9ac128a9029c0e4701924bd2d73d7f54; ?>
+<?php unset($__componentOriginal9ac128a9029c0e4701924bd2d73d7f54); ?>
+<?php endif; ?>
+<?php /**PATH C:\xampp\htdocs\Bynnas-Audit\resources\views/monthly-visits/index.blade.php ENDPATH**/ ?>

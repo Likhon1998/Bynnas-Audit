@@ -19,9 +19,9 @@
     };
 ?>
 
-<table class="header-table">
+<table class="header-table" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;table-layout:fixed;mso-table-layout-alt:fixed;">
     <tr>
-        <td style="width:68%;" valign="top">
+        <td class="logo-cell" width="68%" valign="top" style="width:68%;padding-right:8pt;vertical-align:top;">
             <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(($forDoc ?? false) && ! empty($logoDoc)): ?>
                 <?php echo $__env->make('audits.partials.logo-word', ['logoDoc' => $logoDoc], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
             <?php elseif(! empty($logoDataUri)): ?>
@@ -32,13 +32,21 @@
                 <p class="org-en">Dushtha Shasthya Kendra</p>
             <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
         </td>
-        <td style="width:32%;" class="rating-wrap">
-            <table class="cover-rating">
+        <td class="rating-wrap" width="32%" valign="top" align="right" style="width:32%;max-width:108pt;vertical-align:top;text-align:right;overflow:hidden;">
+            <table class="cover-rating" width="102" cellspacing="0" cellpadding="0" align="right"
+                   style="width:102pt;max-width:102pt;border-collapse:collapse;table-layout:fixed;margin-left:auto;mso-table-layout-alt:fixed;">
                 <tr>
-                    <td class="cr-label">Branch Internal<br>Control Rating</td>
+                    <td class="cr-label" align="center" bgcolor="#1d4ed8"
+                        style="background:#1d4ed8;color:#ffffff;font-size:7pt;font-weight:bold;line-height:1.2;padding:3pt 2pt;text-align:center;">
+                        Branch Internal<br>Control Rating
+                    </td>
                 </tr>
                 <tr>
-                    <td class="cr-value" style="background: <?php echo e($ratingColor); ?>;"><?php echo e($control_rating ?: '—'); ?></td>
+                    <td class="cr-value" align="center" bgcolor="<?php echo e($ratingColor); ?>"
+                        style="background:<?php echo e($ratingColor); ?>;border:1.5pt solid #f97316;color:#ffffff;font-size:8.5pt;font-weight:bold;line-height:1.2;padding:4pt 2pt;text-align:center;word-wrap:break-word;overflow-wrap:anywhere;">
+                        <?php echo e($control_rating ?: '—'); ?>
+
+                    </td>
                 </tr>
             </table>
         </td>

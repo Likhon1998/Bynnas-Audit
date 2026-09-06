@@ -6,6 +6,7 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
         <title>Bynnas Audit</title>
+        <link rel="icon" type="image/png" href="{{ asset('images/bynnas-logo.png') }}">
 
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700|hind-siliguri:400,500,600,700&display=swap" rel="stylesheet" />
@@ -15,7 +16,9 @@
     <body class="auth-canvas font-sans antialiased text-slate-800">
         <x-app-loader />
         <a href="{{ url('/') }}" class="absolute left-6 top-6 z-10 flex items-center gap-2.5">
-            <x-application-logo class="h-9 w-9" />
+            <span class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-slate-950 shadow-sm ring-1 ring-slate-800">
+                <x-application-logo class="h-10 w-10" />
+            </span>
             <span class="text-lg font-semibold tracking-tight text-slate-800">Bynnas Audit</span>
         </a>
 

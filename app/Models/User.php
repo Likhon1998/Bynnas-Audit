@@ -67,6 +67,13 @@ class User extends Authenticatable
 
     public function roleLabel(): string
     {
-        return $this->getRoleNames()->first() ?: ($this->is_superadmin ? 'superadmin' : '—');
+        $role = $this->getRoleNames()->first() ?: ($this->is_superadmin ? 'superadmin' : null);
+
+        return $role ? \App\Support\RoleAccess::label($role) : '—';
+    }
+
+    public function roleKey(): string
+    {
+        return (string) ($this->getRoleNames()->first() ?: ($this->is_superadmin ? 'superadmin' : ''));
     }
 }

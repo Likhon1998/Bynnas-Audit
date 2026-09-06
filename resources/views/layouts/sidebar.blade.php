@@ -6,11 +6,9 @@
     class="sidebar-shell fixed inset-y-0 left-0 z-40 flex w-[188px] shrink-0 flex-col overflow-hidden text-white transition-[width,transform] duration-200 ease-out lg:static lg:translate-x-0"
 >
     <div class="relative z-10 flex items-center gap-2 px-2.5 pb-1.5 pt-3.5" :class="sidebarCollapsed && 'lg:flex-col lg:gap-2 lg:px-1.5'">
-        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-blue-600 shadow-md shadow-blue-500/30">
-            <svg class="h-4 w-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3l7 3v5c0 4.5-2.8 8.4-7 10-4.2-1.6-7-5.5-7-10V6l7-3z" />
-            </svg>
-        </span>
+        <a href="{{ route('dashboard') }}" class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg" title="Bynnas Audit">
+            <img src="{{ asset('images/bynnas-logo.png') }}" alt="Bynnas" class="h-9 w-9 object-contain">
+        </a>
         <div class="sidebar-brand-text min-w-0 flex-1" :class="sidebarCollapsed && 'lg:hidden'">
             <p class="truncate text-[13px] font-semibold leading-tight tracking-tight">
                 <span class="text-white">Bynnas</span>

@@ -15,7 +15,7 @@ class OrganogramController extends Controller
     public function index(): View
     {
         $positions = Position::query()
-            ->with('employees')
+            ->with(['employees.user'])
             ->orderBy('serial')
             ->get();
 
@@ -31,12 +31,18 @@ class OrganogramController extends Controller
             ->where('position_id', $data['position_id'])
             ->max('sort_order');
 
-        Employee::query()->create([
+        $employee = Employee::query()->create([
             'position_id' => $data['position_id'],
             'name' => $data['name'],
             'email' => $data['email'] ?? null,
             'sort_order' => $nextOrder + 1,
         ]);
+
+        if ($request->user()?->can('users.manage')) {
+            return redirect()
+                ->route('users.create', ['employee_id' => $employee->id])
+                ->with('status', 'Officer added. Allocate login credentials and role next.');
+        }
 
         return back()->with('status', 'Officer added to the audit organogram.');
     }

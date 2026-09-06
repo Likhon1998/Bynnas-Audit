@@ -65,7 +65,6 @@
     </form>
 
     <p class="mt-6 text-center text-sm text-slate-500">
-        Don't have an account?
-        <a href="{{ route('register') }}" class="font-semibold text-[#2563EB] hover:text-[#1D4ED8]">Sign up</a>
+        Need an account? Ask your Super Admin to create a login under Users &amp; Access.
     </p>
 </x-guest-layout>

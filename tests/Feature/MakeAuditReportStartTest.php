@@ -206,15 +206,79 @@ class MakeAuditReportStartTest extends TestCase
             ->assertFileDownloaded();
     }
 
-    public function test_doc_download_streams_a_word_file(): void
+    public function test_undo_stays_available_after_save_for_ten_minutes(): void
     {
         $user = $this->makeAuditUser();
         $shakha = $this->makeShakha();
 
-        Livewire::actingAs($user)
+        $component = Livewire::actingAs($user)
             ->test(MakeAuditReport::class)
             ->call('startReport', $shakha->id)
-            ->call('downloadDoc')
-            ->assertFileDownloaded();
+            ->assertSet('step', 'wizard');
+
+        $reportId = (int) $component->get('reportId');
+        $before = $component->get('reportBlocks');
+        $this->assertNotEmpty($before);
+
+        // Edit body then Save — Undo must light up and restore pre-save state.
+        $edited = $before;
+        $edited[0]['title'] = ($edited[0]['title'] ?? '').' [edited]';
+        $component
+            ->set('reportBlocks', $edited)
+            ->call('autoSaveDraft');
+
+        $this->assertNotEmpty($component->get('undoStack'));
+        $this->assertGreaterThan(0, $component->instance()->undoSecondsRemaining());
+        $this->assertNotEquals($before, $component->get('reportBlocks'));
+
+        // Resume within 10 minutes still has Undo.
+        Livewire::actingAs($user)
+            ->test(MakeAuditReport::class)
+            ->call('resumeReport', $reportId)
+            ->assertSet('step', 'wizard')
+            ->tap(function ($c) {
+                $this->assertNotEmpty($c->get('undoStack'));
+            })
+            ->call('undoLastChange')
+            ->assertSet('reportBlocks', $before);
+    }
+
+    public function test_undo_works_after_block_delete_and_save(): void
+    {
+        $user = $this->makeAuditUser();
+        $shakha = $this->makeShakha();
+
+        $component = Livewire::actingAs($user)
+            ->test(MakeAuditReport::class)
+            ->call('startReport', $shakha->id);
+
+        $before = $component->get('reportBlocks');
+        $this->assertNotEmpty($before);
+
+        $component
+            ->call('removeBlock', 0)
+            ->call('autoSaveDraft')
+            ->call('undoLastChange');
+
+        $this->assertSame($before, $component->get('reportBlocks'));
+    }
+
+    public function test_expired_undo_entries_are_pruned(): void
+    {
+        $user = $this->makeAuditUser();
+        $shakha = $this->makeShakha();
+
+        $component = Livewire::actingAs($user)
+            ->test(MakeAuditReport::class)
+            ->call('startReport', $shakha->id);
+
+        $component->set('undoStack', [[
+            'id' => 'expired-snap',
+            'label' => 'পুরনো',
+            'at' => time() - MakeAuditReport::UNDO_TTL_SECONDS - 5,
+        ]]);
+
+        $component->call('refreshUndoWindow');
+        $this->assertSame([], $component->get('undoStack'));
     }
 }

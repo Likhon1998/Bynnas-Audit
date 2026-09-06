@@ -2,11 +2,11 @@
     <div class="px-4 py-4 lg:px-6">
         <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div>
-                <h1 class="text-[16px] font-semibold tracking-tight text-navy-900">User access</h1>
-                <p class="mt-0.5 text-[12px] text-slate-500">Create login credentials · link employee · assign roles & shakhas</p>
+                <h1 class="text-[16px] font-semibold tracking-tight text-navy-900">Users &amp; Access</h1>
+                <p class="mt-0.5 text-[12px] text-slate-500">Create logins · link employees · assign roles &amp; branch access</p>
             </div>
             <a href="{{ route('users.create') }}" class="inline-flex h-8 items-center rounded-lg bg-navy-900 px-3 text-[12px] font-medium text-white hover:bg-navy-800">
-                + New user
+                + New login
             </a>
         </div>
 
@@ -16,6 +16,46 @@
         @error('user')
             <div class="mb-3 rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-[12px] text-rose-800">{{ $message }}</div>
         @enderror
+
+        {{-- Role cheat sheet --}}
+        <div class="mb-4 grid gap-2 sm:grid-cols-3">
+            @foreach ($roleCatalog as $key => $role)
+                <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+                    <p class="text-[12px] font-semibold text-navy-900">{{ $role['label'] }}</p>
+                    <p class="text-[10px] text-slate-500">{{ $role['summary'] }}</p>
+                    <p class="mt-1.5 text-[10px] leading-relaxed text-slate-400">{{ $role['notes'] }}</p>
+                </div>
+            @endforeach
+        </div>
+
+        @if ($employeesWithoutLogin->isNotEmpty())
+            <div class="mb-4 overflow-hidden rounded-xl border border-amber-200 bg-amber-50/60 shadow-sm">
+                <div class="border-b border-amber-100 px-3.5 py-2.5">
+                    <p class="text-[13px] font-semibold text-amber-900">Employees without login ({{ $employeesWithoutLogin->count() }})</p>
+                    <p class="text-[10px] text-amber-800/80">In organogram but cannot sign in until you allocate credentials</p>
+                </div>
+                <div class="divide-y divide-amber-100/80">
+                    @foreach ($employeesWithoutLogin->take(12) as $employee)
+                        <div class="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2">
+                            <div class="min-w-0">
+                                <p class="truncate text-[12px] font-medium text-navy-900">{{ $employee->name }}</p>
+                                <p class="text-[10px] text-slate-500">
+                                    {{ $employee->position?->title ?? '—' }}
+                                    @if ($employee->email) · {{ $employee->email }} @endif
+                                </p>
+                            </div>
+                            <a
+                                href="{{ route('users.create', ['employee_id' => $employee->id]) }}"
+                                class="inline-flex h-7 items-center rounded-md bg-[#2b579a] px-2.5 text-[11px] font-semibold text-white hover:bg-[#204072]"
+                            >Give login</a>
+                        </div>
+                    @endforeach
+                </div>
+                @if ($employeesWithoutLogin->count() > 12)
+                    <p class="border-t border-amber-100 px-3.5 py-2 text-[11px] text-amber-800/70">+ {{ $employeesWithoutLogin->count() - 12 }} more — use New login and pick the employee</p>
+                @endif
+            </div>
+        @endif
 
         <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <table class="min-w-full text-left text-[12px]">
@@ -42,7 +82,7 @@
                             <td class="px-3 py-2.5 text-slate-600">
                                 {{ $user->employee?->name ?? '—' }}
                                 @if ($user->employee?->position)
-                                    <span class="text-[10px] text-slate-400">· {{ $user->employee->position->name }}</span>
+                                    <span class="text-[10px] text-slate-400">· {{ $user->employee->position->title }}</span>
                                 @endif
                             </td>
                             <td class="px-3 py-2.5 text-slate-600">
@@ -60,7 +100,7 @@
                                 @endif
                             </td>
                             <td class="px-3 py-2.5 text-right">
-                                <a href="{{ route('users.edit', $user) }}" class="text-[11px] font-semibold text-[#2b579a] hover:underline">Edit</a>
+                                <a href="{{ route('users.edit', $user) }" class="text-[11px] font-semibold text-[#2b579a] hover:underline">Edit</a>
                             </td>
                         </tr>
                     @empty

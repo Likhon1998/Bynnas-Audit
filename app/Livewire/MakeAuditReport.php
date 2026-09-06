@@ -14,6 +14,7 @@ use App\Support\AuditTableHeaders;
 use App\Support\CustomTableSchema;
 use App\Support\ExcelTsvParser;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Component;
@@ -334,11 +335,14 @@ class MakeAuditReport extends Component
     public string $listFilterStatus = 'all';
 
     /**
-     * In-session undo stack for report body (blocks / tables / columns).
+     * Lightweight undo index (full block payloads live in cache — avoids Livewire snapshot bloat).
      *
-     * @var list<array{label:string,blocks:list<array<string,mixed>>}>
+     * @var list<array{id:string,label:string,at:int}>
      */
     public array $undoStack = [];
+
+    /** Undo entries stay active for 10 minutes after they are created (even after Save). */
+    public const UNDO_TTL_SECONDS = 600;
 
     public function mount(): void
     {
@@ -618,7 +622,9 @@ class MakeAuditReport extends Component
         $this->reportId = $report->id;
         $this->step = 'wizard';
         $this->activeTab = 'cover';
+        $this->clearPersistedUndoStack();
         $this->undoStack = [];
+        $this->rememberCommittedBlocks();
         $this->lastAutoSavedAt = now('Asia/Dhaka')->format('h:i A');
         $this->autoSaveHint = 'Draft saved '.$this->lastAutoSavedAt;
         $this->sign_auditor_name = $this->auditor_name;
@@ -635,7 +641,7 @@ class MakeAuditReport extends Component
         $this->hydrateFromReport($report);
         $this->step = 'wizard';
         $this->showPreview = false;
-        $this->undoStack = [];
+        $this->loadPersistedUndoStack();
         $this->resetErrorBag();
     }
 
@@ -660,9 +666,13 @@ class MakeAuditReport extends Component
         }
 
         try {
+            $this->pruneExpiredUndoStack();
             $this->persistDraft(markTab: null, flash: false);
+            $this->persistUndoStack();
             $this->lastAutoSavedAt = now('Asia/Dhaka')->format('h:i:s A');
-            $this->autoSaveHint = 'Auto-saved '.$this->lastAutoSavedAt;
+            $remaining = $this->undoSecondsRemaining();
+            $this->autoSaveHint = 'Saved '.$this->lastAutoSavedAt
+                .($remaining > 0 ? ' · Undo '.$this->formatUndoRemaining($remaining) : '');
         } catch (\Throwable $e) {
             report($e);
             $this->autoSaveHint = 'Auto-save failed';
@@ -670,18 +680,47 @@ class MakeAuditReport extends Component
     }
 
     /**
-     * Restore the last snapshot (deleted block / column / row / table).
+     * Quiet poll — drop expired undo entries so the button disables after 10 minutes.
+     */
+    public function refreshUndoWindow(): void
+    {
+        if ($this->step !== 'wizard') {
+            return;
+        }
+
+        $before = count($this->undoStack);
+        $this->pruneExpiredUndoStack();
+        if (count($this->undoStack) !== $before) {
+            $this->persistUndoStack();
+        }
+    }
+
+    /**
+     * Restore the last snapshot (deleted block / column / row / table / pre-save state).
+     * Works even after Save, as long as the snapshot is within 10 minutes.
      */
     public function undoLastChange(): void
     {
+        $this->pruneExpiredUndoStack();
+
         if ($this->undoStack === []) {
-            $this->autoSaveHint = 'Undo করার মতো কিছু নেই';
+            $this->autoSaveHint = 'Undo করার মতো কিছু নেই (১০ মিনিটের মধ্যে)';
 
             return;
         }
 
         $snap = array_pop($this->undoStack);
-        $this->reportBlocks = array_values((array) ($snap['blocks'] ?? []));
+        $this->persistUndoStack();
+
+        $blocks = $this->loadUndoPayload((string) ($snap['id'] ?? ''));
+        if ($blocks === null) {
+            $this->autoSaveHint = 'Undo ডেটা মেয়াদোত্তীর্ণ — আবার চেষ্টা করুন';
+
+            return;
+        }
+
+        $this->forgetUndoPayload((string) ($snap['id'] ?? ''));
+        $this->reportBlocks = array_values($blocks);
         $this->closeCustomTableEditor();
         $this->syncSectionsFromReportBlocks();
         $this->syncLegacyFinancialFromReportSections();
@@ -689,7 +728,13 @@ class MakeAuditReport extends Component
         $this->rebuildTocFromReportBlocks();
 
         if ($this->reportId) {
-            $this->autoSaveDraft();
+            try {
+                $this->persistDraft(markTab: null, flash: false);
+                $this->persistUndoStack();
+                $this->lastAutoSavedAt = now('Asia/Dhaka')->format('h:i:s A');
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
 
         $label = (string) ($snap['label'] ?? 'change');
@@ -701,7 +746,7 @@ class MakeAuditReport extends Component
      */
     protected function pushUndoSnapshot(string $label): void
     {
-        if ($this->step !== 'wizard') {
+        if ($this->step !== 'wizard' || ! $this->reportId) {
             return;
         }
 
@@ -710,14 +755,301 @@ class MakeAuditReport extends Component
             $copy = [];
         }
 
+        $this->pruneExpiredUndoStack();
+
+        $id = (string) Str::uuid();
+        $at = time();
+        $this->storeUndoPayload($id, array_values($copy));
+
         $this->undoStack[] = [
+            'id' => $id,
             'label' => $label,
-            'blocks' => array_values($copy),
+            'at' => $at,
         ];
 
         if (count($this->undoStack) > 12) {
+            $dropped = array_slice($this->undoStack, 0, -12);
             $this->undoStack = array_values(array_slice($this->undoStack, -12));
+            foreach ($dropped as $old) {
+                $this->forgetUndoPayload((string) ($old['id'] ?? ''));
+            }
         }
+
+        $this->persistUndoStack();
+    }
+
+    /**
+     * Before Save: keep the last committed body so Undo can restore it for 10 minutes.
+     */
+    protected function capturePreSaveUndoIfNeeded(): void
+    {
+        if (! $this->reportId || $this->step !== 'wizard') {
+            return;
+        }
+
+        $committed = $this->loadCommittedBlocks();
+        if ($committed === null) {
+            return;
+        }
+
+        $currentHash = $this->blocksHash($this->reportBlocks);
+        $committedHash = $this->blocksHash($committed);
+        if ($currentHash === $committedHash) {
+            return;
+        }
+
+        // Avoid duplicate consecutive snapshots of the same committed state.
+        $top = $this->undoStack[array_key_last($this->undoStack)] ?? null;
+        if (is_array($top)) {
+            $topBlocks = $this->loadUndoPayload((string) ($top['id'] ?? ''));
+            if (is_array($topBlocks) && $this->blocksHash($topBlocks) === $committedHash) {
+                return;
+            }
+        }
+
+        $this->pruneExpiredUndoStack();
+
+        $id = (string) Str::uuid();
+        $this->storeUndoPayload($id, array_values($committed));
+        $this->undoStack[] = [
+            'id' => $id,
+            'label' => 'Save আগের অবস্থা',
+            'at' => time(),
+        ];
+
+        if (count($this->undoStack) > 12) {
+            $dropped = array_slice($this->undoStack, 0, -12);
+            $this->undoStack = array_values(array_slice($this->undoStack, -12));
+            foreach ($dropped as $old) {
+                $this->forgetUndoPayload((string) ($old['id'] ?? ''));
+            }
+        }
+    }
+
+    /**
+     * Seconds left until the newest undo snapshot expires (0 = none).
+     */
+    public function undoSecondsRemaining(): int
+    {
+        $this->pruneExpiredUndoStack();
+        if ($this->undoStack === []) {
+            return 0;
+        }
+
+        $newest = 0;
+        foreach ($this->undoStack as $snap) {
+            $newest = max($newest, (int) ($snap['at'] ?? 0));
+        }
+
+        if ($newest <= 0) {
+            return 0;
+        }
+
+        return max(0, ($newest + self::UNDO_TTL_SECONDS) - time());
+    }
+
+    public function formatUndoRemaining(int $seconds): string
+    {
+        $minutes = intdiv($seconds, 60);
+        $secs = $seconds % 60;
+
+        if ($minutes > 0) {
+            return $minutes.'মি '.$secs.'সে';
+        }
+
+        return $secs.'সে';
+    }
+
+    protected function pruneExpiredUndoStack(): void
+    {
+        if ($this->undoStack === []) {
+            return;
+        }
+
+        $cutoff = time() - self::UNDO_TTL_SECONDS;
+        $kept = [];
+        foreach ($this->undoStack as $snap) {
+            if ((int) ($snap['at'] ?? 0) >= $cutoff) {
+                $kept[] = $snap;
+            } else {
+                $this->forgetUndoPayload((string) ($snap['id'] ?? ''));
+            }
+        }
+        $this->undoStack = array_values($kept);
+    }
+
+    protected function undoCacheKey(): ?string
+    {
+        if (! $this->reportId) {
+            return null;
+        }
+
+        $userId = (int) (auth()->id() ?? 0);
+
+        return 'audit-report-undo:'.$this->reportId.':'.$userId;
+    }
+
+    protected function undoCommittedKey(): ?string
+    {
+        if (! $this->reportId) {
+            return null;
+        }
+
+        return 'audit-report-undo-committed:'.$this->reportId.':'.(int) (auth()->id() ?? 0);
+    }
+
+    protected function undoPayloadKey(string $id): string
+    {
+        return 'audit-report-undo-payload:'.$this->reportId.':'.(int) (auth()->id() ?? 0).':'.$id;
+    }
+
+    protected function persistUndoStack(): void
+    {
+        $key = $this->undoCacheKey();
+        if ($key === null) {
+            return;
+        }
+
+        $this->pruneExpiredUndoStack();
+
+        if ($this->undoStack === []) {
+            Cache::forget($key);
+
+            return;
+        }
+
+        Cache::put($key, $this->undoStack, self::UNDO_TTL_SECONDS);
+    }
+
+    protected function loadPersistedUndoStack(): void
+    {
+        $key = $this->undoCacheKey();
+        if ($key === null) {
+            $this->undoStack = [];
+
+            return;
+        }
+
+        $stored = Cache::get($key, []);
+        $this->undoStack = is_array($stored) ? array_values($stored) : [];
+        // Drop legacy full-payload entries that were stored on the stack itself.
+        $normalized = [];
+        foreach ($this->undoStack as $snap) {
+            if (! is_array($snap)) {
+                continue;
+            }
+            if (! empty($snap['id'])) {
+                $normalized[] = [
+                    'id' => (string) $snap['id'],
+                    'label' => (string) ($snap['label'] ?? 'change'),
+                    'at' => (int) ($snap['at'] ?? time()),
+                ];
+
+                continue;
+            }
+            // Migrate old format: blocks embedded in stack entry.
+            if (isset($snap['blocks']) && is_array($snap['blocks'])) {
+                $id = (string) Str::uuid();
+                $this->storeUndoPayload($id, array_values($snap['blocks']));
+                $normalized[] = [
+                    'id' => $id,
+                    'label' => (string) ($snap['label'] ?? 'change'),
+                    'at' => (int) ($snap['at'] ?? time()),
+                ];
+            }
+        }
+        $this->undoStack = $normalized;
+        $this->pruneExpiredUndoStack();
+        $this->persistUndoStack();
+        $this->rememberCommittedBlocks();
+    }
+
+    protected function clearPersistedUndoStack(): void
+    {
+        $key = $this->undoCacheKey();
+        if ($key !== null) {
+            foreach ($this->undoStack as $snap) {
+                $this->forgetUndoPayload((string) ($snap['id'] ?? ''));
+            }
+            Cache::forget($key);
+        }
+        $committedKey = $this->undoCommittedKey();
+        if ($committedKey !== null) {
+            Cache::forget($committedKey);
+        }
+        $this->undoStack = [];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $blocks
+     */
+    protected function storeUndoPayload(string $id, array $blocks): void
+    {
+        if ($id === '' || ! $this->reportId) {
+            return;
+        }
+
+        Cache::put($this->undoPayloadKey($id), $blocks, self::UNDO_TTL_SECONDS);
+    }
+
+    /**
+     * @return list<array<string, mixed>>|null
+     */
+    protected function loadUndoPayload(string $id): ?array
+    {
+        if ($id === '' || ! $this->reportId) {
+            return null;
+        }
+
+        $payload = Cache::get($this->undoPayloadKey($id));
+
+        return is_array($payload) ? array_values($payload) : null;
+    }
+
+    protected function forgetUndoPayload(string $id): void
+    {
+        if ($id === '' || ! $this->reportId) {
+            return;
+        }
+
+        Cache::forget($this->undoPayloadKey($id));
+    }
+
+    protected function rememberCommittedBlocks(): void
+    {
+        $key = $this->undoCommittedKey();
+        if ($key === null) {
+            return;
+        }
+
+        $copy = json_decode(json_encode($this->reportBlocks, JSON_UNESCAPED_UNICODE), true);
+        Cache::put($key, is_array($copy) ? array_values($copy) : [], self::UNDO_TTL_SECONDS);
+    }
+
+    /**
+     * @return list<array<string, mixed>>|null
+     */
+    protected function loadCommittedBlocks(): ?array
+    {
+        $key = $this->undoCommittedKey();
+        if ($key === null) {
+            return null;
+        }
+
+        $payload = Cache::get($key);
+        if (! is_array($payload)) {
+            return null;
+        }
+
+        return array_values($payload);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>|array<int, mixed>  $blocks
+     */
+    protected function blocksHash(array $blocks): string
+    {
+        return hash('sha1', json_encode(array_values($blocks), JSON_UNESCAPED_UNICODE) ?: '');
     }
 
     public function completeReport(): void
@@ -1384,6 +1716,7 @@ class MakeAuditReport extends Component
             return CustomTableSchema::syncRowWidths($block);
         })) {
             array_pop($this->undoStack);
+            $this->persistUndoStack();
 
             return;
         }
@@ -1426,6 +1759,7 @@ class MakeAuditReport extends Component
             return $block;
         })) {
             array_pop($this->undoStack);
+            $this->persistUndoStack();
 
             return;
         }
@@ -2562,9 +2896,12 @@ class MakeAuditReport extends Component
         if ($saveFirst && $this->reportId && $this->step === 'wizard') {
             try {
                 $this->persistDraft(markTab: null, flash: false);
+                $this->persistUndoStack();
             } catch (\Throwable $e) {
                 report($e);
             }
+        } else {
+            $this->persistUndoStack();
         }
 
         $this->step = 'select';
@@ -2574,11 +2911,14 @@ class MakeAuditReport extends Component
         $this->logoUpload = null;
         $this->autoSaveHint = '';
         $this->lastAutoSavedAt = null;
+        // Keep persisted undo in cache so resume within 10 minutes can still Undo.
         $this->undoStack = [];
     }
 
     protected function persistDraft(?string $markTab = null, bool $flash = false, string $flashMessage = ''): void
     {
+        $this->capturePreSaveUndoIfNeeded();
+
         $report = AuditReport::query()->findOrFail($this->reportId);
         $pages = (array) $report->pages_data;
         $meta = (array) ($pages['meta'] ?? []);
@@ -2642,6 +2982,10 @@ class MakeAuditReport extends Component
         if ($flash) {
             session()->flash('status', $flashMessage !== '' ? $flashMessage : 'সংরক্ষণ হয়েছে।');
         }
+
+        // Saving must not wipe Undo — keep restore points + committed baseline for 10 minutes.
+        $this->rememberCommittedBlocks();
+        $this->persistUndoStack();
     }
 
     protected function hydrateFromReport(AuditReport $report): void

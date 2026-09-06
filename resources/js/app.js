@@ -66,10 +66,10 @@ import './bootstrap';
             : [];
 
         // Background poll / silent persist — never flash the top bar.
-        if (methods.length === 1 && methods[0] === 'autoSaveDraft') {
+        if (methods.length === 1 && (methods[0] === 'autoSaveDraft' || methods[0] === 'refreshUndoWindow')) {
             return true;
         }
-        if (methods.length > 0 && methods.every((m) => m === 'autoSaveDraft')) {
+        if (methods.length > 0 && methods.every((m) => m === 'autoSaveDraft' || m === 'refreshUndoWindow')) {
             return true;
         }
 

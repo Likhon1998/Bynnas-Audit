@@ -181,12 +181,20 @@
                                                             ->map(fn ($part) => mb_strtoupper(mb_substr($part, 0, 1)))
                                                             ->take(2)
                                                             ->implode('');
+                                                        $hasLogin = (bool) $employee->user;
                                                     @endphp
                                                     <span class="inline-flex max-w-full items-center gap-1 rounded-md border border-slate-100 bg-white px-1.5 py-1 shadow-sm">
                                                         <span class="flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[8px] font-semibold text-white" style="background-color: {{ $position->color }}">
                                                             {{ $initials }}
                                                         </span>
                                                         <span class="truncate text-[10px] font-medium text-slate-700">{{ $employee->name }}</span>
+                                                        @if ($hasLogin)
+                                                            <span class="rounded bg-emerald-50 px-1 text-[8px] font-semibold text-emerald-700" title="{{ $employee->user->roleLabel() }}">login</span>
+                                                        @elseif (auth()->user()?->can('users.manage'))
+                                                            <a href="{{ route('users.create', ['employee_id' => $employee->id]) }}" class="rounded bg-amber-50 px-1 text-[8px] font-semibold text-amber-800 hover:underline" title="Allocate credentials">+ login</a>
+                                                        @else
+                                                            <span class="rounded bg-slate-100 px-1 text-[8px] font-semibold text-slate-400">no login</span>
+                                                        @endif
                                                     </span>
                                                 @endforeach
                                             </div>
@@ -260,7 +268,12 @@
         <div x-show="addOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4" @click.self="addOpen = false">
             <div class="w-full max-w-md rounded-xl bg-white p-4 shadow-xl sm:p-5">
                 <h2 class="text-[14px] font-semibold text-navy-900">Add employee</h2>
-                <p class="mt-0.5 text-[11px] text-slate-500">Assign an officer to a rank in the organogram.</p>
+                <p class="mt-0.5 text-[11px] text-slate-500">
+                    Assign an officer to a rank.
+                    @can('users.manage')
+                        After save you will set login credentials and role.
+                    @endcan
+                </p>
 
                 <form method="POST" action="{{ route('organogram.employees.store') }}" class="mt-4 space-y-3">
                     @csrf

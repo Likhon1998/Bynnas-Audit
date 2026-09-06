@@ -722,12 +722,7 @@ class MonthlyWorklistService
         $existingAssignmentId = $item->assignment?->id;
         $conflicts = $this->findConflictsForEmployees($visitorIds, $start, $end, $existingAssignmentId);
         if ($conflicts->isNotEmpty()) {
-            $names = $conflicts->flatMap(fn ($c) => $c->visitorList()->pluck('name'))->unique()->implode(', ');
-            throw new InvalidArgumentException(
-                'Blocked: same person cannot audit two places on overlapping dates'
-                .($names !== '' ? " (conflict: {$names})" : '')
-                .'. Remove that visitor or choose different dates.'
-            );
+            throw new InvalidArgumentException($this->formatConflictMessage($conflicts, $visitorIds));
         }
 
         // Always from DB history for this office — not a manual field.
@@ -814,9 +809,7 @@ class MonthlyWorklistService
 
         $conflicts = $this->findConflictsForEmployees($visitorIds, $start, $end, $assignment->id);
         if ($conflicts->isNotEmpty()) {
-            throw new InvalidArgumentException(
-                'Blocked: same person cannot audit two places on overlapping dates. Choose different visitors or dates.'
-            );
+            throw new InvalidArgumentException($this->formatConflictMessage($conflicts, $visitorIds));
         }
 
         return DB::transaction(function () use ($assignment, $data, $visitorIds, $start, $end, $duration, $mode, $countOffDays, $reason, $userId) {
@@ -948,6 +941,42 @@ class MonthlyWorklistService
     }
 
     /**
+     * @param  \Illuminate\Support\Collection<int, MonthlyAssignment>  $conflicts
+     * @param  list<int>  $visitorIds
+     */
+    public function formatConflictMessage(Collection $conflicts, array $visitorIds = []): string
+    {
+        $lines = $conflicts->map(function (MonthlyAssignment $assignment) use ($visitorIds) {
+            $names = $assignment->visitorList()
+                ->filter(fn ($visitor) => $visitorIds === [] || in_array((int) $visitor->id, $visitorIds, true))
+                ->pluck('name')
+                ->filter()
+                ->unique()
+                ->values();
+
+            if ($names->isEmpty()) {
+                $names = collect([$assignment->employee?->name ?: 'Staff']);
+            }
+
+            $entity = $assignment->workItem?->entity_label ?: 'another place';
+            $dates = trim(
+                ($assignment->start_date?->format('d M Y') ?? '')
+                .' – '
+                .($assignment->end_date?->format('d M Y') ?? ''),
+                ' –'
+            );
+
+            return $names->implode(', ').' already booked '.$dates.' at '.$entity;
+        })->filter()->unique()->values();
+
+        $detail = $lines->implode('; ');
+
+        return 'Cannot allocate: same person cannot be in two places at once'
+            .($detail !== '' ? ' — '.$detail : '')
+            .'. Change visitors or dates.';
+    }
+
+    /**
      * @param  list<int>  $employeeIds
      */
     public function findConflictsForEmployees(array $employeeIds, Carbon $start, Carbon $end, ?int $ignoreAssignmentId = null): Collection
@@ -959,13 +988,20 @@ class MonthlyWorklistService
 
         return MonthlyAssignment::query()
             ->when($ignoreAssignmentId, fn ($q) => $q->where('id', '!=', $ignoreAssignmentId))
+            ->whereNotNull('start_date')
+            ->whereNotNull('end_date')
             ->whereDate('start_date', '<=', $end->toDateString())
             ->whereDate('end_date', '>=', $start->toDateString())
+            // Cancelled visits free the person for other work.
+            ->where(function ($q) {
+                $q->whereDoesntHave('execution')
+                    ->orWhereHas('execution', fn ($e) => $e->where('status', '!=', VisitExecution::STATUS_CANCELLED));
+            })
             ->where(function ($q) use ($employeeIds) {
                 $q->whereIn('employee_id', $employeeIds)
                     ->orWhereHas('visitors', fn ($v) => $v->whereIn('employees.id', $employeeIds));
             })
-            ->with(['workItem', 'employee', 'visitors'])
+            ->with(['workItem', 'employee', 'visitors', 'execution'])
             ->get();
     }
 

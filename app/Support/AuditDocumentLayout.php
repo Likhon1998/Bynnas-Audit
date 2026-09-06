@@ -67,7 +67,8 @@ class AuditDocumentLayout
      */
     public static function tocColumnWidths(): array
     {
-        return [8.0, 40.0, 10.0, 22.0, 11.0, 9.0];
+        // serial | finding | amount | rating | status | page — keep rating/status inside printable width
+        return [7.0, 44.0, 9.0, 16.0, 15.0, 9.0];
     }
 
     /**
@@ -77,7 +78,7 @@ class AuditDocumentLayout
      */
     public static function findingColumnWidths(): array
     {
-        return [8.0, 12.0, 58.0, 22.0];
+        return [7.0, 13.0, 60.0, 20.0];
     }
 
     /**

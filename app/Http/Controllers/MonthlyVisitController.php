@@ -11,6 +11,7 @@ use App\Models\VisitExecution;
 use App\Services\AnnualPlanGenerator;
 use App\Services\MonthlyScheduleReportBuilder;
 use App\Services\MonthlyWorklistService;
+use App\Services\UserAccessService;
 use App\Services\WorkingCalendarService;
 use App\Support\FinancialYear;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -28,6 +29,7 @@ class MonthlyVisitController extends Controller
         private MonthlyWorklistService $worklist,
         private WorkingCalendarService $calendar,
         private MonthlyScheduleReportBuilder $scheduleReport,
+        private UserAccessService $access,
     ) {}
 
     public function index(Request $request): View
@@ -38,14 +40,23 @@ class MonthlyVisitController extends Controller
             ? max(0, min(11, $request->integer('month')))
             : ($fy->monthIndexForDate(now()) ?? 0);
 
+        $user = $request->user();
+        $officerView = $this->access->isAllocationScoped($user);
+
         // Auto-pull yearly allocations for the selected month so shakhas appear immediately.
-        if ($plan->generated_at) {
-            $this->worklist->refreshFromYearly($plan, $monthIndex, $request->user()?->id);
+        // Officers only execute — managers refresh the worklist.
+        if ($plan->generated_at && ! $officerView) {
+            $this->worklist->refreshFromYearly($plan, $monthIndex, $user?->id);
         }
 
         $items = $this->worklist->workItemsForMonth($plan, $monthIndex);
-        $performance = $this->worklist->performanceSummary($plan, $monthIndex);
-        $workload = $this->worklist->staffWorkload($plan, $monthIndex);
+        if ($officerView) {
+            $items = $this->access->filterWorkItemsForUser($items, $user);
+        }
+
+        $performance = $officerView
+            ? $this->officerPerformance($items)
+            : $this->worklist->performanceSummary($plan, $monthIndex);
         $defaultStart = $fy->dateForMonthIndex($monthIndex);
         $monthEnd = $defaultStart->copy()->endOfMonth();
 
@@ -86,7 +97,9 @@ class MonthlyVisitController extends Controller
             $monthEnd->copy()->addMonths(2)
         );
 
-        $employeeAvailability = $this->calendar->employeeAvailabilityForMonth($defaultStart, $monthEnd);
+        $employeeAvailability = $officerView
+            ? collect()
+            : $this->calendar->employeeAvailabilityForMonth($defaultStart, $monthEnd);
 
         return view('monthly-visits.index', [
             'plan' => $plan,
@@ -95,20 +108,48 @@ class MonthlyVisitController extends Controller
             'monthOptions' => $this->worklist->monthOptions($fy),
             'availablePlans' => AuditPlan::query()->orderByDesc('start_date')->get(['id', 'fy_label', 'status']),
             'items' => $items,
-            'unassigned' => $items->where('status', MonthlyWorkItem::STATUS_UNASSIGNED)->values(),
+            'unassigned' => $officerView ? collect() : $items->where('status', MonthlyWorkItem::STATUS_UNASSIGNED)->values(),
             'assigned' => $items->where('status', MonthlyWorkItem::STATUS_ASSIGNED)->values(),
             'performance' => $performance,
-            'workload' => $workload,
-            'employees' => Employee::query()->with('position')->orderBy('name')->get(),
+            'employees' => $officerView ? collect() : Employee::query()->with('position')->orderBy('name')->get(),
             'employeeAvailability' => $employeeAvailability,
             'calendarPayload' => $calendarPayload,
             'activityTypes' => ActivityType::query()->where('is_active', true)->orderBy('sort_order')->get(),
             'monthLabel' => $fy->months()[$monthIndex]['label'].' '.$fy->months()[$monthIndex]['year'],
             'allocatePayload' => $allocatePayload,
-            'openAllocateId' => $request->integer('allocate') ?: null,
+            'openAllocateId' => $officerView ? null : ($request->integer('allocate') ?: null),
             'conflictFlash' => session('conflicts'),
             'conflictWarning' => session('conflict_warning'),
+            'officerView' => $officerView,
+            'employeeLinked' => (bool) $user?->employee_id,
         ]);
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, MonthlyWorkItem>  $items
+     * @return array{byCategory: array<string, array<string, int>>, totals: array<string, int>}
+     */
+    protected function officerPerformance($items): array
+    {
+        $assigned = $items->where('status', MonthlyWorkItem::STATUS_ASSIGNED);
+        $execStatuses = $assigned->map(fn ($i) => $i->assignment?->execution?->status);
+        $completed = $execStatuses->filter(fn ($s) => $s === VisitExecution::STATUS_COMPLETED)->count();
+        $cancelled = $execStatuses->filter(fn ($s) => $s === VisitExecution::STATUS_CANCELLED)->count();
+        $overdue = $execStatuses->filter(fn ($s) => $s === VisitExecution::STATUS_DELAYED)->count();
+
+        $totals = [
+            'planned' => $assigned->count(),
+            'assigned' => $assigned->count(),
+            'completed' => $completed,
+            'pending' => 0,
+            'cancelled' => $cancelled,
+            'overdue' => $overdue,
+        ];
+
+        return [
+            'byCategory' => [],
+            'totals' => $totals,
+        ];
     }
 
     public function generate(Request $request): RedirectResponse
@@ -128,37 +169,20 @@ class MonthlyVisitController extends Controller
         $plan = $this->worklist->resolvePlan($request->string('fy')->toString() ?: null);
         $monthIndex = max(0, min(11, $request->integer('month')));
 
-        // Clean overlaps, then allocate with any working-day length (1, 2, 3 …).
-        // If capacity is full, automatically rebalances the month so all offices can be covered.
-        $resolved = $this->worklist->resolveOverlappingAllocations($plan, $monthIndex, $request->user()?->id);
+        // Allocate with any working-day length (1, 2, 3 …). Never place the same person on overlapping dates.
         $result = $this->worklist->bulkAllocateMonth($plan, $monthIndex, $request->user()?->id);
 
-        $msg = "Auto-allocated {$result['assigned']} of {$result['total']} offices (any length, conflict-safe)";
+        $msg = "Auto-allocated {$result['assigned']} of {$result['total']} offices (conflict-safe)";
         if (! empty($result['repacked'])) {
             $msg .= "; month rebalanced (cleared {$result['cleared']} prior plans; visit days shared evenly)";
         }
         if ($result['skipped']) {
-            $msg .= "; {$result['skipped']} still unassigned (not enough auditor capacity)";
-        }
-        if ($resolved['fixed']) {
-            $msg .= "; cleaned {$resolved['fixed']} prior overlap(s)";
+            $msg .= "; {$result['skipped']} still unassigned (not enough auditor capacity without date conflicts)";
         }
 
         return redirect()
             ->route('monthly-visits.index', ['fy' => $plan->fy_label, 'month' => $monthIndex])
             ->with('status', $msg.'.');
-    }
-
-    public function resolveConflicts(Request $request): RedirectResponse
-    {
-        $plan = $this->worklist->resolvePlan($request->string('fy')->toString() ?: null);
-        $monthIndex = max(0, min(11, $request->integer('month')));
-
-        $result = $this->worklist->resolveOverlappingAllocations($plan, $monthIndex, $request->user()?->id);
-
-        return redirect()
-            ->route('monthly-visits.index', ['fy' => $plan->fy_label, 'month' => $monthIndex])
-            ->with('status', "Conflict cleanup: {$result['fixed']} fixed, {$result['reassigned']} reassigned, {$result['unassigned']} unassigned.");
     }
 
     public function assignForm(Request $request, MonthlyWorkItem $workItem): RedirectResponse
@@ -183,13 +207,12 @@ class MonthlyVisitController extends Controller
             'purpose' => ['nullable', 'string', 'max:255'],
             'remarks' => ['nullable', 'string', 'max:2000'],
             'last_audit_upto' => ['nullable', 'date'],
-            'override_conflict' => ['nullable', 'boolean'],
         ]);
 
         try {
             $this->worklist->assign($workItem, $validated, $request->user()?->id);
         } catch (\InvalidArgumentException $e) {
-            if (str_contains($e->getMessage(), 'overlapping') || str_contains($e->getMessage(), 'same day')) {
+            if (str_contains(strtolower($e->getMessage()), 'overlapping') || str_contains(strtolower($e->getMessage()), 'same person')) {
                 $conflicts = $this->worklist->findConflictsForEmployees(
                     array_map('intval', $validated['employee_ids']),
                     Carbon::parse($validated['start_date']),
@@ -207,8 +230,8 @@ class MonthlyVisitController extends Controller
                     ->with('conflict_warning', $e->getMessage())
                     ->with('conflicts', $conflicts->map(fn ($c) => [
                         'names' => $c->visitorNames(', ') ?: ($c->employee?->name ?? 'Staff'),
-                        'dates' => ($c->start_date?->format('d M') ?? '').'–'.($c->end_date?->format('d M') ?? ''),
-                        'entity' => $c->workItem?->entity_label,
+                        'dates' => trim(($c->start_date?->format('d M Y') ?? '').' – '.($c->end_date?->format('d M Y') ?? ''), ' –'),
+                        'entity' => $c->workItem?->entity_label ?? 'another place',
                     ])->all());
             }
 
@@ -232,6 +255,8 @@ class MonthlyVisitController extends Controller
 
     public function executionForm(MonthlyAssignment $assignment): View
     {
+        abort_unless($this->access->userCanAccessAssignment(auth()->user(), $assignment), 403);
+
         $assignment->load(['workItem.activityType', 'employee', 'visitors', 'execution', 'statusLogs']);
 
         return view('monthly-visits.execution', [
@@ -250,6 +275,8 @@ class MonthlyVisitController extends Controller
 
     public function updateExecution(Request $request, MonthlyAssignment $assignment): RedirectResponse
     {
+        abort_unless($this->access->userCanAccessAssignment($request->user(), $assignment), 403);
+
         $validated = $request->validate([
             'status' => ['required', Rule::in([
                 VisitExecution::STATUS_PLANNED,
@@ -299,7 +326,6 @@ class MonthlyVisitController extends Controller
             'purpose' => ['nullable', 'string', 'max:255'],
             'remarks' => ['nullable', 'string', 'max:2000'],
             'reschedule_reason' => ['required', 'string', 'max:1000'],
-            'override_conflict' => ['nullable', 'boolean'],
         ]);
 
         try {
@@ -343,6 +369,7 @@ class MonthlyVisitController extends Controller
         $type = $request->string('type', 'schedule')->toString();
 
         $items = $this->worklist->workItemsForMonth($plan, $monthIndex);
+        $items = $this->access->filterWorkItemsForUser($items, $request->user());
         $assigned = $items->where('status', MonthlyWorkItem::STATUS_ASSIGNED)->values();
         $monthMeta = $fy->months()[$monthIndex];
         $monthLabel = $monthMeta['label'].' '.$monthMeta['year'];
@@ -362,7 +389,9 @@ class MonthlyVisitController extends Controller
             'monthLabel' => $monthLabel,
             'type' => $type,
             'assigned' => $assigned,
-            'performance' => $this->worklist->performanceSummary($plan, $monthIndex),
+            'performance' => $this->access->isAllocationScoped($request->user())
+                ? $this->officerPerformance($items)
+                : $this->worklist->performanceSummary($plan, $monthIndex),
             'workload' => $this->worklist->staffWorkload($plan, $monthIndex),
         ]);
     }
@@ -371,24 +400,18 @@ class MonthlyVisitController extends Controller
     {
         $plan = $this->worklist->resolvePlan($request->string('fy')->toString() ?: null);
         $monthIndex = max(0, min(11, $request->integer('month')));
+        $items = $this->scopedMonthItems($request, $plan, $monthIndex);
 
-        if ($plan->generated_at) {
-            $this->worklist->refreshFromYearly($plan, $monthIndex, $request->user()?->id);
-        }
-
-        return view('monthly-visits.print-schedule', $this->scheduleReport->build($plan, $monthIndex));
+        return view('monthly-visits.print-schedule', $this->scheduleReport->build($plan, $monthIndex, $items));
     }
 
     public function exportSchedulePdf(Request $request): Response
     {
         $plan = $this->worklist->resolvePlan($request->string('fy')->toString() ?: null);
         $monthIndex = max(0, min(11, $request->integer('month')));
+        $items = $this->scopedMonthItems($request, $plan, $monthIndex);
 
-        if ($plan->generated_at) {
-            $this->worklist->refreshFromYearly($plan, $monthIndex, $request->user()?->id);
-        }
-
-        $data = $this->scheduleReport->build($plan, $monthIndex) + ['forPdf' => true];
+        $data = $this->scheduleReport->build($plan, $monthIndex, $items) + ['forPdf' => true];
         $pdf = Pdf::loadView('monthly-visits.print-schedule', $data)
             ->setPaper('a4', 'landscape');
 
@@ -401,23 +424,33 @@ class MonthlyVisitController extends Controller
     {
         $plan = $this->worklist->resolvePlan($request->string('fy')->toString() ?: null);
         $monthIndex = max(0, min(11, $request->integer('month')));
+        $items = $this->scopedMonthItems($request, $plan, $monthIndex);
 
-        if ($plan->generated_at) {
-            $this->worklist->refreshFromYearly($plan, $monthIndex, $request->user()?->id);
-        }
-
-        return $this->scheduleReport->downloadDoc($plan, $monthIndex);
+        return $this->scheduleReport->downloadDoc($plan, $monthIndex, $items);
     }
 
     public function exportScheduleExcel(Request $request): StreamedResponse
     {
         $plan = $this->worklist->resolvePlan($request->string('fy')->toString() ?: null);
         $monthIndex = max(0, min(11, $request->integer('month')));
+        $items = $this->scopedMonthItems($request, $plan, $monthIndex);
 
-        if ($plan->generated_at) {
-            $this->worklist->refreshFromYearly($plan, $monthIndex, $request->user()?->id);
+        return $this->scheduleReport->downloadExcel($plan, $monthIndex, $items);
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, MonthlyWorkItem>
+     */
+    protected function scopedMonthItems(Request $request, AuditPlan $plan, int $monthIndex)
+    {
+        $user = $request->user();
+        if ($plan->generated_at && ! $this->access->isAllocationScoped($user)) {
+            $this->worklist->refreshFromYearly($plan, $monthIndex, $user?->id);
         }
 
-        return $this->scheduleReport->downloadExcel($plan, $monthIndex);
+        return $this->access->filterWorkItemsForUser(
+            $this->worklist->workItemsForMonth($plan, $monthIndex),
+            $user
+        );
     }
 }

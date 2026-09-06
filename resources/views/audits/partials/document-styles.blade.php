@@ -18,8 +18,8 @@
         padding: 0;
         min-height: 0;
         height: auto;
-        font-size: 11pt;
-        line-height: 1.45;
+        font-size: {{ $compact ? '10pt' : '11pt' }};
+        line-height: {{ $compact ? '1.4' : '1.45' }};
         color: #111;
     }
     {{ $p }}.page-num { display: none; }
@@ -54,7 +54,12 @@
     {{ $p }}th,
     {{ $p }}td { box-sizing: border-box; }
 
-    {{ $p }}.header-table { width: 100%; border: none; margin: 0; }
+    {{ $p }}.header-table {
+        width: 100%;
+        border: none;
+        margin: 0;
+        table-layout: fixed;
+    }
     {{ $p }}.header-table td { border: none; padding: 0; vertical-align: top; }
     {{ $p }}.row { width: 100%; }
     {{ $p }}.left { float: left; }
@@ -63,17 +68,17 @@
 
     {{ $p }}h2 {
         text-align: center;
-        font-size: {{ $compact ? '13pt' : '14pt' }};
+        font-size: {{ $compact ? '12pt' : '14pt' }};
         font-weight: 700;
         text-decoration: underline;
-        margin: {{ $compact ? '3mm 0 3mm' : '5mm 0 4mm' }};
+        margin: {{ $compact ? '2.5mm 0 2.5mm' : '5mm 0 4mm' }};
     }
     {{ $p }}h3 {
         text-align: center;
-        font-size: {{ $compact ? '12pt' : '12.5pt' }};
+        font-size: {{ $compact ? '11pt' : '12.5pt' }};
         font-weight: 700;
         text-decoration: underline;
-        margin: {{ $compact ? '3mm 0 2mm' : '4mm 0 2.5mm' }};
+        margin: {{ $compact ? '2.5mm 0 2mm' : '4mm 0 2.5mm' }};
     }
     {{ $p }}p { margin: 0 0 {{ $compact ? '1.4mm' : '2mm' }}; }
 
@@ -146,12 +151,14 @@
     }
     {{ $p }}table.doc-table .align-top { vertical-align: top; }
     {{ $p }}table.doc-table .rating-cell {
-        padding: 0 !important;
+        padding: 0.4mm !important;
         vertical-align: middle;
-        width: 22%;
+        width: 16%;
+        overflow: hidden;
     }
     {{ $p }}table.rating-box {
         width: 100%;
+        max-width: 100%;
         border-collapse: collapse;
         table-layout: fixed;
         margin: 0;
@@ -162,21 +169,25 @@
         @if ($forDoc)
         mso-border-alt: solid #111 0.5pt;
         @endif
-        padding: 1.1mm 0.8mm;
+        padding: 0.6mm 0.4mm;
         text-align: center;
         font-weight: 700;
-        line-height: 1.25;
+        line-height: 1.15;
         vertical-align: middle;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        white-space: normal;
     }
     {{ $p }}table.rating-box td.rb-head {
         background: #4472C4;
         color: #fff;
-        font-size: 8pt;
+        font-size: 7pt;
+        padding: 0.5mm 0.3mm;
     }
     {{ $p }}table.rating-box td.rb-cell {
         background: #F8CBAD;
         color: #111;
-        font-size: 9pt;
+        font-size: 7.5pt;
         width: 50%;
     }
 
@@ -193,13 +204,20 @@
     {{ $p }}table.staff-table tbody td.left-align { text-align: left; }
 
     {{ $p }}table.toc-table tbody td {
-        font-size: 9pt;
-        line-height: 1.35;
+        font-size: 8.5pt;
+        line-height: 1.3;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
     }
     {{ $p }}table.toc-table tbody td.align-top {
         vertical-align: top;
         text-align: left;
-        padding-top: 1.4mm;
+        padding-top: 1.2mm;
+    }
+    {{ $p }}table.toc-table tbody td.center {
+        font-size: 8pt;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
     }
 
     {{ $p }}table.classification-table {
@@ -255,29 +273,32 @@
     @endif
 
     {{ $p }}.logo-large {
-        max-width: 62mm;
-        max-height: 16mm;
+        max-width: 58mm;
+        max-height: 14mm;
         width: auto;
         height: auto;
         display: block;
     }
-    {{ $p }}.org-name { font-size: {{ $compact ? '16pt' : '18pt' }}; font-weight: 700; margin: 0; line-height: 1.1; }
-    {{ $p }}.org-bn { font-size: {{ $compact ? '11.5pt' : '11.5pt' }}; font-weight: 700; margin: 0; }
+    {{ $p }}.org-name { font-size: {{ $compact ? '14pt' : '18pt' }}; font-weight: 700; margin: 0; line-height: 1.1; }
+    {{ $p }}.org-bn { font-size: {{ $compact ? '10.5pt' : '11.5pt' }}; font-weight: 700; margin: 0; }
     {{ $p }}.org-en {
-        font-size: 8.5pt;
+        font-size: 8pt;
         font-weight: 700;
         text-transform: uppercase;
         margin: 0;
         letter-spacing: 0.03em;
     }
-    {{ $p }}.rating-wrap {
-        width: 42mm;
-        text-align: center;
+    {{ $p }}.header-table td.logo-cell { width: 68%; padding-right: 3mm; }
+    {{ $p }}.header-table td.rating-wrap {
+        width: 32%;
+        max-width: 38mm;
+        text-align: right;
         vertical-align: top;
+        overflow: hidden;
     }
     {{ $p }}table.cover-rating {
-        width: 42mm;
-        max-width: 42mm;
+        width: 36mm;
+        max-width: 36mm;
         border-collapse: collapse;
         table-layout: fixed;
         margin: 0 0 0 auto;
@@ -288,39 +309,43 @@
         padding: 0;
         text-align: center;
         vertical-align: middle;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
     }
     {{ $p }}table.cover-rating td.cr-label {
         background: #1d4ed8;
         color: #fff;
-        font-size: 8pt;
+        font-size: 7pt;
         font-weight: 700;
-        line-height: 1.25;
-        padding: 2mm 1.5mm;
+        line-height: 1.2;
+        padding: 1.4mm 1mm;
     }
     {{ $p }}table.cover-rating td.cr-value {
-        border: 2px solid #f97316;
+        border: 1.5pt solid #f97316;
         color: #fff;
-        font-size: 10pt;
+        font-size: 8.5pt;
         font-weight: 700;
-        line-height: 1.3;
-        padding: 2.2mm 1.5mm;
+        line-height: 1.2;
+        padding: 1.6mm 1mm;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
     }
     /* legacy class names kept for editor letterhead */
     {{ $p }}.rating-label {
         background: #1d4ed8;
         color: #fff;
-        font-size: 8.5pt;
+        font-size: 7.5pt;
         font-weight: 700;
-        padding: 1.5mm 2mm;
-        line-height: 1.25;
+        padding: 1.2mm 1.5mm;
+        line-height: 1.2;
     }
     {{ $p }}.rating-value {
         margin-top: 1mm;
-        border: 2px solid #f97316;
+        border: 1.5pt solid #f97316;
         color: #fff;
-        font-size: 10pt;
+        font-size: 8.5pt;
         font-weight: 700;
-        padding: 2mm;
+        padding: 1.5mm;
     }
 
     {{ $p }}.sign-table {

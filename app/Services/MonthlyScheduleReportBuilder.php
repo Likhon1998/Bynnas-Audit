@@ -32,14 +32,14 @@ class MonthlyScheduleReportBuilder
      *   groups: list<array{purpose:string,purpose_bn:string,count:int,start:int}>
      * }
      */
-    public function build(AuditPlan $plan, int $monthIndex): array
+    public function build(AuditPlan $plan, int $monthIndex, ?\Illuminate\Support\Collection $items = null): array
     {
         $fy = FinancialYear::fromLabel($plan->fy_label);
         $monthMeta = $fy->months()[$monthIndex];
         $monthLabel = $monthMeta['label'].'-'.$monthMeta['year'];
         $monthLabelBn = $this->monthBn((int) $monthMeta['month']).'-'.$monthMeta['year'];
 
-        $items = $this->worklist->workItemsForMonth($plan, $monthIndex)
+        $items = ($items ?? $this->worklist->workItemsForMonth($plan, $monthIndex))
             ->sortBy(fn (MonthlyWorkItem $item) => [
                 $this->purposeSortKey($item),
                 $item->entity_label,
@@ -84,9 +84,9 @@ class MonthlyScheduleReportBuilder
         ];
     }
 
-    public function downloadExcel(AuditPlan $plan, int $monthIndex): StreamedResponse
+    public function downloadExcel(AuditPlan $plan, int $monthIndex, ?\Illuminate\Support\Collection $items = null): StreamedResponse
     {
-        $data = $this->build($plan, $monthIndex);
+        $data = $this->build($plan, $monthIndex, $items);
         $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Monthly Schedule');
@@ -145,9 +145,9 @@ class MonthlyScheduleReportBuilder
     /**
      * Word-openable HTML document (.doc).
      */
-    public function downloadDoc(AuditPlan $plan, int $monthIndex): \Illuminate\Http\Response
+    public function downloadDoc(AuditPlan $plan, int $monthIndex, ?\Illuminate\Support\Collection $items = null): \Illuminate\Http\Response
     {
-        $data = $this->build($plan, $monthIndex);
+        $data = $this->build($plan, $monthIndex, $items);
         $html = view('monthly-visits.print-schedule', $data + ['forDoc' => true])->render();
 
         $filename = 'monthly-schedule-'.$plan->fy_label.'-'.$data['monthLabel'].'.doc';

@@ -55,9 +55,9 @@
 
         body {
             font-family: 'Nirmala UI', 'Vrinda', 'Kalpurush', 'Segoe UI', Arial, sans-serif;
-            font-size: 11pt;
+            font-size: 10pt;
             color: #111;
-            line-height: 1.45;
+            line-height: 1.4;
             margin: 0;
             padding: 0;
         }
@@ -69,8 +69,8 @@
 
         .logo-large {
             display: block;
-            max-width: 62mm;
-            max-height: 16mm;
+            max-width: 58mm;
+            max-height: 14mm;
         }
 
         .doc-cover {
@@ -86,9 +86,14 @@
         table { mso-table-overlap: never; border-collapse: collapse; }
         .sign-table { margin-top: 6mm; mso-table-overlap: never; }
         .sign-table p { margin: 0 0 2pt; mso-margin-top-alt: 0; mso-margin-bottom-alt: 2pt; }
-        table.toc-table { mso-table-overlap: never; }
-        td.rating-cell { padding: 0 !important; vertical-align: middle !important; }
-        table.rating-box { mso-table-overlap: never; margin: 0; }
+        table.toc-table { mso-table-overlap: never; table-layout: fixed; width: 100%; }
+        td.rating-cell { padding: 1pt !important; vertical-align: middle !important; overflow: hidden; }
+        table.rating-box { mso-table-overlap: never; margin: 0; width: 100%; max-width: 100%; table-layout: fixed; }
+        table.cover-rating { width: 102pt !important; max-width: 102pt !important; table-layout: fixed; }
+        table.cover-rating td.cr-value { font-size: 8.5pt !important; word-wrap: break-word; }
+        table.header-table { table-layout: fixed; width: 100%; }
+        h2 { font-size: 12pt !important; }
+        h3 { font-size: 11pt !important; }
     </style>
     @include('audits.partials.document-styles', ['isPdf' => true, 'forDoc' => true])
 </head>

@@ -43,10 +43,10 @@
         @endif
     </div>
 
-    <div class="w-[158px] shrink-0 text-center">
+    <div class="w-[132px] shrink-0 text-center">
         <table class="w-full border-collapse" style="table-layout:fixed;">
             <tr>
-                <td class="rounded-[2px] bg-[#1d4ed8] px-2 py-1.5 text-[10px] font-semibold leading-snug text-white">
+                <td class="rounded-[2px] bg-[#1d4ed8] px-1.5 py-1 text-[9px] font-semibold leading-snug text-white">
                     Branch Internal<br>Control Rating
                 </td>
             </tr>
@@ -55,7 +55,7 @@
                     @if ($editable)
                         <select
                             wire:model.live="control_rating"
-                            class="w-full rounded-[2px] border-2 border-orange-400 px-1 py-1.5 text-center text-[11px] font-bold text-white"
+                            class="w-full rounded-[2px] border-2 border-orange-400 px-1 py-1 text-center text-[10px] font-bold leading-tight text-white"
                             style="background: {{ $ratingColor }};"
                         >
                             <option>Satisfactory</option>
@@ -66,7 +66,7 @@
                         </select>
                     @else
                         <div
-                            class="w-full rounded-[2px] border-2 border-orange-400 px-2 py-2 text-center text-[11px] font-bold text-white"
+                            class="w-full break-words rounded-[2px] border-2 border-orange-400 px-1.5 py-1.5 text-center text-[10px] font-bold leading-tight text-white"
                             style="background: {{ $ratingColor }};"
                         >
                             {{ $control_rating ?: '—' }}

@@ -1,68 +1,6 @@
 <x-app-layout>
 @if (($mode ?? 'ops') === 'officer')
-    <div class="px-4 py-4 lg:px-6">
-        <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
-            <div>
-                <h1 class="text-[16px] font-semibold tracking-tight text-navy-900">My audit work</h1>
-                <p class="mt-0.5 text-[12px] text-slate-500">Assigned shakhas · your drafts · reports only for your branches</p>
-            </div>
-            <a href="{{ route('audits.index') }}" class="inline-flex h-8 items-center rounded-lg bg-navy-900 px-3 text-[12px] font-medium text-white hover:bg-navy-800">Audit Reports</a>
-        </div>
-
-        <div class="mb-4 grid gap-2.5 sm:grid-cols-3">
-            <div class="rounded-xl border border-sky-200/70 bg-gradient-to-br from-sky-50 via-white to-sky-100/60 px-3.5 py-3 shadow-sm">
-                <p class="text-[11px] font-semibold uppercase tracking-wide text-sky-700/80">Assigned shakhas</p>
-                <p class="mt-1 text-[22px] font-semibold tabular-nums text-navy-900">{{ $assignedShakhas->count() }}</p>
-            </div>
-            <div class="rounded-xl border border-amber-200/70 bg-gradient-to-br from-amber-50 via-white to-amber-100/60 px-3.5 py-3 shadow-sm">
-                <p class="text-[11px] font-semibold uppercase tracking-wide text-amber-700/80">My drafts</p>
-                <p class="mt-1 text-[22px] font-semibold tabular-nums text-navy-900">{{ $myDrafts->count() }}</p>
-            </div>
-            <div class="rounded-xl border border-teal-200/70 bg-gradient-to-br from-teal-50 via-white to-teal-100/60 px-3.5 py-3 shadow-sm">
-                <p class="text-[11px] font-semibold uppercase tracking-wide text-teal-700/80">Slots free</p>
-                <p class="mt-1 text-[22px] font-semibold tabular-nums text-navy-900">{{ $slotsLeft }}</p>
-            </div>
-        </div>
-
-        <div class="mb-4 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-            <div class="border-b border-slate-100 px-3.5 py-2.5">
-                <p class="text-[13px] font-semibold text-navy-900">Your assigned shakhas</p>
-                <p class="text-[10px] text-slate-500">Explicit access + visits where you are assigned</p>
-            </div>
-            <div class="divide-y divide-slate-100">
-                @forelse ($assignedShakhas as $shakha)
-                    <div class="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5">
-                        <div class="min-w-0">
-                            <p class="truncate text-[12px] font-semibold text-navy-900">{{ $shakha->name }}</p>
-                            <p class="text-[10px] text-slate-500">{{ $shakha->code }} @if($shakha->area)· {{ $shakha->area->name }}@endif</p>
-                        </div>
-                        <div class="flex items-center gap-1.5">
-                            <a href="{{ route('audits.index') }}" class="inline-flex h-7 items-center rounded-md bg-[#2b579a] px-2.5 text-[11px] font-semibold text-white">Make report</a>
-                            <a href="{{ route('audit-findings.entry', ['shakha' => $shakha->id]) }}" class="inline-flex h-7 items-center rounded-md border border-slate-200 px-2.5 text-[11px] font-medium text-slate-700">Findings</a>
-                        </div>
-                    </div>
-                @empty
-                    <p class="px-3.5 py-8 text-center text-[12px] text-slate-400">No shakhas assigned yet. Ask superadmin to link your employee and assign branches.</p>
-                @endforelse
-            </div>
-        </div>
-
-        <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-            <div class="border-b border-slate-100 px-3.5 py-2.5">
-                <p class="text-[13px] font-semibold text-navy-900">My ongoing drafts</p>
-            </div>
-            <div class="divide-y divide-slate-100">
-                @forelse ($myDrafts as $draft)
-                    <a href="{{ route('audits.index') }}" class="flex items-center justify-between gap-2 px-3.5 py-2.5 hover:bg-slate-50">
-                        <p class="truncate text-[12px] font-medium text-navy-900">{{ $draft->shakha_display_name ?: ($draft->shakha?->name ?? 'Draft') }}</p>
-                        <span class="text-[11px] tabular-nums text-slate-500">{{ (int) $draft->progress_pct }}%</span>
-                    </a>
-                @empty
-                    <p class="px-3.5 py-6 text-center text-[12px] text-slate-400">No drafts yet</p>
-                @endforelse
-            </div>
-        </div>
-    </div>
+    @include('dashboard-officer')
 @else
     @php
         $tones = [

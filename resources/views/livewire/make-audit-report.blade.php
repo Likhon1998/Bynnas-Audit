@@ -75,6 +75,14 @@
         <div class="z-30 shrink-0 border-b border-slate-200 bg-white px-3 py-2 lg:px-4">
             {{-- Quiet background persist — loader intentionally skipped in app.js --}}
             <span wire:poll.5s="autoSaveDraft" class="hidden" aria-hidden="true"></span>
+            <span wire:poll.30s="refreshUndoWindow" class="hidden" aria-hidden="true"></span>
+            @php
+                $undoCount = count($undoStack);
+                $undoSeconds = $this->undoSecondsRemaining();
+                $undoTitle = $undoCount
+                    ? 'Undo: '.($undoStack[array_key_last($undoStack)]['label'] ?? '').' · বাকি '.$this->formatUndoRemaining($undoSeconds)
+                    : 'Undo ১০ মিনিট পর্যন্ত কাজ করে (Save এর পরেও)';
+            @endphp
             <div class="flex flex-wrap items-center gap-2">
                 <button
                     type="button"
@@ -99,14 +107,21 @@
                     <button
                         type="button"
                         wire:click="undoLastChange"
-                        @disabled(count($undoStack) === 0)
-                        title="{{ count($undoStack) ? 'Undo: '.e($undoStack[array_key_last($undoStack)]['label'] ?? '') : 'Undo করার মতো কিছু নেই' }}"
-                        class="inline-flex h-8 items-center gap-1 rounded-md border border-slate-200 px-2.5 text-[12px] font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        wire:loading.attr="disabled"
+                        wire:target="undoLastChange"
+                        @disabled($undoCount === 0)
+                        title="{{ $undoTitle }}"
+                        class="inline-flex h-8 items-center gap-1 rounded-md border px-2.5 text-[12px] font-medium leading-none
+                            {{ $undoCount > 0
+                                ? 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+                                : 'border-slate-200 text-slate-400' }}
+                            disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a4 4 0 014 4v2M3 10l4-4M3 10l4 4"/></svg>
-                        Undo
-                        @if (count($undoStack) > 0)
-                            <span class="rounded bg-slate-100 px-1 text-[10px] tabular-nums text-slate-500">{{ count($undoStack) }}</span>
+                        <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a4 4 0 014 4v2M3 10l4-4M3 10l4 4"/></svg>
+                        <span class="leading-none">Undo</span>
+                        @if ($undoCount > 0)
+                            <span class="rounded bg-white/80 px-1 text-[10px] font-semibold tabular-nums text-emerald-700">{{ $undoCount }}</span>
+                            <span class="hidden text-[10px] tabular-nums text-emerald-600/80 sm:inline">{{ $this->formatUndoRemaining($undoSeconds) }}</span>
                         @endif
                     </button>
 
