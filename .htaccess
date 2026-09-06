@@ -1,16 +1,12 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Already inside /public — do nothing.
-    RewriteRule ^public/ - [L]
-
-    # Serve existing files/folders from project root (rare).
-    RewriteCond %{REQUEST_FILENAME} -f [OR]
-    RewriteCond %{REQUEST_FILENAME} -d
+    # Do not rewrite real files in the project root (e.g. index.php).
+    RewriteCond %{REQUEST_FILENAME} -f
     RewriteRule ^ - [L]
 
-    # Send everything else into /public (Laravel front controller + assets).
-    RewriteRule ^(.*)$ public/$1 [L]
+    # Force all other requests into /public (needed when docroot is project root).
+    RewriteRule ^(.*)$ /public/$1 [L]
 </IfModule>
 
 DirectoryIndex index.php public/index.php

@@ -70,7 +70,13 @@ php artisan migrate --force
 
 echo "==> storage link + permissions"
 php artisan storage:link || true
+# Web server needs traverse (+x) on dirs and read on files (rsync can break this).
+find "$APP_DIR" -type d -exec chmod 755 {} \; 2>/dev/null || true
+find "$APP_DIR" -type f -exec chmod 644 {} \; 2>/dev/null || true
 chmod -R ug+rwx storage bootstrap/cache || true
+chmod 755 "$APP_DIR" "$APP_DIR/public" || true
+# Make sure entry scripts are readable/executable enough for LiteSpeed.
+chmod 644 "$APP_DIR/index.php" "$APP_DIR/public/index.php" "$APP_DIR/.htaccess" "$APP_DIR/public/.htaccess" || true
 
 echo "==> optimize"
 php artisan optimize:clear || true
