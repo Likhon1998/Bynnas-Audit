@@ -1364,10 +1364,34 @@ class MakeAuditReport extends Component
 
     public function updatedReportBlocks(mixed $value, ?string $key = null): void
     {
+        if (is_string($key) && preg_match('/^(\d+)\.rows\.(\d+)\.(sample_size|instances_found)$/', $key, $m)) {
+            $this->recalculateReportBlockStatsPercentage((int) $m[1], (int) $m[2]);
+        }
+
         $this->syncSectionsFromReportBlocks();
         $this->syncLegacyFinancialFromReportSections();
         $this->syncLegacyUtilityFromBlocks();
         $this->rebuildTocFromReportBlocks();
+    }
+
+    protected function recalculateReportBlockStatsPercentage(int $blockIndex, int $rowIndex): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]['rows'][$rowIndex]) || ! is_array($this->reportBlocks[$blockIndex]['rows'][$rowIndex])) {
+            return;
+        }
+
+        $row = &$this->reportBlocks[$blockIndex]['rows'][$rowIndex];
+        $sample = \App\Support\BanglaNumerals::toFloat($row['sample_size'] ?? '');
+        $instances = \App\Support\BanglaNumerals::toFloat($row['instances_found'] ?? '');
+
+        if ($sample === null || $sample == 0.0 || $instances === null) {
+            $row['percentage'] = '';
+
+            return;
+        }
+
+        $pct = (int) round(($instances / $sample) * 100);
+        $row['percentage'] = \App\Support\BanglaNumerals::fromInt($pct).'%';
     }
 
     public function addFinancialFinding(): void

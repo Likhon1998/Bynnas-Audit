@@ -6,8 +6,10 @@ use App\Models\AuditFinding;
 use App\Models\AuditIndicator;
 use App\Models\AuditReport;
 use App\Models\Shakha;
+use App\Models\ShakhaEmployee;
 use App\Services\AuditSummaryService;
 use App\Services\FindingsAuthoritySummaryExcelExporter;
+use App\Services\FindingsAuthoritySummaryPptExporter;
 use App\Services\FindingsMatrixExcelExporter;
 use App\Services\UserAccessService;
 use Illuminate\Http\RedirectResponse;
@@ -22,7 +24,8 @@ class AuditFindingController extends Controller
         $month = max(1, min(12, (int) $request->integer('month', now('Asia/Dhaka')->month)));
         $year = max(2000, min(2100, (int) $request->integer('year', now('Asia/Dhaka')->year)));
 
-        $brief = $summary->getAuthorityMonthSummary($month, $year);
+        $underheadingGroups = $summary->getMonthUnderheadingSummary($month, $year);
+        $periodLabel = date('F', mktime(0, 0, 0, $month, 1)).' '.$year;
 
         $monthsWithData = AuditFinding::query()
             ->where('audit_year', $year)
@@ -45,17 +48,27 @@ class AuditFindingController extends Controller
         });
 
         return view('audit-findings.summary', [
-            'brief' => $brief,
+            'underheadingGroups' => $underheadingGroups,
+            'periodLabel' => $periodLabel,
             'month' => $month,
             'year' => $year,
             'monthStrip' => $monthStrip,
             'yearOptions' => range(now()->year + 1, now()->year - 6),
             'exportUrl' => route('audit-findings.summary.export', ['month' => $month, 'year' => $year]),
+            'exportPptUrl' => route('audit-findings.summary.export-ppt', ['month' => $month, 'year' => $year]),
             'matrixUrl' => route('audit-findings.index', ['month' => $month, 'year' => $year]),
         ]);
     }
 
     public function exportSummary(Request $request, FindingsAuthoritySummaryExcelExporter $exporter): StreamedResponse
+    {
+        $month = max(1, min(12, (int) $request->integer('month', now('Asia/Dhaka')->month)));
+        $year = max(2000, min(2100, (int) $request->integer('year', now('Asia/Dhaka')->year)));
+
+        return $exporter->download($month, $year);
+    }
+
+    public function exportSummaryPpt(Request $request, FindingsAuthoritySummaryPptExporter $exporter): StreamedResponse
     {
         $month = max(1, min(12, (int) $request->integer('month', now('Asia/Dhaka')->month)));
         $year = max(2000, min(2100, (int) $request->integer('year', now('Asia/Dhaka')->year)));
@@ -186,13 +199,96 @@ class AuditFindingController extends Controller
         $branches = $summary->getIndicatorBranchFindings($indicator->id, $month, $year);
         $orgRow = $summary->getOrganizationTotals($month, $year)->firstWhere('indicator_id', $indicator->id);
 
+        $shakhaIds = $branches->pluck('shakha_id')->unique()->filter()->values();
+        $employeesByShakha = ShakhaEmployee::query()
+            ->whereIn('shakha_id', $shakhaIds)
+            ->where('status', 'active')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'shakha_id', 'employee_code', 'name', 'designation'])
+            ->groupBy('shakha_id')
+            ->map(fn ($group) => $group->map(fn (ShakhaEmployee $e) => [
+                'id' => $e->id,
+                'code' => (string) $e->employee_code,
+                'name' => (string) $e->name,
+                'designation' => (string) ($e->designation ?: ''),
+            ])->values())
+            ->toArray();
+
+        $branchRows = $branches->map(fn (AuditFinding $finding) => [
+            'id' => $finding->id,
+            'shakha_id' => (int) $finding->shakha_id,
+            'shakha_name' => (string) ($finding->shakha?->name ?? '—'),
+            'shakha_code' => (string) ($finding->shakha?->code ?? ''),
+            'area_name' => (string) ($finding->shakha?->area?->name ?? '—'),
+            'amount' => $finding->amount !== null ? number_format((float) $finding->amount, 2) : '—',
+            'sample_size_checked' => $finding->sample_size_checked ?? '—',
+            'irregularity_count' => $finding->irregularity_count ?? '—',
+            'observation' => (string) ($finding->observation ?: '—'),
+            'responsible_staff_name' => (string) ($finding->responsible_staff_name ?: ''),
+            'staff_save_url' => route('audit-findings.staff.update', $finding),
+        ])->values();
+
         return view('audit-findings.show', [
             'indicator' => $indicator,
             'month' => $month,
             'year' => $year,
             'branches' => $branches,
+            'branchRows' => $branchRows,
+            'employeesByShakha' => $employeesByShakha,
             'orgRow' => $orgRow,
         ]);
+    }
+
+    public function updateStaff(Request $request, AuditFinding $finding): \Illuminate\Http\JsonResponse|RedirectResponse
+    {
+        if (! app(UserAccessService::class)->canAccessShakha($request->user(), (int) $finding->shakha_id)) {
+            abort(403, 'You are not assigned to this shakha.');
+        }
+
+        $data = $request->validate([
+            'responsible_staff_name' => ['nullable', 'string', 'max:255'],
+            'employee_code' => ['nullable', 'string', 'max:80'],
+        ]);
+
+        $name = trim((string) ($data['responsible_staff_name'] ?? ''));
+        $code = trim((string) ($data['employee_code'] ?? ''));
+
+        if ($code !== '') {
+            $employee = ShakhaEmployee::query()
+                ->where('shakha_id', $finding->shakha_id)
+                ->where('status', 'active')
+                ->where('employee_code', $code)
+                ->first();
+            if ($employee) {
+                $name = $employee->name;
+            }
+        } elseif ($name !== '') {
+            $employee = ShakhaEmployee::query()
+                ->where('shakha_id', $finding->shakha_id)
+                ->where('status', 'active')
+                ->where(function ($q) use ($name) {
+                    $q->where('employee_code', $name)
+                        ->orWhere('name', $name);
+                })
+                ->first();
+            if ($employee) {
+                $name = $employee->name;
+            }
+        }
+
+        $finding->update([
+            'responsible_staff_name' => $name !== '' ? $name : null,
+        ]);
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'ok' => true,
+                'responsible_staff_name' => $finding->responsible_staff_name,
+            ]);
+        }
+
+        return back()->with('status', 'Staff updated.');
     }
 
     public function entry(Request $request): View|RedirectResponse
@@ -250,11 +346,26 @@ class AuditFindingController extends Controller
             'responsible_staff_name' => $existing->get($indicator->id)?->responsible_staff_name,
         ])->values();
 
+        $employees = ShakhaEmployee::query()
+            ->where('shakha_id', $shakha->id)
+            ->where('status', 'active')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'employee_code', 'name', 'designation'])
+            ->map(fn (ShakhaEmployee $e) => [
+                'id' => $e->id,
+                'code' => (string) $e->employee_code,
+                'name' => (string) $e->name,
+                'designation' => (string) ($e->designation ?: ''),
+            ])
+            ->values();
+
         return view('audit-findings.entry', [
             'shakha' => $shakha,
             'month' => $month,
             'year' => $year,
             'indicatorRows' => $indicatorRows,
+            'employees' => $employees,
         ]);
     }
 

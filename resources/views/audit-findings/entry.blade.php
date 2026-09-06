@@ -9,7 +9,12 @@
             risk: '',
             page: 1,
             perPage: 25,
+            staffOpenFor: null,
+            staffQ: '',
+            staffHighlight: 0,
+            staffDropdownStyle: {},
             rows: @js($indicatorRows),
+            employees: @js($employees ?? []),
             get categories() {
                 return [...new Set(this.rows.map((r) => r.category).filter(Boolean))].sort();
             },
@@ -23,6 +28,77 @@
             },
             get risks() {
                 return [...new Set(this.rows.map((r) => r.risk_rating).filter(Boolean))].sort();
+            },
+            placeStaffDropdown(el) {
+                if (! el) return;
+                const r = el.getBoundingClientRect();
+                const width = Math.max(r.width, 176);
+                const menuHeight = 192;
+                const spaceBelow = window.innerHeight - r.bottom;
+                const openUp = spaceBelow < menuHeight && r.top > menuHeight;
+                const top = openUp ? Math.max(8, r.top - menuHeight - 4) : r.bottom + 4;
+                this.staffDropdownStyle = {
+                    position: 'fixed',
+                    left: Math.min(r.left, window.innerWidth - width - 8) + 'px',
+                    top: top + 'px',
+                    width: width + 'px',
+                    zIndex: '9999',
+                };
+            },
+            openStaffMenu(row, el) {
+                this.staffOpenFor = row.id;
+                this.staffQ = row.responsible_staff_name || '';
+                this.staffHighlight = 0;
+                this.$nextTick(() => this.placeStaffDropdown(el));
+            },
+            filterEmployees(q) {
+                const needle = (q || '').trim().toLowerCase();
+                if (!needle) return this.employees.slice(0, 8);
+                return this.employees.filter((e) => {
+                    const hay = (e.code + ' ' + e.name + ' ' + (e.designation || '')).toLowerCase();
+                    return hay.includes(needle);
+                }).slice(0, 8);
+            },
+            pickStaff(row, emp) {
+                row.responsible_staff_name = emp.name;
+                this.staffQ = emp.name;
+                this.staffOpenFor = null;
+            },
+            commitStaff(row) {
+                const needle = (row.responsible_staff_name || '').trim();
+                if (!needle) {
+                    row.responsible_staff_name = '';
+                    this.staffOpenFor = null;
+                    return;
+                }
+                const exact = this.employees.find((e) =>
+                    e.code.toLowerCase() === needle.toLowerCase()
+                    || e.name.trim().toLowerCase() === needle.toLowerCase()
+                );
+                if (exact) {
+                    row.responsible_staff_name = exact.name;
+                } else {
+                    const first = this.filterEmployees(needle)[0];
+                    if (first) row.responsible_staff_name = first.name;
+                }
+                this.staffOpenFor = null;
+            },
+            onStaffKey(e, row) {
+                const list = this.filterEmployees(this.staffQ);
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    this.staffOpenFor = row.id;
+                    this.staffHighlight = Math.min(this.staffHighlight + 1, Math.max(list.length - 1, 0));
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    this.staffHighlight = Math.max(this.staffHighlight - 1, 0);
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (list[this.staffHighlight]) this.pickStaff(row, list[this.staffHighlight]);
+                    else this.commitStaff(row);
+                } else if (e.key === 'Escape') {
+                    this.staffOpenFor = null;
+                }
             },
             get filtered() {
                 const q = this.q.trim().toLowerCase();
@@ -80,7 +156,8 @@
                     {{ $shakha->name }}{{ $shakha->code ? ' ('.$shakha->code.')' : '' }}
                     · {{ $shakha->area?->name }}
                     · {{ date('F', mktime(0, 0, 0, $month, 1)) }} {{ $year }}
-                    · Filters are realtime · Leave blank = no cell
+                    · Staff from this shakha’s employees (type ID or name)
+                    · Leave blank = no cell
                 </p>
             </div>
             <a href="{{ route('audits.index') }}" class="inline-flex h-8 items-center rounded-lg border border-slate-200 px-3 text-[12px] text-slate-600 hover:bg-slate-50">Audit Reports</a>
@@ -185,8 +262,53 @@
                                     <td class="px-2 py-1.5">
                                         <textarea :name="'findings['+row.id+'][observation]'" rows="2" class="w-full rounded-md border-slate-200 text-[12px]" x-model="row.observation"></textarea>
                                     </td>
-                                    <td class="px-2 py-1.5">
-                                        <input type="text" :name="'findings['+row.id+'][responsible_staff_name]'" x-model="row.responsible_staff_name" class="h-8 w-36 rounded-md border-slate-200 py-0 text-[12px]">
+                                    <td class="px-2 py-1.5" @click.outside="if (staffOpenFor === row.id) staffOpenFor = null">
+                                        <div class="relative w-44">
+                                            <input
+                                                type="text"
+                                                :name="'findings['+row.id+'][responsible_staff_name]'"
+                                                x-model="row.responsible_staff_name"
+                                                class="h-8 w-full rounded-md border-slate-200 py-0 text-[12px]"
+                                                placeholder="ID / name…"
+                                                autocomplete="off"
+                                                @focus="openStaffMenu(row, $event.target)"
+                                                @input="openStaffMenu(row, $event.target); staffQ = $event.target.value; staffHighlight = 0"
+                                                @keydown="onStaffKey($event, row)"
+                                                @blur="setTimeout(() => { if (staffOpenFor === row.id) commitStaff(row); }, 140)"
+                                            >
+                                            <template x-teleport="body">
+                                                <div
+                                                    x-show="staffOpenFor === row.id"
+                                                    x-cloak
+                                                    x-transition.opacity.duration.100ms
+                                                    :style="staffDropdownStyle"
+                                                    class="max-h-48 overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-xl"
+                                                    @mousedown.prevent
+                                                >
+                                                    <template x-if="employees.length === 0">
+                                                        <p class="px-2.5 py-2 text-[11px] text-amber-700">No employees for this shakha. Add staff under Shakha Employees.</p>
+                                                    </template>
+                                                    <template x-for="(emp, idx) in filterEmployees(staffQ)" :key="emp.id">
+                                                        <button
+                                                            type="button"
+                                                            class="flex w-full flex-col items-start gap-0.5 px-2.5 py-1.5 text-left hover:bg-sky-50"
+                                                            :class="idx === staffHighlight ? 'bg-sky-50' : ''"
+                                                            @mousedown.prevent="pickStaff(row, emp)"
+                                                        >
+                                                            <span class="text-[12px] font-semibold text-navy-900" x-text="emp.name"></span>
+                                                            <span class="text-[10px] text-slate-500">
+                                                                <span class="font-mono" x-text="emp.code"></span>
+                                                                <span x-show="emp.designation"> · <span x-text="emp.designation"></span></span>
+                                                            </span>
+                                                        </button>
+                                                    </template>
+                                                    <p
+                                                        class="px-2.5 py-2 text-[11px] text-slate-400"
+                                                        x-show="employees.length > 0 && filterEmployees(staffQ).length === 0"
+                                                    >No match — keep typing a free-text name if needed.</p>
+                                                </div>
+                                            </template>
+                                        </div>
                                     </td>
                                 </tr>
                             </template>

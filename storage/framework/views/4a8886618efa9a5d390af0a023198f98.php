@@ -284,7 +284,18 @@
                             <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = ['total_population', 'sample_size', 'instances_found', 'percentage']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $field): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
                                 <td class="text-center">
                                     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($editable): ?>
-                                        <input type="text" wire:model.live="reportBlocks.<?php echo e($bIndex); ?>.rows.<?php echo e($rowIndex); ?>.<?php echo e($field); ?>" class="w-full border-0 bg-transparent text-center text-[11px]">
+                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($field === 'percentage'): ?>
+                                            <input
+                                                type="text"
+                                                wire:model.live="reportBlocks.<?php echo e($bIndex); ?>.rows.<?php echo e($rowIndex); ?>.percentage"
+                                                class="w-full border-0 bg-slate-50 text-center text-[11px] font-semibold text-slate-700"
+                                                readonly
+                                                tabindex="-1"
+                                                title="স্বয়ংক্রিয়: Instances ÷ Sample Size × ১০০"
+                                            >
+                                        <?php else: ?>
+                                            <input type="text" wire:model.live="reportBlocks.<?php echo e($bIndex); ?>.rows.<?php echo e($rowIndex); ?>.<?php echo e($field); ?>" class="w-full border-0 bg-transparent text-center text-[11px]">
+                                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                     <?php else: ?>
                                         <?php echo e($row[$field] ?? ''); ?>
 

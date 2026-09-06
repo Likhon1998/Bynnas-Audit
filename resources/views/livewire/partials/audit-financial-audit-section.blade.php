@@ -280,7 +280,18 @@
                             @foreach (['total_population', 'sample_size', 'instances_found', 'percentage'] as $field)
                                 <td class="text-center">
                                     @if ($editable)
-                                        <input type="text" wire:model.live="reportBlocks.{{ $bIndex }}.rows.{{ $rowIndex }}.{{ $field }}" class="w-full border-0 bg-transparent text-center text-[11px]">
+                                        @if ($field === 'percentage')
+                                            <input
+                                                type="text"
+                                                wire:model.live="reportBlocks.{{ $bIndex }}.rows.{{ $rowIndex }}.percentage"
+                                                class="w-full border-0 bg-slate-50 text-center text-[11px] font-semibold text-slate-700"
+                                                readonly
+                                                tabindex="-1"
+                                                title="স্বয়ংক্রিয়: Instances ÷ Sample Size × ১০০"
+                                            >
+                                        @else
+                                            <input type="text" wire:model.live="reportBlocks.{{ $bIndex }}.rows.{{ $rowIndex }}.{{ $field }}" class="w-full border-0 bg-transparent text-center text-[11px]">
+                                        @endif
                                     @else
                                         {{ $row[$field] ?? '' }}
                                     @endif

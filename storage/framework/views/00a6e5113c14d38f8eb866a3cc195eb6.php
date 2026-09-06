@@ -103,10 +103,8 @@
         <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
             <div class="min-w-0">
                 <h1 class="text-[16px] font-semibold tracking-tight text-navy-900">Findings Matrix</h1>
-                <p class="mt-0.5 text-[11px] text-slate-500">
-                    Monthly summary · indicators × shakhas ·
-                    <a href="<?php echo e(route('audit-findings.summary', ['month' => $month, 'year' => $year])); ?>" class="font-semibold text-[#2b579a] hover:underline">Authority month brief →</a>
-                </p>
+                <p class="mt-0.5 text-[11px] text-slate-500">Monthly summary · indicators × shakhas</p>
+                <?php echo $__env->make('audit-findings.partials.view-tabs', ['activeTab' => 'matrix', 'month' => $month, 'year' => $year], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
             </div>
             <div class="ml-auto flex flex-wrap items-center justify-end gap-1.5">
                 <form method="GET" action="<?php echo e(route('audit-findings.index')); ?>" class="flex flex-wrap items-center gap-1.5">

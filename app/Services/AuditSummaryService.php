@@ -492,6 +492,151 @@ class AuditSummaryService
     }
 
     /**
+     * Month summary grouped by category / sub-category (underheadings).
+     * Each indicator row: amount, samples, irregularities, % (irre÷samples),
+     * total branch count and branch names as separate fields.
+     *
+     * @return list<array{
+     *   category:string,
+     *   sub_category:string,
+     *   rows:list<array{
+     *     indicator_id:int,
+     *     code:string,
+     *     title:string,
+     *     amount:float,
+     *     amount_fmt:string,
+     *     samples:int,
+     *     irregularities:int,
+     *     percentage:float|null,
+     *     percentage_fmt:string,
+     *     branch_count:int,
+     *     branches:string,
+     *     url:string
+     *   }>
+     * }>
+     */
+    public function getMonthUnderheadingSummary(int $month, int $year): array
+    {
+        $month = max(1, min(12, $month));
+        $year = max(2000, min(2100, $year));
+
+        $findings = AuditFinding::query()
+            ->with(['indicator:id,indicator_code,title,category,sub_category', 'shakha:id,name,code'])
+            ->where('audit_month', $month)
+            ->where('audit_year', $year)
+            ->get();
+
+        /** @var array<int, array{indicator:?AuditIndicator, amount:float, samples:int, irregularities:int, branches:array<string,string>}> $byIndicator */
+        $byIndicator = [];
+
+        foreach ($findings as $finding) {
+            $indicatorId = (int) $finding->audit_indicator_id;
+            if ($indicatorId < 1) {
+                continue;
+            }
+
+            if (! isset($byIndicator[$indicatorId])) {
+                $byIndicator[$indicatorId] = [
+                    'indicator' => $finding->indicator,
+                    'amount' => 0.0,
+                    'samples' => 0,
+                    'irregularities' => 0,
+                    'branches' => [],
+                ];
+            }
+
+            $byIndicator[$indicatorId]['amount'] += (float) ($finding->amount ?? 0);
+            $byIndicator[$indicatorId]['samples'] += (int) ($finding->sample_size_checked ?? 0);
+            $byIndicator[$indicatorId]['irregularities'] += (int) ($finding->irregularity_count ?? 0);
+
+            $hasSignal = (float) ($finding->amount ?? 0) > 0
+                || (int) ($finding->sample_size_checked ?? 0) > 0
+                || (int) ($finding->irregularity_count ?? 0) > 0
+                || filled($finding->observation)
+                || filled($finding->responsible_staff_name);
+
+            if ($hasSignal && $finding->shakha) {
+                $label = trim((string) $finding->shakha->name);
+                if ($finding->shakha->code) {
+                    $label .= ' ('.$finding->shakha->code.')';
+                }
+                $byIndicator[$indicatorId]['branches'][(int) $finding->shakha_id] = $label !== '' ? $label : 'Branch #'.$finding->shakha_id;
+            }
+        }
+
+        $groups = [];
+        foreach ($byIndicator as $indicatorId => $bag) {
+            $indicator = $bag['indicator'];
+            if (! $indicator) {
+                $indicator = AuditIndicator::query()->find($indicatorId);
+            }
+            if (! $indicator) {
+                continue;
+            }
+
+            $amount = (float) $bag['amount'];
+            $samples = (int) $bag['samples'];
+            $irregs = (int) $bag['irregularities'];
+            $branches = array_values($bag['branches']);
+            sort($branches, SORT_NATURAL | SORT_FLAG_CASE);
+
+            if ($amount <= 0 && $samples <= 0 && $irregs <= 0 && $branches === []) {
+                continue;
+            }
+
+            // Percentage = irregularities ÷ samples (same rule as Report Rating Box).
+            $percentage = $samples > 0 ? round(($irregs / $samples) * 100, 2) : null;
+
+            $category = (string) ($indicator->category ?: 'Other');
+            $subCategory = (string) ($indicator->sub_category ?: '—');
+            $groupKey = $category."\0".$subCategory;
+
+            if (! isset($groups[$groupKey])) {
+                $groups[$groupKey] = [
+                    'category' => $category,
+                    'sub_category' => $subCategory,
+                    'rows' => [],
+                ];
+            }
+
+            $groups[$groupKey]['rows'][] = [
+                'indicator_id' => (int) $indicator->id,
+                'code' => (string) $indicator->indicator_code,
+                'title' => (string) $indicator->title,
+                'amount' => $amount,
+                'amount_fmt' => number_format($amount, 2),
+                'samples' => $samples,
+                'irregularities' => $irregs,
+                'percentage' => $percentage,
+                'percentage_fmt' => $percentage === null ? '—' : number_format($percentage, 2).'%',
+                'branch_count' => count($branches),
+                'branches' => implode(', ', $branches),
+                'url' => route('audit-findings.show', [
+                    'indicator' => $indicator->id,
+                    'month' => $month,
+                    'year' => $year,
+                ]),
+            ];
+        }
+
+        return collect($groups)
+            ->sortBy([
+                fn ($g) => mb_strtolower($g['category']),
+                fn ($g) => mb_strtolower($g['sub_category']),
+            ])
+            ->values()
+            ->map(function (array $group) {
+                $group['rows'] = collect($group['rows'])
+                    ->sortBy(fn ($r) => mb_strtolower((string) $r['code']))
+                    ->values()
+                    ->all();
+
+                return $group;
+            })
+            ->all();
+    }
+
+    /**
      * Push Report Rating Box / finding data from a completed (or saved) audit report
      * into the Findings Matrix (shakha × indicator × month × year).
      *

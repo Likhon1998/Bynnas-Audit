@@ -187,9 +187,10 @@ class AuditFindingsConsolidatedTest extends TestCase
         $this->actingAs($user)
             ->get(route('audit-findings.summary', ['month' => 8, 'year' => 2026]))
             ->assertOk()
-            ->assertSee('Monthly irregularities summary')
+            ->assertSee('Findings Summary')
             ->assertSee('Banani Shakha')
-            ->assertSee('Download August 2026');
+            ->assertSee('Excel')
+            ->assertSee('Download PPT');
 
         $response = $this->actingAs($user)
             ->get(route('audit-findings.summary.export', ['month' => 8, 'year' => 2026]));
@@ -200,10 +201,31 @@ class AuditFindingsConsolidatedTest extends TestCase
         $path = tempnam(sys_get_temp_dir(), 'auth-sum');
         file_put_contents($path, $response->streamedContent());
         $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
-        $this->assertSame(['Overview', 'Branches', 'Top issues'], $spreadsheet->getSheetNames());
-        $this->assertStringContainsString('August 2026', (string) $spreadsheet->getSheetByName('Overview')->getCell('A1')->getValue());
-        $this->assertSame('Banani Shakha', (string) $spreadsheet->getSheetByName('Branches')->getCell('B4')->getValue());
+        $this->assertSame(['Findings Summary'], $spreadsheet->getSheetNames());
+        $this->assertStringContainsString('August 2026', (string) $spreadsheet->getSheetByName('Findings Summary')->getCell('A1')->getValue());
+        $this->assertSame(1, (int) $spreadsheet->getSheetByName('Findings Summary')->getCell('I4')->getValue());
+        $this->assertSame('Banani Shakha (BYN-004)', (string) $spreadsheet->getSheetByName('Findings Summary')->getCell('J4')->getValue());
+        $this->assertEquals(1500.0, (float) $spreadsheet->getSheetByName('Findings Summary')->getCell('E4')->getValue());
         @unlink($path);
+
+        $pptResponse = $this->actingAs($user)
+            ->get(route('audit-findings.summary.export-ppt', ['month' => 8, 'year' => 2026]));
+
+        $pptResponse->assertOk();
+        $this->assertStringContainsString('DSK-Findings-Summary-2026-08.pptx', (string) $pptResponse->headers->get('content-disposition'));
+        $this->assertStringContainsString(
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            (string) $pptResponse->headers->get('content-type')
+        );
+
+        $pptPath = tempnam(sys_get_temp_dir(), 'auth-ppt').'.pptx';
+        file_put_contents($pptPath, $pptResponse->streamedContent());
+        $this->assertGreaterThan(5000, filesize($pptPath));
+        $zip = new \ZipArchive;
+        $this->assertTrue($zip->open($pptPath) === true);
+        $this->assertNotFalse($zip->locateName('ppt/presentation.xml'));
+        $zip->close();
+        @unlink($pptPath);
     }
 
     public function test_year_excel_export_has_monthly_matrix_tabs(): void
