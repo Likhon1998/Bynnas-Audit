@@ -61,6 +61,7 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
 
     Route::middleware('permission:audits.create|audits.manage')->group(function () {
         Route::get('/audits', [AuditReportController::class, 'index'])->name('audits.index');
+        Route::get('/audits/send-history', [AuditReportController::class, 'sendHistory'])->name('audits.send-history');
         Route::get('/audits/{report}/checklist', [AuditReportController::class, 'checklist'])->name('audits.checklist');
         Route::get('/audits/{report}/checklist/{file}/download', [AuditReportController::class, 'downloadChecklistFile'])->name('audits.checklist.download');
         Route::get('/checklists', fn () => view('checklists.index'))->name('checklists.index');

@@ -350,8 +350,6 @@ class MakeAuditReport extends Component
     /** Compose / send completed report by email */
     public bool $showSendMailModal = false;
 
-    public bool $showSendHistoryModal = false;
-
     public ?int $mailReportId = null;
 
     public string $mailReportLabel = '';
@@ -1165,16 +1163,6 @@ class MakeAuditReport extends Component
         $this->mailSending = false;
         $this->showSendMailModal = true;
         $this->resetErrorBag();
-    }
-
-    public function openSendHistoryModal(): void
-    {
-        $this->showSendHistoryModal = true;
-    }
-
-    public function closeSendHistoryModal(): void
-    {
-        $this->showSendHistoryModal = false;
     }
 
     public function closeSendMailModal(): void
@@ -10205,7 +10193,6 @@ class MakeAuditReport extends Component
         $branchOptions = collect();
         $ongoingReports = collect();
         $completedReports = collect();
-        $recentReportSends = collect();
         $ongoingCount = 0;
         $completedCount = 0;
         $pendingSlots = AuditReport::MAX_CONCURRENT_DRAFTS;
@@ -10269,13 +10256,6 @@ class MakeAuditReport extends Component
                 $ongoingCount = AuditReport::query()->ownedBy($userId)->drafts()->count();
                 $completedCount = AuditReport::query()->ownedBy($userId)->completed()->count();
                 $pendingSlots = max(0, AuditReport::MAX_CONCURRENT_DRAFTS - $ongoingCount);
-
-                $recentReportSends = AuditReportSend::query()
-                    ->where('sent_by_user_id', $userId)
-                    ->with(['report.shakha'])
-                    ->latest('sent_at')
-                    ->limit(50)
-                    ->get();
             }
         }
 
@@ -10344,7 +10324,6 @@ class MakeAuditReport extends Component
             'listFilterYear' => $this->listFilterYear,
             'listFilterQ' => $this->listFilterQ,
             'listFilterStatus' => $this->listFilterStatus,
-            'recentReportSends' => $recentReportSends,
             'customTableEditorIndex' => $this->customTableEditorIndex,
             'customTableSizeCols' => $this->customTableSizeCols,
             'customTableSizeRows' => $this->customTableSizeRows,

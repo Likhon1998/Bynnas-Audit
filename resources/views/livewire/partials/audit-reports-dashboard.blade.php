@@ -1,7 +1,6 @@
 {{-- Audit reports dashboard — dense single workspace --}}
 @php
     $allReports = $ongoingReports->concat($completedReports)->values();
-    $recentReportSends = $recentReportSends ?? collect();
 @endphp
 
 <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -14,14 +13,10 @@
             </p>
         </div>
         <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
-            <button
-                type="button"
-                wire:click="openSendHistoryModal"
+            <a
+                href="{{ route('audits.send-history', ['month' => $listFilterMonth ?: now()->month, 'year' => $listFilterYear ?: now()->year]) }}"
                 class="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 font-semibold text-slate-700 hover:bg-slate-50"
-            >
-                Send history
-                <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] tabular-nums text-slate-600">{{ $recentReportSends->count() }}</span>
-            </button>
+            >Send history</a>
             <span class="inline-flex items-center gap-1 rounded-md border border-sky-200 bg-sky-50 px-2 py-1 font-semibold text-sky-800">
                 Ongoing <span class="tabular-nums">{{ $ongoingCount }}</span>
             </span>
@@ -324,83 +319,6 @@
         </div>
     @endif
 </div>
-
-@if ($showSendHistoryModal)
-    <div class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 px-3 py-8" wire:click.self="closeSendHistoryModal">
-        <div class="w-full max-w-5xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl" @keydown.escape.window="$wire.closeSendHistoryModal()">
-            <div class="flex items-center justify-between border-b border-slate-200 bg-slate-50/70 px-4 py-3">
-                <div>
-                    <p class="text-[13px] font-semibold text-navy-900">Report send history</p>
-                    <p class="text-[11px] text-slate-500">Tracks when completed reports were emailed to receivers</p>
-                </div>
-                <button type="button" wire:click="closeSendHistoryModal" class="rounded-md px-2 py-1 text-[12px] font-medium text-slate-500 hover:bg-slate-100">Close</button>
-            </div>
-            <div class="max-h-[70vh] overflow-auto">
-                <table class="min-w-full text-left text-[11px]">
-                    <thead class="sticky top-0 bg-slate-50">
-                        <tr class="border-b border-slate-100 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                            <th class="px-3 py-2">When</th>
-                            <th class="px-3 py-2">Report</th>
-                            <th class="px-3 py-2">From</th>
-                            <th class="px-3 py-2">To</th>
-                            <th class="px-3 py-2">Subject</th>
-                            <th class="px-3 py-2">PDF</th>
-                            <th class="px-3 py-2">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        @forelse ($recentReportSends as $send)
-                            @php
-                                $reportLabel = trim((string) ($send->report?->shakha_display_name ?: $send->report?->shakha?->name ?: 'Report'));
-                                $period = $send->report?->periodLabel() ?: '—';
-                            @endphp
-                            <tr class="hover:bg-slate-50/70">
-                                <td class="whitespace-nowrap px-3 py-2 tabular-nums text-slate-600">
-                                    {{ optional($send->sent_at)->timezone('Asia/Dhaka')->format('d M Y, h:i A') ?: '—' }}
-                                </td>
-                                <td class="px-3 py-2">
-                                    <p class="font-medium text-slate-800">{{ $reportLabel }}</p>
-                                    <p class="text-[10px] text-slate-400">{{ $period }}</p>
-                                </td>
-                                <td class="px-3 py-2">
-                                    <p class="text-slate-700">{{ $send->from_name }}</p>
-                                    <p class="text-[10px] text-slate-400">{{ $send->from_email }}</p>
-                                </td>
-                                <td class="px-3 py-2">
-                                    <p class="text-slate-700">{{ $send->to_email }}</p>
-                                    @if ($send->cc_email)
-                                        <p class="text-[10px] text-slate-400">CC: {{ $send->cc_email }}</p>
-                                    @endif
-                                </td>
-                                <td class="max-w-[220px] truncate px-3 py-2 text-slate-600" title="{{ $send->subject }}">{{ $send->subject }}</td>
-                                <td class="px-3 py-2">
-                                    @if ($send->attached_pdf)
-                                        <span class="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">Yes</span>
-                                    @else
-                                        <span class="rounded-full bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">No</span>
-                                    @endif
-                                </td>
-                                <td class="px-3 py-2">
-                                    @if ($send->status === 'sent')
-                                        <span class="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">Sent</span>
-                                    @else
-                                        <span class="rounded-full bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700" title="{{ $send->error_message }}">Failed</span>
-                                    @endif
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="7" class="px-3 py-10 text-center text-[12px] text-slate-400">
-                                    No emails sent yet. Complete a report, then use <span class="font-semibold text-slate-600">Send by Gmail</span>.
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-@endif
 
 @if ($showSendMailModal)
     <div class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 px-3 py-8" wire:click.self="closeSendMailModal">
