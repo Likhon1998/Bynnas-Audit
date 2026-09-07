@@ -1182,8 +1182,6 @@ class MakeAuditReport extends Component
         }
 
         $this->mailError = '';
-        $user = auth()->user();
-        $this->mailFromEmail = (string) ($user?->mailSenderAddress() ?: config('mail.from.address', ''));
         $this->validate([
             'mailFromName' => 'required|string|max:120',
             'mailFromEmail' => 'required|email|max:190',

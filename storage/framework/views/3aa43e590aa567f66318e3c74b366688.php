@@ -363,8 +363,8 @@ unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendB
                     </div>
                     <div>
                         <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Sender email</label>
-                        <input type="email" wire:model="mailFromEmail" class="h-9 w-full rounded-md border-slate-200 bg-slate-50 text-[12px]" readonly>
-                        <p class="mt-1 text-[10px] text-slate-400">From your user profile (Mail send email)</p>
+                        <input type="email" wire:model="mailFromEmail" class="h-9 w-full rounded-md border-slate-200 text-[12px]" placeholder="you@gmail.com">
+                        <p class="mt-1 text-[10px] text-slate-400">Defaults from your profile Mail send email — you can edit</p>
                         <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['mailFromEmail'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
 if ($__bag->has($__errorArgs[0])) :
