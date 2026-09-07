@@ -15,7 +15,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Wipe all audit reports, then create 5 fully documented September 2026 reports.
+ * Wipe all audit reports + findings, then create 10 fully documented September 2026 reports
+ * linked to existing Finding Matrix headings so Summary/Matrix populate automatically.
  */
 class SeptemberFullReportsSeeder extends Seeder
 {
@@ -32,14 +33,20 @@ class SeptemberFullReportsSeeder extends Seeder
             return;
         }
 
-        $shakhas = Shakha::query()->with('area')->orderBy('id')->limit(5)->get();
-        if ($shakhas->count() < 5) {
-            $this->command?->error('Need at least 5 shakhas.');
+        $shakhas = Shakha::query()->with('area')->where('status', 'active')->orderBy('id')->limit(10)->get();
+        if ($shakhas->count() < 10) {
+            $shakhas = Shakha::query()->with('area')->orderBy('id')->limit(10)->get();
+        }
+        if ($shakhas->count() < 10) {
+            $this->command?->error('Need at least 10 shakhas.');
 
             return;
         }
 
         $indicators = AuditIndicator::query()
+            ->where(function ($q) {
+                $q->where('is_active', true)->orWhereNull('is_active');
+            })
             ->whereNotNull('title')
             ->where('title', '!=', '')
             ->orderBy('id')
@@ -52,7 +59,11 @@ class SeptemberFullReportsSeeder extends Seeder
             return;
         }
 
-        $ratings = ['Satisfactory', 'Minor', 'Medium', 'Major', 'Unsatisfactory'];
+        // Larger arbitrary pool — each report picks randomly (some headings still repeat across branches).
+        $headingPool = $indicators->shuffle()->take(min(18, $indicators->count()))->values();
+        $this->command?->info('Heading pool size: '.$headingPool->count().' (assigned at random per finding)');
+
+        $ratings = ['Satisfactory', 'Minor', 'Medium', 'Major', 'Unsatisfactory', 'Medium', 'Major', 'Minor', 'Satisfactory', 'Unsatisfactory'];
         $controlMap = [
             'Satisfactory' => 'Satisfactory (E)',
             'Minor' => 'Minor (D)',
@@ -62,20 +73,29 @@ class SeptemberFullReportsSeeder extends Seeder
         ];
 
         $blueprints = $this->reportBlueprints();
+        $baseBlueprints = $blueprints;
+        $extra = 0;
+        while (count($blueprints) < 10 && $baseBlueprints !== []) {
+            $clone = $baseBlueprints[$extra % count($baseBlueprints)];
+            $clone['theme'] = ($clone['theme'] ?? 'Audit').' — সেট '.($extra + 2);
+            $blueprints[] = $clone;
+            $extra++;
+        }
+        $blueprints = array_slice($blueprints, 0, 10);
 
         foreach ($shakhas->values() as $i => $shakha) {
             $bp = $blueprints[$i];
             $control = $ratings[$i];
             $memo = 'DSK/IA/SEP-2026/'.str_pad((string) ($i + 1), 3, '0', STR_PAD_LEFT);
 
-            $auditStart = '2026-09-0'.(1 + $i);
-            $auditEnd = '2026-09-'.str_pad((string) (5 + $i), 2, '0', STR_PAD_LEFT);
-            $reportDate = '2026-09-'.str_pad((string) (12 + $i), 2, '0', STR_PAD_LEFT);
+            $auditStart = '2026-09-0'.(1 + ($i % 5));
+            $auditEnd = '2026-09-'.str_pad((string) (5 + ($i % 5)), 2, '0', STR_PAD_LEFT);
+            $reportDate = '2026-09-'.str_pad((string) (12 + ($i % 10)), 2, '0', STR_PAD_LEFT);
 
             $pages = $this->buildPagesData(
                 $shakha,
                 $bp,
-                $indicators,
+                $headingPool,
                 $controlMap[$control],
                 $reportDate,
                 $i
@@ -100,10 +120,10 @@ class SeptemberFullReportsSeeder extends Seeder
                 'audit_period_label' => 'সেপ্টেম্বর ২০২৬',
                 'audit_start_date' => $auditStart,
                 'audit_end_date' => $auditEnd,
-                'working_days' => 5 + $i,
+                'working_days' => 5 + ($i % 5),
                 'period_scope' => 'Full Branch Audit',
-                'draft_sent_date' => '2026-09-'.str_pad((string) (8 + $i), 2, '0', STR_PAD_LEFT),
-                'comments_received_date' => '2026-09-'.str_pad((string) (10 + $i), 2, '0', STR_PAD_LEFT),
+                'draft_sent_date' => '2026-09-'.str_pad((string) (8 + ($i % 5)), 2, '0', STR_PAD_LEFT),
+                'comments_received_date' => '2026-09-'.str_pad((string) (10 + ($i % 5)), 2, '0', STR_PAD_LEFT),
                 'auditor_name' => $admin->name,
                 'auditor_designation' => 'Internal Audit Officer',
                 'pages_data' => $pages,
@@ -122,7 +142,7 @@ class SeptemberFullReportsSeeder extends Seeder
             }
         }
 
-        $this->command?->info('Done: 5 full September 2026 reports.');
+        $this->command?->info('Done: 10 full September 2026 reports (matrix + summary ready).');
     }
 
     protected function wipeAllReports(): void
@@ -140,18 +160,16 @@ class SeptemberFullReportsSeeder extends Seeder
             AuditChecklistSubmission::query()->whereNotNull('audit_report_id')->update(['audit_report_id' => null]);
         }
 
-        $count = AuditReport::query()->count();
+        $reportCount = AuditReport::query()->count();
         AuditReport::query()->delete();
 
-        // Clear September 2026 matrix rows so re-seeded links stay clean.
+        $findingCount = 0;
         if (Schema::hasTable('audit_findings')) {
-            \App\Models\AuditFinding::query()
-                ->where('audit_month', 9)
-                ->where('audit_year', 2026)
-                ->delete();
+            $findingCount = \App\Models\AuditFinding::query()->count();
+            \App\Models\AuditFinding::query()->delete();
         }
 
-        $this->command?->warn("Deleted {$count} previous audit report(s).");
+        $this->command?->warn("Deleted {$reportCount} report(s) and {$findingCount} finding(s).");
     }
 
     /**
@@ -444,6 +462,7 @@ class SeptemberFullReportsSeeder extends Seeder
         $blocks = [];
         $tocRows = [];
         $financialFindings = [];
+        $usedIndicatorIds = [];
 
         foreach ($blueprint['findings'] as $fIndex => $finding) {
             if (! empty($finding['section'])) {
@@ -465,7 +484,14 @@ class SeptemberFullReportsSeeder extends Seeder
                 ];
             }
 
-            $indicator = $indicators->get(($seedIndex * 3 + $fIndex) % max(1, $indicators->count()));
+            // Arbitrary heading per finding; avoid duplicates inside the same report.
+            $available = $indicators->reject(fn ($ind) => in_array((int) $ind->id, $usedIndicatorIds, true))->values();
+            if ($available->isEmpty()) {
+                $available = $indicators->values();
+            }
+            $indicator = $available->random();
+            $usedIndicatorIds[] = (int) $indicator->id;
+
             // শিরোনাম must come from Finding Matrix indicator title (linked).
             $matrixTitle = trim((string) ($indicator?->title ?? ''));
             if ($matrixTitle === '') {

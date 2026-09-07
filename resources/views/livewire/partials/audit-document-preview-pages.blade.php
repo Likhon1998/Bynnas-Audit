@@ -26,6 +26,7 @@
         'comments_received_date' => $comments_received_date,
         'auditor_name' => $auditor_name,
         'auditor_designation' => $auditor_designation,
+        'copy_recipients' => $copy_recipients ?? null,
     ])
 </div>
 
@@ -211,6 +212,7 @@
                 'page19_compliance_period' => $page19_compliance_period ?? '',
                 'page19_compliance_followup_date' => $page19_compliance_followup_date ?? '',
                 'page19ComplianceRows' => $page19ComplianceRows ?? [],
+                'tableHeaders' => $tableHeaders ?? [],
             ])
         </div>
     @endif

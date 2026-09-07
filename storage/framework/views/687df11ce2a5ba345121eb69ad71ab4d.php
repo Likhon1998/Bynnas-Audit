@@ -15,5 +15,6 @@
     'comments_received_date' => $comments_received_date,
     'auditor_name' => $auditor_name,
     'auditor_designation' => $auditor_designation,
+    'copy_recipients' => $copy_recipients ?? null,
 ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 <?php /**PATH C:\xampp\htdocs\Bynnas-Audit\resources\views/livewire/partials/audit-cover-preview.blade.php ENDPATH**/ ?>

@@ -233,6 +233,7 @@
                 'page19_compliance_period' => $page19_compliance_period ?? '',
                 'page19_compliance_followup_date' => $page19_compliance_followup_date ?? '',
                 'page19ComplianceRows' => $page19ComplianceRows ?? [],
+                'tableHeaders' => $tableHeaders ?? [],
             ])
         </div>
     @endif

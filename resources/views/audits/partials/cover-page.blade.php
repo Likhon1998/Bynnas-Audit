@@ -102,14 +102,8 @@
 <div class="mt-6 copy-block">
     <p class="bold">অনুলিপি:</p>
     <ol class="copy">
-        <li>নির্বাহী পরিচালক</li>
-        <li>উপ-নির্বাহী পরিচালক</li>
-        <li>পরিচালক ঋণ</li>
-        <li>উপ-প্রধান ঋণ</li>
-        <li>যুগ্ম পরিচালক প্রশাসন ও মানব সম্পদ</li>
-        <li>ফোকাল পার্সন</li>
-        <li>অঞ্চলিক ব্যবস্থাপক</li>
-        <li>শাখা ব্যবস্থাপক</li>
-        <li>অফিস কপি</li>
+        @foreach (($copy_recipients ?? \App\Support\AuditCopyRecipients::defaults()) as $item)
+            <li>{{ $item }}</li>
+        @endforeach
     </ol>
 </div>

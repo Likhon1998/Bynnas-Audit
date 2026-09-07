@@ -15,4 +15,5 @@
     'comments_received_date' => $comments_received_date,
     'auditor_name' => $auditor_name,
     'auditor_designation' => $auditor_designation,
+    'copy_recipients' => $copy_recipients ?? null,
 ])

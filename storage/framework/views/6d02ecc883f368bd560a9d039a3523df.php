@@ -477,17 +477,32 @@ unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendB
                     </div>
 
                     <div class="mt-6 text-[11.5px] leading-relaxed">
-                        <p class="font-semibold">অনুলিপি:</p>
-                        <ol class="ml-4 list-decimal space-y-0.5">
-                            <li>নির্বাহী পরিচালক</li>
-                            <li>উপ-নির্বাহী পরিচালক</li>
-                            <li>পরিচালক ঋণ</li>
-                            <li>উপ-প্রধান ঋণ</li>
-                            <li>যুগ্ম পরিচালক প্রশাসন ও মানব সম্পদ</li>
-                            <li>ফোকাল পার্সন</li>
-                            <li>অঞ্চলিক ব্যবস্থাপক</li>
-                            <li>শাখা ব্যবস্থাপক</li>
-                            <li>অফিস কপি</li>
+                        <div class="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                            <p class="font-semibold">অনুলিপি:</p>
+                            <button
+                                type="button"
+                                wire:click="addCopyRecipient"
+                                class="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-[#2b579a] hover:bg-sky-50"
+                            >+ যোগ করুন</button>
+                        </div>
+                        <ol class="ml-0 list-none space-y-1">
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $copyRecipients; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $idx => $recipient): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
+                                <li class="flex items-center gap-1.5">
+                                    <span class="w-4 shrink-0 text-right text-[11px] text-slate-400"><?php echo e($idx + 1); ?>.</span>
+                                    <input
+                                        type="text"
+                                        wire:model.live.debounce.400ms="copyRecipients.<?php echo e($idx); ?>"
+                                        class="inline-input min-w-0 flex-1 bg-sky-50/50"
+                                        placeholder="পদবী / প্রাপক"
+                                    >
+                                    <button
+                                        type="button"
+                                        wire:click="removeCopyRecipient(<?php echo e($idx); ?>)"
+                                        class="shrink-0 text-[10px] font-semibold text-rose-600 hover:underline"
+                                        <?php if(count($copyRecipients) <= 1): echo 'disabled'; endif; ?>
+                                    >মুছুন</button>
+                                </li>
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                         </ol>
                     </div>
 
@@ -590,6 +605,10 @@ unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendB
                             'vatObservationRows' => $vatObservationRows,
                             'taxObservationRows' => $taxObservationRows,
                             'tableHeaders' => $tableHeaders ?? [],
+                            'page19_compliance_title' => $page19_compliance_title,
+                            'page19_compliance_period' => $page19_compliance_period,
+                            'page19_compliance_followup_date' => $page19_compliance_followup_date,
+                            'page19ComplianceRows' => $page19ComplianceRows,
                         ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
                     </div>
                     </div>
@@ -727,6 +746,19 @@ unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendB
     .a4-table-compact th,
     .a4-table-compact td {
         padding: 1.2mm 1.4mm;
+    }
+    .it-checklist-table .it-tick {
+        font-family: "Segoe UI Symbol", "DejaVu Sans", "Nirmala UI", sans-serif;
+        font-size: 14px;
+        font-weight: 700;
+        color: #111;
+        line-height: 1;
+    }
+    .it-checklist-table th {
+        background: #e2e8f0;
+    }
+    .external-audit-table th {
+        background: #f0e4d4;
     }
 </style>
 </div>

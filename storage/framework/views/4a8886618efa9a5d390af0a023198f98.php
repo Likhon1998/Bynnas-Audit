@@ -333,6 +333,38 @@
             'customTableMergeCols' => $customTableMergeCols ?? 1,
         ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
+    <?php elseif($type === 'compliance_table'): ?>
+        <?php echo $__env->make('livewire.partials.audit-compliance-table-block', [
+            'editable' => $editable,
+            'compact' => $compact,
+            'blockIndex' => $bIndex,
+            'block' => $block,
+        ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+
+    <?php elseif($type === 'it_checklist'): ?>
+        <?php echo $__env->make('livewire.partials.audit-it-checklist-block', [
+            'editable' => $editable,
+            'compact' => $compact,
+            'blockIndex' => $bIndex,
+            'block' => $block,
+        ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+
+    <?php elseif($type === 'external_audit'): ?>
+        <?php echo $__env->make('livewire.partials.audit-external-audit-block', [
+            'editable' => $editable,
+            'compact' => $compact,
+            'blockIndex' => $bIndex,
+            'block' => $block,
+        ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+
+    <?php elseif($type === 'audit_score'): ?>
+        <?php echo $__env->make('livewire.partials.audit-audit-score-block', [
+            'editable' => $editable,
+            'compact' => $compact,
+            'blockIndex' => $bIndex,
+            'block' => $block,
+        ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+
     <?php elseif($type === 'jobab_table'): ?>
         <?php echo $__env->make('livewire.partials.audit-jobab-table-block', [
             'editable' => $editable,

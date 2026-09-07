@@ -482,5 +482,39 @@
     <?php echo e($p); ?>table.doc-table th:first-child .bn-num {
         text-align: center;
     }
+    /* IT checklist: ✓ needs a Latin font — Hind Siliguri has no check glyph in mPDF */
+    <?php echo e($p); ?>.it-tick,
+    <?php echo e($p); ?>span.it-tick {
+        font-family: dejavusans, "DejaVu Sans", "Segoe UI Symbol", "Nirmala UI", sans-serif !important;
+        font-size: 12pt !important;
+        font-weight: 700 !important;
+        line-height: 1 !important;
+        color: #111 !important;
+    }
+    <?php echo e($p); ?>table.it-checklist-table th {
+        font-size: 9pt;
+        background: #e2e8f0;
+        padding: 2.2mm 1.5mm;
+    }
+    <?php echo e($p); ?>table.it-checklist-table td {
+        font-size: 9.5pt;
+        padding: 2mm 1.6mm;
+        line-height: 1.4;
+    }
+    <?php echo e($p); ?>table.it-checklist-table .it-tick-cell {
+        text-align: center;
+        vertical-align: middle;
+        font-size: 12pt;
+    }
+    <?php echo e($p); ?>table.external-audit-table th {
+        font-size: 9pt;
+        background: #f0e4d4;
+        padding: 2.2mm 1.5mm;
+    }
+    <?php echo e($p); ?>table.external-audit-table td {
+        font-size: 9.5pt;
+        padding: 2mm 1.6mm;
+        line-height: 1.4;
+    }
 </style>
 <?php /**PATH C:\xampp\htdocs\Bynnas-Audit\resources\views/audits/partials/document-styles.blade.php ENDPATH**/ ?>

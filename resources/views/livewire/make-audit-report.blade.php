@@ -361,17 +361,32 @@
                     </div>
 
                     <div class="mt-6 text-[11.5px] leading-relaxed">
-                        <p class="font-semibold">অনুলিপি:</p>
-                        <ol class="ml-4 list-decimal space-y-0.5">
-                            <li>নির্বাহী পরিচালক</li>
-                            <li>উপ-নির্বাহী পরিচালক</li>
-                            <li>পরিচালক ঋণ</li>
-                            <li>উপ-প্রধান ঋণ</li>
-                            <li>যুগ্ম পরিচালক প্রশাসন ও মানব সম্পদ</li>
-                            <li>ফোকাল পার্সন</li>
-                            <li>অঞ্চলিক ব্যবস্থাপক</li>
-                            <li>শাখা ব্যবস্থাপক</li>
-                            <li>অফিস কপি</li>
+                        <div class="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                            <p class="font-semibold">অনুলিপি:</p>
+                            <button
+                                type="button"
+                                wire:click="addCopyRecipient"
+                                class="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-[#2b579a] hover:bg-sky-50"
+                            >+ যোগ করুন</button>
+                        </div>
+                        <ol class="ml-0 list-none space-y-1">
+                            @foreach ($copyRecipients as $idx => $recipient)
+                                <li class="flex items-center gap-1.5">
+                                    <span class="w-4 shrink-0 text-right text-[11px] text-slate-400">{{ $idx + 1 }}.</span>
+                                    <input
+                                        type="text"
+                                        wire:model.live.debounce.400ms="copyRecipients.{{ $idx }}"
+                                        class="inline-input min-w-0 flex-1 bg-sky-50/50"
+                                        placeholder="পদবী / প্রাপক"
+                                    >
+                                    <button
+                                        type="button"
+                                        wire:click="removeCopyRecipient({{ $idx }})"
+                                        class="shrink-0 text-[10px] font-semibold text-rose-600 hover:underline"
+                                        @disabled(count($copyRecipients) <= 1)
+                                    >মুছুন</button>
+                                </li>
+                            @endforeach
                         </ol>
                     </div>
 
@@ -474,6 +489,10 @@
                             'vatObservationRows' => $vatObservationRows,
                             'taxObservationRows' => $taxObservationRows,
                             'tableHeaders' => $tableHeaders ?? [],
+                            'page19_compliance_title' => $page19_compliance_title,
+                            'page19_compliance_period' => $page19_compliance_period,
+                            'page19_compliance_followup_date' => $page19_compliance_followup_date,
+                            'page19ComplianceRows' => $page19ComplianceRows,
                         ])
                     </div>
                     </div>
@@ -611,6 +630,19 @@
     .a4-table-compact th,
     .a4-table-compact td {
         padding: 1.2mm 1.4mm;
+    }
+    .it-checklist-table .it-tick {
+        font-family: "Segoe UI Symbol", "DejaVu Sans", "Nirmala UI", sans-serif;
+        font-size: 14px;
+        font-weight: 700;
+        color: #111;
+        line-height: 1;
+    }
+    .it-checklist-table th {
+        background: #e2e8f0;
+    }
+    .external-audit-table th {
+        background: #f0e4d4;
     }
 </style>
 </div>

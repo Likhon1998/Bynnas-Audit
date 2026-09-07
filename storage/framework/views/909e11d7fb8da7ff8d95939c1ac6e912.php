@@ -110,6 +110,24 @@
             </span>
             টেবিল (Customize)
         </button>
+        <button type="button" @click="pick('compliance_table')" class="mx-1 mb-px flex w-[calc(100%-0.5rem)] items-center gap-1.5 rounded px-2 py-1 text-left text-[11px] font-semibold" style="background:#ecfdf5;color:#065f46;">
+            <span class="flex h-4 w-4 shrink-0 items-center justify-center text-emerald-700">
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </span>
+            <span class="min-w-0 leading-tight">
+                কমপ্লায়েন্স টেবিল
+                <span class="mt-0.5 block text-[9px] font-medium opacity-80">বিগত নিরীক্ষা জবাব · সারি/কলাম যোগ</span>
+            </span>
+        </button>
+        <button type="button" @click="pick('it_checklist')" class="mx-1 mb-px flex w-[calc(100%-0.5rem)] items-center gap-1.5 rounded px-2 py-1 text-left text-[11px] font-semibold" style="background:#eff6ff;color:#1e3a8a;">
+            <span class="flex h-4 w-4 shrink-0 items-center justify-center text-blue-700">
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+            </span>
+            <span class="min-w-0 leading-tight">
+                আইটি চেকলিস্ট
+                <span class="mt-0.5 block text-[9px] font-medium opacity-80">সফটওয়্যার · Yes/No/N/A · সারি/কলাম</span>
+            </span>
+        </button>
         <button type="button" @click="pick('followup_pack')" class="mx-1 mb-px flex w-[calc(100%-0.5rem)] items-center gap-1.5 rounded px-2 py-1 text-left text-[11px] font-medium text-slate-700 hover:bg-slate-50">
             <span class="flex h-4 w-4 shrink-0 items-center justify-center text-slate-500">
                 <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
@@ -143,11 +161,29 @@
             </span>
             জবাব টেবিল
         </button>
-        <button type="button" @click="pick('text_box')" class="mx-1 flex w-[calc(100%-0.5rem)] items-center gap-1.5 rounded px-2 py-1 text-left text-[11px] font-medium text-slate-700 hover:bg-slate-50">
+        <button type="button" @click="pick('text_box')" class="mx-1 mb-px flex w-[calc(100%-0.5rem)] items-center gap-1.5 rounded px-2 py-1 text-left text-[11px] font-medium text-slate-700 hover:bg-slate-50">
             <span class="flex h-4 w-4 shrink-0 items-center justify-center text-slate-500">
                 <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             </span>
             আরও বক্স
+        </button>
+        <button type="button" @click="pick('audit_score')" class="mx-1 mb-px flex w-[calc(100%-0.5rem)] items-center gap-1.5 rounded px-2 py-1 text-left text-[11px] font-semibold" style="background:#eef2ff;color:#3730a3;">
+            <span class="flex h-4 w-4 shrink-0 items-center justify-center text-indigo-700">
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            </span>
+            <span class="min-w-0 leading-tight">
+                Audit Score Sheet
+                <span class="mt-0.5 block text-[9px] font-medium opacity-80">Sample-based · auto C/E/F/G</span>
+            </span>
+        </button>
+        <button type="button" @click="pick('external_audit')" class="mx-1 flex w-[calc(100%-0.5rem)] items-center gap-1.5 rounded px-2 py-1 text-left text-[11px] font-semibold" style="background:#fffbeb;color:#92400e;">
+            <span class="flex h-4 w-4 shrink-0 items-center justify-center text-amber-700">
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+            </span>
+            <span class="min-w-0 leading-tight">
+                বহিঃ নিরীক্ষা কমপ্লায়েন্স
+                <span class="mt-0.5 block text-[9px] font-medium opacity-80">External Audit · সারি/কলাম যোগ</span>
+            </span>
         </button>
     </div>
 </div>

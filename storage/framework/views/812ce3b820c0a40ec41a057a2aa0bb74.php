@@ -233,6 +233,7 @@
                 'page19_compliance_period' => $page19_compliance_period ?? '',
                 'page19_compliance_followup_date' => $page19_compliance_followup_date ?? '',
                 'page19ComplianceRows' => $page19ComplianceRows ?? [],
+                'tableHeaders' => $tableHeaders ?? [],
             ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
         </div>
     <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>

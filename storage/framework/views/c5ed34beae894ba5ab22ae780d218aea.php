@@ -103,15 +103,9 @@
 <div class="mt-6 copy-block">
     <p class="bold">অনুলিপি:</p>
     <ol class="copy">
-        <li>নির্বাহী পরিচালক</li>
-        <li>উপ-নির্বাহী পরিচালক</li>
-        <li>পরিচালক ঋণ</li>
-        <li>উপ-প্রধান ঋণ</li>
-        <li>যুগ্ম পরিচালক প্রশাসন ও মানব সম্পদ</li>
-        <li>ফোকাল পার্সন</li>
-        <li>অঞ্চলিক ব্যবস্থাপক</li>
-        <li>শাখা ব্যবস্থাপক</li>
-        <li>অফিস কপি</li>
+        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = ($copy_recipients ?? \App\Support\AuditCopyRecipients::defaults()); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
+            <li><?php echo e($item); ?></li>
+        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
     </ol>
 </div>
 <?php /**PATH C:\xampp\htdocs\Bynnas-Audit\resources\views/audits/partials/cover-page.blade.php ENDPATH**/ ?>

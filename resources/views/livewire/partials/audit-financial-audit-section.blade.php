@@ -328,6 +328,38 @@
             'customTableMergeCols' => $customTableMergeCols ?? 1,
         ])
 
+    @elseif ($type === 'compliance_table')
+        @include('livewire.partials.audit-compliance-table-block', [
+            'editable' => $editable,
+            'compact' => $compact,
+            'blockIndex' => $bIndex,
+            'block' => $block,
+        ])
+
+    @elseif ($type === 'it_checklist')
+        @include('livewire.partials.audit-it-checklist-block', [
+            'editable' => $editable,
+            'compact' => $compact,
+            'blockIndex' => $bIndex,
+            'block' => $block,
+        ])
+
+    @elseif ($type === 'external_audit')
+        @include('livewire.partials.audit-external-audit-block', [
+            'editable' => $editable,
+            'compact' => $compact,
+            'blockIndex' => $bIndex,
+            'block' => $block,
+        ])
+
+    @elseif ($type === 'audit_score')
+        @include('livewire.partials.audit-audit-score-block', [
+            'editable' => $editable,
+            'compact' => $compact,
+            'blockIndex' => $bIndex,
+            'block' => $block,
+        ])
+
     @elseif ($type === 'jobab_table')
         @include('livewire.partials.audit-jobab-table-block', [
             'editable' => $editable,

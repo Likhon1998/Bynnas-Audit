@@ -1,6 +1,7 @@
 {{-- Audit reports dashboard — dense single workspace --}}
 @php
     $allReports = $ongoingReports->concat($completedReports)->values();
+    $recentReportSends = $recentReportSends ?? collect();
 @endphp
 
 <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -273,10 +274,16 @@
                                     href="{{ route('audits.checklist', $report) }}"
                                     class="inline-flex h-7 items-center rounded-md border border-slate-200 px-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
                                 >Checklist</a>
-                                <a
-                                    href="{{ route('audit-findings.entry', ['report' => $report->id]) }}"
-                                    class="inline-flex h-7 items-center rounded-md border border-slate-200 px-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
-                                >Findings</a>
+                                @unless ($isDraft)
+                                    <button
+                                        type="button"
+                                        wire:click="openSendMailModal({{ $report->id }})"
+                                        class="inline-flex h-7 items-center gap-1 rounded-md border border-[#ea4335]/30 bg-[#ea4335] px-2 text-[11px] font-semibold text-white hover:bg-[#d33426]"
+                                    >
+                                        <svg class="h-3 w-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                                        Send by Gmail
+                                    </button>
+                                @endunless
                                 @if ($isDraft)
                                     <button
                                         type="button"
@@ -309,3 +316,154 @@
         </div>
     @endif
 </div>
+
+{{-- Sent mail tracking --}}
+<div class="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50/70 px-3 py-2 sm:px-4">
+        <div>
+            <h2 class="text-[13px] font-semibold text-navy-900">Report send history</h2>
+            <p class="text-[10px] text-slate-500">Tracks when completed reports were emailed to receivers</p>
+        </div>
+        <span class="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold tabular-nums text-slate-600">{{ $recentReportSends->count() }}</span>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full text-left text-[11px]">
+            <thead>
+                <tr class="border-b border-slate-100 bg-slate-50/80 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                    <th class="px-3 py-2">When</th>
+                    <th class="px-3 py-2">Report</th>
+                    <th class="px-3 py-2">From</th>
+                    <th class="px-3 py-2">To</th>
+                    <th class="px-3 py-2">Subject</th>
+                    <th class="px-3 py-2">PDF</th>
+                    <th class="px-3 py-2">Status</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                @forelse ($recentReportSends as $send)
+                    @php
+                        $reportLabel = trim((string) ($send->report?->shakha_display_name ?: $send->report?->shakha?->name ?: 'Report'));
+                        $period = $send->report?->periodLabel() ?: '—';
+                    @endphp
+                    <tr class="hover:bg-slate-50/70">
+                        <td class="whitespace-nowrap px-3 py-2 tabular-nums text-slate-600">
+                            {{ optional($send->sent_at)->timezone('Asia/Dhaka')->format('d M Y, h:i A') ?: '—' }}
+                        </td>
+                        <td class="px-3 py-2">
+                            <p class="font-medium text-slate-800">{{ $reportLabel }}</p>
+                            <p class="text-[10px] text-slate-400">{{ $period }}</p>
+                        </td>
+                        <td class="px-3 py-2">
+                            <p class="text-slate-700">{{ $send->from_name }}</p>
+                            <p class="text-[10px] text-slate-400">{{ $send->from_email }}</p>
+                        </td>
+                        <td class="px-3 py-2">
+                            <p class="text-slate-700">{{ $send->to_email }}</p>
+                            @if ($send->cc_email)
+                                <p class="text-[10px] text-slate-400">CC: {{ $send->cc_email }}</p>
+                            @endif
+                        </td>
+                        <td class="max-w-[220px] truncate px-3 py-2 text-slate-600" title="{{ $send->subject }}">{{ $send->subject }}</td>
+                        <td class="px-3 py-2">
+                            @if ($send->attached_pdf)
+                                <span class="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">Yes</span>
+                            @else
+                                <span class="rounded-full bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">No</span>
+                            @endif
+                        </td>
+                        <td class="px-3 py-2">
+                            @if ($send->status === 'sent')
+                                <span class="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">Sent</span>
+                            @else
+                                <span class="rounded-full bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700" title="{{ $send->error_message }}">Failed</span>
+                            @endif
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="7" class="px-3 py-8 text-center text-[12px] text-slate-400">
+                            No emails sent yet. Complete a report, then use <span class="font-semibold text-slate-600">Send by Gmail</span>.
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@if ($showSendMailModal)
+    <div class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 px-3 py-8" wire:click.self="closeSendMailModal">
+        <div class="w-full max-w-xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl" @keydown.escape.window="$wire.closeSendMailModal()">
+            <div class="flex items-center justify-between border-b border-slate-200 bg-[#f8fafc] px-4 py-3">
+                <div>
+                    <p class="text-[13px] font-semibold text-navy-900">Send by Gmail</p>
+                    <p class="text-[11px] text-slate-500">{{ $mailReportLabel }}</p>
+                </div>
+                <button type="button" wire:click="closeSendMailModal" class="rounded-md px-2 py-1 text-[12px] font-medium text-slate-500 hover:bg-slate-100">Close</button>
+            </div>
+
+            <div class="space-y-3 px-4 py-4">
+                @if ($mailError !== '')
+                    <div class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-800">{{ $mailError }}</div>
+                @endif
+
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <div>
+                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Sender name</label>
+                        <input type="text" wire:model="mailFromName" class="h-9 w-full rounded-md border-slate-200 text-[12px]" placeholder="Your name">
+                        @error('mailFromName') <p class="mt-1 text-[10px] text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Sender email</label>
+                        <input type="email" wire:model="mailFromEmail" class="h-9 w-full rounded-md border-slate-200 text-[12px]" placeholder="you@gmail.com">
+                        @error('mailFromEmail') <p class="mt-1 text-[10px] text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <div>
+                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">To (receiver)</label>
+                        <input type="email" wire:model="mailToEmail" class="h-9 w-full rounded-md border-slate-200 text-[12px]" placeholder="receiver@example.com">
+                        @error('mailToEmail') <p class="mt-1 text-[10px] text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">CC <span class="font-normal normal-case text-slate-400">(optional)</span></label>
+                        <input type="email" wire:model="mailCcEmail" class="h-9 w-full rounded-md border-slate-200 text-[12px]" placeholder="cc@example.com">
+                        @error('mailCcEmail') <p class="mt-1 text-[10px] text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+
+                <div>
+                    <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Subject</label>
+                    <input type="text" wire:model="mailSubject" class="h-9 w-full rounded-md border-slate-200 text-[12px]">
+                    @error('mailSubject') <p class="mt-1 text-[10px] text-rose-600">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
+                    <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Message</label>
+                    <textarea wire:model="mailBody" rows="8" class="w-full rounded-md border-slate-200 text-[12px] leading-relaxed" placeholder="Write your email…"></textarea>
+                    @error('mailBody') <p class="mt-1 text-[10px] text-rose-600">{{ $message }}</p> @enderror
+                </div>
+
+                <label class="inline-flex items-center gap-2 text-[12px] text-slate-700">
+                    <input type="checkbox" wire:model="mailAttachPdf" class="rounded border-slate-300 text-[#ea4335] focus:ring-[#ea4335]">
+                    Attach report PDF
+                </label>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 border-t border-slate-200 bg-slate-50/70 px-4 py-3">
+                <button type="button" wire:click="closeSendMailModal" class="inline-flex h-9 items-center rounded-md border border-slate-200 bg-white px-3 text-[12px] font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
+                <button
+                    type="button"
+                    wire:click="sendReportByMail"
+                    wire:loading.attr="disabled"
+                    wire:target="sendReportByMail"
+                    class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#ea4335] px-3 text-[12px] font-semibold text-white hover:bg-[#d33426] disabled:opacity-60"
+                >
+                    <span wire:loading.remove wire:target="sendReportByMail">Send</span>
+                    <span wire:loading wire:target="sendReportByMail">Sending…</span>
+                </button>
+            </div>
+        </div>
+    </div>
+@endif

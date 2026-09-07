@@ -67,6 +67,13 @@ class AuditReport extends Model
         )->withTimestamps()->orderBy('format_number');
     }
 
+    public function sends(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(AuditReportSend::class, 'audit_report_id')
+            ->orderByDesc('sent_at')
+            ->orderByDesc('id');
+    }
+
     public function scopeOwnedBy(Builder $query, int $userId): Builder
     {
         return $query->where('user_id', $userId);
