@@ -75,6 +75,7 @@ class UserManagementController extends Controller
             $user = User::query()->create([
                 'name' => $data['name'],
                 'email' => $data['email'],
+                'mail_from_email' => $data['mail_from_email'] ?: null,
                 'password' => $data['password'],
                 'employee_id' => $employeeId,
                 'is_active' => $data['is_active'],
@@ -110,6 +111,7 @@ class UserManagementController extends Controller
         $user->fill([
             'name' => $data['name'],
             'email' => $data['email'],
+            'mail_from_email' => $data['mail_from_email'] ?: null,
             'employee_id' => $data['employee_id'] ?: null,
             'is_active' => $data['is_active'],
             'is_superadmin' => $data['role'] === 'superadmin',
@@ -236,6 +238,7 @@ class UserManagementController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'email' => $emailRules,
+            'mail_from_email' => ['nullable', 'email', 'max:190'],
             'password' => [
                 $user ? 'nullable' : 'required',
                 'confirmed',
@@ -262,6 +265,10 @@ class UserManagementController extends Controller
             'position_id.required' => 'Select an organogram position when creating a new employee.',
             'employee_id.prohibited' => 'Clear the employee link when creating a new employee.',
         ]);
+
+        $data['mail_from_email'] = isset($data['mail_from_email'])
+            ? (trim((string) $data['mail_from_email']) ?: null)
+            : null;
 
         if (! empty($data['employee_id'])) {
             $taken = User::query()

@@ -19,6 +19,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'mail_from_email',
         'password',
         'is_superadmin',
         'is_active',
@@ -75,5 +76,15 @@ class User extends Authenticatable
     public function roleKey(): string
     {
         return (string) ($this->getRoleNames()->first() ?: ($this->is_superadmin ? 'superadmin' : ''));
+    }
+
+    /**
+     * Email used as sender when this user emails audit reports.
+     */
+    public function mailSenderAddress(): string
+    {
+        $mail = trim((string) ($this->mail_from_email ?? ''));
+
+        return $mail !== '' ? $mail : (string) $this->email;
     }
 }

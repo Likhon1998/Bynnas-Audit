@@ -14,6 +14,14 @@
             </p>
         </div>
         <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
+            <button
+                type="button"
+                wire:click="openSendHistoryModal"
+                class="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 font-semibold text-slate-700 hover:bg-slate-50"
+            >
+                Send history
+                <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] tabular-nums text-slate-600"><?php echo e($recentReportSends->count()); ?></span>
+            </button>
             <span class="inline-flex items-center gap-1 rounded-md border border-sky-200 bg-sky-50 px-2 py-1 font-semibold text-sky-800">
                 Ongoing <span class="tabular-nums"><?php echo e($ongoingCount); ?></span>
             </span>
@@ -329,80 +337,83 @@ unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendB
     <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 </div>
 
+<?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($showSendHistoryModal): ?>
+    <div class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 px-3 py-8" wire:click.self="closeSendHistoryModal">
+        <div class="w-full max-w-5xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl" @keydown.escape.window="$wire.closeSendHistoryModal()">
+            <div class="flex items-center justify-between border-b border-slate-200 bg-slate-50/70 px-4 py-3">
+                <div>
+                    <p class="text-[13px] font-semibold text-navy-900">Report send history</p>
+                    <p class="text-[11px] text-slate-500">Tracks when completed reports were emailed to receivers</p>
+                </div>
+                <button type="button" wire:click="closeSendHistoryModal" class="rounded-md px-2 py-1 text-[12px] font-medium text-slate-500 hover:bg-slate-100">Close</button>
+            </div>
+            <div class="max-h-[70vh] overflow-auto">
+                <table class="min-w-full text-left text-[11px]">
+                    <thead class="sticky top-0 bg-slate-50">
+                        <tr class="border-b border-slate-100 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                            <th class="px-3 py-2">When</th>
+                            <th class="px-3 py-2">Report</th>
+                            <th class="px-3 py-2">From</th>
+                            <th class="px-3 py-2">To</th>
+                            <th class="px-3 py-2">Subject</th>
+                            <th class="px-3 py-2">PDF</th>
+                            <th class="px-3 py-2">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__empty_1 = true; $__currentLoopData = $recentReportSends; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $send): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
+                            <?php
+                                $reportLabel = trim((string) ($send->report?->shakha_display_name ?: $send->report?->shakha?->name ?: 'Report'));
+                                $period = $send->report?->periodLabel() ?: '—';
+                            ?>
+                            <tr class="hover:bg-slate-50/70">
+                                <td class="whitespace-nowrap px-3 py-2 tabular-nums text-slate-600">
+                                    <?php echo e(optional($send->sent_at)->timezone('Asia/Dhaka')->format('d M Y, h:i A') ?: '—'); ?>
 
-<div class="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50/70 px-3 py-2 sm:px-4">
-        <div>
-            <h2 class="text-[13px] font-semibold text-navy-900">Report send history</h2>
-            <p class="text-[10px] text-slate-500">Tracks when completed reports were emailed to receivers</p>
+                                </td>
+                                <td class="px-3 py-2">
+                                    <p class="font-medium text-slate-800"><?php echo e($reportLabel); ?></p>
+                                    <p class="text-[10px] text-slate-400"><?php echo e($period); ?></p>
+                                </td>
+                                <td class="px-3 py-2">
+                                    <p class="text-slate-700"><?php echo e($send->from_name); ?></p>
+                                    <p class="text-[10px] text-slate-400"><?php echo e($send->from_email); ?></p>
+                                </td>
+                                <td class="px-3 py-2">
+                                    <p class="text-slate-700"><?php echo e($send->to_email); ?></p>
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($send->cc_email): ?>
+                                        <p class="text-[10px] text-slate-400">CC: <?php echo e($send->cc_email); ?></p>
+                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                </td>
+                                <td class="max-w-[220px] truncate px-3 py-2 text-slate-600" title="<?php echo e($send->subject); ?>"><?php echo e($send->subject); ?></td>
+                                <td class="px-3 py-2">
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($send->attached_pdf): ?>
+                                        <span class="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">Yes</span>
+                                    <?php else: ?>
+                                        <span class="rounded-full bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">No</span>
+                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                </td>
+                                <td class="px-3 py-2">
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($send->status === 'sent'): ?>
+                                        <span class="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">Sent</span>
+                                    <?php else: ?>
+                                        <span class="rounded-full bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700" title="<?php echo e($send->error_message); ?>">Failed</span>
+                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
+                            <tr>
+                                <td colspan="7" class="px-3 py-10 text-center text-[12px] text-slate-400">
+                                    No emails sent yet. Complete a report, then use <span class="font-semibold text-slate-600">Send by Gmail</span>.
+                                </td>
+                            </tr>
+                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
-        <span class="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold tabular-nums text-slate-600"><?php echo e($recentReportSends->count()); ?></span>
     </div>
-    <div class="overflow-x-auto">
-        <table class="min-w-full text-left text-[11px]">
-            <thead>
-                <tr class="border-b border-slate-100 bg-slate-50/80 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                    <th class="px-3 py-2">When</th>
-                    <th class="px-3 py-2">Report</th>
-                    <th class="px-3 py-2">From</th>
-                    <th class="px-3 py-2">To</th>
-                    <th class="px-3 py-2">Subject</th>
-                    <th class="px-3 py-2">PDF</th>
-                    <th class="px-3 py-2">Status</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__empty_1 = true; $__currentLoopData = $recentReportSends; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $send): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
-                    <?php
-                        $reportLabel = trim((string) ($send->report?->shakha_display_name ?: $send->report?->shakha?->name ?: 'Report'));
-                        $period = $send->report?->periodLabel() ?: '—';
-                    ?>
-                    <tr class="hover:bg-slate-50/70">
-                        <td class="whitespace-nowrap px-3 py-2 tabular-nums text-slate-600">
-                            <?php echo e(optional($send->sent_at)->timezone('Asia/Dhaka')->format('d M Y, h:i A') ?: '—'); ?>
-
-                        </td>
-                        <td class="px-3 py-2">
-                            <p class="font-medium text-slate-800"><?php echo e($reportLabel); ?></p>
-                            <p class="text-[10px] text-slate-400"><?php echo e($period); ?></p>
-                        </td>
-                        <td class="px-3 py-2">
-                            <p class="text-slate-700"><?php echo e($send->from_name); ?></p>
-                            <p class="text-[10px] text-slate-400"><?php echo e($send->from_email); ?></p>
-                        </td>
-                        <td class="px-3 py-2">
-                            <p class="text-slate-700"><?php echo e($send->to_email); ?></p>
-                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($send->cc_email): ?>
-                                <p class="text-[10px] text-slate-400">CC: <?php echo e($send->cc_email); ?></p>
-                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-                        </td>
-                        <td class="max-w-[220px] truncate px-3 py-2 text-slate-600" title="<?php echo e($send->subject); ?>"><?php echo e($send->subject); ?></td>
-                        <td class="px-3 py-2">
-                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($send->attached_pdf): ?>
-                                <span class="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">Yes</span>
-                            <?php else: ?>
-                                <span class="rounded-full bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">No</span>
-                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-                        </td>
-                        <td class="px-3 py-2">
-                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($send->status === 'sent'): ?>
-                                <span class="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">Sent</span>
-                            <?php else: ?>
-                                <span class="rounded-full bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700" title="<?php echo e($send->error_message); ?>">Failed</span>
-                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-                        </td>
-                    </tr>
-                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
-                    <tr>
-                        <td colspan="7" class="px-3 py-8 text-center text-[12px] text-slate-400">
-                            No emails sent yet. Complete a report, then use <span class="font-semibold text-slate-600">Send by Gmail</span>.
-                        </td>
-                    </tr>
-                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-            </tbody>
-        </table>
-    </div>
-</div>
+<?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
 <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($showSendMailModal): ?>
     <div class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 px-3 py-8" wire:click.self="closeSendMailModal">
@@ -435,7 +446,8 @@ unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendB
                     </div>
                     <div>
                         <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Sender email</label>
-                        <input type="email" wire:model="mailFromEmail" class="h-9 w-full rounded-md border-slate-200 text-[12px]" placeholder="you@gmail.com">
+                        <input type="email" wire:model="mailFromEmail" class="h-9 w-full rounded-md border-slate-200 bg-slate-50 text-[12px]" readonly>
+                        <p class="mt-1 text-[10px] text-slate-400">From your user profile (Mail send email)</p>
                         <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['mailFromEmail'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
 if ($__bag->has($__errorArgs[0])) :

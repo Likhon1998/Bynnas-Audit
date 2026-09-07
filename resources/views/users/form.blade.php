@@ -50,6 +50,19 @@
                 </div>
             </div>
 
+            <div>
+                <label class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Mail send email</label>
+                <input
+                    type="email"
+                    name="mail_from_email"
+                    value="{{ old('mail_from_email', $user?->mail_from_email) }}"
+                    class="h-9 w-full rounded-lg border-slate-200 text-[13px]"
+                    placeholder="e.g. officer@gmail.com"
+                >
+                <p class="mt-1 text-[10px] text-slate-500">Used as the sender when this user emails a completed audit report. Leave blank to use login email.</p>
+                @error('mail_from_email') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
+            </div>
+
             <div class="grid gap-3 sm:grid-cols-2">
                 <div>
                     <label class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">

@@ -350,6 +350,8 @@ class MakeAuditReport extends Component
     /** Compose / send completed report by email */
     public bool $showSendMailModal = false;
 
+    public bool $showSendHistoryModal = false;
+
     public ?int $mailReportId = null;
 
     public string $mailReportLabel = '';
@@ -1153,7 +1155,7 @@ class MakeAuditReport extends Component
         $this->mailReportId = $report->id;
         $this->mailReportLabel = $branch.' · '.$period;
         $this->mailFromName = (string) ($user?->name ?: '');
-        $this->mailFromEmail = (string) ($user?->email ?: config('mail.from.address', ''));
+        $this->mailFromEmail = (string) ($user?->mailSenderAddress() ?: config('mail.from.address', ''));
         $this->mailToEmail = '';
         $this->mailCcEmail = '';
         $this->mailSubject = 'Audit Report — '.$branch.' ('.$period.')';
@@ -1163,6 +1165,16 @@ class MakeAuditReport extends Component
         $this->mailSending = false;
         $this->showSendMailModal = true;
         $this->resetErrorBag();
+    }
+
+    public function openSendHistoryModal(): void
+    {
+        $this->showSendHistoryModal = true;
+    }
+
+    public function closeSendHistoryModal(): void
+    {
+        $this->showSendHistoryModal = false;
     }
 
     public function closeSendMailModal(): void
@@ -1182,6 +1194,8 @@ class MakeAuditReport extends Component
         }
 
         $this->mailError = '';
+        $user = auth()->user();
+        $this->mailFromEmail = (string) ($user?->mailSenderAddress() ?: config('mail.from.address', ''));
         $this->validate([
             'mailFromName' => 'required|string|max:120',
             'mailFromEmail' => 'required|email|max:190',
