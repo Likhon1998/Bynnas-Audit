@@ -15,35 +15,35 @@
                 'value' => number_format($risk['active'] ?? 0),
                 'meta' => 'Active branches',
                 'href' => $shakhasUrl,
-                'tone' => 'violet',
+                'tone' => 'blue',
             ],
             [
                 'label' => 'Significant',
                 'value' => number_format($risk['significant'] ?? 0),
                 'meta' => 'Highest risk',
                 'href' => $shakhasUrl,
-                'tone' => 'magenta',
+                'tone' => 'rose',
             ],
             [
                 'label' => 'High',
                 'value' => number_format($risk['high'] ?? 0),
                 'meta' => 'High risk',
                 'href' => $shakhasUrl,
-                'tone' => 'fuchsia',
+                'tone' => 'orange',
             ],
             [
                 'label' => 'Medium',
                 'value' => number_format($risk['medium'] ?? 0),
                 'meta' => 'Medium risk',
                 'href' => $shakhasUrl,
-                'tone' => 'indigo',
+                'tone' => 'amber',
             ],
             [
                 'label' => 'Low',
                 'value' => number_format($risk['low'] ?? 0),
                 'meta' => 'Low risk',
                 'href' => $shakhasUrl,
-                'tone' => 'cyan',
+                'tone' => 'emerald',
             ],
         ];
 
@@ -71,7 +71,7 @@
                 'tone' => 'sky',
             ],
             [
-                'label' => 'KPI entered',
+                'label' => 'Key Performance Indicator (KPI) entered',
                 'value' => number_format($sights['kpi_pct'] ?? 0, 1).'%',
                 'meta' => number_format($sights['kpi_entered'] ?? 0).' of '.number_format($sights['kpi_total'] ?? 0).' · '.number_format($sights['kpi_missing'] ?? 0).' missing',
                 'href' => route('kpis.index'),
@@ -109,13 +109,21 @@
             </form>
         </div>
 
-        <div class="space-y-3">
-            <div>
-                <p class="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">Shakha risk</p>
+        <div class="space-y-4">
+            <div class="rounded-2xl border border-slate-200/80 bg-gradient-to-br from-white via-slate-50/60 to-rose-50/40 p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+                <div class="mb-3 flex items-center gap-2">
+                    <span class="h-2 w-2 rounded-full bg-gradient-to-br from-rose-500 to-orange-400 shadow-sm shadow-rose-300"></span>
+                    <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Shakha risk</p>
+                    <span class="h-px flex-1 bg-gradient-to-r from-rose-200/80 to-transparent"></span>
+                </div>
                 @include('partials.dashboard-metric-cards', ['cards' => $row1, 'columns' => 5])
             </div>
-            <div>
-                <p class="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">Plan · target · KPI</p>
+            <div class="rounded-2xl border border-slate-200/80 bg-gradient-to-br from-white via-blue-50/30 to-violet-50/50 p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+                <div class="mb-3 flex items-center gap-2">
+                    <span class="h-2 w-2 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 shadow-sm shadow-blue-300"></span>
+                    <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Plan · target · Key Performance Indicator (KPI)</p>
+                    <span class="h-px flex-1 bg-gradient-to-r from-blue-200/80 to-transparent"></span>
+                </div>
                 @include('partials.dashboard-metric-cards', ['cards' => $row2, 'columns' => 4])
             </div>
         </div>
