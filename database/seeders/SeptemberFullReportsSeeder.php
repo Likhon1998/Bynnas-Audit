@@ -43,34 +43,39 @@ class SeptemberFullReportsSeeder extends Seeder
             return;
         }
 
-        $blueprints = array_slice($this->reportBlueprints(), 0, 5);
-        $requiredCodes = collect($blueprints)
-            ->flatMap(fn (array $blueprint) => collect($blueprint['findings'])->pluck('indicator_code'))
-            ->filter()
-            ->unique()
-            ->values();
-
-        $indicators = AuditIndicator::query()
+        $catalog = AuditIndicator::query()
             ->where(function ($q) {
                 $q->where('is_active', true)->orWhereNull('is_active');
             })
-            ->whereIn('indicator_code', $requiredCodes)
-            ->get(['id', 'title', 'indicator_code', 'risk_rating']);
+            ->whereNotNull('title')
+            ->where('title', '!=', '')
+            ->orderBy('category')
+            ->orderBy('indicator_code')
+            ->get(['id', 'title', 'indicator_code', 'category', 'sub_category', 'risk_rating']);
 
-        $missingCodes = $requiredCodes->diff($indicators->pluck('indicator_code'));
-        if ($missingCodes->isNotEmpty()) {
-            $this->command?->error(
-                'Missing required Finding Matrix indicators: '.$missingCodes->implode(', ')
-                .'. No existing report data was deleted.'
-            );
+        if ($catalog->count() < 4) {
+            $this->command?->error('Need at least 4 existing Finding Matrix headings. No report data was deleted.');
 
             return;
         }
 
+        // Prefer category diversity, then fill any remaining slots from the same existing catalog.
+        $indicators = $catalog
+            ->unique(fn (AuditIndicator $indicator) => trim((string) $indicator->category) ?: 'indicator-'.$indicator->id)
+            ->take(4)
+            ->values();
+        if ($indicators->count() < 4) {
+            $indicators = $indicators
+                ->merge($catalog->whereNotIn('id', $indicators->pluck('id')))
+                ->take(4)
+                ->values();
+        }
+
         $indicatorMap = $indicators->keyBy('indicator_code');
+        $blueprints = $this->logicalBlueprintsFromExistingHeadings($indicators);
         $this->command?->info(
-            'Validated '.$indicatorMap->count().' exact Finding Matrix headings; shared heading '
-            .'২০০০-১১১ will consolidate all 5 branches in Summary.'
+            'Using '.$indicatorMap->count().' existing Finding Matrix headings across all 5 reports: '
+            .$indicators->pluck('indicator_code')->implode(', ')
         );
 
         $ratings = ['Major', 'Medium', 'Minor', 'Major', 'Medium'];
@@ -215,6 +220,64 @@ class SeptemberFullReportsSeeder extends Seeder
             ->unique()
             ->values()
             ->all();
+    }
+
+    /**
+     * Build five complete report structures around headings that already exist in the Matrix.
+     * Every selected heading is reused across all five branches for useful consolidated summaries.
+     *
+     * @param  \Illuminate\Support\Collection<int, AuditIndicator>  $indicators
+     * @return list<array{theme:string,findings:list<array<string,mixed>>}>
+     */
+    protected function logicalBlueprintsFromExistingHeadings($indicators): array
+    {
+        $ratings = ['Major (B)', 'Medium (C)', 'Minor (D)', 'Medium (C)'];
+        $blueprints = [];
+
+        for ($reportIndex = 0; $reportIndex < 5; $reportIndex++) {
+            $findings = [];
+
+            foreach ($indicators->values() as $findingIndex => $indicator) {
+                $sectionNo = $findingIndex + 1;
+                $sample = 24 + ($reportIndex * 3) + ($findingIndex * 2);
+                $instances = 2 + (($reportIndex + $findingIndex) % 6);
+                $population = $sample * (4 + ($findingIndex % 3));
+                $amount = 12500 + ($reportIndex * 4750) + ($findingIndex * 8250);
+                $category = trim((string) ($indicator->category ?: 'অভ্যন্তরীণ নিয়ন্ত্রণ'));
+                $title = trim((string) $indicator->title);
+                $sampleBn = BanglaNumerals::fromInt($sample);
+                $instancesBn = BanglaNumerals::fromInt($instances);
+
+                $findings[] = [
+                    'section' => [
+                        BanglaNumerals::fromInt($sectionNo).'.০',
+                        BanglaNumerals::fromInt($sectionNo).'.০ '.$category,
+                    ],
+                    'serial' => BanglaNumerals::fromInt($sectionNo).'.১',
+                    'indicator_code' => (string) $indicator->indicator_code,
+                    'title' => 'শিরোনাম',
+                    'body' => $title,
+                    'amount' => BanglaNumerals::fromLatin(number_format($amount)),
+                    'rating' => $ratings[$findingIndex % count($ratings)],
+                    'criteria' => 'প্রতিষ্ঠানের অনুমোদিত নীতিমালা, কার্যপদ্ধতি ও সংশ্লিষ্ট নিয়ন্ত্রণ নির্দেশনা অনুযায়ী '
+                        .$title.' সংক্রান্ত কার্যক্রম যথাযথভাবে সম্পন্ন ও প্রমাণসহ সংরক্ষণ করতে হবে।',
+                    'observation' => "নিরীক্ষায় {$sampleBn}টি নমুনা যাচাই করে {$instancesBn}টি ক্ষেত্রে “{$title}” সংক্রান্ত ব্যত্যয় পাওয়া গেছে।",
+                    'stats' => [(string) $population, (string) $sample, (string) $instances],
+                    'risk' => 'নিয়ন্ত্রণের ব্যত্যয় অব্যাহত থাকলে আর্থিক ক্ষতি, ভুল প্রতিবেদন অথবা নীতিমালা পরিপালনে ঘাটতি সৃষ্টি হতে পারে।',
+                    'root' => 'নিয়মিত তদারকি, নথি যাচাই ও দায়িত্বভিত্তিক পর্যালোচনা পর্যাপ্ত ছিল না।',
+                    'reco' => 'সংশ্লিষ্ট নথি সংশোধন করে নিয়ন্ত্রণ চেকলিস্ট চালু এবং শাখা ব্যবস্থাপকের মাসিক পর্যালোচনা নিশ্চিত করা।',
+                    'jobab' => 'শাখা ব্যবস্থাপক ব্যত্যয়গুলো যাচাই করে সংশোধন এবং পরবর্তী মাস থেকে নিয়মিত তদারকি নিশ্চিত করবেন।',
+                    'status' => $reportIndex % 2 === 0 ? 'চলমান' : 'সমাধানের পথে',
+                ];
+            }
+
+            $blueprints[] = [
+                'theme' => 'শাখাভিত্তিক সমন্বিত নিরীক্ষা — প্রতিবেদন '.($reportIndex + 1),
+                'findings' => $findings,
+            ];
+        }
+
+        return $blueprints;
     }
 
     /**
