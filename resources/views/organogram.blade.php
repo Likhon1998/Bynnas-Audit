@@ -27,19 +27,21 @@
                     </svg>
                     Preview
                 </button>
-                <button type="button" @click="positionOpen = true" class="inline-flex items-center gap-1 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-[12px] font-medium text-brand-700 hover:bg-brand-100">
-                    <span class="text-[13px] leading-none">+</span>
-                    Position
-                </button>
-                <button
-                    type="button"
-                    @click="addOpen = true"
-                    @disabled($positions->isEmpty())
-                    class="inline-flex items-center gap-1 rounded-lg bg-navy-900 px-2.5 py-1.5 text-[12px] font-medium text-white hover:bg-navy-800 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                    <span class="text-[13px] leading-none">+</span>
-                    Employee
-                </button>
+                @can('organogram.manage')
+                    <button type="button" @click="positionOpen = true" class="inline-flex items-center gap-1 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-[12px] font-medium text-brand-700 hover:bg-brand-100">
+                        <span class="text-[13px] leading-none">+</span>
+                        Position
+                    </button>
+                    <button
+                        type="button"
+                        @click="addOpen = true"
+                        @disabled($positions->isEmpty())
+                        class="inline-flex items-center gap-1 rounded-lg bg-navy-900 px-2.5 py-1.5 text-[12px] font-medium text-white hover:bg-navy-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        <span class="text-[13px] leading-none">+</span>
+                        Employee
+                    </button>
+                @endcan
             </div>
         </div>
 
@@ -66,10 +68,12 @@
                                 </div>
                                 <p class="text-[13px] font-medium text-navy-900">No positions yet</p>
                                 <p class="mt-1 text-[11px] leading-relaxed text-slate-500">Create the first rank, then add officers under each level.</p>
-                                <button type="button" @click="positionOpen = true" class="mt-3 inline-flex items-center gap-1 rounded-lg bg-navy-900 px-3 py-1.5 text-[12px] font-medium text-white hover:bg-navy-800">
-                                    <span class="text-[13px] leading-none">+</span>
-                                    Add Position
-                                </button>
+                                @can('organogram.manage')
+                                    <button type="button" @click="positionOpen = true" class="mt-3 inline-flex items-center gap-1 rounded-lg bg-navy-900 px-3 py-1.5 text-[12px] font-medium text-white hover:bg-navy-800">
+                                        <span class="text-[13px] leading-none">+</span>
+                                        Add Position
+                                    </button>
+                                @endcan
                             </div>
                         @else
                             @foreach ($positions as $index => $position)
@@ -83,23 +87,29 @@
                                 </div>
 
                                 @if ($position->employees->isEmpty())
-                                    <button
-                                        type="button"
-                                        @click="addOpen = true"
-                                        class="rounded-lg border border-dashed border-slate-200 bg-white px-3 py-2 text-[11px] text-slate-400 transition hover:border-brand-200 hover:bg-brand-50 hover:text-brand-600"
-                                    >
-                                        + Add officer to this rank
-                                    </button>
+                                    @can('organogram.manage')
+                                        <button
+                                            type="button"
+                                            @click="addOpen = true"
+                                            class="rounded-lg border border-dashed border-slate-200 bg-white px-3 py-2 text-[11px] text-slate-400 transition hover:border-brand-200 hover:bg-brand-50 hover:text-brand-600"
+                                        >
+                                            + Add officer to this rank
+                                        </button>
+                                    @else
+                                        <span class="text-[11px] text-slate-400">No officers assigned</span>
+                                    @endcan
                                 @else
                                     <div class="flex flex-wrap justify-center gap-2">
                                         @foreach ($position->employees as $employee)
                                             <div class="group relative">
                                                 <x-org-node :name="$employee->name" :title="$position->title" :accent="$position->color" />
-                                                <form method="POST" action="{{ route('organogram.employees.destroy', $employee) }}" class="absolute -right-1 -top-1 hidden group-hover:block" onsubmit="return confirm('Remove this officer from the organogram?')">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="flex h-4 w-4 items-center justify-center rounded-full bg-slate-700 text-[9px] leading-none text-white hover:bg-red-600" title="Remove">×</button>
-                                                </form>
+                                                @can('organogram.manage')
+                                                    <form method="POST" action="{{ route('organogram.employees.destroy', $employee) }}" class="absolute -right-1 -top-1 hidden group-hover:block" onsubmit="return confirm('Remove this officer from the organogram?')">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="flex h-4 w-4 items-center justify-center rounded-full bg-slate-700 text-[9px] leading-none text-white hover:bg-red-600" title="Remove">×</button>
+                                                    </form>
+                                                @endcan
                                             </div>
                                         @endforeach
                                     </div>
@@ -208,6 +218,7 @@
             </div>
         </div>
 
+        @can('organogram.manage')
         {{-- Add position modal --}}
         <div
             x-show="positionOpen"
@@ -310,5 +321,6 @@
                 </form>
             </div>
         </div>
+        @endcan
     </div>
 </x-app-layout>

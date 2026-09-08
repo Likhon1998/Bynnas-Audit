@@ -5,7 +5,7 @@
         </svg>
     </button>
 
-    <button type="button" @click="openSearch()" class="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-slate-200/80 bg-slate-50 px-3.5 py-2 text-left text-[13px] text-slate-400">
+    <button type="button" @click="openSearch()" class="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-slate-200/80 bg-slate-50 px-3.5 py-2 text-left text-[13px] text-slate-400 transition hover:border-slate-300 hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200" aria-label="Open global search">
         <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z" />
         </svg>
@@ -14,15 +14,18 @@
     </button>
 
     <div class="flex items-center gap-1">
-        <button type="button" class="relative rounded-lg p-1.5 text-slate-500 hover:bg-slate-50" title="Notifications">
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2a2 2 0 01-.6 1.4L4 17h5m6 0a3 3 0 11-6 0" />
-            </svg>
-            <span class="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-rose-500 ring-2 ring-white"></span>
-        </button>
-        <button type="button" class="rounded-lg p-1.5 text-slate-500 hover:bg-slate-50" title="Theme">
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+        <button
+            type="button"
+            @click="toggleTheme()"
+            class="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-200"
+            :title="darkMode ? 'Use light theme' : 'Use dark theme'"
+            :aria-label="darkMode ? 'Use light theme' : 'Use dark theme'"
+        >
+            <svg x-show="!darkMode" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+            </svg>
+            <svg x-show="darkMode" x-cloak class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2m0 14v2M3 12h2m14 0h2m-3.22-6.78-1.42 1.42M7.64 16.36l-1.42 1.42m0-12.56 1.42 1.42m8.72 9.72 1.42 1.42M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
         </button>
 

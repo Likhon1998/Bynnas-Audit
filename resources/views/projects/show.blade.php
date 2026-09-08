@@ -10,9 +10,11 @@
                     <span class="capitalize">{{ $project->status }}</span>
                 </p>
             </div>
-            <a href="{{ route('annual-audit.index', ['tab' => $project->preferredPlanTab(), 'project' => $project->id]) }}" class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[12px] font-medium text-slate-700 hover:bg-slate-50">
-                Open in Annual Audit
-            </a>
+            @can('annual_audit.manage')
+                <a href="{{ route('annual-audit.index', ['tab' => $project->preferredPlanTab(), 'project' => $project->id]) }}" class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[12px] font-medium text-slate-700 hover:bg-slate-50">
+                    Open in Annual Audit
+                </a>
+            @endcan
         </div>
 
         @if (session('status'))

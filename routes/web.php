@@ -73,16 +73,18 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
         Route::get('/checklists', fn () => view('checklists.index'))->name('checklists.index');
     });
 
-    Route::middleware('permission:findings.view_all|findings.enter')->group(function () {
+    Route::middleware('permission:findings.view_all')->group(function () {
         Route::get('/audit-findings', [AuditFindingController::class, 'index'])->name('audit-findings.index');
         Route::get('/audit-findings/summary', [AuditFindingController::class, 'summary'])->name('audit-findings.summary');
         Route::get('/audit-findings/summary/export', [AuditFindingController::class, 'exportSummary'])->name('audit-findings.summary.export');
         Route::get('/audit-findings/summary/export-ppt', [AuditFindingController::class, 'exportSummaryPpt'])->name('audit-findings.summary.export-ppt');
         Route::get('/audit-findings/export', [AuditFindingController::class, 'export'])->name('audit-findings.export');
+        Route::get('/audit-findings/{indicator}', [AuditFindingController::class, 'show'])->whereNumber('indicator')->name('audit-findings.show');
+    });
+    Route::middleware('permission:findings.enter')->group(function () {
         Route::get('/audit-findings/entry', [AuditFindingController::class, 'entry'])->name('audit-findings.entry');
         Route::post('/audit-findings/entry', [AuditFindingController::class, 'storeEntry'])->name('audit-findings.entry.store');
         Route::patch('/audit-findings/findings/{finding}/staff', [AuditFindingController::class, 'updateStaff'])->name('audit-findings.staff.update');
-        Route::get('/audit-findings/{indicator}', [AuditFindingController::class, 'show'])->name('audit-findings.show');
     });
 
     Route::middleware('permission:shakhas.manage|shakhas.view_all')->group(function () {

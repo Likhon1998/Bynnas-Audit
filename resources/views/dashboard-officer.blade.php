@@ -2,8 +2,12 @@
     $stats = $stats ?? [];
     $todayVisits = $todayVisits ?? [];
     $firstName = explode(' ', trim(auth()->user()->name))[0] ?? auth()->user()->name;
-    $visitsUrl = route('monthly-visits.index', ['fy' => $fy->label ?? null, 'month' => $monthIndex ?? 0]);
-    $reportsUrl = route('audits.index');
+    $visitsUrl = auth()->user()->canAny(['monthly_visits.manage', 'monthly_visits.execute'])
+        ? route('monthly-visits.index', ['fy' => $fy->label ?? null, 'month' => $monthIndex ?? 0])
+        : null;
+    $reportsUrl = auth()->user()->canAny(['audits.create', 'audits.manage'])
+        ? route('audits.index')
+        : null;
     $delayedOrOverdue = max((int) ($stats['delayed'] ?? 0), (int) ($stats['overdue'] ?? 0));
     $cards = [
         [
@@ -135,7 +139,9 @@
                 <p class="text-[13px] font-semibold text-navy-900">Today’s visits</p>
                 <p class="text-[10px] text-slate-500">{{ $todayLabel ?? now('Asia/Dhaka')->format('d M Y') }} · {{ count($todayVisits) }} window{{ count($todayVisits) === 1 ? '' : 's' }}</p>
             </div>
-            <a href="{{ $visitsUrl }}" class="text-[11px] font-semibold text-[#7c3aed] hover:underline">Open visits</a>
+            @if ($visitsUrl)
+                <a href="{{ $visitsUrl }}" class="text-[11px] font-semibold text-[#7c3aed] hover:underline">Open visits</a>
+            @endif
         </div>
         <div class="divide-y divide-slate-100">
             @forelse ($todayVisits as $row)

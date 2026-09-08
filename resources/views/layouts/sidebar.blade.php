@@ -1,7 +1,7 @@
 <aside
     :class="[
         sidebarOpen ? 'translate-x-0' : '-translate-x-full',
-        sidebarCollapsed ? 'sidebar-collapsed lg:w-14' : 'w-[188px]',
+        sidebarCollapsed ? 'sidebar-collapsed sidebar-is-collapsed' : '',
     ]"
     class="sidebar-shell fixed inset-y-0 left-0 z-40 flex w-[188px] shrink-0 flex-col overflow-hidden text-white transition-[width,transform] duration-200 ease-out lg:static lg:translate-x-0"
 >
@@ -18,17 +18,13 @@
         </div>
         <button
             type="button"
-            class="hidden h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-slate-300 shadow-sm transition hover:border-sky-400/30 hover:bg-sky-400/10 hover:text-white lg:inline-flex"
+            class="hidden h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/15 bg-white/[0.04] text-slate-300 transition hover:border-white/30 hover:bg-white/10 hover:text-white lg:flex"
             @click.stop="toggleSidebarCollapsed()"
-            :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
-            :aria-label="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
-            :aria-expanded="(!sidebarCollapsed).toString()"
+            title="Hide sidebar"
+            aria-label="Hide sidebar"
         >
-            <svg x-show="!sidebarCollapsed" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-            <svg x-show="sidebarCollapsed" x-cloak class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
             </svg>
         </button>
     </div>
@@ -108,7 +104,7 @@
                 </x-sidebar-link>
             @endcanany
 
-            @canany(['findings.view_all', 'findings.enter'])
+            @can('findings.view_all')
                 <x-sidebar-link
                     :href="route('audit-findings.index')"
                     :active="request()->routeIs('audit-findings.*')"
@@ -119,22 +115,10 @@
                     </svg>
                     <span class="sidebar-link-label truncate">Findings Matrix</span>
                 </x-sidebar-link>
-            @endcanany
+            @endcan
 
             @canany(['shakhas.manage', 'shakhas.view_all', 'areas.manage'])
                 <div x-data="{ shakhaOpen: {{ request()->routeIs('shakhas.*') || request()->routeIs('areas.*') || request()->routeIs('shakha-employees.*') ? 'true' : 'false' }} }">
-                    {{-- Collapsed: go straight to All Shakha --}}
-                    <a
-                        href="{{ route('shakhas.index') }}"
-                        title="Shakha"
-                        class="sidebar-link group relative hidden items-center justify-center rounded-lg px-1.5 py-1.5 text-[12px] tracking-tight transition {{ request()->routeIs('shakhas.*') || request()->routeIs('areas.*') || request()->routeIs('shakha-employees.*') ? 'sidebar-link-active text-white font-medium shadow-[0_6px_16px_rgba(37,99,235,0.3)]' : 'text-slate-300 hover:bg-white/[0.04] hover:text-white' }}"
-                        :class="sidebarCollapsed && 'lg:!flex'"
-                    >
-                        <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('shakhas.*') || request()->routeIs('areas.*') || request()->routeIs('shakha-employees.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
-                        </svg>
-                    </a>
-
                     <div :class="sidebarCollapsed && 'lg:hidden'">
                         <button
                             type="button"
@@ -233,5 +217,27 @@
         </div>
     </div>
 </aside>
+
+<button
+    type="button"
+    x-show="sidebarCollapsed"
+    x-cloak
+    class="fixed left-0 top-14 z-50 hidden h-7 w-7 items-center justify-center rounded-r-lg border border-l-0 border-slate-200 bg-white text-[#123d70] shadow-[0_4px_12px_rgba(15,23,42,0.2)] transition hover:bg-sky-50 hover:text-sky-700 lg:flex"
+    @click.stop="toggleSidebarCollapsed()"
+    title="Show sidebar"
+    aria-label="Show sidebar"
+    aria-expanded="false"
+>
+    <svg
+        class="h-4 w-4 rotate-180"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        stroke-width="2.4"
+        aria-hidden="true"
+    >
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+    </svg>
+</button>
 
 <div x-show="sidebarOpen" x-cloak class="fixed inset-0 z-30 bg-slate-950/60 lg:hidden" @click="sidebarOpen = false"></div>

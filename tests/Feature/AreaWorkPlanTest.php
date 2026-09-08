@@ -15,7 +15,7 @@ class AreaWorkPlanTest extends TestCase
         $this->seed(\Database\Seeders\OrganizationSeeder::class);
         $this->seed(\Database\Seeders\ShakhaSeeder::class);
 
-        $user = User::factory()->create(['email_verified_at' => now()]);
+        $user = User::factory()->create(['email_verified_at' => now(), 'is_superadmin' => true]);
         $this->actingAs($user)->post(route('annual-audit.generate'))->assertRedirect();
 
         $this->actingAs($user)
@@ -32,7 +32,7 @@ class AreaWorkPlanTest extends TestCase
     public function test_admin_can_export_area_excel(): void
     {
         $this->seed(\Database\Seeders\OrganizationSeeder::class);
-        $user = User::factory()->create(['email_verified_at' => now()]);
+        $user = User::factory()->create(['email_verified_at' => now(), 'is_superadmin' => true]);
         $this->actingAs($user)->post(route('annual-audit.generate'))->assertRedirect();
 
         $response = $this->actingAs($user)

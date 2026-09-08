@@ -3,8 +3,12 @@
     @include('dashboard-officer')
 @else
     @php
-        $visitsUrl = route('monthly-visits.index', ['fy' => $pulse['fy_label'], 'month' => $pulse['month_index']]);
-        $shakhasUrl = route('shakhas.index');
+        $visitsUrl = auth()->user()->canAny(['monthly_visits.manage', 'monthly_visits.execute'])
+            ? route('monthly-visits.index', ['fy' => $pulse['fy_label'], 'month' => $pulse['month_index']])
+            : null;
+        $shakhasUrl = auth()->user()->canAny(['shakhas.manage', 'shakhas.view_all'])
+            ? route('shakhas.index')
+            : null;
         $risk = $pulse['shakha_risk'] ?? [];
         $sights = $pulse['sights'] ?? [];
 
@@ -53,7 +57,7 @@
                 'label' => 'Annual plan shakhas',
                 'value' => number_format($sights['annual_plan_shakhas'] ?? 0),
                 'meta' => 'FY '.$pulse['fy_label'].' · '.($sights['plan_status'] ?? $pulse['plan_status']),
-                'href' => route('annual-audit.index'),
+                'href' => auth()->user()->can('annual_audit.manage') ? route('annual-audit.index') : null,
                 'tone' => 'indigo',
             ],
             [
@@ -67,7 +71,7 @@
                 'label' => 'Key Performance Indicator (KPI) entered',
                 'value' => number_format($sights['kpi_pct'] ?? 0, 1).'%',
                 'meta' => number_format($sights['kpi_entered'] ?? 0).' of '.number_format($sights['kpi_total'] ?? 0).' · '.number_format($sights['kpi_missing'] ?? 0).' missing',
-                'href' => route('kpis.index'),
+                'href' => auth()->user()->can('kpis.manage') ? route('kpis.index') : null,
                 'tone' => 'violet',
             ],
         ];

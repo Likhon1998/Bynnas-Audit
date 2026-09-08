@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Project;
 use App\Models\User;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -11,9 +12,16 @@ class ProjectManagementTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(RolePermissionSeeder::class);
+    }
+
     public function test_admin_can_create_project_with_locations(): void
     {
         $user = User::factory()->create(['email_verified_at' => now()]);
+        $user->assignRole('audit_manager');
 
         $this->actingAs($user)
             ->post(route('projects.store'), [
@@ -40,6 +48,7 @@ class ProjectManagementTest extends TestCase
     public function test_projects_index_loads(): void
     {
         $user = User::factory()->create(['email_verified_at' => now()]);
+        $user->assignRole('audit_manager');
 
         $this->actingAs($user)
             ->get(route('projects.index'))

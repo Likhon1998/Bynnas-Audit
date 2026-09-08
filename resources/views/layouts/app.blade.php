@@ -21,10 +21,10 @@
         $globalSearchItems[] = ['label' => 'Audit Reports', 'description' => 'Create and manage audit reports', 'url' => route('audits.index'), 'keywords' => 'report audit gmail send'];
         $globalSearchItems[] = ['label' => 'Checklists', 'description' => 'Audit checklist formats', 'url' => route('checklists.index'), 'keywords' => 'check list format'];
     }
-    if (auth()->user()?->canAny(['findings.view_all', 'findings.enter'])) {
+    if (auth()->user()?->can('findings.view_all')) {
         $globalSearchItems[] = ['label' => 'Findings Matrix', 'description' => 'Indicators, findings and summary', 'url' => route('audit-findings.index'), 'keywords' => 'finding matrix indicator summary'];
     }
-    if (auth()->user()?->canAny(['shakhas.manage', 'shakhas.view_all', 'areas.manage'])) {
+    if (auth()->user()?->canAny(['shakhas.manage', 'shakhas.view_all'])) {
         $globalSearchItems[] = ['label' => 'All Shakha', 'description' => 'Browse and manage Shakhas', 'url' => route('shakhas.index'), 'keywords' => 'branch shakha risk'];
         $globalSearchItems[] = ['label' => 'Shakha Employees', 'description' => 'Branch employee roster', 'url' => route('shakha-employees.index'), 'keywords' => 'staff employee picture email'];
     }
@@ -46,6 +46,13 @@
 
         <title>{{ $title ?? config('app.name', 'Bynnas Audit') }}</title>
         <link rel="icon" type="image/png" href="{{ asset('images/bynnas-logo.png') }}?v=3">
+        <script>
+            try {
+                const savedTheme = localStorage.getItem('bynnasTheme');
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                document.documentElement.classList.toggle('dark', savedTheme === 'dark' || (!savedTheme && prefersDark));
+            } catch (e) {}
+        </script>
 
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700|hind-siliguri:400,500,600,700&display=swap" rel="stylesheet" />
@@ -60,6 +67,7 @@
                 sidebarOpen: false,
                 sidebarCollapsed: false,
                 searchOpen: false,
+                darkMode: document.documentElement.classList.contains('dark'),
                 searchQuery: '',
                 searchActive: 0,
                 searchItems: @js($globalSearchItems),
@@ -73,7 +81,7 @@
                 },
                 init() {
                     try {
-                        this.sidebarCollapsed = localStorage.getItem('bynnasSidebarCollapsed') === '1';
+                        this.sidebarCollapsed = localStorage.getItem('bynnasSidebarCollapsedV2') === '1';
                     } catch (e) {
                         this.sidebarCollapsed = false;
                     }
@@ -81,7 +89,14 @@
                 toggleSidebarCollapsed() {
                     this.sidebarCollapsed = !this.sidebarCollapsed;
                     try {
-                        localStorage.setItem('bynnasSidebarCollapsed', this.sidebarCollapsed ? '1' : '0');
+                        localStorage.setItem('bynnasSidebarCollapsedV2', this.sidebarCollapsed ? '1' : '0');
+                    } catch (e) {}
+                },
+                toggleTheme() {
+                    this.darkMode = !this.darkMode;
+                    document.documentElement.classList.toggle('dark', this.darkMode);
+                    try {
+                        localStorage.setItem('bynnasTheme', this.darkMode ? 'dark' : 'light');
                     } catch (e) {}
                 },
                 openSearch() {

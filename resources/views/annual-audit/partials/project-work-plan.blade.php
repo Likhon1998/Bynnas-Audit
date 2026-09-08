@@ -32,7 +32,11 @@
                 <p class="text-[11px] text-slate-500">
                     July {{ $fyParts[0] ?? '' }} to June {{ $fyParts[1] ?? '' }}
                     · same projects master as
-                    <a href="{{ route('projects.index') }}" class="font-medium text-brand-600 hover:underline">Projects</a>
+                    @can('projects.manage')
+                        <a href="{{ route('projects.index') }}" class="font-medium text-brand-600 hover:underline">Projects</a>
+                    @else
+                        <span class="font-medium text-slate-600">Projects</span>
+                    @endcan
                     @if ($isAudit)
                         · matches Excel <span class="font-medium text-slate-600">Project Audit</span> sheet
                     @else

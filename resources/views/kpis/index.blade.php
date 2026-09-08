@@ -244,7 +244,9 @@
                 @if ($shakhas->isEmpty())
                     <p class="px-4 py-10 text-center text-[12px] text-slate-400">
                         No active shakhas.
-                        <a href="{{ route('shakhas.create') }}" class="font-medium text-brand-600 hover:underline">Add a shakha</a>
+                        @can('shakhas.manage')
+                            <a href="{{ route('shakhas.create') }}" class="font-medium text-brand-600 hover:underline">Add a shakha</a>
+                        @endcan
                     </p>
                 @endif
             </div>

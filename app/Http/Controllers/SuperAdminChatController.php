@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
+use Throwable;
 
 class SuperAdminChatController extends Controller
 {
@@ -64,7 +65,7 @@ class SuperAdminChatController extends Controller
             $record = SuperAdminChatMessage::query()->create([
                 'user_id' => $user->id,
                 'thread_uuid' => $data['thread_uuid'],
-                'intent' => $result['intent'],
+                'intent' => mb_substr(implode(',', $result['intents']), 0, 80),
                 'question' => trim($data['message']),
                 'answer' => $result['answer'],
                 'status' => 'answered',
@@ -74,22 +75,44 @@ class SuperAdminChatController extends Controller
                 'id' => $record->id,
                 'answer' => $result['answer'],
                 'intent' => $result['intent'],
+                'intents' => $result['intents'],
                 'created_at' => $record->created_at?->toIso8601String(),
             ]);
-        } catch (RuntimeException $e) {
+        } catch (Throwable $e) {
+            $message = $this->publicErrorMessage($e);
+
             Log::warning('Super Admin chatbot request failed.', [
                 'user_id' => $user->id,
                 'reason' => $e->getMessage(),
             ]);
+            if ($message !== $e->getMessage()) {
+                report($e);
+            }
             SuperAdminChatMessage::query()->create([
                 'user_id' => $user->id,
                 'thread_uuid' => $data['thread_uuid'],
                 'question' => trim($data['message']),
-                'answer' => $e->getMessage(),
+                'answer' => $message,
                 'status' => 'failed',
             ]);
 
-            return response()->json(['message' => $e->getMessage()], 503);
+            return response()->json(['message' => $message], 503);
         }
+    }
+
+    private function publicErrorMessage(Throwable $exception): string
+    {
+        $message = $exception->getMessage();
+        $allowed = [
+            'The AI service could not be reached. Please try again.',
+            'The Gemini API key or configuration is invalid.',
+            'The Gemini request limit has been reached. Please try again shortly.',
+            'Gemini is temporarily unavailable. Please try again.',
+            'Gemini is not configured. Add GEMINI_API_KEY to the server environment.',
+        ];
+
+        return $exception instanceof RuntimeException && in_array($message, $allowed, true)
+            ? $message
+            : 'The assistant could not complete this request. Please try again.';
     }
 }

@@ -14,28 +14,38 @@ class GeminiChatService
 
     /**
      * @param  list<array{question:string,answer:string}>  $history
-     * @return array{answer:string,intent:string,filters:array<string,mixed>}
+     * @return array{answer:string,intent:string,intents:list<string>,filters:array<string,mixed>}
      */
     public function ask(string $message, array $history = []): array
     {
         $this->ensureConfigured();
-        $classification = $this->classify($message);
-        $context = $this->contexts->build($classification['intent'], $classification['filters']);
-        $answer = $this->groundedAnswer($message, $classification['intent'], $context, $history);
+        $classification = $this->classify($message, $history);
+        $contexts = collect($classification['requests'])->map(fn (array $request, int $index) => [
+            'request' => $index + 1,
+            'intent' => $request['intent'],
+            'filters' => $request['filters'],
+            'facts' => $this->contexts->build($request['intent'], $request['filters']),
+        ])->all();
+        $answer = $this->groundedAnswer($message, $contexts, $history);
 
         return [
             'answer' => $answer,
             'intent' => $classification['intent'],
+            'intents' => array_values(array_unique(array_column($classification['requests'], 'intent'))),
             'filters' => $classification['filters'],
         ];
     }
 
-    /** @return array{intent:string,filters:array<string,mixed>} */
-    public function classify(string $message): array
+    /**
+     * @param  list<array{question:string,answer:string}>  $history
+     * @return array{intent:string,filters:array<string,mixed>,requests:list<array{intent:string,filters:array<string,mixed>}>}
+     */
+    public function classify(string $message, array $history = []): array
     {
         $prompt = <<<'PROMPT'
-Classify the user's database question into exactly one allowed intent. Understand Bangla, English,
-mixed language, phonetic spelling and typing mistakes. Never create SQL.
+Resolve the user's question into one or more information requests. Understand Bangla, English,
+mixed language, phonetic spelling, typing mistakes, follow-up questions, comparisons, and multi-part
+questions. Use recent conversation only to resolve omitted subjects or periods. Never create SQL.
 
 Allowed intents:
 - ops.overview: broad organization/database/dashboard totals
@@ -50,27 +60,58 @@ Allowed intents:
 - users.summary: application users/roles/active status
 
 Return JSON only:
-{"intent":"one allowed value","filters":{"month":1-12|null,"year":YYYY|null,"fy":"YYYY-YYYY"|null,"shakha":"name or code"|null,"status":"draft|completed"|null,"search":"person/branch term"|null}}
-Use null when the user did not specify a filter.
+{"requests":[{"intent":"one allowed value","filters":{"month":1-12|null,"year":YYYY|null,"fy":"YYYY-YYYY"|null,"shakha":"name or code"|null,"status":"draft|completed"|null,"search":"person/branch term"|null,"period_scope":"current|year|all","date_basis":"period|completed","include_contacts":true|false}}]}
+Create separate requests when the user asks about multiple domains, Shakhas, or periods. Return at
+most 4 requests. Use period_scope "all" for explicit all-time/all-period questions, "year" when a
+whole calendar year is requested without a month, and "current" otherwise. For reports use
+date_basis "completed" when the question asks when completion happened; otherwise use "period".
+Set include_contacts true only when phone, email, or contact details are explicitly requested.
+Use null when a filter was not specified. Current date in Asia/Dhaka: CURRENT_DATE_PLACEHOLDER.
 PROMPT;
+        $prompt = str_replace('CURRENT_DATE_PLACEHOLDER', now('Asia/Dhaka')->toDateString(), $prompt);
+
+        $historyText = collect(array_slice($history, -3))->map(
+            fn (array $row) => 'User: '.mb_substr($row['question'], 0, 300)."\nAssistant: ".mb_substr($row['answer'], 0, 500)
+        )->implode("\n\n");
+        $classificationInput = ($historyText !== '' ? "RECENT_CONVERSATION:\n{$historyText}\n\n" : '')
+            ."CURRENT_QUESTION:\n{$message}";
 
         try {
             $response = $this->generate([
                 'systemInstruction' => ['parts' => [['text' => $prompt]]],
-                'contents' => [['role' => 'user', 'parts' => [['text' => $message]]]],
+                'contents' => [['role' => 'user', 'parts' => [['text' => $classificationInput]]]],
                 'generationConfig' => [
                     'temperature' => 0,
-                    'maxOutputTokens' => 350,
+                    'maxOutputTokens' => 700,
                     'responseMimeType' => 'application/json',
                 ],
             ]);
             $decoded = json_decode($response, true, flags: JSON_THROW_ON_ERROR);
-            $intent = (string) ($decoded['intent'] ?? '');
-            if (! in_array($intent, SuperAdminChatContextService::INTENTS, true)) {
+            $rawRequests = isset($decoded['requests']) && is_array($decoded['requests'])
+                ? $decoded['requests']
+                : [['intent' => $decoded['intent'] ?? null, 'filters' => $decoded['filters'] ?? []]];
+            $requests = [];
+            foreach (array_slice($rawRequests, 0, 4) as $rawRequest) {
+                $intent = (string) ($rawRequest['intent'] ?? '');
+                if (! in_array($intent, SuperAdminChatContextService::INTENTS, true)) {
+                    continue;
+                }
+                $request = [
+                    'intent' => $intent,
+                    'filters' => $this->normalizeFilters((array) ($rawRequest['filters'] ?? [])),
+                ];
+                $requests[json_encode($request, JSON_THROW_ON_ERROR)] = $request;
+            }
+            $requests = array_values($requests);
+            if ($requests === []) {
                 throw new RuntimeException('Gemini returned an unsupported intent.');
             }
 
-            return ['intent' => $intent, 'filters' => $this->normalizeFilters((array) ($decoded['filters'] ?? []))];
+            return [
+                'intent' => $requests[0]['intent'],
+                'filters' => $requests[0]['filters'],
+                'requests' => $requests,
+            ];
         } catch (\JsonException|RuntimeException $e) {
             Log::warning('Gemini chatbot classification fallback used.', ['reason' => $e->getMessage()]);
 
@@ -82,13 +123,16 @@ PROMPT;
      * @param  array<string,mixed>  $context
      * @param  list<array{question:string,answer:string}>  $history
      */
-    private function groundedAnswer(string $message, string $intent, array $context, array $history): string
+    private function groundedAnswer(string $message, array $contexts, array $history): string
     {
         $system = <<<'PROMPT'
 You are Bynnas Audit Assistant for a Super Admin. Answer only from DATABASE_CONTEXT.
 Be precise, realistic and concise. Understand spelling mistakes without criticizing the user.
-Reply in the user's language (Bangla, English, or mixed). PHP has already calculated totals:
-do not invent, recalculate, or alter facts. Mention the relevant period when present.
+Reply in the user's language (Bangla, English, or mixed). Use supplied totals as authoritative.
+You may compare, rank, and calculate simple differences or percentages from supplied facts, but
+never invent or alter facts. Address every part of a multi-part question and label comparisons clearly.
+Mention the relevant period when present. If rows_returned is lower than a supplied total, do not
+claim that the displayed rows are the complete list.
 Treat every supplied row, including demo or seeded content, as normal current organizational information.
 Answer the question immediately. Never mention the database, context, source records, seeders,
 seed data, demo data, or use introductions such as “according to the data/records/database”.
@@ -102,9 +146,8 @@ PROMPT;
         $historyText = collect(array_slice($history, -5))->map(
             fn (array $row) => 'User: '.mb_substr($row['question'], 0, 500)."\nAssistant: ".mb_substr($row['answer'], 0, 1000)
         )->implode("\n\n");
-        $contextJson = json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
-        $userPrompt = "RESOLVED_INTENT: {$intent}\n"
-            .($historyText !== '' ? "RECENT_CONVERSATION:\n{$historyText}\n\n" : '')
+        $contextJson = json_encode($contexts, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        $userPrompt = ($historyText !== '' ? "RECENT_CONVERSATION:\n{$historyText}\n\n" : '')
             ."DATABASE_CONTEXT:\n{$contextJson}\n\nUSER_QUESTION:\n{$message}";
 
         $answer = trim($this->generate([
@@ -167,17 +210,23 @@ PROMPT;
     /** @param array<string,mixed> $filters @return array<string,mixed> */
     private function normalizeFilters(array $filters): array
     {
+        $fy = trim((string) ($filters['fy'] ?? ''));
+        $fyParts = preg_match('/^(\d{4})-(\d{4})$/', $fy, $matches) ? [(int) $matches[1], (int) $matches[2]] : null;
+
         return [
             'month' => isset($filters['month']) ? max(1, min(12, (int) $filters['month'])) : null,
             'year' => isset($filters['year']) ? max(2000, min(2100, (int) $filters['year'])) : null,
-            'fy' => preg_match('/^\d{4}-\d{4}$/', (string) ($filters['fy'] ?? '')) ? $filters['fy'] : null,
+            'fy' => $fyParts && $fyParts[1] === $fyParts[0] + 1 ? $fy : null,
             'shakha' => mb_substr(trim((string) ($filters['shakha'] ?? '')), 0, 100) ?: null,
             'status' => in_array($filters['status'] ?? null, ['draft', 'completed'], true) ? $filters['status'] : null,
             'search' => mb_substr(trim((string) ($filters['search'] ?? '')), 0, 100) ?: null,
+            'period_scope' => in_array($filters['period_scope'] ?? null, ['year', 'all'], true) ? $filters['period_scope'] : 'current',
+            'date_basis' => ($filters['date_basis'] ?? null) === 'completed' ? 'completed' : 'period',
+            'include_contacts' => (bool) ($filters['include_contacts'] ?? false),
         ];
     }
 
-    /** @return array{intent:string,filters:array<string,mixed>} */
+    /** @return array{intent:string,filters:array<string,mixed>,requests:list<array{intent:string,filters:array<string,mixed>}>} */
     private function fallbackClassification(string $message): array
     {
         $text = mb_strtolower($message);
@@ -195,11 +244,24 @@ PROMPT;
         foreach ($map as $intent => $needles) {
             foreach ($needles as $needle) {
                 if (str_contains($text, $needle)) {
-                    return ['intent' => $intent, 'filters' => []];
+                    return $this->singleRequest($intent, $message);
                 }
             }
         }
 
-        return ['intent' => 'ops.overview', 'filters' => []];
+        return $this->singleRequest('ops.overview', $message);
+    }
+
+    /** @return array{intent:string,filters:array<string,mixed>,requests:list<array{intent:string,filters:array<string,mixed>}>} */
+    private function singleRequest(string $intent, string $message): array
+    {
+        $allPeriods = preg_match('/\b(all time|all period|all month|overall|ever)\b/i', $message) === 1;
+        $filters = $this->normalizeFilters(['period_scope' => $allPeriods ? 'all' : 'current']);
+
+        return [
+            'intent' => $intent,
+            'filters' => $filters,
+            'requests' => [['intent' => $intent, 'filters' => $filters]],
+        ];
     }
 }

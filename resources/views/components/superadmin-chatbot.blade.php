@@ -41,7 +41,7 @@
             });
         },
         async loadHistory() {
-            this.loaded = true;
+            this.error = '';
             try {
                 const response = await fetch(`{{ route('superadmin.chat.history') }}?thread_uuid=${encodeURIComponent(this.threadUuid)}`, {
                     headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
@@ -53,7 +53,9 @@
                     { role: 'user', text: row.question, failed: false },
                     { role: 'assistant', text: row.answer || 'No answer was recorded.', failed: row.status === 'failed' },
                 ]);
+                this.loaded = true;
             } catch (error) {
+                this.loaded = false;
                 this.error = error.message || 'Could not load chat history.';
             }
         },
@@ -128,29 +130,37 @@
                 .replace(/`([^`]+)`/g, '<code class=&quot;rounded bg-slate-100 px-1 py-0.5 text-[10px] text-slate-700&quot;>$1</code>');
             const lines = escaped.split(/\r?\n/);
             let html = '';
-            let inList = false;
+            let listType = null;
 
             lines.forEach((line) => {
                 const bullet = line.match(/^\s*[-*]\s+(.+)$/);
                 const numbered = line.match(/^\s*\d+[.)]\s+(.+)$/);
                 if (bullet || numbered) {
-                    if (!inList) {
-                        html += `<ul class=&quot;my-1.5 list-disc space-y-1 pl-4&quot;>`;
-                        inList = true;
+                    const nextListType = numbered ? 'ol' : 'ul';
+                    if (listType !== nextListType) {
+                        if (listType) html += `</${listType}>`;
+                        const style = nextListType === 'ol' ? 'list-decimal' : 'list-disc';
+                        html += `<${nextListType} class=&quot;my-1.5 ${style} space-y-1 pl-4&quot;>`;
+                        listType = nextListType;
                     }
                     html += `<li>${inline((bullet || numbered)[1])}</li>`;
                     return;
                 }
-                if (inList) {
-                    html += '</ul>';
-                    inList = false;
+                if (listType) {
+                    html += `</${listType}>`;
+                    listType = null;
+                }
+                const heading = line.match(/^#{1,4}\s+(.+)$/);
+                if (heading) {
+                    html += `<p class=&quot;mb-1.5 font-semibold text-slate-900&quot;>${inline(heading[1])}</p>`;
+                    return;
                 }
                 const clean = line.replace(/^#{1,4}\s+/, '');
                 if (clean.trim() !== '') {
                     html += `<p class=&quot;mb-1.5 last:mb-0&quot;>${inline(clean)}</p>`;
                 }
             });
-            if (inList) html += '</ul>';
+            if (listType) html += `</${listType}>`;
 
             return html || '<p>No response content.</p>';
         },
@@ -196,6 +206,10 @@
         </div>
 
         <div x-ref="chatMessages" class="min-h-0 flex-1 space-y-3 overflow-y-auto bg-gradient-to-b from-slate-50 to-white px-3.5 py-4">
+            <div x-show="error && !loaded" x-cloak class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[10px] text-rose-700">
+                <p x-text="error"></p>
+                <button type="button" @click="loadHistory()" class="mt-1 font-semibold underline underline-offset-2">Try again</button>
+            </div>
             <div x-show="messages.length === 0 && !loading" class="py-2 text-center">
                 <span class="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-700 ring-1 ring-cyan-100">
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3a.75.75 0 01.75.75V5h3V3.75a.75.75 0 011.5 0V5h1.25A2.75 2.75 0 0119 7.75v8.5A2.75 2.75 0 0116.25 19h-8.5A2.75 2.75 0 015 16.25v-8.5A2.75 2.75 0 017.75 5H9V3.75A.75.75 0 019.75 3z"/><path stroke-linecap="round" d="M9 11h.01M15 11h.01M9 15h6"/></svg>

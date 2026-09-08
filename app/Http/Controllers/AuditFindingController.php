@@ -316,7 +316,7 @@ class AuditFindingController extends Controller
         $shakha = Shakha::query()->with('area')->find($shakhaId);
         if (! $shakha) {
             return redirect()
-                ->route('audit-findings.index')
+                ->route($request->user()?->can('findings.view_all') ? 'audit-findings.index' : 'dashboard')
                 ->with('status', 'Select a branch (or open Findings from an Audit Report) to enter data.');
         }
 

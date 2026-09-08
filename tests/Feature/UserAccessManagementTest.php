@@ -174,8 +174,8 @@ class UserAccessManagementTest extends TestCase
             ->assertSee('Significant')
             ->assertSee('Annual plan shakhas')
             ->assertSee('Monthly plan shakhas')
-            ->assertSee('Annual target achieved')
-            ->assertSee('KPI entered');
+            ->assertDontSee('Annual target achieved')
+            ->assertSee('Key Performance Indicator (KPI) entered');
 
         $this->actingAs($manager)
             ->get(route('users.index'))

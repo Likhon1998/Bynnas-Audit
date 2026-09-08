@@ -15,7 +15,7 @@ class HqWorkPlanTest extends TestCase
     {
         $this->seed(\Database\Seeders\AnnualAuditSeeder::class);
 
-        $user = User::factory()->create(['email_verified_at' => now()]);
+        $user = User::factory()->create(['email_verified_at' => now(), 'is_superadmin' => true]);
 
         $this->actingAs($user)
             ->get(route('annual-audit.index', ['tab' => 'hq']))
@@ -31,7 +31,7 @@ class HqWorkPlanTest extends TestCase
 
     public function test_admin_can_add_and_delete_hq_department(): void
     {
-        $user = User::factory()->create(['email_verified_at' => now()]);
+        $user = User::factory()->create(['email_verified_at' => now(), 'is_superadmin' => true]);
 
         $this->actingAs($user)
             ->post(route('annual-audit.hq.store'), [
@@ -52,7 +52,7 @@ class HqWorkPlanTest extends TestCase
     public function test_admin_can_export_hq_excel(): void
     {
         $this->seed(\Database\Seeders\AnnualAuditSeeder::class);
-        $user = User::factory()->create(['email_verified_at' => now()]);
+        $user = User::factory()->create(['email_verified_at' => now(), 'is_superadmin' => true]);
 
         $response = $this->actingAs($user)
             ->get(route('annual-audit.export', ['mode' => 'hq']));

@@ -33,12 +33,14 @@
             PKSF and Maternity Work Plan
             <span class="ml-1.5 font-normal text-slate-400">FY {{ $fy }} · {{ $rows->count() }} rows</span>
         </p>
-        <a
-            href="{{ route('projects.create') }}"
-            class="inline-flex h-7 items-center gap-1 rounded-md border border-slate-200 bg-white px-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
-        >
-            + Add via Projects
-        </a>
+        @can('projects.manage')
+            <a
+                href="{{ route('projects.create') }}"
+                class="inline-flex h-7 items-center gap-1 rounded-md border border-slate-200 bg-white px-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
+            >
+                + Add via Projects
+            </a>
+        @endcan
         <a
             href="{{ route('annual-audit.export', ['mode' => 'pksf', 'fy' => $plan->fy_label]) }}"
             class="inline-flex h-7 items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 text-[11px] font-medium text-emerald-800 hover:bg-emerald-100"
@@ -125,8 +127,12 @@
                     <tr>
                         <td colspan="16" class="border border-slate-300 px-4 py-10 text-center text-[12px] text-slate-400">
                             No PKSF / Maternity schedules yet.
-                            <a href="{{ route('projects.create') }}" class="font-medium text-brand-600 hover:underline">Add a PKSF/Maternity project</a>,
-                            then Generate or Sync new items.
+                            @can('projects.manage')
+                                <a href="{{ route('projects.create') }}" class="font-medium text-brand-600 hover:underline">Add a PKSF/Maternity project</a>,
+                                then Generate or Sync new items.
+                            @else
+                                Ask a project manager to add a PKSF/Maternity project, then Generate or Sync new items.
+                            @endcan
                         </td>
                     </tr>
                 @endforelse

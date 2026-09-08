@@ -27,11 +27,14 @@
     @foreach ($cards as $card)
         @php
             $tone = $tones[$card['tone'] ?? 'violet'] ?? $tones['violet'];
+            $href = $card['href'] ?? null;
+            $cardClass = 'group relative min-h-[118px] overflow-hidden rounded-2xl border bg-gradient-to-br px-4 py-3.5 shadow-[0_6px_20px_rgba(15,23,42,0.06)] '.$tone['surface'];
         @endphp
-        <a
-            href="{{ $card['href'] }}"
-            class="group relative min-h-[118px] overflow-hidden rounded-2xl border bg-gradient-to-br px-4 py-3.5 shadow-[0_6px_20px_rgba(15,23,42,0.06)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(15,23,42,0.11)] {{ $tone['surface'] }}"
-        >
+        @if ($href)
+            <a href="{{ $href }}" class="{{ $cardClass }} transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(15,23,42,0.11)]">
+        @else
+            <div class="{{ $cardClass }}">
+        @endif
             <span class="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r {{ $tone['accent'] }}"></span>
             <span class="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/70 blur-xl transition group-hover:scale-110"></span>
             <div class="relative flex items-start justify-between gap-2">
@@ -42,6 +45,10 @@
             </div>
             <p class="relative mt-2 text-[24px] font-bold tabular-nums leading-none tracking-tight {{ $tone['value'] }}">{{ $card['value'] }}</p>
             <p class="relative mt-2 truncate text-[10px] font-medium text-slate-500">{{ $card['meta'] }}</p>
-        </a>
+        @if ($href)
+            </a>
+        @else
+            </div>
+        @endif
     @endforeach
 </div>

@@ -85,7 +85,12 @@ class SuperAdminChatContextService
     private function reports(array $filters): array
     {
         $query = AuditReport::query()->with('shakha:id,name,code');
-        $this->applyPeriod($query, $filters, 'report_month', 'report_year');
+        if (($filters['date_basis'] ?? null) === 'completed') {
+            $this->applyDatePeriod($query, $filters, 'completed_at');
+            $query->completed();
+        } else {
+            $this->applyPeriod($query, $filters, 'report_month', 'report_year');
+        }
         $this->applyShakha($query, $filters);
         if (in_array($filters['status'] ?? null, [AuditReport::STATUS_DRAFT, AuditReport::STATUS_COMPLETED], true)) {
             $query->where('status', $filters['status']);
@@ -118,16 +123,28 @@ class SuperAdminChatContextService
         $query = AuditFinding::query()->with(['shakha:id,name,code', 'indicator:id,indicator_code,title,category,risk_rating']);
         $this->applyPeriod($query, $filters, 'audit_month', 'audit_year');
         $this->applyShakha($query, $filters);
+        $summary = (clone $query)->selectRaw(
+            'COUNT(*) as finding_count, COALESCE(SUM(amount), 0) as amount_total, '
+            .'COALESCE(SUM(sample_size_checked), 0) as samples_checked, '
+            .'COALESCE(SUM(irregularity_count), 0) as irregularities, '
+            .'COUNT(DISTINCT audit_indicator_id) as indicator_count, COUNT(DISTINCT shakha_id) as shakha_count, '
+            ."COALESCE(SUM(CASE WHEN irregularity_count > 0 OR amount > 0 OR (observation IS NOT NULL AND observation <> '') THEN 1 ELSE 0 END), 0) as objected_cell_count"
+        )->first();
         $rows = $query->latest('id')->limit($this->limit())->get([
             'id', 'shakha_id', 'audit_indicator_id', 'audit_month', 'audit_year',
             'amount', 'sample_size_checked', 'irregularity_count',
         ]);
 
         return [
-            'finding_count' => $rows->count(),
-            'amount_total' => round((float) $rows->sum('amount'), 2),
-            'samples_checked' => (int) $rows->sum('sample_size_checked'),
-            'irregularities' => (int) $rows->sum('irregularity_count'),
+            'finding_count' => (int) ($summary?->finding_count ?? 0),
+            'matrix_cell_count' => (int) ($summary?->finding_count ?? 0),
+            'objected_cell_count' => (int) ($summary?->objected_cell_count ?? 0),
+            'indicator_count' => (int) ($summary?->indicator_count ?? 0),
+            'shakha_count' => (int) ($summary?->shakha_count ?? 0),
+            'amount_total' => round((float) ($summary?->amount_total ?? 0), 2),
+            'samples_checked' => (int) ($summary?->samples_checked ?? 0),
+            'irregularities' => (int) ($summary?->irregularities ?? 0),
+            'rows_returned' => $rows->count(),
             'findings' => $rows->map(fn (AuditFinding $finding) => [
                 'indicator_code' => $finding->indicator?->indicator_code,
                 'heading' => $finding->indicator?->title,
@@ -145,7 +162,11 @@ class SuperAdminChatContextService
     private function annualPlan(array $filters): array
     {
         $fy = $this->fy($filters);
-        $plan = AuditPlan::query()->where('fy_label', $fy)->first() ?? AuditPlan::query()->latest('start_date')->first();
+        $requestedFy = trim((string) ($filters['fy'] ?? ''));
+        $plan = AuditPlan::query()->where('fy_label', $fy)->first();
+        if (! $plan && $requestedFy === '') {
+            $plan = AuditPlan::query()->latest('start_date')->first();
+        }
         if (! $plan) {
             return ['fy' => $fy, 'message' => 'No annual audit plan exists.'];
         }
@@ -182,13 +203,20 @@ class SuperAdminChatContextService
         $query = ShakhaRiskAssessment::query()->with('shakha:id,name,code');
         $this->applyPeriod($query, $filters, 'assessment_month', 'assessment_year');
         $this->applyShakha($query, $filters);
-        $rows = $query->latest('id')->limit($this->limit())->get([
+        $total = (clone $query)->count();
+        $byCategory = (clone $query)->select('risk_category', DB::raw('count(*) as total'))
+            ->groupBy('risk_category')
+            ->pluck('total', 'risk_category')
+            ->all();
+        $rows = $query->orderByDesc('total_weighted_score')->limit($this->limit())->get([
             'id', 'shakha_id', 'assessment_month', 'assessment_year',
             'total_weighted_score', 'risk_category',
         ]);
 
         return [
-            'by_category' => $rows->countBy('risk_category')->all(),
+            'total' => $total,
+            'by_category' => $byCategory,
+            'rows_returned' => $rows->count(),
             'assessments' => $rows->map(fn (ShakhaRiskAssessment $risk) => [
                 'shakha' => $risk->shakha?->name,
                 'shakha_code' => $risk->shakha?->code,
@@ -205,6 +233,16 @@ class SuperAdminChatContextService
         $fy = $this->fy($filters);
         $query = ShakhaAnnualKpi::query()->with('shakha:id,name,code')->where('fy_label', $fy);
         $this->applyShakha($query, $filters);
+        $summary = (clone $query)->selectRaw(
+            'COUNT(*) as shakhas_with_kpi, COALESCE(SUM(fo_count), 0) as field_officers, '
+            .'COALESCE(SUM(total_samities), 0) as samities, COALESCE(SUM(total_members), 0) as members, '
+            .'COALESCE(SUM(total_borrowers), 0) as borrowers, '
+            .'COALESCE(SUM(total_od_borrowers), 0) as overdue_borrowers, '
+            .'COALESCE(SUM(savings_balance), 0) as savings_balance, '
+            .'COALESCE(SUM(loan_outstanding), 0) as loan_outstanding, '
+            .'COALESCE(SUM(total_od_taka), 0) as overdue_amount, '
+            .'COALESCE(SUM(surplus_deficit_fy), 0) as surplus_deficit'
+        )->first();
         $rows = $query->limit($this->limit())->get([
             'id', 'shakha_id', 'fy_label', 'fo_count', 'total_samities', 'total_members',
             'total_borrowers', 'total_od_borrowers', 'savings_balance', 'loan_outstanding',
@@ -213,17 +251,18 @@ class SuperAdminChatContextService
 
         return [
             'fy' => $fy,
-            'shakhas_with_kpi' => $rows->count(),
+            'shakhas_with_kpi' => (int) ($summary?->shakhas_with_kpi ?? 0),
+            'rows_returned' => $rows->count(),
             'totals' => [
-                'field_officers' => (int) $rows->sum('fo_count'),
-                'samities' => (int) $rows->sum('total_samities'),
-                'members' => (int) $rows->sum('total_members'),
-                'borrowers' => (int) $rows->sum('total_borrowers'),
-                'overdue_borrowers' => (int) $rows->sum('total_od_borrowers'),
-                'savings_balance' => round((float) $rows->sum('savings_balance'), 2),
-                'loan_outstanding' => round((float) $rows->sum('loan_outstanding'), 2),
-                'overdue_amount' => round((float) $rows->sum('total_od_taka'), 2),
-                'surplus_deficit' => round((float) $rows->sum('surplus_deficit_fy'), 2),
+                'field_officers' => (int) ($summary?->field_officers ?? 0),
+                'samities' => (int) ($summary?->samities ?? 0),
+                'members' => (int) ($summary?->members ?? 0),
+                'borrowers' => (int) ($summary?->borrowers ?? 0),
+                'overdue_borrowers' => (int) ($summary?->overdue_borrowers ?? 0),
+                'savings_balance' => round((float) ($summary?->savings_balance ?? 0), 2),
+                'loan_outstanding' => round((float) ($summary?->loan_outstanding ?? 0), 2),
+                'overdue_amount' => round((float) ($summary?->overdue_amount ?? 0), 2),
+                'surplus_deficit' => round((float) ($summary?->surplus_deficit ?? 0), 2),
             ],
             'shakhas' => $rows->map(fn (ShakhaAnnualKpi $kpi) => [
                 'name' => $kpi->shakha?->name,
@@ -243,39 +282,65 @@ class SuperAdminChatContextService
     private function shakhas(array $filters): array
     {
         $query = Shakha::query()->with('area:id,name,division');
-        $this->applySearch($query, $filters, ['name', 'code']);
+        $term = trim((string) (($filters['shakha'] ?? null) ?: ($filters['search'] ?? null)));
+        if ($term !== '') {
+            $query->where(function (Builder $inner) use ($term) {
+                $inner->where('name', 'like', "%{$term}%")
+                    ->orWhere('code', 'like', "%{$term}%")
+                    ->orWhereHas('area', fn (Builder $area) => $area
+                        ->where('name', 'like', "%{$term}%")
+                        ->orWhere('division', 'like', "%{$term}%"));
+            });
+        }
+        $total = (clone $query)->count();
         $rows = $query->orderBy('name')->limit($this->limit())->get(['id', 'area_id', 'name', 'code', 'status', 'opening_date']);
 
-        return ['shakhas' => $rows->map(fn (Shakha $shakha) => [
-            'name' => $shakha->name,
-            'code' => $shakha->code,
-            'status' => $shakha->status,
-            'area' => $shakha->area?->name,
-            'division' => $shakha->area?->division,
-            'opening_date' => $shakha->opening_date?->toDateString(),
-        ])->all()];
+        return [
+            'total_matches' => $total,
+            'rows_returned' => $rows->count(),
+            'shakhas' => $rows->map(fn (Shakha $shakha) => [
+                'name' => $shakha->name,
+                'code' => $shakha->code,
+                'status' => $shakha->status,
+                'area' => $shakha->area?->name,
+                'division' => $shakha->area?->division,
+                'opening_date' => $shakha->opening_date?->toDateString(),
+            ])->all(),
+        ];
     }
 
     /** @param array<string, mixed> $filters */
     private function employees(array $filters): array
     {
+        $includeContacts = (bool) ($filters['include_contacts'] ?? false);
         $query = ShakhaEmployee::query()->with('shakha.area:id,name,division');
         $this->applySearch($query, $filters, ['name', 'employee_code', 'designation', 'email', 'phone']);
         $this->applyShakha($query, $filters);
+        $total = (clone $query)->count();
         $rows = $query->orderBy('name')->limit($this->limit())->get([
             'id', 'shakha_id', 'employee_code', 'name', 'designation', 'phone', 'email', 'status',
         ]);
 
-        return ['employees' => $rows->map(fn (ShakhaEmployee $employee) => [
-            'employee_code' => $employee->employee_code,
-            'name' => $employee->name,
-            'designation' => $employee->designation,
-            'phone' => $employee->phone,
-            'email' => $employee->email,
-            'status' => $employee->status,
-            'shakha' => $employee->shakha?->name,
-            'area' => $employee->shakha?->area?->name,
-        ])->all()];
+        return [
+            'total_matches' => $total,
+            'rows_returned' => $rows->count(),
+            'employees' => $rows->map(function (ShakhaEmployee $employee) use ($includeContacts) {
+                $item = [
+                    'employee_code' => $employee->employee_code,
+                    'name' => $employee->name,
+                    'designation' => $employee->designation,
+                    'status' => $employee->status,
+                    'shakha' => $employee->shakha?->name,
+                    'area' => $employee->shakha?->area?->name,
+                ];
+                if ($includeContacts) {
+                    $item['phone'] = $employee->phone;
+                    $item['email'] = $employee->email;
+                }
+
+                return $item;
+            })->all(),
+        ];
     }
 
     /** @return array<string, mixed> */
@@ -294,7 +359,30 @@ class SuperAdminChatContextService
     /** @param Builder<*> $query @param array<string,mixed> $filters */
     private function applyPeriod(Builder $query, array $filters, string $monthColumn, string $yearColumn): void
     {
+        if (($filters['period_scope'] ?? null) === 'all') {
+            return;
+        }
+
+        if (($filters['period_scope'] ?? null) === 'year') {
+            $query->where($yearColumn, $this->year($filters));
+
+            return;
+        }
+
         $query->where($monthColumn, $this->month($filters))->where($yearColumn, $this->year($filters));
+    }
+
+    /** @param Builder<*> $query @param array<string,mixed> $filters */
+    private function applyDatePeriod(Builder $query, array $filters, string $column): void
+    {
+        if (($filters['period_scope'] ?? null) === 'all') {
+            return;
+        }
+
+        $query->whereYear($column, $this->year($filters));
+        if (($filters['period_scope'] ?? null) !== 'year') {
+            $query->whereMonth($column, $this->month($filters));
+        }
     }
 
     /** @param Builder<*> $query @param array<string,mixed> $filters */

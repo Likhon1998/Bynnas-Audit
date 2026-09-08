@@ -112,7 +112,7 @@
                     href="{{ $exportYearUrl }}"
                     class="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
                     title="All 12 months — each tab is indicators × shakhas"
-                >All months {{ $year }}</a>
+                >Download all months {{ $year }}</a>
                 <a
                     href="{{ $exportUrl }}"
                     class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-emerald-700 px-3.5 text-[12px] font-semibold text-white shadow-sm hover:bg-emerald-800"

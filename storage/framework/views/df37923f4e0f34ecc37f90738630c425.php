@@ -1,7 +1,7 @@
 <aside
     :class="[
         sidebarOpen ? 'translate-x-0' : '-translate-x-full',
-        sidebarCollapsed ? 'sidebar-collapsed lg:w-14' : 'w-[188px]',
+        sidebarCollapsed ? 'sidebar-collapsed sidebar-is-collapsed' : '',
     ]"
     class="sidebar-shell fixed inset-y-0 left-0 z-40 flex w-[188px] shrink-0 flex-col overflow-hidden text-white transition-[width,transform] duration-200 ease-out lg:static lg:translate-x-0"
 >
@@ -18,13 +18,12 @@
         </div>
         <button
             type="button"
-            class="hidden h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 transition hover:bg-white/[0.08] hover:text-white lg:inline-flex"
-            @click="toggleSidebarCollapsed()"
-            :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
-            :aria-label="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
-            :aria-expanded="(!sidebarCollapsed).toString()"
+            class="hidden h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/15 bg-white/[0.04] text-slate-300 transition hover:border-white/30 hover:bg-white/10 hover:text-white lg:flex"
+            @click.stop="toggleSidebarCollapsed()"
+            title="Hide sidebar"
+            aria-label="Hide sidebar"
         >
-            <svg class="h-3.5 w-3.5 transition-transform duration-200" :class="sidebarCollapsed && 'rotate-180'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
         </button>
@@ -96,20 +95,20 @@
             <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('annual_audit.manage')): ?>
                 <?php if (isset($component)) { $__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal3d3185cbc95d2b4d3b41182ae7d7a300 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.sidebar-link','data' => ['href' => route('annual-audit.index'),'active' => request()->routeIs('annual-audit.*'),'title' => 'Annual Audit']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.sidebar-link','data' => ['href' => route('annual-audit.index'),'active' => request()->routeIs('annual-audit.*'),'title' => 'Annual Audit Plan']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('sidebar-link'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('annual-audit.index')),'active' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(request()->routeIs('annual-audit.*')),'title' => 'Annual Audit']); ?>
+<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('annual-audit.index')),'active' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(request()->routeIs('annual-audit.*')),'title' => 'Annual Audit Plan']); ?>
 <?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
 
                     <svg class="h-3.5 w-3.5 shrink-0 <?php echo e(request()->routeIs('annual-audit.*') ? 'text-white' : 'text-slate-400'); ?>" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M4 11h16M5 5h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z" />
                     </svg>
-                    <span class="sidebar-link-label truncate">Annual Audit</span>
+                    <span class="sidebar-link-label truncate">Annual Audit Plan</span>
                  <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginal3d3185cbc95d2b4d3b41182ae7d7a300)): ?>
@@ -183,20 +182,20 @@
             <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('kpis.manage')): ?>
                 <?php if (isset($component)) { $__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal3d3185cbc95d2b4d3b41182ae7d7a300 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.sidebar-link','data' => ['href' => route('kpis.index'),'active' => request()->routeIs('kpis.*'),'title' => 'KPI']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.sidebar-link','data' => ['href' => route('kpis.index'),'active' => request()->routeIs('kpis.*'),'title' => 'Key Performance Indicator (KPI)']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('sidebar-link'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('kpis.index')),'active' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(request()->routeIs('kpis.*')),'title' => 'KPI']); ?>
+<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('kpis.index')),'active' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(request()->routeIs('kpis.*')),'title' => 'Key Performance Indicator (KPI)']); ?>
 <?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
 
                     <svg class="h-3.5 w-3.5 shrink-0 <?php echo e(request()->routeIs('kpis.*') ? 'text-white' : 'text-slate-400'); ?>" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2a2 2 0 012-2h2a2 2 0 012 2v2m-6 0h6M7 7h.01M12 7h.01M17 7h.01M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" />
                     </svg>
-                    <span class="sidebar-link-label truncate">KPI</span>
+                    <span class="sidebar-link-label truncate">Key Performance Indicator (KPI)</span>
                  <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginal3d3185cbc95d2b4d3b41182ae7d7a300)): ?>
@@ -265,7 +264,7 @@
 <?php endif; ?>
             <?php endif; ?>
 
-            <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->any(['findings.view_all', 'findings.enter'])): ?>
+            <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('findings.view_all')): ?>
                 <?php if (isset($component)) { $__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal3d3185cbc95d2b4d3b41182ae7d7a300 = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.sidebar-link','data' => ['href' => route('audit-findings.index'),'active' => request()->routeIs('audit-findings.*'),'title' => 'Findings Matrix']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
@@ -296,18 +295,6 @@
 
             <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->any(['shakhas.manage', 'shakhas.view_all', 'areas.manage'])): ?>
                 <div x-data="{ shakhaOpen: <?php echo e(request()->routeIs('shakhas.*') || request()->routeIs('areas.*') || request()->routeIs('shakha-employees.*') ? 'true' : 'false'); ?> }">
-                    
-                    <a
-                        href="<?php echo e(route('shakhas.index')); ?>"
-                        title="Shakha"
-                        class="sidebar-link group relative hidden items-center justify-center rounded-lg px-1.5 py-1.5 text-[12px] tracking-tight transition <?php echo e(request()->routeIs('shakhas.*') || request()->routeIs('areas.*') || request()->routeIs('shakha-employees.*') ? 'sidebar-link-active text-white font-medium shadow-[0_6px_16px_rgba(37,99,235,0.3)]' : 'text-slate-300 hover:bg-white/[0.04] hover:text-white'); ?>"
-                        :class="sidebarCollapsed && 'lg:!flex'"
-                    >
-                        <svg class="h-3.5 w-3.5 shrink-0 <?php echo e(request()->routeIs('shakhas.*') || request()->routeIs('areas.*') || request()->routeIs('shakha-employees.*') ? 'text-white' : 'text-slate-400'); ?>" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
-                        </svg>
-                    </a>
-
                     <div :class="sidebarCollapsed && 'lg:hidden'">
                         <button
                             type="button"
@@ -467,6 +454,28 @@
         </div>
     </div>
 </aside>
+
+<button
+    type="button"
+    x-show="sidebarCollapsed"
+    x-cloak
+    class="fixed left-0 top-14 z-50 hidden h-7 w-7 items-center justify-center rounded-r-lg border border-l-0 border-slate-200 bg-white text-[#123d70] shadow-[0_4px_12px_rgba(15,23,42,0.2)] transition hover:bg-sky-50 hover:text-sky-700 lg:flex"
+    @click.stop="toggleSidebarCollapsed()"
+    title="Show sidebar"
+    aria-label="Show sidebar"
+    aria-expanded="false"
+>
+    <svg
+        class="h-4 w-4 rotate-180"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        stroke-width="2.4"
+        aria-hidden="true"
+    >
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+    </svg>
+</button>
 
 <div x-show="sidebarOpen" x-cloak class="fixed inset-0 z-30 bg-slate-950/60 lg:hidden" @click="sidebarOpen = false"></div>
 <?php /**PATH C:\xampp\htdocs\Bynnas-Audit\resources\views/layouts/sidebar.blade.php ENDPATH**/ ?>

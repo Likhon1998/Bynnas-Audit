@@ -185,7 +185,8 @@
                                 <td class="px-3 py-2 text-right tabular-nums font-semibold text-rose-700" x-text="row.irregularity_count"></td>
                                 <td class="max-w-[280px] px-3 py-2 text-[11px] text-slate-600" x-text="row.observation"></td>
                                 <td class="px-3 py-2" @click.outside="if (openFor === row.id) openFor = null">
-                                    <div class="relative w-44">
+                                    @can('findings.enter')
+                                      <div class="relative w-44">
                                         <input
                                             type="text"
                                             class="h-8 w-full rounded-md border-slate-200 py-0 text-[12px]"
@@ -227,7 +228,10 @@
                                                 </template>
                                             </div>
                                         </template>
-                                    </div>
+                                      </div>
+                                    @else
+                                        <span class="text-[11px] text-slate-600" x-text="row.responsible_staff_name || '—'"></span>
+                                    @endcan
                                 </td>
                             </tr>
                         </template>
