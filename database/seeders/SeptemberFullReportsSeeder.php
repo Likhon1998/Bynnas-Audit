@@ -13,6 +13,8 @@ use App\Support\BanglaNumerals;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 
 /**
  * Wipe all audit reports + findings, then create 5 fully documented September 2026 reports
@@ -71,9 +73,6 @@ class SeptemberFullReportsSeeder extends Seeder
             .'২০০০-১১১ will consolidate all 5 branches in Summary.'
         );
 
-        // Destructive work starts only after every prerequisite has been validated.
-        $this->wipeAllReports();
-
         $ratings = ['Major', 'Medium', 'Minor', 'Major', 'Medium'];
         $controlMap = [
             'Satisfactory' => 'Satisfactory (E)',
@@ -83,63 +82,84 @@ class SeptemberFullReportsSeeder extends Seeder
             'Unsatisfactory' => 'Unsatisfactory (F)',
         ];
 
-        foreach ($shakhas->values() as $i => $shakha) {
-            $bp = $blueprints[$i];
-            $control = $ratings[$i];
-            $memo = 'DSK/IA/SEP-2026/'.str_pad((string) ($i + 1), 3, '0', STR_PAD_LEFT);
+        $storedFiles = $this->reportStoragePaths();
 
-            $auditStart = '2026-09-0'.(1 + ($i % 5));
-            $auditEnd = '2026-09-'.str_pad((string) (5 + ($i % 5)), 2, '0', STR_PAD_LEFT);
-            $reportDate = '2026-09-'.str_pad((string) (12 + ($i % 10)), 2, '0', STR_PAD_LEFT);
+        // All database destruction + reconstruction is atomic. Any incomplete Matrix sync
+        // rolls the entire operation back, preserving the previous production dataset.
+        DB::transaction(function () use (
+            $admin,
+            $shakhas,
+            $blueprints,
+            $indicatorMap,
+            $ratings,
+            $controlMap
+        ): void {
+            $this->wipeAllReports();
 
-            $pages = $this->buildPagesData(
-                $shakha,
-                $bp,
-                $indicatorMap,
-                $controlMap[$control],
-                $reportDate,
-                $i
-            );
+            foreach ($shakhas->values() as $i => $shakha) {
+                $bp = $blueprints[$i];
+                $control = $ratings[$i];
+                $memo = 'DSK/IA/SEP-2026/'.str_pad((string) ($i + 1), 3, '0', STR_PAD_LEFT);
 
-            $progress = AuditReport::computeProgress($pages, [
-                'memo_no' => $memo,
-                'auditor_name' => $admin->name,
-            ]);
+                $auditStart = '2026-09-0'.(1 + ($i % 5));
+                $auditEnd = '2026-09-'.str_pad((string) (5 + ($i % 5)), 2, '0', STR_PAD_LEFT);
+                $reportDate = '2026-09-'.str_pad((string) (12 + ($i % 10)), 2, '0', STR_PAD_LEFT);
 
-            $report = AuditReport::query()->create([
-                'shakha_id' => $shakha->id,
-                'user_id' => $admin->id,
-                'status' => AuditReport::STATUS_COMPLETED,
-                'report_month' => 9,
-                'report_year' => 2026,
-                'memo_no' => $memo,
-                'report_date' => $reportDate,
-                'control_rating' => $control,
-                'shakha_display_name' => $shakha->name.($shakha->code ? ' ('.$shakha->code.')' : ''),
-                'area_display_name' => $shakha->area?->name ?? '',
-                'audit_period_label' => 'সেপ্টেম্বর ২০২৬',
-                'audit_start_date' => $auditStart,
-                'audit_end_date' => $auditEnd,
-                'working_days' => 5 + ($i % 5),
-                'period_scope' => 'Full Branch Audit',
-                'draft_sent_date' => '2026-09-'.str_pad((string) (8 + ($i % 5)), 2, '0', STR_PAD_LEFT),
-                'comments_received_date' => '2026-09-'.str_pad((string) (10 + ($i % 5)), 2, '0', STR_PAD_LEFT),
-                'auditor_name' => $admin->name,
-                'auditor_designation' => 'Internal Audit Officer',
-                'pages_data' => $pages,
-                'current_tab' => 'page4',
-                'progress_pct' => max(100, $progress),
-                'last_saved_at' => now(),
-                'completed_at' => now(),
-            ]);
+                $pages = $this->buildPagesData(
+                    $shakha,
+                    $bp,
+                    $indicatorMap,
+                    $controlMap[$control],
+                    $reportDate,
+                    $i
+                );
 
-            try {
+                $progress = AuditReport::computeProgress($pages, [
+                    'memo_no' => $memo,
+                    'auditor_name' => $admin->name,
+                ]);
+
+                $report = AuditReport::query()->create([
+                    'shakha_id' => $shakha->id,
+                    'user_id' => $admin->id,
+                    'status' => AuditReport::STATUS_COMPLETED,
+                    'report_month' => 9,
+                    'report_year' => 2026,
+                    'memo_no' => $memo,
+                    'report_date' => $reportDate,
+                    'control_rating' => $control,
+                    'shakha_display_name' => $shakha->name.($shakha->code ? ' ('.$shakha->code.')' : ''),
+                    'area_display_name' => $shakha->area?->name ?? '',
+                    'audit_period_label' => 'সেপ্টেম্বর ২০২৬',
+                    'audit_start_date' => $auditStart,
+                    'audit_end_date' => $auditEnd,
+                    'working_days' => 5 + ($i % 5),
+                    'period_scope' => 'Full Branch Audit',
+                    'draft_sent_date' => '2026-09-'.str_pad((string) (8 + ($i % 5)), 2, '0', STR_PAD_LEFT),
+                    'comments_received_date' => '2026-09-'.str_pad((string) (10 + ($i % 5)), 2, '0', STR_PAD_LEFT),
+                    'auditor_name' => $admin->name,
+                    'auditor_designation' => 'Internal Audit Officer',
+                    'pages_data' => $pages,
+                    'current_tab' => 'page4',
+                    'progress_pct' => max(100, $progress),
+                    'last_saved_at' => now(),
+                    'completed_at' => now(),
+                ]);
+
                 $synced = app(\App\Services\AuditSummaryService::class)->syncFromReport($report);
+                $expected = count($bp['findings']);
+                if ($synced !== $expected) {
+                    throw new RuntimeException(
+                        "{$memo}: expected {$expected} Matrix rows, synchronized {$synced}."
+                    );
+                }
+
                 $this->command?->info("Created: {$memo} — {$shakha->name} (matrix synced: {$synced})");
-            } catch (\Throwable $e) {
-                report($e);
-                $this->command?->info("Created: {$memo} — {$shakha->name} (matrix sync skipped)");
             }
+        });
+
+        foreach ($storedFiles as $path) {
+            Storage::disk('public')->delete($path);
         }
 
         $this->command?->info('Done: 5 full September 2026 reports (matrix + consolidated summary ready).');
@@ -157,7 +177,7 @@ class SeptemberFullReportsSeeder extends Seeder
             DB::table('audit_report_checklist_items')->delete();
         }
         if (Schema::hasTable('audit_checklist_submissions') && Schema::hasColumn('audit_checklist_submissions', 'audit_report_id')) {
-            AuditChecklistSubmission::query()->whereNotNull('audit_report_id')->update(['audit_report_id' => null]);
+            AuditChecklistSubmission::query()->whereNotNull('audit_report_id')->delete();
         }
 
         $reportCount = AuditReport::query()->count();
@@ -170,6 +190,31 @@ class SeptemberFullReportsSeeder extends Seeder
         }
 
         $this->command?->warn("Deleted {$reportCount} report(s) and {$findingCount} finding(s).");
+    }
+
+    /**
+     * Capture report-owned uploads before deleting their database records.
+     *
+     * @return list<string>
+     */
+    protected function reportStoragePaths(): array
+    {
+        $paths = AuditReport::query()
+            ->whereNotNull('logo_path')
+            ->pluck('logo_path');
+
+        if (Schema::hasTable('audit_report_checklist_files')) {
+            $paths = $paths->merge(
+                AuditReportChecklistFile::query()->whereNotNull('stored_path')->pluck('stored_path')
+            );
+        }
+
+        return $paths
+            ->map(fn ($path) => trim((string) $path))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
     }
 
     /**
