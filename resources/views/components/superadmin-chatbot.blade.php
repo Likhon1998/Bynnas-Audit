@@ -8,10 +8,10 @@
         threadUuid: '',
         messages: [],
         suggestions: [
-            'Give me an overview of the organization database',
-            'How many audit reports are completed this month?',
-            'Show the current Shakha risk summary',
-            'List employees of Mirpur Shakha',
+            'Give me a summary of current audit activities',
+            'How many audit reports were completed this month?',
+            'Which Shakhas currently require attention?',
+            'Show the employee list for Mirpur Shakha',
         ],
         createUuid() {
             if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
@@ -176,7 +176,7 @@
                     <p class="text-[13px] font-semibold">Bynnas Audit Assistant</p>
                     <p class="mt-0.5 flex items-center gap-1.5 text-[10px] text-cyan-100">
                         <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 ring-2 ring-emerald-300/20"></span>
-                        Read-only production insights
+                        Secure audit assistance
                     </p>
                 </div>
                 <button
@@ -200,7 +200,7 @@
                 <span class="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-700 ring-1 ring-cyan-100">
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3a.75.75 0 01.75.75V5h3V3.75a.75.75 0 011.5 0V5h1.25A2.75 2.75 0 0119 7.75v8.5A2.75 2.75 0 0116.25 19h-8.5A2.75 2.75 0 015 16.25v-8.5A2.75 2.75 0 017.75 5H9V3.75A.75.75 0 019.75 3z"/><path stroke-linecap="round" d="M9 11h.01M15 11h.01M9 15h6"/></svg>
                 </span>
-                <p class="mt-3 text-[13px] font-semibold text-navy-900">Ask about your audit data</p>
+                <p class="mt-3 text-[13px] font-semibold text-navy-900">How can I assist you?</p>
                 <p class="mx-auto mt-1 max-w-[280px] text-[10px] leading-relaxed text-slate-500">I understand Bangla, English, mixed language, and common spelling mistakes.</p>
                 <div class="mt-4 grid gap-1.5 text-left">
                     <template x-for="suggestion in suggestions" :key="suggestion">
@@ -246,7 +246,7 @@
                     @keydown.enter.exact.prevent="send()"
                     rows="1"
                     maxlength="1500"
-                    placeholder="Ask anything about the database..."
+                    placeholder="Ask about audits, reports, risks, or employees..."
                     class="max-h-28 min-h-[34px] flex-1 resize-none border-0 bg-transparent px-2 py-2 text-[11px] leading-relaxed text-slate-700 placeholder:text-slate-400 focus:ring-0"
                 ></textarea>
                 <button
@@ -258,7 +258,7 @@
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
                 </button>
             </div>
-            <p class="mt-1.5 text-center text-[9px] text-slate-400">Super Admin only · Read-only answers · Conversation audited</p>
+            <p class="mt-1.5 text-center text-[9px] text-slate-400">Super Admin only · Secure assistance · Conversation audited</p>
         </form>
     </div>
 
