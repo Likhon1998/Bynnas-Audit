@@ -54,11 +54,11 @@
             @endcanany
 
             @can('annual_audit.manage')
-                <x-sidebar-link :href="route('annual-audit.index')" :active="request()->routeIs('annual-audit.*')" title="Annual Audit">
+                <x-sidebar-link :href="route('annual-audit.index')" :active="request()->routeIs('annual-audit.*')" title="Annual Audit Plan">
                     <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('annual-audit.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M4 11h16M5 5h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z" />
                     </svg>
-                    <span class="sidebar-link-label truncate">Annual Audit</span>
+                    <span class="sidebar-link-label truncate">Annual Audit Plan</span>
                 </x-sidebar-link>
             @endcan
 

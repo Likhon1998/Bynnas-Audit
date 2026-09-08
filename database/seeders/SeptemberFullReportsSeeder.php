@@ -15,15 +15,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Wipe all audit reports + findings, then create 10 fully documented September 2026 reports
+ * Wipe all audit reports + findings, then create 5 fully documented September 2026 reports
  * linked to existing Finding Matrix headings so Summary/Matrix populate automatically.
  */
 class SeptemberFullReportsSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->wipeAllReports();
-
         $admin = User::query()->where('email', 'admin@bynnasaudit.com')->first()
             ?? User::query()->orderBy('id')->first();
 
@@ -33,37 +31,50 @@ class SeptemberFullReportsSeeder extends Seeder
             return;
         }
 
-        $shakhas = Shakha::query()->with('area')->where('status', 'active')->orderBy('id')->limit(10)->get();
-        if ($shakhas->count() < 10) {
-            $shakhas = Shakha::query()->with('area')->orderBy('id')->limit(10)->get();
+        $shakhas = Shakha::query()->with('area')->where('status', 'active')->orderBy('id')->limit(5)->get();
+        if ($shakhas->count() < 5) {
+            $shakhas = Shakha::query()->with('area')->orderBy('id')->limit(5)->get();
         }
-        if ($shakhas->count() < 10) {
-            $this->command?->error('Need at least 10 shakhas.');
+        if ($shakhas->count() < 5) {
+            $this->command?->error('Need at least 5 shakhas. No existing report data was deleted.');
 
             return;
         }
+
+        $blueprints = array_slice($this->reportBlueprints(), 0, 5);
+        $requiredCodes = collect($blueprints)
+            ->flatMap(fn (array $blueprint) => collect($blueprint['findings'])->pluck('indicator_code'))
+            ->filter()
+            ->unique()
+            ->values();
 
         $indicators = AuditIndicator::query()
             ->where(function ($q) {
                 $q->where('is_active', true)->orWhereNull('is_active');
             })
-            ->whereNotNull('title')
-            ->where('title', '!=', '')
-            ->orderBy('id')
-            ->limit(120)
+            ->whereIn('indicator_code', $requiredCodes)
             ->get(['id', 'title', 'indicator_code', 'risk_rating']);
 
-        if ($indicators->count() < 15) {
-            $this->command?->error('Need Finding Matrix indicators (AuditIndicator) to build শিরোনাম links.');
+        $missingCodes = $requiredCodes->diff($indicators->pluck('indicator_code'));
+        if ($missingCodes->isNotEmpty()) {
+            $this->command?->error(
+                'Missing required Finding Matrix indicators: '.$missingCodes->implode(', ')
+                .'. No existing report data was deleted.'
+            );
 
             return;
         }
 
-        // Larger arbitrary pool — each report picks randomly (some headings still repeat across branches).
-        $headingPool = $indicators->shuffle()->take(min(18, $indicators->count()))->values();
-        $this->command?->info('Heading pool size: '.$headingPool->count().' (assigned at random per finding)');
+        $indicatorMap = $indicators->keyBy('indicator_code');
+        $this->command?->info(
+            'Validated '.$indicatorMap->count().' exact Finding Matrix headings; shared heading '
+            .'২০০০-১১১ will consolidate all 5 branches in Summary.'
+        );
 
-        $ratings = ['Satisfactory', 'Minor', 'Medium', 'Major', 'Unsatisfactory', 'Medium', 'Major', 'Minor', 'Satisfactory', 'Unsatisfactory'];
+        // Destructive work starts only after every prerequisite has been validated.
+        $this->wipeAllReports();
+
+        $ratings = ['Major', 'Medium', 'Minor', 'Major', 'Medium'];
         $controlMap = [
             'Satisfactory' => 'Satisfactory (E)',
             'Minor' => 'Minor (D)',
@@ -71,17 +82,6 @@ class SeptemberFullReportsSeeder extends Seeder
             'Major' => 'Major (B)',
             'Unsatisfactory' => 'Unsatisfactory (F)',
         ];
-
-        $blueprints = $this->reportBlueprints();
-        $baseBlueprints = $blueprints;
-        $extra = 0;
-        while (count($blueprints) < 10 && $baseBlueprints !== []) {
-            $clone = $baseBlueprints[$extra % count($baseBlueprints)];
-            $clone['theme'] = ($clone['theme'] ?? 'Audit').' — সেট '.($extra + 2);
-            $blueprints[] = $clone;
-            $extra++;
-        }
-        $blueprints = array_slice($blueprints, 0, 10);
 
         foreach ($shakhas->values() as $i => $shakha) {
             $bp = $blueprints[$i];
@@ -95,7 +95,7 @@ class SeptemberFullReportsSeeder extends Seeder
             $pages = $this->buildPagesData(
                 $shakha,
                 $bp,
-                $headingPool,
+                $indicatorMap,
                 $controlMap[$control],
                 $reportDate,
                 $i
@@ -142,7 +142,7 @@ class SeptemberFullReportsSeeder extends Seeder
             }
         }
 
-        $this->command?->info('Done: 10 full September 2026 reports (matrix + summary ready).');
+        $this->command?->info('Done: 5 full September 2026 reports (matrix + consolidated summary ready).');
     }
 
     protected function wipeAllReports(): void
@@ -177,13 +177,14 @@ class SeptemberFullReportsSeeder extends Seeder
      */
     protected function reportBlueprints(): array
     {
-        return [
+        $blueprints = [
             [
                 'theme' => 'আর্থিক নিয়ন্ত্রণ ও ভ্যাট-ট্যাক্স',
                 'findings' => [
                     [
                         'section' => ['১.০', '১.০ আর্থিক নিরীক্ষা (Financial Audit)'],
                         'serial' => '১.১',
+                        'indicator_code' => '২০০০-৯৭',
                         'title' => 'শিরোনাম',
                         'body' => 'ভ্যাট ও ট্যাক্স নির্ধারিত সময়ে সরকারি কোষাগারে জমা না দিয়ে হস্তমজুদ রাখা হয়েছে।',
                         'amount' => '৪৫,২৫০',
@@ -200,6 +201,7 @@ class SeptemberFullReportsSeeder extends Seeder
                     [
                         'section' => null,
                         'serial' => '১.২',
+                        'indicator_code' => '২০০০-১১৩',
                         'title' => 'শিরোনাম',
                         'body' => 'কিছু খরচ ভাউচারে সহপ্রমাণক অসম্পূর্ণ অবস্থায় অনুমোদিত হয়েছে।',
                         'amount' => '১৮,৭৫০',
@@ -216,12 +218,13 @@ class SeptemberFullReportsSeeder extends Seeder
                     [
                         'section' => ['২.০', '২.০ ঋণ ও সঞ্চয় পরিচালনা'],
                         'serial' => '২.১',
+                        'indicator_code' => 'নতুন-419',
                         'title' => 'শিরোনাম',
-                        'body' => 'কিছু ঋণ নথিতে গ্যারান্টর তথ্য ও আপডেটেড ছবি অনুপস্থিত।',
+                        'body' => 'অগ্রসর ঋণের চুক্তিপত্র ও জামিনদারের অঙ্গীকারনামা নির্ধারিত মূল্যের নন-জুডিশিয়াল স্ট্যাম্পে সম্পাদন করা হয়নি।',
                         'amount' => '২,১৫,০০০',
                         'rating' => 'Minor (D)',
-                        'criteria' => 'ঋণ অনুমোদনের পূর্বে সকল প্রয়োজনীয় কাগজপত্র সম্পূর্ণ থাকতে হবে।',
-                        'observation' => '৪০টি ঋণ ফাইলের মধ্যে ৫টিতে গ্যারান্টর NID কপি ছিল না।',
+                        'criteria' => 'অগ্রসর ঋণের চুক্তিপত্র, অভিভাবকনামা ও জামিনদারের অঙ্গীকারনামা নির্ধারিত মূল্যের নন-জুডিশিয়াল স্ট্যাম্পে সম্পাদন করতে হবে।',
+                        'observation' => '৪০টি ঋণ ফাইলের মধ্যে ৫টিতে নির্ধারিত ৩০০ টাকার পরিবর্তে কম মূল্যের স্ট্যাম্পে চুক্তিপত্র সম্পাদন করা হয়েছে।',
                         'stats' => ['৩২০', '৪০', '০৫'],
                         'risk' => 'ঋণ আদায়ে আইনি জটিলতা সৃষ্টি হতে পারে।',
                         'root' => 'ফাইল কমপ্লিটনেস চেক উপেক্ষা।',
@@ -237,6 +240,7 @@ class SeptemberFullReportsSeeder extends Seeder
                     [
                         'section' => ['১.০', '১.০ নগদ ও ব্যাংক ব্যবস্থাপনা'],
                         'serial' => '১.১',
+                        'indicator_code' => '২০০০-৬৬',
                         'title' => 'শিরোনাম',
                         'body' => 'ক্যাশ লিমিট অতিক্রম করে একাধিক দিন নগদ হাতে রাখা হয়েছে।',
                         'amount' => '৯২,৪০০',
@@ -253,6 +257,7 @@ class SeptemberFullReportsSeeder extends Seeder
                     [
                         'section' => null,
                         'serial' => '১.২',
+                        'indicator_code' => '২০০০-৭২',
                         'title' => 'শিরোনাম',
                         'body' => 'ব্যাংক সমন্বয় বিবরণী (BRS) নিয়মিত প্রস্তুত হয়নি।',
                         'amount' => '৮,৫০০',
@@ -269,12 +274,13 @@ class SeptemberFullReportsSeeder extends Seeder
                     [
                         'section' => ['২.০', '২.০ অভ্যন্তরীণ নিয়ন্ত্রণ'],
                         'serial' => '২.১',
+                        'indicator_code' => '২০০০-৪',
                         'title' => 'শিরোনাম',
-                        'body' => 'স্ট্যাম্প রেজিস্টারে স্টক ও ব্যবহারের হিসাব মিলছে না।',
+                        'body' => 'স্টক রেজিস্টারে স্টেশনারি ও প্রিন্টিং সামগ্রীর এন্ট্রি নিয়মিত হালনাগাদ করা হয়নি।',
                         'amount' => '৩,২০০',
                         'rating' => 'Minor (D)',
-                        'criteria' => 'স্ট্যাম্প ক্রয়, ব্যবহার ও অবশিষ্ট স্টকের হিসাব নিয়মিত হালনাগাদ রাখতে হবে।',
-                        'observation' => 'রেজিস্টার অনুযায়ী ৮০টি স্ট্যাম্প থাকা উচিত; ভৌত গণনায় পাওয়া গেছে ৭২টি।',
+                        'criteria' => 'স্টেশনারি ও প্রিন্টিং সামগ্রীর প্রাপ্তি, ব্যবহার ও অবশিষ্ট স্টক নিয়মিত রেজিস্টারে হালনাগাদ রাখতে হবে।',
+                        'observation' => 'ভৌত যাচাইয়ে ৮০টি সামগ্রীর বিপরীতে রেজিস্টারে ৭২টির হালনাগাদ এন্ট্রি পাওয়া গেছে।',
                         'stats' => ['১', '১', '১'],
                         'risk' => 'সম্পদ অপচয়/অসঙ্গতির আশঙ্কা।',
                         'root' => 'দৈনিক স্টক আপডেট না করা।',
@@ -290,12 +296,13 @@ class SeptemberFullReportsSeeder extends Seeder
                     [
                         'section' => ['১.০', '১.০ সদস্য ভর্তি ও KYC'],
                         'serial' => '১.১',
+                        'indicator_code' => '১০০০-১৩২',
                         'title' => 'শিরোনাম',
-                        'body' => 'নতুন সদস্য ফর্মে NID যাচাই ও ছবি সংযুক্তি অসম্পূর্ণ।',
+                        'body' => 'সদস্য ভর্তির সময় জাতীয় পরিচয়পত্রের সত্যতা যথাযথভাবে যাচাই করা হয়নি।',
                         'amount' => '১৫,৭৫০',
                         'rating' => 'Medium (C)',
                         'criteria' => 'সদস্য ভর্তির সময় NID, ছবি ও প্রয়োজনীয় তথ্য সম্পূর্ণ যাচাই করতে হবে।',
-                        'observation' => '৫০টি নতুন সদস্য ফর্মের মধ্যে ৯টিতে ছবি বা NID কপি অনুপস্থিত।',
+                        'observation' => '৫০টি নতুন সদস্য ফর্মের মধ্যে ৯টির জাতীয় পরিচয়পত্র অনলাইন যাচাইয়ের প্রমাণ সংরক্ষিত ছিল না।',
                         'stats' => ['২১০', '৫০', '০৯'],
                         'risk' => 'পরিচয় যাচাই দুর্বল হলে প্রতারণার ঝুঁকি।',
                         'root' => 'ভর্তি চেকলিস্ট পুরোপুরি অনুসরণ না করা।',
@@ -306,12 +313,13 @@ class SeptemberFullReportsSeeder extends Seeder
                     [
                         'section' => null,
                         'serial' => '১.২',
+                        'indicator_code' => '১০০০-১৬',
                         'title' => 'শিরোনাম',
-                        'body' => 'কিছু সমিতির সভা রেজুলেশন নিয়মিত হালনাগাদ নেই।',
+                        'body' => 'মৃত্যু বীমা আবেদনের সাথে সমিতির রেজুলেশন ও প্রয়োজনীয় সহায়ক নথি সংরক্ষিত ছিল না।',
                         'amount' => '৬,২০০',
                         'rating' => 'Minor (D)',
-                        'criteria' => 'সমিতি সভার সিদ্ধান্ত লিখিতভাবে সংরক্ষণ করতে হবে।',
-                        'observation' => '১২টি সমিতির মধ্যে ৩টিতে গত ২ মাসের রেজুলেশন পাওয়া যায়নি।',
+                        'criteria' => 'মৃত্যু বীমা আবেদনের সাথে সমিতির রেজুলেশন, দাবি ফরম ও পাসবইয়ের তথ্য সংরক্ষণ করতে হবে।',
+                        'observation' => '১২টি নমুনা আবেদনের মধ্যে ৩টিতে সমিতির রেজুলেশন ও দাবি ফরম পাওয়া যায়নি।',
                         'stats' => ['৪৫', '১২', '০৩'],
                         'risk' => 'শাসন ব্যবস্থায় স্বচ্ছতা কমে যায়।',
                         'root' => 'সভা নথি সংরক্ষণে অমনোযোগ।',
@@ -322,12 +330,13 @@ class SeptemberFullReportsSeeder extends Seeder
                     [
                         'section' => ['২.০', '২.০ সঞ্চয় আদায়'],
                         'serial' => '২.১',
+                        'indicator_code' => '১০০০-৫',
                         'title' => 'শিরোনাম',
-                        'body' => 'কিছু কেন্দ্রে সঞ্চয় আদায়ের রশিদ সিরিয়াল গ্যাপ রয়েছে।',
+                        'body' => 'সদস্যের পাসবইয়ে এন্ট্রি না দিয়ে সঞ্চয় আদায় করা হয়েছে।',
                         'amount' => '১২,৬০০',
                         'rating' => 'Major (B)',
-                        'criteria' => 'রশিদ বইয়ের সিরিয়াল ধারাবাহিক ও হিসাবভুক্ত থাকতে হবে।',
-                        'observation' => 'রশিদ নং ১০৪৫–১০৫০ এর ব্যবহার/বাতিলের ব্যাখ্যা নেই।',
+                        'criteria' => 'প্রতিটি সঞ্চয় আদায়ের সময় সদস্যের পাসবইয়ে তারিখ ও পরিমাণ লিখে স্বাক্ষর করতে হবে।',
+                        'observation' => '৬টি নমুনা লেনদেনের মধ্যে ১টিতে সঞ্চয় আদায় করা হলেও সদস্যের পাসবইয়ে এন্ট্রি ছিল না।',
                         'stats' => ['৬', '৬', '১'],
                         'risk' => 'আর্থিক অনিয়মের সম্ভাবনা।',
                         'root' => 'রশিদ নিয়ন্ত্রণ রেজিস্টার যথাযথ নয়।',
@@ -343,6 +352,7 @@ class SeptemberFullReportsSeeder extends Seeder
                     [
                         'section' => ['১.০', '১.০ বাজেট ও ব্যয় নিয়ন্ত্রণ'],
                         'serial' => '১.১',
+                        'indicator_code' => 'নতুন-400',
                         'title' => 'শিরোনাম',
                         'body' => 'আপ্যায়ন ও স্টেশনারি খাতে বাজেটের চেয়ে ব্যয় বেশি হয়েছে।',
                         'amount' => '২৭,৮০০',
@@ -359,6 +369,7 @@ class SeptemberFullReportsSeeder extends Seeder
                     [
                         'section' => null,
                         'serial' => '১.২',
+                        'indicator_code' => '৩০০০-১৬',
                         'title' => 'শিরোনাম',
                         'body' => 'কিছু স্থায়ী সম্পদের ট্যাগ ও রেজিস্টার এন্ট্রি মিলছে না।',
                         'amount' => '৬৫,০০০',
@@ -375,6 +386,7 @@ class SeptemberFullReportsSeeder extends Seeder
                     [
                         'section' => ['২.০', '২.০ ক্রয় ও কোটেশন'],
                         'serial' => '২.১',
+                        'indicator_code' => '৩০০০-১',
                         'title' => 'শিরোনাম',
                         'body' => 'নির্ধারিত সীমার উপরে ক্রয়ে পর্যাপ্ত কোটেশন সংগ্রহ করা হয়নি।',
                         'amount' => '৪১,৫০০',
@@ -396,12 +408,13 @@ class SeptemberFullReportsSeeder extends Seeder
                     [
                         'section' => ['১.০', '১.০ পূর্ববর্তী নিরীক্ষা ফলোআপ'],
                         'serial' => '১.১',
+                        'indicator_code' => '২০০০-১১৭',
                         'title' => 'শিরোনাম',
-                        'body' => 'পূর্ববর্তী নিরীক্ষার কয়েকটি সুপারিশ এখনো বাস্তবায়িত হয়নি।',
+                        'body' => 'মাইক্রোফিন সফটওয়্যার থেকে প্রস্তুতকৃত ভাউচার প্রিন্ট ও সংরক্ষণ করা হয়নি।',
                         'amount' => '২২,৪০০',
                         'rating' => 'Medium (C)',
-                        'criteria' => 'নিরীক্ষা সুপারিশ নির্ধারিত সময়ে বাস্তবায়ন ও অবস্থা হালনাগাদ করতে হবে।',
-                        'observation' => 'গতলোআপ তালিকার ১০টির মধ্যে ৪টি এখনো Open।',
+                        'criteria' => 'সফটওয়্যারে প্রস্তুত প্রতিটি ভাউচার প্রিন্ট করে অনুমোদনসহ তারিখ অনুযায়ী সংরক্ষণ করতে হবে।',
+                        'observation' => 'নমুনা ১০টি লেনদেনের মধ্যে ৪টির সফটওয়্যার-প্রস্তুত ভাউচার ফাইলে পাওয়া যায়নি।',
                         'stats' => ['১০', '১০', '০৪'],
                         'risk' => 'পুনরাবৃত্ত অনিয়ম অব্যাহত থাকতে পারে।',
                         'root' => 'ফলোআপ মনিটরিং দুর্বল।',
@@ -412,12 +425,13 @@ class SeptemberFullReportsSeeder extends Seeder
                     [
                         'section' => null,
                         'serial' => '১.২',
+                        'indicator_code' => '৫০০০-৮',
                         'title' => 'শিরোনাম',
-                        'body' => 'সিস্টেম ইউজার অ্যাক্সেস রিভিউ নিয়মিত নয়; সাবেক কর্মীর অ্যাকাউন্ট সক্রিয়।',
+                        'body' => 'কর্মীদের নিয়মিত টাইমশিট প্রস্তুত ও অফিস ফাইলে সংরক্ষণ করা হয়নি।',
                         'amount' => '৩৫,০০০',
                         'rating' => 'Major (B)',
-                        'criteria' => 'কর্মচারী বদলি/প্রস্থানের সাথে সাথে সিস্টেম অ্যাক্সেস নিষ্ক্রিয় করতে হবে।',
-                        'observation' => '২টি সাবেক ইউজার অ্যাকাউন্ট এখনো Active অবস্থায় পাওয়া গেছে।',
+                        'criteria' => 'প্রতিটি কর্মীর মাসিক টাইমশিট প্রস্তুত, অনুমোদন ও অফিস ফাইলে সংরক্ষণ করতে হবে।',
+                        'observation' => 'নমুনা ২৮টি টাইমশিটের মধ্যে ২টি সংশ্লিষ্ট মাসের অফিস ফাইলে পাওয়া যায়নি।',
                         'stats' => ['২৮', '২৮', '০২'],
                         'risk' => 'অননুমোদিত ডেটা অ্যাক্সেসের ঝুঁকি।',
                         'root' => 'HR ও আইটি হ্যান্ডওভার প্রক্রিয়া দুর্বল।',
@@ -428,12 +442,13 @@ class SeptemberFullReportsSeeder extends Seeder
                     [
                         'section' => ['২.০', '২.০ ডকুমেন্টেশন ও সংরক্ষণ'],
                         'serial' => '২.১',
+                        'indicator_code' => '২০০০-৫',
                         'title' => 'শিরোনাম',
-                        'body' => 'গুরুত্বপূর্ণ নিরীক্ষা ও নীতিমালা ফাইলের সংরক্ষণ ব্যবস্থা অগোছালো।',
+                        'body' => 'স্থায়ী সম্পদ ও স্টেশনারি সামগ্রীর হালনাগাদ ইনভেন্টরি প্রস্তুত করা হয়নি।',
                         'amount' => '৭,৮০০',
                         'rating' => 'Satisfactory (E)',
-                        'criteria' => 'গুরুত্বপূর্ণ নথি নির্ধারিত ফাইলিং সিস্টেমে সংরক্ষণ করতে হবে।',
-                        'observation' => 'সামগ্রিকভাবে ফাইলিং গ্রহণযোগ্য; সূচিপত্র হালনাগাদ করা হয়েছে।',
+                        'criteria' => 'স্থায়ী সম্পদ ও স্টেশনারি সামগ্রীর অবস্থান ও পরিমাণসহ হালনাগাদ ইনভেন্টরি প্রস্তুত রাখতে হবে।',
+                        'observation' => '২০টি নমুনা সম্পদের মধ্যে ১টির তথ্য হালনাগাদ ইনভেন্টরি তালিকায় অন্তর্ভুক্ত ছিল না।',
                         'stats' => ['২০', '২০', '০১'],
                         'risk' => 'নথি খুঁজে পেতে বিলম্ব হতে পারে।',
                         'root' => 'ফাইল ইনডেক্স মাঝে মাঝে আপডেট হয়।',
@@ -444,10 +459,37 @@ class SeptemberFullReportsSeeder extends Seeder
                 ],
             ],
         ];
+
+        // Shared, realistic control gap: one exact Matrix heading appears in all five reports,
+        // allowing Summary to consolidate five branches under the same indicator.
+        $commonFinding = [
+            'section' => ['৩.০', '৩.০ সাধারণ আর্থিক নিয়ন্ত্রণ'],
+            'serial' => '৩.১',
+            'indicator_code' => '২০০০-১১১',
+            'title' => 'শিরোনাম',
+            'body' => 'বিভিন্ন ভাউচার ও মাসিক প্রতিবেদনে প্রস্তুতকারী, যাচাইকারী অথবা অনুমোদনকারীর স্বাক্ষরের ঘাটতি পাওয়া গেছে।',
+            'amount' => '১২,৫০০',
+            'rating' => 'Medium (C)',
+            'criteria' => 'প্রতিটি ভাউচার ও মাসিক প্রতিবেদনে প্রস্তুতকারী, যাচাইকারী ও অনুমোদনকারীর স্বাক্ষর নিশ্চিত করতে হবে।',
+            'observation' => 'নমুনা ৩০টি ভাউচার ও প্রতিবেদনের মধ্যে ৪টিতে এক বা একাধিক নির্ধারিত স্বাক্ষর অনুপস্থিত ছিল।',
+            'stats' => ['১২০', '৩০', '০৪'],
+            'risk' => 'অননুমোদিত বা ভুল লেনদেন শনাক্ত না হওয়ার ঝুঁকি।',
+            'root' => 'দাখিলের পূর্বে নথির পূর্ণতা যাচাইয়ের চেকলিস্ট ব্যবহার করা হয়নি।',
+            'reco' => 'স্বাক্ষর যাচাই চেকলিস্ট ছাড়া কোনো ভাউচার বা মাসিক প্রতিবেদন চূড়ান্ত না করা।',
+            'jobab' => 'শাখা ব্যবস্থাপক তাৎক্ষণিকভাবে অসম্পূর্ণ নথির স্বাক্ষর সম্পন্ন এবং চেকলিস্ট চালু করবেন।',
+            'status' => 'সমাধানের পথে',
+        ];
+
+        foreach ($blueprints as &$blueprint) {
+            $blueprint['findings'][] = $commonFinding;
+        }
+        unset($blueprint);
+
+        return $blueprints;
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, AuditIndicator>  $indicators
+     * @param  \Illuminate\Support\Collection<string, AuditIndicator>  $indicators
      * @param  array{theme:string,findings:list<array<string,mixed>>}  $blueprint
      * @return array<string, mixed>
      */
@@ -484,15 +526,19 @@ class SeptemberFullReportsSeeder extends Seeder
                 ];
             }
 
-            // Arbitrary heading per finding; avoid duplicates inside the same report.
-            $available = $indicators->reject(fn ($ind) => in_array((int) $ind->id, $usedIndicatorIds, true))->values();
-            if ($available->isEmpty()) {
-                $available = $indicators->values();
+            $indicatorCode = (string) ($finding['indicator_code'] ?? '');
+            $indicator = $indicators->get($indicatorCode);
+            if (! $indicator) {
+                throw new \RuntimeException("Finding Matrix indicator {$indicatorCode} is unavailable.");
             }
-            $indicator = $available->random();
+            if (in_array((int) $indicator->id, $usedIndicatorIds, true)) {
+                throw new \RuntimeException(
+                    "Finding Matrix indicator {$indicatorCode} is duplicated inside one report."
+                );
+            }
             $usedIndicatorIds[] = (int) $indicator->id;
 
-            // শিরোনাম must come from Finding Matrix indicator title (linked).
+            // Exact, prevalidated Matrix heading; never assign a random heading to unrelated evidence.
             $matrixTitle = trim((string) ($indicator?->title ?? ''));
             if ($matrixTitle === '') {
                 $matrixTitle = (string) ($finding['body'] ?? 'শিরোনাম');
