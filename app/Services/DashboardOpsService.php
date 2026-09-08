@@ -144,7 +144,15 @@ class DashboardOpsService
                 ->count();
         }
 
-        if ($plan && Schema::hasTable('monthly_work_items')) {
+        if ($plan && Schema::hasTable('plan_schedules')) {
+            $monthlyPlanShakhas = PlanSchedule::query()
+                ->where('audit_plan_id', $plan->id)
+                ->where('month_index', $monthIndex)
+                ->where('schedulable_type', Shakha::class)
+                ->pluck('schedulable_id')
+                ->unique()
+                ->count();
+        } elseif ($plan && Schema::hasTable('monthly_work_items')) {
             $monthlyPlanShakhas = MonthlyWorkItem::query()
                 ->where('audit_plan_id', $plan->id)
                 ->where('month_index', $monthIndex)
@@ -152,7 +160,9 @@ class DashboardOpsService
                 ->pluck('schedulable_id')
                 ->unique()
                 ->count();
+        }
 
+        if ($plan && Schema::hasTable('monthly_work_items')) {
             for ($m = 0; $m <= $monthIndex; $m++) {
                 $totals = $this->worklists->performanceSummary($plan, $m)['totals'];
                 $annualPlannedYtd += (int) ($totals['planned'] ?? 0);

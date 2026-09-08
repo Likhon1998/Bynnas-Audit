@@ -61,6 +61,23 @@
             this.input = text;
             this.$nextTick(() => this.$refs.chatInput?.focus());
         },
+        startNewConversation() {
+            if (this.loading) return;
+
+            this.threadUuid = this.createUuid();
+            this.messages = [];
+            this.input = '';
+            this.error = '';
+            this.loaded = true;
+
+            try {
+                localStorage.setItem('bynnasSuperAdminChatThread', this.threadUuid);
+            } catch (e) {
+                // The new in-memory conversation still works when storage is unavailable.
+            }
+
+            this.$nextTick(() => this.$refs.chatInput?.focus());
+        },
         async send() {
             const message = this.input.trim();
             if (message.length < 2 || this.loading) return;
@@ -102,6 +119,41 @@
                 this.$refs.chatMessages.scrollTop = this.$refs.chatMessages.scrollHeight;
             }
         },
+        formatMessage(value) {
+            const holder = document.createElement('div');
+            holder.textContent = String(value || '');
+            const escaped = holder.innerHTML;
+            const inline = (text) => text
+                .replace(/\*\*(.+?)\*\*/g, '<strong class=&quot;font-semibold text-slate-900&quot;>$1</strong>')
+                .replace(/`([^`]+)`/g, '<code class=&quot;rounded bg-slate-100 px-1 py-0.5 text-[10px] text-slate-700&quot;>$1</code>');
+            const lines = escaped.split(/\r?\n/);
+            let html = '';
+            let inList = false;
+
+            lines.forEach((line) => {
+                const bullet = line.match(/^\s*[-*]\s+(.+)$/);
+                const numbered = line.match(/^\s*\d+[.)]\s+(.+)$/);
+                if (bullet || numbered) {
+                    if (!inList) {
+                        html += `<ul class=&quot;my-1.5 list-disc space-y-1 pl-4&quot;>`;
+                        inList = true;
+                    }
+                    html += `<li>${inline((bullet || numbered)[1])}</li>`;
+                    return;
+                }
+                if (inList) {
+                    html += '</ul>';
+                    inList = false;
+                }
+                const clean = line.replace(/^#{1,4}\s+/, '');
+                if (clean.trim() !== '') {
+                    html += `<p class=&quot;mb-1.5 last:mb-0&quot;>${inline(clean)}</p>`;
+                }
+            });
+            if (inList) html += '</ul>';
+
+            return html || '<p>No response content.</p>';
+        },
     }"
     @keydown.escape.window="open = false"
     class="fixed bottom-4 right-4 z-50 sm:bottom-6 sm:right-6"
@@ -127,6 +179,18 @@
                         Read-only production insights
                     </p>
                 </div>
+                <button
+                    type="button"
+                    @click="startNewConversation()"
+                    :disabled="loading"
+                    class="flex h-7 w-7 items-center justify-center rounded-lg text-white/70 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label="Start a new conversation"
+                    title="Start a new conversation"
+                >
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M20 11a8.1 8.1 0 00-15.5-2M4 4v5h5m-5 4a8.1 8.1 0 0015.5 2M20 20v-5h-5"/>
+                    </svg>
+                </button>
                 <button type="button" @click="open = false" class="flex h-7 w-7 items-center justify-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white" aria-label="Close chatbot">×</button>
             </div>
         </div>
@@ -153,9 +217,15 @@
                             : message.failed
                                 ? 'max-w-[90%] rounded-2xl rounded-bl-md border border-rose-200 bg-rose-50 text-rose-800'
                                 : 'max-w-[90%] rounded-2xl rounded-bl-md border border-slate-200 bg-white text-slate-700 shadow-sm'"
-                        class="whitespace-pre-wrap px-3 py-2.5 text-[11px] leading-relaxed"
-                        x-text="message.text"
-                    ></div>
+                        class="px-3 py-2.5 text-[11px] leading-relaxed"
+                    >
+                        <template x-if="message.role === 'user'">
+                            <span class="whitespace-pre-wrap" x-text="message.text"></span>
+                        </template>
+                        <template x-if="message.role === 'assistant'">
+                            <div class="break-words" x-html="formatMessage(message.text)"></div>
+                        </template>
+                    </div>
                 </div>
             </template>
 
