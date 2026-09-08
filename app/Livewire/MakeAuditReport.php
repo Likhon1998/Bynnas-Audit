@@ -7,6 +7,7 @@ use App\Models\AuditIndicator;
 use App\Models\AuditReport;
 use App\Models\AuditReportSend;
 use App\Models\Shakha;
+use App\Models\ShakhaEmployee;
 use App\Services\AuditReportDocService;
 use App\Services\AuditReportPdfService;
 use App\Services\AuditSummaryService;
@@ -359,6 +360,11 @@ class MakeAuditReport extends Component
     public string $mailFromEmail = '';
 
     public string $mailToEmail = '';
+
+    public string $mailRecipientEmployeeId = '';
+
+    /** @var list<array{id:int,name:string,designation:string,email:string,status:string}> */
+    public array $mailRecipientOptions = [];
 
     public string $mailCcEmail = '';
 
@@ -1154,7 +1160,22 @@ class MakeAuditReport extends Component
         $this->mailReportLabel = $branch.' · '.$period;
         $this->mailFromName = (string) ($user?->name ?: '');
         $this->mailFromEmail = (string) ($user?->mailSenderAddress() ?: config('mail.from.address', ''));
-        $this->mailToEmail = '';
+        $this->mailRecipientOptions = $report->shakha
+            ? $report->shakha->employees()
+                ->get(['id', 'name', 'designation', 'email', 'status'])
+                ->map(fn (ShakhaEmployee $employee) => [
+                    'id' => $employee->id,
+                    'name' => (string) $employee->name,
+                    'designation' => (string) $employee->designation,
+                    'email' => trim((string) $employee->email),
+                    'status' => (string) $employee->status,
+                ])
+                ->values()
+                ->all()
+            : [];
+        $firstRecipient = collect($this->mailRecipientOptions)->first(fn (array $employee) => $employee['email'] !== '');
+        $this->mailRecipientEmployeeId = $firstRecipient ? (string) $firstRecipient['id'] : '';
+        $this->mailToEmail = $firstRecipient['email'] ?? '';
         $this->mailCcEmail = '';
         $this->mailSubject = 'Audit Report — '.$branch.' ('.$period.')';
         $this->mailBody = "Dear Sir/Madam,\n\nPlease find the completed audit report for {$branch} ({$period}).\n\nRegards,\n".$this->mailFromName;
@@ -1165,11 +1186,23 @@ class MakeAuditReport extends Component
         $this->resetErrorBag();
     }
 
+    public function updatedMailRecipientEmployeeId(string|int|null $employeeId): void
+    {
+        $selected = collect($this->mailRecipientOptions)
+            ->first(fn (array $employee) => (int) $employee['id'] === (int) $employeeId);
+
+        $this->mailToEmail = $selected ? (string) $selected['email'] : '';
+        $this->resetErrorBag('mailRecipientEmployeeId');
+    }
+
     public function closeSendMailModal(): void
     {
         $this->showSendMailModal = false;
         $this->mailReportId = null;
         $this->mailReportLabel = '';
+        $this->mailRecipientEmployeeId = '';
+        $this->mailRecipientOptions = [];
+        $this->mailToEmail = '';
         $this->mailError = '';
         $this->mailSending = false;
         $this->resetErrorBag();
@@ -1182,10 +1215,13 @@ class MakeAuditReport extends Component
         }
 
         $this->mailError = '';
+        $user = auth()->user();
+        $this->mailFromName = (string) ($user?->name ?: '');
+        $this->mailFromEmail = (string) ($user?->mailSenderAddress() ?: config('mail.from.address', ''));
         $this->validate([
             'mailFromName' => 'required|string|max:120',
             'mailFromEmail' => 'required|email|max:190',
-            'mailToEmail' => 'required|email|max:190',
+            'mailRecipientEmployeeId' => 'required|integer',
             'mailCcEmail' => 'nullable|email|max:190',
             'mailSubject' => 'required|string|max:200',
             'mailBody' => 'required|string|max:10000',
@@ -1193,7 +1229,7 @@ class MakeAuditReport extends Component
         ], [], [
             'mailFromName' => 'sender name',
             'mailFromEmail' => 'sender email',
-            'mailToEmail' => 'receiver email',
+            'mailRecipientEmployeeId' => 'Shakha employee',
             'mailCcEmail' => 'CC email',
             'mailSubject' => 'subject',
             'mailBody' => 'message',
@@ -1204,6 +1240,16 @@ class MakeAuditReport extends Component
             ->ownedBy($userId)
             ->completed()
             ->findOrFail((int) $this->mailReportId);
+
+        $recipient = ShakhaEmployee::query()
+            ->where('shakha_id', $report->shakha_id)
+            ->find((int) $this->mailRecipientEmployeeId);
+        if (! $recipient || ! filter_var(trim((string) $recipient->email), FILTER_VALIDATE_EMAIL)) {
+            $this->addError('mailRecipientEmployeeId', 'Select a Shakha employee who has a valid email address.');
+
+            return;
+        }
+        $this->mailToEmail = trim((string) $recipient->email);
 
         $this->mailSending = true;
 
@@ -4368,6 +4414,34 @@ class MakeAuditReport extends Component
     /**
      * @return array<string, mixed>
      */
+    protected function coverAuditScoreData(): array
+    {
+        foreach ($this->reportBlocks as $block) {
+            if (! is_array($block) || ($block['type'] ?? '') !== 'audit_score') {
+                continue;
+            }
+
+            $summary = AuditScoreSheet::summarize(
+                array_values((array) ($block['rows'] ?? [])),
+                array_values((array) ($block['adjustments'] ?? AuditScoreSheet::defaultAdjustments())),
+                array_values((array) ($block['subsequent'] ?? AuditScoreSheet::defaultSubsequent())),
+            );
+
+            return [
+                'audit_score_display' => $summary['audit_score_display'] ?: '—',
+                'performance_grade' => $summary['grade'] ?: '—',
+            ];
+        }
+
+        return [
+            'audit_score_display' => '—',
+            'performance_grade' => '—',
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     protected function reportViewData(): array
     {
         $this->ensurePage2Defaults();
@@ -4412,6 +4486,7 @@ class MakeAuditReport extends Component
             'documentSheets' => $document['sheets'],
             'ratingColor' => AuditReport::ratingColor($this->control_rating),
             'control_rating' => $this->control_rating,
+            ...$this->coverAuditScoreData(),
             'memo_no' => $this->memo_no,
             'report_date' => $this->report_date,
             'shakha_display_name' => $this->shakha_display_name,
@@ -10291,6 +10366,7 @@ class MakeAuditReport extends Component
             'shakhaCount' => $shakhas->count(),
             'selectedShakhaLabel' => $this->selectedShakhaLabel(),
             'ratingColor' => AuditReport::ratingColor($this->control_rating),
+            ...$this->coverAuditScoreData(),
             'monthLabel' => Carbon::create(null, $this->report_month, 1)->format('F'),
             'logoUrl' => $this->resolveLogoUrl(),
             'documentSheets' => $document['sheets'],

@@ -32,19 +32,27 @@
                 <p class="org-en">Dushtha Shasthya Kendra</p>
             @endif
         </td>
-        <td class="rating-wrap" width="32%" valign="top" align="right" style="width:32%;max-width:108pt;vertical-align:top;text-align:right;overflow:hidden;">
-            <table class="cover-rating" width="102" cellspacing="0" cellpadding="0" align="right"
-                   style="width:102pt;max-width:102pt;border-collapse:collapse;table-layout:fixed;margin-left:auto;mso-table-layout-alt:fixed;">
+        <td class="rating-wrap" width="32%" valign="top" align="right" style="width:32%;max-width:160pt;vertical-align:top;text-align:right;overflow:hidden;">
+            <table class="cover-rating" width="156" cellspacing="0" cellpadding="0" align="right"
+                   style="width:156pt;max-width:156pt;border-collapse:collapse;table-layout:fixed;margin-left:auto;mso-table-layout-alt:fixed;">
                 <tr>
-                    <td class="cr-label" align="center" bgcolor="#1d4ed8"
-                        style="background:#1d4ed8;color:#ffffff;font-size:7pt;font-weight:bold;line-height:1.2;padding:3pt 2pt;text-align:center;">
-                        Branch Internal<br>Control Rating
+                    <td align="left" bgcolor="#E7E6E6"
+                        style="width:48%;background:#E7E6E6;border:0.75pt solid #222222;color:#111111;font-size:7pt;font-weight:bold;line-height:1.2;padding:2.5pt 3pt;text-align:left;">
+                        Audit Score
+                    </td>
+                    <td align="center" bgcolor="#C6EFCE"
+                        style="width:52%;background:#C6EFCE;border:0.75pt solid #222222;color:#111111;font-size:7.5pt;font-weight:bold;line-height:1.2;padding:2.5pt 2pt;text-align:center;">
+                        {{ $audit_score_display ?? '—' }}
                     </td>
                 </tr>
                 <tr>
-                    <td class="cr-value" align="center" bgcolor="{{ $ratingColor }}"
-                        style="background:{{ $ratingColor }};border:1.5pt solid #f97316;color:#ffffff;font-size:8.5pt;font-weight:bold;line-height:1.2;padding:4pt 2pt;text-align:center;word-wrap:break-word;overflow-wrap:anywhere;">
-                        {{ $control_rating ?: '—' }}
+                    <td align="left" bgcolor="#E7E6E6"
+                        style="background:#E7E6E6;border:0.75pt solid #222222;color:#111111;font-size:7pt;font-weight:bold;line-height:1.2;padding:2.5pt 3pt;text-align:left;">
+                        Performance Grade
+                    </td>
+                    <td align="center" bgcolor="#F4B183"
+                        style="background:#F4B183;border:0.75pt solid #222222;color:#111111;font-size:6.5pt;font-weight:bold;line-height:1.2;padding:2.5pt 2pt;text-align:center;word-wrap:break-word;overflow-wrap:anywhere;">
+                        {{ $performance_grade ?? '—' }}
                     </td>
                 </tr>
             </table>

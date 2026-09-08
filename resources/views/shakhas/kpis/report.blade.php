@@ -24,11 +24,11 @@
                 <div class="flex items-center gap-1.5 text-[11px] text-slate-400">
                     <a href="{{ route('shakhas.index') }}" class="hover:text-brand-600">All Shakha</a>
                     <span>/</span>
-                    <a href="{{ route('shakhas.kpis.create', ['shakha' => $shakha, 'month' => $month, 'year' => $year]) }}" class="hover:text-brand-600">KPI Input</a>
+                    <a href="{{ route('shakhas.kpis.create', ['shakha' => $shakha, 'month' => $month, 'year' => $year]) }}" class="hover:text-brand-600">Key Performance Indicator (KPI) Input</a>
                     <span>/</span>
                     <span class="text-slate-600">Report</span>
                 </div>
-                <h1 class="mt-1 text-[16px] font-semibold tracking-tight text-navy-900">Monthly KPI Report</h1>
+                <h1 class="mt-1 text-[16px] font-semibold tracking-tight text-navy-900">Monthly Key Performance Indicator (KPI) Report</h1>
                 <p class="mt-0.5 text-[11px] text-slate-500">Professional branch performance document · calculated metrics are live (not stored)</p>
             </div>
             <div class="flex flex-wrap items-center gap-1.5">
@@ -51,7 +51,7 @@
                         </div>
                         <div>
                             <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Bynnas Audit</p>
-                            <h2 class="mt-0.5 text-[18px] font-semibold tracking-tight text-navy-900">Shakha Monthly KPI Statement</h2>
+                            <h2 class="mt-0.5 text-[18px] font-semibold tracking-tight text-navy-900">Shakha Monthly Key Performance Indicator (KPI) Statement</h2>
                             <p class="mt-1 text-[12px] text-slate-500">Confidential management report · FY {{ $fy_totals['fy_label'] ?? '—' }}</p>
                         </div>
                     </div>

@@ -126,14 +126,17 @@
             </div>
         @endunless
 
-        <div class="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        <div class="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9">
             @foreach ([
                 ['label' => 'Planned', 'value' => $kpis['planned']],
                 ['label' => 'Completed', 'value' => $kpis['completed']],
                 ['label' => 'Pending', 'value' => $kpis['pending']],
                 ['label' => 'Shakha', 'value' => $kpis['shakha']],
                 ['label' => 'Area', 'value' => $kpis['area']],
-                ['label' => 'Projects', 'value' => $kpis['project_audit'] + $kpis['project_monitoring']],
+                ['label' => 'PKSF & Maternity', 'value' => $kpis['pksf']],
+                ['label' => 'HQ', 'value' => $kpis['hq']],
+                ['label' => 'Project Audit', 'value' => $kpis['project_audit']],
+                ['label' => 'Project Monitoring', 'value' => $kpis['project_monitoring']],
             ] as $kpi)
                 <div class="rounded-xl border border-slate-100 bg-white px-3 py-2.5 shadow-card">
                     <p class="text-[10px] font-medium uppercase tracking-wide text-slate-400">{{ $kpi['label'] }}</p>

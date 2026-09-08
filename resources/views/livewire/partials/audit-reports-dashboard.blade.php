@@ -339,22 +339,40 @@
                 <div class="grid gap-3 sm:grid-cols-2">
                     <div>
                         <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Sender name</label>
-                        <input type="text" wire:model="mailFromName" class="h-9 w-full rounded-md border-slate-200 text-[12px]" placeholder="Your name">
+                        <input type="text" wire:model="mailFromName" readonly class="h-9 w-full cursor-not-allowed rounded-md border-slate-200 bg-slate-100 text-[12px] text-slate-600">
                         @error('mailFromName') <p class="mt-1 text-[10px] text-rose-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Sender email</label>
-                        <input type="email" wire:model="mailFromEmail" class="h-9 w-full rounded-md border-slate-200 text-[12px]" placeholder="you@gmail.com">
-                        <p class="mt-1 text-[10px] text-slate-400">Defaults from your profile Mail send email — you can edit</p>
+                        <input type="email" wire:model="mailFromEmail" readonly class="h-9 w-full cursor-not-allowed rounded-md border-slate-200 bg-slate-100 text-[12px] text-slate-600">
+                        <p class="mt-1 text-[10px] text-slate-400">Taken from your user account</p>
                         @error('mailFromEmail') <p class="mt-1 text-[10px] text-rose-600">{{ $message }}</p> @enderror
                     </div>
+                </div>
+
+                <div>
+                    <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Shakha employee</label>
+                    <select wire:model.live="mailRecipientEmployeeId" class="h-9 w-full rounded-md border-slate-200 text-[12px]">
+                        <option value="">Select an employee from this report's Shakha</option>
+                        @foreach ($mailRecipientOptions as $employee)
+                            <option value="{{ $employee['id'] }}" @disabled($employee['email'] === '')>
+                                {{ $employee['name'] }}
+                                @if ($employee['designation'] !== '') — {{ $employee['designation'] }} @endif
+                                — {{ $employee['email'] !== '' ? $employee['email'] : 'No email' }}
+                                @if ($employee['status'] !== 'active') ({{ ucfirst($employee['status']) }}) @endif
+                            </option>
+                        @endforeach
+                    </select>
+                    @if ($mailRecipientOptions === [])
+                        <p class="mt-1 text-[10px] text-amber-700">No employees have been added to this Shakha.</p>
+                    @endif
+                    @error('mailRecipientEmployeeId') <p class="mt-1 text-[10px] text-rose-600">{{ $message }}</p> @enderror
                 </div>
 
                 <div class="grid gap-3 sm:grid-cols-2">
                     <div>
                         <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">To (receiver)</label>
-                        <input type="email" wire:model="mailToEmail" class="h-9 w-full rounded-md border-slate-200 text-[12px]" placeholder="receiver@example.com">
-                        @error('mailToEmail') <p class="mt-1 text-[10px] text-rose-600">{{ $message }}</p> @enderror
+                        <input type="email" wire:model="mailToEmail" readonly class="h-9 w-full cursor-not-allowed rounded-md border-slate-200 bg-slate-100 text-[12px] text-slate-600" placeholder="Select a Shakha employee">
                     </div>
                     <div>
                         <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">CC <span class="font-normal normal-case text-slate-400">(optional)</span></label>

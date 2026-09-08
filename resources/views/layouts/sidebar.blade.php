@@ -81,11 +81,11 @@
             @endcan
 
             @can('kpis.manage')
-                <x-sidebar-link :href="route('kpis.index')" :active="request()->routeIs('kpis.*')" title="KPI">
+                <x-sidebar-link :href="route('kpis.index')" :active="request()->routeIs('kpis.*')" title="Key Performance Indicator (KPI)">
                     <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('kpis.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2a2 2 0 012-2h2a2 2 0 012 2v2m-6 0h6M7 7h.01M12 7h.01M17 7h.01M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" />
                     </svg>
-                    <span class="sidebar-link-label truncate">KPI</span>
+                    <span class="sidebar-link-label truncate">Key Performance Indicator (KPI)</span>
                 </x-sidebar-link>
             @endcan
 

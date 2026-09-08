@@ -6,6 +6,7 @@ use App\Livewire\MakeAuditReport;
 use App\Models\Area;
 use App\Models\AuditReport;
 use App\Models\Shakha;
+use App\Models\ShakhaEmployee;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -93,6 +94,58 @@ class MakeAuditReportStartTest extends TestCase
         ]);
 
         $this->assertSame(1, AuditReport::query()->where('shakha_id', $shakha->id)->count());
+    }
+
+    public function test_mail_modal_uses_account_sender_and_report_shakha_employees(): void
+    {
+        $user = $this->makeAuditUser();
+        $user->update(['name' => 'Audit User', 'mail_from_email' => 'auditor@gmail.com']);
+        $shakha = $this->makeShakha();
+        $otherShakha = $this->makeShakha('Other Branch', 'OTH-001');
+
+        $first = ShakhaEmployee::query()->create([
+            'shakha_id' => $shakha->id,
+            'employee_code' => 'EMP-1',
+            'name' => 'First Employee',
+            'designation' => 'Manager',
+            'email' => 'first@gmail.com',
+            'status' => 'active',
+        ]);
+        $second = ShakhaEmployee::query()->create([
+            'shakha_id' => $shakha->id,
+            'employee_code' => 'EMP-2',
+            'name' => 'Second Employee',
+            'designation' => 'Officer',
+            'email' => 'second@gmail.com',
+            'status' => 'active',
+        ]);
+        ShakhaEmployee::query()->create([
+            'shakha_id' => $otherShakha->id,
+            'employee_code' => 'OTHER-1',
+            'name' => 'Other Employee',
+            'designation' => 'Manager',
+            'email' => 'other@gmail.com',
+            'status' => 'active',
+        ]);
+        $report = AuditReport::query()->create([
+            'user_id' => $user->id,
+            'shakha_id' => $shakha->id,
+            'report_month' => 8,
+            'report_year' => 2026,
+            'status' => AuditReport::STATUS_COMPLETED,
+            'completed_at' => now(),
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(MakeAuditReport::class)
+            ->call('openSendMailModal', $report->id)
+            ->assertSet('mailFromName', 'Audit User')
+            ->assertSet('mailFromEmail', 'auditor@gmail.com')
+            ->assertSet('mailRecipientEmployeeId', (string) $first->id)
+            ->assertSet('mailToEmail', 'first@gmail.com')
+            ->assertCount('mailRecipientOptions', 2)
+            ->set('mailRecipientEmployeeId', (string) $second->id)
+            ->assertSet('mailToEmail', 'second@gmail.com');
     }
 
     public function test_user_cannot_start_more_than_three_concurrent_drafts(): void

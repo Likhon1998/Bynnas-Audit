@@ -2,6 +2,8 @@
     'logoDataUri' => $logoUrl ?? null,
     'ratingColor' => $ratingColor,
     'control_rating' => $control_rating,
+    'audit_score_display' => $audit_score_display ?? '—',
+    'performance_grade' => $performance_grade ?? '—',
     'memo_no' => $memo_no,
     'report_date' => $report_date,
     'shakha_display_name' => $shakha_display_name,

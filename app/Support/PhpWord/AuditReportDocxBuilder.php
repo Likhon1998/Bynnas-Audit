@@ -1153,28 +1153,23 @@ class AuditReportDocxBuilder
     protected function addCoverRating($cell, array $data): void
     {
         $ratingTable = $cell->addTable([
-            'borderSize' => 0,
+            'borderSize' => 6,
+            'borderColor' => '222222',
             'cellMargin' => 40,
             'alignment' => Jc::CENTER,
             'width' => 100 * 50,
             'unit' => 'pct',
         ]);
         $ratingTable->addRow();
-        $ratingTable->addCell($this->pct(100), ['bgColor' => '1D4ED8', 'valign' => 'center'])
-            ->addText("Branch Internal\nControl Rating", ['name' => self::FONT, 'size' => 8, 'bold' => true, 'color' => 'FFFFFF'], ['alignment' => Jc::CENTER]);
+        $ratingTable->addCell($this->pct(48), ['bgColor' => 'E7E6E6', 'valign' => 'center'])
+            ->addText('Audit Score', ['name' => self::FONT, 'size' => 7.5, 'bold' => true], ['alignment' => Jc::START]);
+        $ratingTable->addCell($this->pct(52), ['bgColor' => 'C6EFCE', 'valign' => 'center'])
+            ->addText((string) ($data['audit_score_display'] ?? '—'), ['name' => self::FONT, 'size' => 8, 'bold' => true], ['alignment' => Jc::CENTER]);
         $ratingTable->addRow();
-        $ratingTable->addCell($this->pct(100), [
-            'borderTopSize' => 12,
-            'borderTopColor' => 'F97316',
-            'borderBottomSize' => 12,
-            'borderBottomColor' => 'F97316',
-            'borderLeftSize' => 12,
-            'borderLeftColor' => 'F97316',
-            'borderRightSize' => 12,
-            'borderRightColor' => 'F97316',
-            'bgColor' => ltrim((string) ($data['ratingColor'] ?? '16A34A'), '#'),
-            'valign' => 'center',
-        ])->addText($data['control_rating'] ?: '—', ['name' => self::FONT, 'size' => 10, 'bold' => true, 'color' => 'FFFFFF'], ['alignment' => Jc::CENTER]);
+        $ratingTable->addCell($this->pct(48), ['bgColor' => 'E7E6E6', 'valign' => 'center'])
+            ->addText('Performance Grade', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::START]);
+        $ratingTable->addCell($this->pct(52), ['bgColor' => 'F4B183', 'valign' => 'center'])
+            ->addText((string) ($data['performance_grade'] ?? '—'), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
     }
 
     /**

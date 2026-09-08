@@ -108,7 +108,7 @@
             <tbody>
                 @foreach ($rows as $rowIndex => $row)
                     @php $compliance = (string) ($row['compliance'] ?? ''); @endphp
-                    <tr>
+                    <tr x-data="{ compliance: @js($compliance) }">
                         <td class="{{ $cellPad }} text-center align-middle font-semibold" style="font-size:{{ $bodySize }};">{{ $row['sl_no'] ?? '' }}</td>
                         <td class="{{ $cellPad }} align-top" style="font-size:{{ $bodySize }};">
                             @if ($editable && trim((string) ($row['description'] ?? '')) === '')
@@ -122,10 +122,17 @@
                                 <td class="{{ $cellPad }} text-center align-middle">
                                     <button
                                         type="button"
-                                        wire:click="setItChecklistCompliance({{ $blockIndex }}, {{ $rowIndex }}, '{{ $val }}')"
-                                        class="mx-auto flex h-7 w-7 items-center justify-center rounded border text-[14px] font-bold {{ $compliance === $val ? 'border-emerald-700 bg-emerald-100 text-emerald-900' : 'border-slate-300 bg-white text-slate-300 hover:bg-slate-50' }}"
+                                        @click="
+                                            compliance = compliance === '{{ $val }}' ? '' : '{{ $val }}';
+                                            $wire.set('reportBlocks.{{ $blockIndex }}.rows.{{ $rowIndex }}.compliance', compliance, false);
+                                        "
+                                        :class="compliance === '{{ $val }}'
+                                            ? 'border-emerald-700 bg-emerald-100 text-emerald-900'
+                                            : 'border-slate-300 bg-white text-slate-300 hover:bg-slate-50'"
+                                        class="mx-auto flex h-7 w-7 items-center justify-center rounded border text-[14px] font-bold"
                                         title="{{ $lab }}"
-                                    >{{ $compliance === $val ? '✓' : '' }}</button>
+                                        x-text="compliance === '{{ $val }}' ? '✓' : ''"
+                                    ></button>
                                 </td>
                             @endforeach
                         @else

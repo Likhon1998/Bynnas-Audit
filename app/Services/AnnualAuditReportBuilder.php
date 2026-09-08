@@ -79,6 +79,8 @@ class AnnualAuditReportBuilder
             'pending' => max(0, $planned - $completed),
             'shakha' => $totals[AuditPolicy::CATEGORY_SHAKHA]['planned'] ?? 0,
             'area' => $totals[AuditPolicy::CATEGORY_AREA]['planned'] ?? 0,
+            'pksf' => $totals[AuditPolicy::CATEGORY_PKSF]['planned'] ?? 0,
+            'hq' => $totals[AuditPolicy::CATEGORY_HQ]['planned'] ?? 0,
             'project_audit' => $totals[AuditPolicy::CATEGORY_PROJECT_AUDIT]['planned'] ?? 0,
             'project_monitoring' => $totals[AuditPolicy::CATEGORY_PROJECT_MONITORING]['planned'] ?? 0,
         ];

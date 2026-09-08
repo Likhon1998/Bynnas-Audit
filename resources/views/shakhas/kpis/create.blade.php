@@ -16,7 +16,7 @@
                 <div class="flex items-center gap-1.5 text-[11px] text-slate-400">
                     <a href="{{ route('shakhas.index') }}" class="hover:text-brand-600">All Shakha</a>
                     <span>/</span>
-                    <span class="text-slate-600">Monthly KPI Input</span>
+                    <span class="text-slate-600">Monthly Key Performance Indicator (KPI) Input</span>
                 </div>
                 <h1 class="mt-1 text-[16px] font-semibold tracking-tight text-navy-900">{{ $shakha->name }}</h1>
                 <p class="mt-0.5 text-[11px] text-slate-500">

@@ -74,7 +74,7 @@
     >
         <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
             <div>
-                <h1 class="text-[16px] font-semibold tracking-tight text-navy-900">Annual Shakha KPI</h1>
+                <h1 class="text-[16px] font-semibold tracking-tight text-navy-900">Annual Shakha Key Performance Indicator (KPI)</h1>
                 <p class="mt-0.5 text-[11px] text-slate-500">Enter once per financial year for each branch · export one consolidated Excel like your template</p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
