@@ -229,7 +229,7 @@ class DemoDataSeeder extends Seeder
         $shakhas = Shakha::query()->orderBy('id')->limit(100)->get();
         $now = now();
         $rows = [];
-        $categories = ['Low', 'Medium', 'High', 'Critical'];
+        $categories = ['Low Risk', 'Medium Risk', 'High Risk', 'Significant Risk'];
 
         foreach ($shakhas as $i => $shakha) {
             $score = 25 + ($i * 3) % 70;
