@@ -4903,7 +4903,7 @@ class MakeAuditReport extends Component
                 'Medium (C)' => ['bg' => '#F4B084', 'color' => '#111111'],
                 'Minor (D)' => ['bg' => '#FFF2CC', 'color' => '#111111'],
                 'Satisfactory (E)' => ['bg' => '#70AD47', 'color' => '#ffffff'],
-                default => ['bg' => '#ffffff', 'color' => '#111111'],
+            default => ['bg' => '#ffffff', 'color' => '#111111'],
             },
         };
     }
@@ -10274,19 +10274,19 @@ class MakeAuditReport extends Component
         if (! $isWizard) {
             $shakhas = app(UserAccessService::class)->accessibleShakhas(auth()->user());
 
-            $branchOptions = $shakhas->values()->map(function ($shakha, $index) {
-                return [
-                    'id' => (string) $shakha->id,
-                    'serial' => $index + 1,
-                    'name' => $shakha->name,
-                    'code' => (string) ($shakha->code ?: ''),
-                    'area' => (string) ($shakha->area?->name ?: ''),
-                    'division' => (string) ($shakha->area?->division ?: ''),
-                    'focal' => (string) ($shakha->focal_person_name ?: ''),
-                    'active' => $shakha->isActive(),
-                    'opening' => optional($shakha->opening_date ?? $shakha->opened_at)->format('d M Y') ?: '',
-                ];
-            })->values();
+        $branchOptions = $shakhas->values()->map(function ($shakha, $index) {
+            return [
+                'id' => (string) $shakha->id,
+                'serial' => $index + 1,
+                'name' => $shakha->name,
+                'code' => (string) ($shakha->code ?: ''),
+                'area' => (string) ($shakha->area?->name ?: ''),
+                'division' => (string) ($shakha->area?->division ?: ''),
+                'focal' => (string) ($shakha->focal_person_name ?: ''),
+                'active' => $shakha->isActive(),
+                'opening' => optional($shakha->opening_date ?? $shakha->opened_at)->format('d M Y') ?: '',
+            ];
+        })->values();
 
             $userId = (int) (auth()->id() ?? 0);
             if ($userId > 0) {
