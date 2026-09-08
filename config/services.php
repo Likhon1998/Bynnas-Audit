@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'gemini' => [
+        'key' => env('GEMINI_API_KEY'),
+        'model' => env('GEMINI_MODEL', 'gemini-2.5-flash'),
+        'timeout' => (int) env('GEMINI_TIMEOUT', 30),
+        'max_rows' => (int) env('GEMINI_MAX_CONTEXT_ROWS', 50),
+        'history_limit' => (int) env('GEMINI_HISTORY_LIMIT', 20),
+    ],
+
 ];

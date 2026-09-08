@@ -16,6 +16,7 @@
     ];
     $columns = (int) ($columns ?? 6);
     $lgCols = match ($columns) {
+        3 => 'lg:grid-cols-3',
         4 => 'lg:grid-cols-4',
         5 => 'lg:grid-cols-5',
         default => 'lg:grid-cols-6',

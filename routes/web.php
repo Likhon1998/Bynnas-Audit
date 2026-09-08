@@ -13,6 +13,7 @@ use App\Http\Controllers\RiskAssessmentController;
 use App\Http\Controllers\ShakhaController;
 use App\Http\Controllers\ShakhaEmployeeController;
 use App\Http\Controllers\ShakhaKpiController;
+use App\Http\Controllers\SuperAdminChatController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\RoleManagementController;
 use Illuminate\Support\Facades\Route;
@@ -25,6 +26,11 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified', 'active'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    Route::middleware(['superadmin', 'throttle:20,1'])->prefix('superadmin/chat')->name('superadmin.chat.')->group(function () {
+        Route::get('/history', [SuperAdminChatController::class, 'history'])->name('history');
+        Route::post('/ask', [SuperAdminChatController::class, 'ask'])->name('ask');
+    });
 
     Route::middleware('role_or_permission:superadmin|users.manage')->group(function () {
         Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');

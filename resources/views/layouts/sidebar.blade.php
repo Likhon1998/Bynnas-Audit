@@ -18,14 +18,17 @@
         </div>
         <button
             type="button"
-            class="hidden h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 transition hover:bg-white/[0.08] hover:text-white lg:inline-flex"
-            @click="toggleSidebarCollapsed()"
+            class="hidden h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-slate-300 shadow-sm transition hover:border-sky-400/30 hover:bg-sky-400/10 hover:text-white lg:inline-flex"
+            @click.stop="toggleSidebarCollapsed()"
             :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
             :aria-label="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
             :aria-expanded="(!sidebarCollapsed).toString()"
         >
-            <svg class="h-3.5 w-3.5 transition-transform duration-200" :class="sidebarCollapsed && 'rotate-180'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <svg x-show="!sidebarCollapsed" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            <svg x-show="sidebarCollapsed" x-cloak class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
             </svg>
         </button>
     </div>

@@ -64,13 +64,6 @@
                 'tone' => 'blue',
             ],
             [
-                'label' => 'Annual target achieved',
-                'value' => number_format($sights['annual_target_pct'] ?? 0, 1).'%',
-                'meta' => number_format($sights['annual_completed_ytd'] ?? 0).' / '.number_format($sights['annual_planned_ytd'] ?? 0).' YTD',
-                'href' => route('annual-audit.index'),
-                'tone' => 'sky',
-            ],
-            [
                 'label' => 'Key Performance Indicator (KPI) entered',
                 'value' => number_format($sights['kpi_pct'] ?? 0, 1).'%',
                 'meta' => number_format($sights['kpi_entered'] ?? 0).' of '.number_format($sights['kpi_total'] ?? 0).' · '.number_format($sights['kpi_missing'] ?? 0).' missing',
@@ -124,9 +117,13 @@
                     <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Plan · target · Key Performance Indicator (KPI)</p>
                     <span class="h-px flex-1 bg-gradient-to-r from-blue-200/80 to-transparent"></span>
                 </div>
-                @include('partials.dashboard-metric-cards', ['cards' => $row2, 'columns' => 4])
+                @include('partials.dashboard-metric-cards', ['cards' => $row2, 'columns' => 3])
             </div>
         </div>
     </div>
+@endif
+
+@if (auth()->user()?->isSuperAdmin())
+    <x-superadmin-chatbot />
 @endif
 </x-app-layout>
