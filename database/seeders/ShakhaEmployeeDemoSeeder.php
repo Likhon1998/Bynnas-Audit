@@ -80,6 +80,20 @@ class ShakhaEmployeeDemoSeeder extends Seeder
             $this->command?->info("Employees ready: {$shakha->name} ({$shakha->code}) — 10");
         }
 
+        $seededEmployees = ShakhaEmployee::query()
+            ->whereIn('shakha_id', $shakhas->pluck('id'))
+            ->where('employee_code', 'like', 'DEMO-%')
+            ->get();
+        $expected = $shakhas->count() * count($firstNames);
+        $missingPictures = $seededEmployees->filter(fn (ShakhaEmployee $employee) => ! $employee->hasPhoto());
+
+        if ($seededEmployees->count() !== $expected || $missingPictures->isNotEmpty()) {
+            throw new \RuntimeException(
+                "Employee verification failed: expected {$expected}, found {$seededEmployees->count()}, "
+                ."missing pictures {$missingPictures->count()}."
+            );
+        }
+
         $this->command?->info("Done: {$createdOrUpdated} employees with email and profile picture across {$shakhas->count()} completed-report Shakhas.");
     }
 
