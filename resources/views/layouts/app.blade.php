@@ -2,6 +2,9 @@
     $globalSearchItems = [
         ['label' => 'Dashboard', 'description' => 'Overview and operational summary', 'url' => route('dashboard'), 'keywords' => 'home overview summary'],
     ];
+    if (auth()->user()?->can('map.view')) {
+        $globalSearchItems[] = ['label' => 'Map', 'description' => 'Bangladesh map of bivag, jela, upazila and shakhas', 'url' => route('map.index'), 'keywords' => 'map bangladesh division district upazila jela bivag shakha'];
+    }
     if (auth()->user()?->canAny(['organogram.view', 'organogram.manage'])) {
         $globalSearchItems[] = ['label' => 'Organogram', 'description' => 'Organization structure and employees', 'url' => route('organogram'), 'keywords' => 'organization employee hierarchy'];
     }

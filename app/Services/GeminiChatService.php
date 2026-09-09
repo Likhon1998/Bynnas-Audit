@@ -52,11 +52,11 @@ Allowed intents:
 - reports.status: audit report status, completed/draft reports
 - findings.summary: findings, indicators, irregularities, amounts
 - annual_plan.summary: annual audit plan, schedule, targets
-- visits.performance: monthly visits, assignments, completion
+- visits.performance: monthly visits, who is allocated/assigned to which Shakha, visitor/auditor names, dates, completion. Use this for “X ke ai month kon shakhay allocate”. Put the person’s name in search.
 - risk.summary: Shakha risk scores/categories
 - kpi.summary: annual KPI/performance figures
-- shakhas.directory: Shakha/area/division directory
-- employees.directory: Shakha employee names/contact/directory
+- shakhas.directory: Shakha/area/division directory (not visit allocations)
+- employees.directory: Shakha (branch) staff names/contact/directory only — not audit visitors. Allocation questions are visits.performance.
 - users.summary: application users/roles/active status
 
 Return JSON only:
@@ -231,11 +231,11 @@ PROMPT;
     {
         $text = mb_strtolower($message);
         $map = [
+            'visits.performance' => ['visit', 'assig', 'allocat', 'visitor', 'auditor', 'ভিজিট', 'মাসিক', 'অ্যালোকেট'],
             'employees.directory' => ['employee', 'employe', 'staff', 'phone', 'email', 'কর্মী', 'কর্মকর্তা'],
             'findings.summary' => ['finding', 'findng', 'indicator', 'irregular', 'অনিয়ম', 'ফাইন্ডিং'],
             'reports.status' => ['report', 'repo', 'audit report', 'রিপোর্ট', 'প্রতিবেদন'],
             'annual_plan.summary' => ['annual', 'plan', 'schedule', 'বার্ষিক', 'পরিকল্পনা'],
-            'visits.performance' => ['visit', 'assig', 'monthly', 'ভিজিট', 'মাসিক'],
             'risk.summary' => ['risk', 'risck', 'ঝুঁকি'],
             'kpi.summary' => ['kpi', 'performance indicator'],
             'shakhas.directory' => ['shakha', 'shaka', 'branch', 'area', 'শাখা', 'এরিয়া'],
@@ -256,12 +256,42 @@ PROMPT;
     private function singleRequest(string $intent, string $message): array
     {
         $allPeriods = preg_match('/\b(all time|all period|all month|overall|ever)\b/i', $message) === 1;
-        $filters = $this->normalizeFilters(['period_scope' => $allPeriods ? 'all' : 'current']);
+        $filters = $this->normalizeFilters([
+            'period_scope' => $allPeriods ? 'all' : 'current',
+            'search' => $this->guessSearch($message, $intent),
+        ]);
 
         return [
             'intent' => $intent,
             'filters' => $filters,
             'requests' => [['intent' => $intent, 'filters' => $filters]],
         ];
+    }
+
+    private function guessSearch(string $message, string $intent): ?string
+    {
+        if (! in_array($intent, ['visits.performance', 'employees.directory'], true)) {
+            return null;
+        }
+
+        $stop = [
+            'k', 'ke', 'ki', 'er', 'ai', 'ei', 'oi', 'this', 'month', 'monthly', 'konkon', 'kon', 'kono',
+            'shakhay', 'shakha', 'shaka', 'branch', 'branches', 'allocate', 'allocated', 'allocation',
+            'kora', 'hoyeche', 'hoyeche', 'hoye', 'ache', 'to', 'which', 'been', 'has', 'have', 'for',
+            'the', 'a', 'an', 'is', 'are', 'in', 'of', 'who', 'whom', 'visit', 'visits', 'visitor',
+            'auditor', 'and', 'or', 'please', 'show', 'list', 'dekhao', 'bolo', 'year',
+        ];
+        $tokens = preg_split('/[^\p{L}\p{N}]+/u', mb_strtolower($message)) ?: [];
+        $kept = [];
+        foreach ($tokens as $token) {
+            $token = trim((string) $token);
+            if ($token === '' || in_array($token, $stop, true) || mb_strlen($token) < 2) {
+                continue;
+            }
+            $kept[] = $token;
+        }
+        $phrase = trim(implode(' ', $kept));
+
+        return mb_strlen($phrase) >= 3 ? mb_substr($phrase, 0, 100) : null;
     }
 }

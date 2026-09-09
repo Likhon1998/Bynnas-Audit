@@ -2,7 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Models\ActivityType;
 use App\Models\Area;
+use App\Models\AuditPlan;
+use App\Models\Employee;
+use App\Models\MonthlyAssignment;
+use App\Models\MonthlyWorkItem;
+use App\Models\Position;
 use App\Models\Shakha;
 use App\Models\ShakhaAnnualKpi;
 use App\Models\ShakhaEmployee;
@@ -200,6 +206,137 @@ class SuperAdminChatbotTest extends TestCase
         ]);
 
         $this->assertSame(['safe' => 4, 'nested' => ['name' => 'Allowed']], $clean);
+    }
+
+    public function test_visits_context_lists_shakhas_allocated_to_a_named_visitor(): void
+    {
+        $now = now('Asia/Dhaka');
+        $position = Position::query()->create([
+            'serial' => 1,
+            'title' => 'Audit Officer',
+            'slug' => 'ao-chat-alloc',
+            'color' => '#4C6FFF',
+        ]);
+        $officer = Employee::query()->create([
+            'position_id' => $position->id,
+            'name' => 'Shahidul Alam',
+            'sort_order' => 1,
+        ]);
+        $area = Area::query()->create(['name' => 'Dhaka Area', 'division' => 'Dhaka']);
+        $mirpur = Shakha::query()->create(['area_id' => $area->id, 'name' => 'Mirpur Shakha', 'code' => 'MIR-1', 'status' => 'active']);
+        $bhola = Shakha::query()->create(['area_id' => $area->id, 'name' => 'Bhola Branch', 'code' => 'BHO-1', 'status' => 'active']);
+        $activity = ActivityType::query()->create([
+            'name' => 'Audit',
+            'slug' => 'audit-chat-alloc',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+        $plan = AuditPlan::query()->create([
+            'name' => 'FY '.$now->year.'-'.($now->year + 1),
+            'fy_label' => $now->year.'-'.($now->year + 1),
+            'start_date' => $now->copy()->startOfYear()->toDateString(),
+            'end_date' => $now->copy()->endOfYear()->toDateString(),
+            'status' => 'active',
+            'generated_at' => $now,
+        ]);
+
+        foreach ([$mirpur, $bhola] as $index => $shakha) {
+            $item = MonthlyWorkItem::query()->create([
+                'audit_plan_id' => $plan->id,
+                'fy_label' => $plan->fy_label,
+                'month_index' => (int) $now->month,
+                'category' => 'shakha_audit',
+                'activity_type_id' => $activity->id,
+                'schedulable_type' => Shakha::class,
+                'schedulable_id' => $shakha->id,
+                'source' => MonthlyWorkItem::SOURCE_YEARLY,
+                'status' => MonthlyWorkItem::STATUS_ASSIGNED,
+                'entity_label' => $shakha->name,
+            ]);
+            $assignment = MonthlyAssignment::query()->create([
+                'monthly_work_item_id' => $item->id,
+                'employee_id' => $officer->id,
+                'start_date' => $now->copy()->startOfMonth()->addDays($index + 1)->toDateString(),
+                'end_date' => $now->copy()->startOfMonth()->addDays($index + 3)->toDateString(),
+                'duration_days' => 3,
+            ]);
+            $assignment->visitors()->sync([$officer->id => ['sort_order' => 0]]);
+        }
+
+        $context = app(SuperAdminChatContextService::class)->build('visits.performance', [
+            'search' => 'Shahidul Islam',
+            'month' => (int) $now->month,
+            'year' => (int) $now->year,
+        ]);
+
+        $this->assertSame(2, $context['assignment_count']);
+        $this->assertSame('Shahidul Alam', $context['by_visitor'][0]['visitor']);
+        $this->assertEqualsCanonicalizing(['Mirpur Shakha', 'Bhola Branch'], $context['by_visitor'][0]['shakhas']);
+    }
+
+    public function test_visitor_allocation_question_sends_shakha_names_to_gemini(): void
+    {
+        $now = now('Asia/Dhaka');
+        $position = Position::query()->create([
+            'serial' => 2,
+            'title' => 'Audit Officer',
+            'slug' => 'ao-chat-alloc-ask',
+            'color' => '#4C6FFF',
+        ]);
+        $officer = Employee::query()->create([
+            'position_id' => $position->id,
+            'name' => 'Shahidul Alam',
+            'sort_order' => 1,
+        ]);
+        $area = Area::query()->create(['name' => 'Barishal Area', 'division' => 'Barishal']);
+        $shakha = Shakha::query()->create(['area_id' => $area->id, 'name' => 'Bhola Branch 2', 'code' => 'BHO-2', 'status' => 'active']);
+        $activity = ActivityType::query()->create([
+            'name' => 'Audit',
+            'slug' => 'audit-chat-alloc-ask',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+        $plan = AuditPlan::query()->create([
+            'name' => 'FY plan',
+            'fy_label' => '2026-2027',
+            'start_date' => '2026-07-01',
+            'end_date' => '2027-06-30',
+            'status' => 'active',
+            'generated_at' => $now,
+        ]);
+        $item = MonthlyWorkItem::query()->create([
+            'audit_plan_id' => $plan->id,
+            'fy_label' => $plan->fy_label,
+            'month_index' => (int) $now->month,
+            'category' => 'shakha_audit',
+            'activity_type_id' => $activity->id,
+            'schedulable_type' => Shakha::class,
+            'schedulable_id' => $shakha->id,
+            'source' => MonthlyWorkItem::SOURCE_YEARLY,
+            'status' => MonthlyWorkItem::STATUS_ASSIGNED,
+            'entity_label' => $shakha->name,
+        ]);
+        $assignment = MonthlyAssignment::query()->create([
+            'monthly_work_item_id' => $item->id,
+            'employee_id' => $officer->id,
+            'start_date' => $now->toDateString(),
+            'end_date' => $now->copy()->addDays(2)->toDateString(),
+            'duration_days' => 3,
+        ]);
+        $assignment->visitors()->sync([$officer->id => ['sort_order' => 0]]);
+
+        Http::fakeSequence()
+            ->push($this->geminiResponse('{"intent":"visits.performance","filters":{"month":null,"year":null,"fy":null,"shakha":null,"status":null,"search":"Shahidul Islam","period_scope":"current"}}'))
+            ->push($this->geminiResponse('Shahidul Alam ei month Bhola Branch 2 e allocate kora hoyeche.'));
+
+        $result = app(GeminiChatService::class)->ask(
+            'shahidul islam k ai month konkon shakhay allocate kora hoyeche ?'
+        );
+
+        $this->assertSame('visits.performance', $result['intent']);
+        $answerPrompt = (string) data_get(Http::recorded()[1][0]->data(), 'contents.0.parts.0.text');
+        $this->assertStringContainsString('Bhola Branch 2', $answerPrompt);
+        $this->assertStringContainsString('Shahidul Alam', $answerPrompt);
     }
 
     public function test_every_supported_intent_builds_context_safely(): void

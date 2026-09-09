@@ -186,14 +186,79 @@ class SuperAdminChatContextService
     {
         $month = $this->month($filters);
         $year = $this->year($filters);
-        $query = VisitExecution::query()->whereHas('assignment', function (Builder $query) use ($month, $year) {
-            $query->whereMonth('start_date', $month)->whereYear('start_date', $year);
+        $search = trim((string) ($filters['search'] ?? ''));
+        $periodScope = $filters['period_scope'] ?? 'current';
+
+        $query = MonthlyAssignment::query()->with([
+            'workItem.schedulable',
+            'visitors:id,name',
+            'employee:id,name',
+            'execution:id,monthly_assignment_id,status',
+        ]);
+        $this->applyAssignmentPeriod($query, $filters);
+        $this->applyVisitorSearch($query, $search);
+        $this->applyAssignmentShakha($query, $filters);
+
+        $assignmentCount = (clone $query)->count();
+        $rows = $query->orderBy('start_date')->limit($this->limit())->get();
+
+        $executionsQuery = VisitExecution::query()->whereHas('assignment', function (Builder $inner) use ($filters) {
+            $this->applyAssignmentPeriod($inner, $filters);
         });
 
+        $allocations = $rows->map(function (MonthlyAssignment $assignment) {
+            $schedulable = $assignment->workItem?->schedulable;
+            $shakhaName = $schedulable instanceof Shakha
+                ? $schedulable->name
+                : (string) ($assignment->workItem?->entity_label ?? '');
+            $visitors = $assignment->visitorList()->pluck('name')->filter()->values()->all();
+
+            return [
+                'shakha' => $shakhaName !== '' ? $shakhaName : null,
+                'shakha_code' => $schedulable instanceof Shakha ? $schedulable->code : null,
+                'visitors' => $visitors,
+                'start_date' => $assignment->start_date?->toDateString(),
+                'end_date' => $assignment->end_date?->toDateString(),
+                'dates' => $assignment->visitDateRangeLabel(),
+                'execution_status' => $assignment->execution?->status,
+            ];
+        })->all();
+
+        $byVisitor = [];
+        foreach ($allocations as $row) {
+            foreach ($row['visitors'] as $visitor) {
+                $byVisitor[$visitor]['visitor'] = $visitor;
+                $byVisitor[$visitor]['shakhas'][] = $row['shakha'];
+                $byVisitor[$visitor]['visits'][] = [
+                    'shakha' => $row['shakha'],
+                    'shakha_code' => $row['shakha_code'],
+                    'dates' => $row['dates'],
+                    'execution_status' => $row['execution_status'],
+                ];
+            }
+        }
+        foreach ($byVisitor as &$group) {
+            $group['shakhas'] = array_values(array_unique(array_filter($group['shakhas'])));
+            $group['visit_count'] = count($group['visits']);
+        }
+        unset($group);
+
+        $period = $periodScope === 'all'
+            ? 'all'
+            : ($periodScope === 'year' ? (string) $year : sprintf('%04d-%02d', $year, $month));
+
         return [
-            'period' => sprintf('%04d-%02d', $year, $month),
-            'assignments' => MonthlyAssignment::query()->whereMonth('start_date', $month)->whereYear('start_date', $year)->count(),
-            'executions' => $query->select('status', DB::raw('count(*) as total'))->groupBy('status')->pluck('total', 'status')->all(),
+            'period' => $period,
+            'visitor_search' => $search !== '' ? $search : null,
+            'assignment_count' => $assignmentCount,
+            'assignments' => $assignmentCount,
+            'rows_returned' => count($allocations),
+            'executions' => $executionsQuery->select('status', DB::raw('count(*) as total'))->groupBy('status')->pluck('total', 'status')->all(),
+            'allocations' => $allocations,
+            'by_visitor' => array_values($byVisitor),
+            'message' => $search !== '' && $assignmentCount === 0
+                ? 'No monthly visit allocations found for this visitor in the requested period.'
+                : null,
         ];
     }
 
@@ -394,6 +459,61 @@ class SuperAdminChatContextService
         }
         $query->whereHas('shakha', fn (Builder $q) => $q->where(fn (Builder $inner) => $inner
             ->where('name', 'like', "%{$term}%")->orWhere('code', 'like', "%{$term}%")));
+    }
+
+    /** @param Builder<*> $query @param array<string,mixed> $filters */
+    private function applyAssignmentPeriod(Builder $query, array $filters): void
+    {
+        if (($filters['period_scope'] ?? null) === 'all') {
+            return;
+        }
+
+        $query->whereYear('start_date', $this->year($filters));
+        if (($filters['period_scope'] ?? null) !== 'year') {
+            $query->whereMonth('start_date', $this->month($filters));
+        }
+    }
+
+    /** @param Builder<*> $query */
+    private function applyVisitorSearch(Builder $query, string $search): void
+    {
+        $search = trim($search);
+        if ($search === '') {
+            return;
+        }
+
+        $tokens = collect(preg_split('/\s+/u', $search) ?: [])
+            ->map(fn (string $token) => trim($token))
+            ->filter(fn (string $token) => mb_strlen($token) >= 4)
+            ->values();
+
+        $query->where(function (Builder $inner) use ($search, $tokens) {
+            $match = function (Builder $nameQuery) use ($search, $tokens): void {
+                $nameQuery->where('name', 'like', "%{$search}%");
+                foreach ($tokens as $token) {
+                    $nameQuery->orWhere('name', 'like', "%{$token}%");
+                }
+            };
+
+            $inner->whereHas('visitors', $match)
+                ->orWhereHas('employee', $match);
+        });
+    }
+
+    /** @param Builder<*> $query @param array<string,mixed> $filters */
+    private function applyAssignmentShakha(Builder $query, array $filters): void
+    {
+        $term = trim((string) ($filters['shakha'] ?? ''));
+        if ($term === '') {
+            return;
+        }
+
+        $query->whereHas('workItem', function (Builder $item) use ($term) {
+            $item->where('entity_label', 'like', "%{$term}%")
+                ->orWhereHasMorph('schedulable', [Shakha::class], fn (Builder $shakha) => $shakha
+                    ->where('name', 'like', "%{$term}%")
+                    ->orWhere('code', 'like', "%{$term}%"));
+        });
     }
 
     /** @param Builder<*> $query @param array<string,mixed> $filters @param list<string> $columns */

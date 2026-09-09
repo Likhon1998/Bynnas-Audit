@@ -34,6 +34,7 @@ class RolePermissionSeeder extends Seeder
             'findings.enter',
             'dashboard.ops',
             'dashboard.officer',
+            'map.view',
         ];
 
         foreach ($permissions as $permission) {
@@ -63,6 +64,7 @@ class RolePermissionSeeder extends Seeder
             'findings.view_all',
             'findings.enter',
             'dashboard.ops',
+            'map.view',
         ]);
 
         $officer->syncPermissions([
@@ -70,6 +72,7 @@ class RolePermissionSeeder extends Seeder
             'findings.enter',
             'monthly_visits.execute',
             'dashboard.officer',
+            'map.view',
         ]);
 
         $admin = User::query()->updateOrCreate(

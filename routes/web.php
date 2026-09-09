@@ -5,6 +5,7 @@ use App\Http\Controllers\AreaController;
 use App\Http\Controllers\AuditFindingController;
 use App\Http\Controllers\AuditReportController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\MapController;
 use App\Http\Controllers\MonthlyVisitController;
 use App\Http\Controllers\OrganogramController;
 use App\Http\Controllers\ProfileController;
@@ -26,6 +27,11 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified', 'active'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    Route::middleware('permission:map.view')->group(function () {
+        Route::get('/map', [MapController::class, 'index'])->name('map.index');
+        Route::get('/map/live', [MapController::class, 'live'])->name('map.live');
+    });
 
     Route::middleware(['superadmin', 'throttle:20,1'])->prefix('superadmin/chat')->name('superadmin.chat.')->group(function () {
         Route::get('/history', [SuperAdminChatController::class, 'history'])->name('history');

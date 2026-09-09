@@ -1,0 +1,13 @@
+{
+    "all": "all.json",
+    "divisions": {
+        "Barishal": "divisions\/barishal.json",
+        "Chattogram": "divisions\/chattogram.json",
+        "Dhaka": "divisions\/dhaka.json",
+        "Khulna": "divisions\/khulna.json",
+        "Mymensingh": "divisions\/mymensingh.json",
+        "Rajshahi": "divisions\/rajshahi.json",
+        "Rangpur": "divisions\/rangpur.json",
+        "Sylhet": "divisions\/sylhet.json"
+    }
+}

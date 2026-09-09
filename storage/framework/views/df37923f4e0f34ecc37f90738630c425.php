@@ -63,6 +63,35 @@
 <?php unset($__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300); ?>
 <?php endif; ?>
 
+            <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('map.view')): ?>
+                <?php if (isset($component)) { $__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal3d3185cbc95d2b4d3b41182ae7d7a300 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.sidebar-link','data' => ['href' => route('map.index'),'active' => request()->routeIs('map.*'),'title' => 'Map']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('sidebar-link'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('map.index')),'active' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(request()->routeIs('map.*')),'title' => 'Map']); ?>
+<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
+
+                    <svg class="h-3.5 w-3.5 shrink-0 <?php echo e(request()->routeIs('map.*') ? 'text-white' : 'text-slate-400'); ?>" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                    </svg>
+                    <span class="sidebar-link-label truncate">Map</span>
+                 <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal3d3185cbc95d2b4d3b41182ae7d7a300)): ?>
+<?php $attributes = $__attributesOriginal3d3185cbc95d2b4d3b41182ae7d7a300; ?>
+<?php unset($__attributesOriginal3d3185cbc95d2b4d3b41182ae7d7a300); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300)): ?>
+<?php $component = $__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300; ?>
+<?php unset($__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300); ?>
+<?php endif; ?>
+            <?php endif; ?>
+
             <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->any(['organogram.view', 'organogram.manage'])): ?>
                 <?php if (isset($component)) { $__componentOriginal3d3185cbc95d2b4d3b41182ae7d7a300 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal3d3185cbc95d2b4d3b41182ae7d7a300 = $attributes; } ?>

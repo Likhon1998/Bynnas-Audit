@@ -47,6 +47,7 @@ class RoleAccess
                     'Checklists',
                     'Findings Matrix',
                     'Shakha / Areas',
+                    'Map',
                     'Ops Dashboard',
                 ],
                 'notes' => 'Can create logins, assign roles, and manage every module.',
@@ -64,6 +65,7 @@ class RoleAccess
                     'Checklists',
                     'Findings Matrix',
                     'Shakha / Areas',
+                    'Map',
                     'Ops Dashboard',
                 ],
                 'notes' => 'Sees all branches. Cannot manage user logins (superadmin only).',
@@ -73,6 +75,7 @@ class RoleAccess
                 'summary' => 'Field work on assigned branches',
                 'menus' => [
                     'Dashboard (my work)',
+                    'Map',
                     'Monthly Visits (execute)',
                     'Audit Reports',
                     'Checklists',
@@ -172,6 +175,7 @@ class RoleAccess
                 'permissions' => [
                     'dashboard.ops' => 'Ops dashboard',
                     'dashboard.officer' => 'Officer dashboard',
+                    'map.view' => 'Map',
                 ],
             ],
         ];
@@ -205,6 +209,7 @@ class RoleAccess
             'findings.view_all' => 'Findings Matrix',
             'dashboard.ops' => 'Ops Dashboard',
             'dashboard.officer' => 'Officer Dashboard',
+            'map.view' => 'Map',
         ];
 
         foreach ($map as $permission => $label) {
