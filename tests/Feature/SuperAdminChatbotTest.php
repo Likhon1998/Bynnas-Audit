@@ -270,6 +270,7 @@ class SuperAdminChatbotTest extends TestCase
         ]);
 
         $this->assertSame(2, $context['assignment_count']);
+        $this->assertSame(['Shahidul Alam'], $context['matched_visitors']);
         $this->assertSame('Shahidul Alam', $context['by_visitor'][0]['visitor']);
         $this->assertEqualsCanonicalizing(['Mirpur Shakha', 'Bhola Branch'], $context['by_visitor'][0]['shakhas']);
     }
@@ -337,6 +338,73 @@ class SuperAdminChatbotTest extends TestCase
         $answerPrompt = (string) data_get(Http::recorded()[1][0]->data(), 'contents.0.parts.0.text');
         $this->assertStringContainsString('Bhola Branch 2', $answerPrompt);
         $this->assertStringContainsString('Shahidul Alam', $answerPrompt);
+    }
+
+    public function test_allocation_question_is_forced_to_visits_even_when_gemini_picks_the_wrong_intent(): void
+    {
+        $now = now('Asia/Dhaka');
+        $position = Position::query()->create([
+            'serial' => 3,
+            'title' => 'Audit Officer',
+            'slug' => 'ao-chat-alloc-override',
+            'color' => '#4C6FFF',
+        ]);
+        $officer = Employee::query()->create([
+            'position_id' => $position->id,
+            'name' => 'Shahidul Alam',
+            'sort_order' => 1,
+        ]);
+        $area = Area::query()->create(['name' => 'Dhaka Area', 'division' => 'Dhaka']);
+        $shakha = Shakha::query()->create(['area_id' => $area->id, 'name' => 'Jatrabari Shakha', 'code' => 'BYN-014', 'status' => 'active']);
+        $activity = ActivityType::query()->create([
+            'name' => 'Audit',
+            'slug' => 'audit-chat-alloc-override',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+        $plan = AuditPlan::query()->create([
+            'name' => 'FY plan override',
+            'fy_label' => '2026-2027',
+            'start_date' => '2026-07-01',
+            'end_date' => '2027-06-30',
+            'status' => 'active',
+            'generated_at' => $now,
+        ]);
+        $item = MonthlyWorkItem::query()->create([
+            'audit_plan_id' => $plan->id,
+            'fy_label' => $plan->fy_label,
+            'month_index' => (int) $now->month,
+            'category' => 'shakha_audit',
+            'activity_type_id' => $activity->id,
+            'schedulable_type' => Shakha::class,
+            'schedulable_id' => $shakha->id,
+            'source' => MonthlyWorkItem::SOURCE_YEARLY,
+            'status' => MonthlyWorkItem::STATUS_ASSIGNED,
+            'entity_label' => $shakha->name,
+        ]);
+        $assignment = MonthlyAssignment::query()->create([
+            'monthly_work_item_id' => $item->id,
+            'employee_id' => $officer->id,
+            'start_date' => $now->toDateString(),
+            'end_date' => $now->copy()->addDays(2)->toDateString(),
+            'duration_days' => 3,
+        ]);
+        $assignment->visitors()->sync([$officer->id => ['sort_order' => 0]]);
+
+        Http::fakeSequence()
+            ->push($this->geminiResponse('{"intent":"employees.directory","filters":{"month":null,"year":null,"fy":null,"shakha":null,"status":null,"search":"Shahidul Islam","period_scope":"current"}}'))
+            ->push($this->geminiResponse('Shahidul Alam ei month Jatrabari Shakha te allocate.'));
+
+        $result = app(GeminiChatService::class)->ask(
+            'shahidul islam k ai month konkon shakhay allocate kora hoyeche ?',
+            [['question' => 'previous', 'answer' => 'The information is unavailable.']]
+        );
+
+        $this->assertSame('visits.performance', $result['intent']);
+        $answerPrompt = (string) data_get(Http::recorded()[1][0]->data(), 'contents.0.parts.0.text');
+        $this->assertStringContainsString('Jatrabari Shakha', $answerPrompt);
+        $this->assertStringContainsString('Shahidul Alam', $answerPrompt);
+        $this->assertStringContainsString('"intent":"visits.performance"', $answerPrompt);
     }
 
     public function test_every_supported_intent_builds_context_safely(): void

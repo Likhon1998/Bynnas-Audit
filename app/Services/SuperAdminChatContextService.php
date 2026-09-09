@@ -6,6 +6,7 @@ use App\Models\Area;
 use App\Models\AuditFinding;
 use App\Models\AuditPlan;
 use App\Models\AuditReport;
+use App\Models\Employee;
 use App\Models\MonthlyAssignment;
 use App\Models\Shakha;
 use App\Models\ShakhaAnnualKpi;
@@ -195,8 +196,13 @@ class SuperAdminChatContextService
             'employee:id,name',
             'execution:id,monthly_assignment_id,status',
         ]);
+        $matchedVisitors = $this->matchingVisitors($search);
         $this->applyAssignmentPeriod($query, $filters);
-        $this->applyVisitorSearch($query, $search);
+        if ($search !== '' && $matchedVisitors === []) {
+            $query->whereRaw('0 = 1');
+        } else {
+            $this->applyVisitorSearch($query, $matchedVisitors);
+        }
         $this->applyAssignmentShakha($query, $filters);
 
         $assignmentCount = (clone $query)->count();
@@ -250,6 +256,7 @@ class SuperAdminChatContextService
         return [
             'period' => $period,
             'visitor_search' => $search !== '' ? $search : null,
+            'matched_visitors' => array_values(array_unique(array_column($matchedVisitors, 'name'))),
             'assignment_count' => $assignmentCount,
             'assignments' => $assignmentCount,
             'rows_returned' => count($allocations),
@@ -474,30 +481,67 @@ class SuperAdminChatContextService
         }
     }
 
-    /** @param Builder<*> $query */
-    private function applyVisitorSearch(Builder $query, string $search): void
+    /**
+     * @param  list<array{id:int,name:string}>  $matchedVisitors
+     * @param  Builder<*>  $query
+     */
+    private function applyVisitorSearch(Builder $query, array $matchedVisitors): void
     {
-        $search = trim($search);
-        if ($search === '') {
+        if ($matchedVisitors === []) {
             return;
         }
 
-        $tokens = collect(preg_split('/\s+/u', $search) ?: [])
-            ->map(fn (string $token) => trim($token))
-            ->filter(fn (string $token) => mb_strlen($token) >= 4)
-            ->values();
-
-        $query->where(function (Builder $inner) use ($search, $tokens) {
-            $match = function (Builder $nameQuery) use ($search, $tokens): void {
-                $nameQuery->where('name', 'like', "%{$search}%");
-                foreach ($tokens as $token) {
-                    $nameQuery->orWhere('name', 'like', "%{$token}%");
-                }
-            };
-
-            $inner->whereHas('visitors', $match)
-                ->orWhereHas('employee', $match);
+        $ids = array_values(array_unique(array_column($matchedVisitors, 'id')));
+        $query->where(function (Builder $inner) use ($ids) {
+            $inner->whereHas('visitors', fn (Builder $visitors) => $visitors->whereIn('employees.id', $ids))
+                ->orWhereIn('employee_id', $ids);
         });
+    }
+
+    /** @return list<array{id:int,name:string}> */
+    private function matchingVisitors(string $search): array
+    {
+        $needle = mb_strtolower(trim($search));
+        if ($needle === '') {
+            return [];
+        }
+
+        $searchTokens = collect(preg_split('/\s+/u', $needle) ?: [])
+            ->map(fn (string $token) => trim($token))
+            ->filter()
+            ->values();
+        $first = (string) $searchTokens->first();
+
+        $scored = Employee::query()->get(['id', 'name'])->map(function (Employee $employee) use ($needle, $searchTokens, $first) {
+            $name = mb_strtolower(trim((string) $employee->name));
+            $nameTokens = collect(preg_split('/\s+/u', $name) ?: [])
+                ->map(fn (string $token) => trim($token))
+                ->filter()
+                ->values();
+            $score = 0;
+            if ($name === $needle) {
+                $score = 100;
+            } elseif (str_contains($name, $needle)) {
+                $score = 90;
+            } elseif ($first !== '' && mb_strlen($first) >= 4 && $nameTokens->first() === $first) {
+                $score = 80;
+            } elseif ($searchTokens->count() === 1 && mb_strlen($first) >= 4 && $nameTokens->contains($first)) {
+                $score = 60;
+            }
+
+            return ['id' => (int) $employee->id, 'name' => (string) $employee->name, 'score' => $score];
+        })->filter(fn (array $row) => $row['score'] > 0);
+
+        if ($scored->isEmpty()) {
+            return [];
+        }
+
+        $best = (int) $scored->max('score');
+
+        return $scored->where('score', $best)
+            ->map(fn (array $row) => ['id' => $row['id'], 'name' => $row['name']])
+            ->values()
+            ->all();
     }
 
     /** @param Builder<*> $query @param array<string,mixed> $filters */
