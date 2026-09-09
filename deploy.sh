@@ -10,6 +10,8 @@ set -euo pipefail
 #   rsync -a --delete \
 #     --exclude '.env' --exclude 'storage/' --exclude 'bootstrap/cache/' \
 #     --exclude 'node_modules/' --exclude '.git/' --exclude 'vendor/' \
+#     --exclude 'database/*.sqlite' --exclude 'database/*.sqlite-*' \
+#     --exclude 'public/hot' --exclude 'public/storage' \
 #     ~/repositories/Bynnas-Audit/ ~/audit.bynnas.com/
 #   cd ~/audit.bynnas.com && bash deploy.sh
 

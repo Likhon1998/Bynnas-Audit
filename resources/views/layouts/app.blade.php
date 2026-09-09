@@ -12,7 +12,7 @@
         $globalSearchItems[] = ['label' => 'Annual Audit Plan', 'description' => 'Yearly audit and monitoring schedules', 'url' => route('annual-audit.index'), 'keywords' => 'year plan schedule monitoring'];
     }
     if (auth()->user()?->canAny(['monthly_visits.manage', 'monthly_visits.execute'])) {
-        $globalSearchItems[] = ['label' => 'Monthly Visits', 'description' => 'Visit assignments and execution', 'url' => route('monthly-visits.index', \App\Support\FinancialYear::currentVisitQuery()), 'keywords' => 'monthly visit assignment'];
+        $globalSearchItems[] = ['label' => 'Monthly Visits', 'description' => 'Visit assignments and execution', 'url' => route('monthly-visits.index'), 'keywords' => 'monthly visit assignment'];
     }
     if (auth()->user()?->can('projects.manage')) {
         $globalSearchItems[] = ['label' => 'Projects', 'description' => 'Project audit and monitoring', 'url' => route('projects.index'), 'keywords' => 'project audit monitoring'];

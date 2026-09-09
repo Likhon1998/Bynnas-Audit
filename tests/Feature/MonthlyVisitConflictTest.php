@@ -245,4 +245,63 @@ class MonthlyVisitConflictTest extends TestCase
             \Illuminate\Support\Carbon::setTestNow();
         }
     }
+
+    public function test_auto_allocate_rewrites_assignments_dated_outside_the_month(): void
+    {
+        $admin = User::query()->where('email', 'admin@bynnasaudit.com')->firstOrFail();
+        $position = Position::query()->create([
+            'serial' => 1,
+            'title' => 'Audit Officer',
+            'slug' => 'ao-outside-month',
+            'color' => '#4C6FFF',
+        ]);
+        $employee = Employee::query()->create([
+            'position_id' => $position->id,
+            'name' => 'Repair Officer',
+            'sort_order' => 1,
+        ]);
+        $area = Area::query()->create(['name' => 'Area Fix', 'division' => 'D1']);
+        $shakha = Shakha::query()->create(['area_id' => $area->id, 'name' => 'Banaripara Shakha', 'code' => 'BAN-1', 'status' => 'active']);
+        $activity = ActivityType::query()->create([
+            'name' => 'Audit',
+            'slug' => 'audit-outside-month',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+        $plan = AuditPlan::query()->create([
+            'name' => 'FY 2026-2027',
+            'fy_label' => '2026-2027',
+            'start_date' => '2026-07-01',
+            'end_date' => '2027-06-30',
+            'status' => 'active',
+            'generated_at' => now(),
+        ]);
+        $item = MonthlyWorkItem::query()->create([
+            'audit_plan_id' => $plan->id,
+            'fy_label' => $plan->fy_label,
+            'month_index' => 2,
+            'category' => 'shakha_audit',
+            'activity_type_id' => $activity->id,
+            'schedulable_type' => Shakha::class,
+            'schedulable_id' => $shakha->id,
+            'source' => MonthlyWorkItem::SOURCE_YEARLY,
+            'status' => MonthlyWorkItem::STATUS_ASSIGNED,
+            'entity_label' => $shakha->name,
+        ]);
+        $assignment = MonthlyAssignment::query()->create([
+            'monthly_work_item_id' => $item->id,
+            'employee_id' => $employee->id,
+            'start_date' => '2026-11-06',
+            'end_date' => '2026-11-09',
+            'duration_days' => 4,
+        ]);
+        $assignment->visitors()->sync([$employee->id => ['sort_order' => 0]]);
+
+        app(MonthlyWorklistService::class)->bulkAllocateMonth($plan, 2, $admin->id);
+
+        $fresh = $item->fresh('assignment');
+        $this->assertNotNull($fresh->assignment);
+        $this->assertSame('2026-09', $fresh->assignment->start_date->format('Y-m'));
+        $this->assertSame('2026-09', $fresh->assignment->end_date->format('Y-m'));
+    }
 }

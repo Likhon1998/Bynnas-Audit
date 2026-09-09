@@ -179,26 +179,64 @@ class MonthlyWorklistService
     {
         $this->refreshFromYearly($plan, $monthIndex, $userId);
 
-        $cleared = 0;
-        $repacked = false;
+        $cleared = $this->clearAssignmentsOutsideMonth($plan, $monthIndex, $userId);
+        $repacked = $cleared > 0;
 
         if (! $repack) {
             $first = $this->allocateUnassignedFlexible($plan, $monthIndex, $userId);
             if ($first['skipped'] === 0) {
-                return $first + ['cleared' => 0, 'repacked' => false];
+                return $first + ['cleared' => $cleared, 'repacked' => $repacked];
             }
             // Existing long bookings leave no room — rebalance the month.
             $repack = true;
         }
 
         if ($repack) {
-            $cleared = $this->clearMonthForRepack($plan, $monthIndex, $userId);
+            $cleared += $this->clearMonthForRepack($plan, $monthIndex, $userId);
             $repacked = true;
         }
 
         $result = $this->allocateUnassignedFlexible($plan, $monthIndex, $userId, coverageFirst: true);
 
         return $result + ['cleared' => $cleared, 'repacked' => $repacked];
+    }
+
+    /**
+     * Drop assignments whose dates do not belong to this FY month (e.g. Sep work
+     * items that were stored with November dates).
+     */
+    public function clearAssignmentsOutsideMonth(AuditPlan $plan, int $monthIndex, ?int $userId = null): int
+    {
+        $fy = FinancialYear::fromLabel($plan->fy_label);
+        $monthStart = $fy->dateForMonthIndex($monthIndex)->toDateString();
+        $monthEnd = $fy->dateForMonthIndex($monthIndex)->copy()->endOfMonth()->toDateString();
+
+        $items = MonthlyWorkItem::query()
+            ->where('audit_plan_id', $plan->id)
+            ->where('month_index', $monthIndex)
+            ->where('status', MonthlyWorkItem::STATUS_ASSIGNED)
+            ->with('assignment')
+            ->get();
+
+        $cleared = 0;
+        foreach ($items as $item) {
+            $assignment = $item->assignment;
+            if (! $assignment?->start_date || ! $assignment->end_date) {
+                $this->unassign($item, $userId);
+                $cleared++;
+
+                continue;
+            }
+
+            $start = $assignment->start_date->toDateString();
+            $end = $assignment->end_date->toDateString();
+            if ($start < $monthStart || $end > $monthEnd) {
+                $this->unassign($item, $userId);
+                $cleared++;
+            }
+        }
+
+        return $cleared;
     }
 
     /**

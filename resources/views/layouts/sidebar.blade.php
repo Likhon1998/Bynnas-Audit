@@ -71,7 +71,7 @@
             @endcan
 
             @canany(['monthly_visits.manage', 'monthly_visits.execute'])
-                <x-sidebar-link :href="route('monthly-visits.index', \App\Support\FinancialYear::currentVisitQuery())" :active="request()->routeIs('monthly-visits.*')" title="Monthly Visits">
+                <x-sidebar-link :href="route('monthly-visits.index')" :active="request()->routeIs('monthly-visits.*')" title="Monthly Visits">
                     <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('monthly-visits.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M5 11h14M5 15h8M5 5h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z" />
                     </svg>
