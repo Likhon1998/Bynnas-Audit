@@ -38,7 +38,7 @@ class MonthlyVisitController extends Controller
         $fy = FinancialYear::fromLabel($plan->fy_label);
         $monthIndex = $request->filled('month')
             ? max(0, min(11, $request->integer('month')))
-            : ($fy->monthIndexForDate(now()) ?? 0);
+            : $this->worklist->currentMonthIndex($plan);
 
         $user = $request->user();
         $officerView = $this->access->isAllocationScoped($user);
@@ -92,10 +92,7 @@ class MonthlyVisitController extends Controller
             ];
         })->values();
 
-        $calendarPayload = $this->calendar->modalCalendarPayload(
-            $defaultStart->copy()->subMonth(),
-            $monthEnd->copy()->addMonths(2)
-        );
+        $calendarPayload = $this->calendar->modalCalendarPayload($defaultStart, $monthEnd);
 
         $employeeAvailability = $officerView
             ? collect()

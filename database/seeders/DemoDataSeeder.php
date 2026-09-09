@@ -15,6 +15,7 @@ use App\Models\PlanSchedule;
 use App\Models\Shakha;
 use App\Models\User;
 use App\Models\VisitExecution;
+use App\Support\FinancialYear;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -391,7 +392,7 @@ class DemoDataSeeder extends Seeder
                 continue;
             }
 
-            $monthStart = now('Asia/Dhaka')->startOfMonth()->addMonthsNoOverflow($monthIndex)->startOfDay();
+            $monthStart = FinancialYear::fromLabel($plan->fy_label)->dateForMonthIndex($monthIndex);
             $monthEnd = $monthStart->copy()->endOfMonth()->startOfDay();
             $duration = 1 + ($index % 3); // 1–3 calendar days
 

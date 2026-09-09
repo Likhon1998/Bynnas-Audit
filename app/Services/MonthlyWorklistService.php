@@ -46,12 +46,40 @@ class MonthlyWorklistService
             }
         }
 
-        $plan = AuditPlan::query()->orderByDesc('start_date')->first();
+        $currentLabel = FinancialYear::current(now('Asia/Dhaka'))->label;
+        $plan = AuditPlan::query()->where('fy_label', $currentLabel)->first()
+            ?? AuditPlan::query()->orderByDesc('start_date')->first();
         if (! $plan) {
             throw new InvalidArgumentException('No annual audit plan found. Generate a yearly plan first.');
         }
 
         return $plan;
+    }
+
+    public function currentMonthIndex(AuditPlan $plan, ?Carbon $asOf = null): int
+    {
+        $asOf = ($asOf ?? now('Asia/Dhaka'))->copy();
+        $fy = FinancialYear::fromLabel($plan->fy_label);
+        $index = $fy->monthIndexForDate($asOf);
+        if ($index !== null) {
+            return $index;
+        }
+
+        return $asOf->lt($fy->startDate) ? 0 : 11;
+    }
+
+    public function clearAllAllocations(): int
+    {
+        return (int) DB::transaction(function () {
+            AssignmentStatusLog::query()->delete();
+            VisitExecution::query()->delete();
+            DB::table('monthly_assignment_visitors')->delete();
+            $count = MonthlyAssignment::query()->count();
+            MonthlyAssignment::query()->delete();
+            MonthlyWorkItem::query()->update(['status' => MonthlyWorkItem::STATUS_UNASSIGNED]);
+
+            return $count;
+        });
     }
 
     /**
@@ -689,6 +717,22 @@ class MonthlyWorklistService
         return null;
     }
 
+    protected function assertDatesInWorkMonth(?MonthlyWorkItem $item, Carbon $start, Carbon $end): void
+    {
+        if (! $item?->fy_label) {
+            return;
+        }
+
+        $fy = FinancialYear::fromLabel($item->fy_label);
+        $monthStart = $fy->dateForMonthIndex((int) $item->month_index);
+        $monthEnd = $monthStart->copy()->endOfMonth()->startOfDay();
+        $label = $fy->months()[(int) $item->month_index]['label'].' '.$fy->months()[(int) $item->month_index]['year'];
+
+        if ($start->lt($monthStart) || $end->gt($monthEnd)) {
+            throw new InvalidArgumentException("Visit dates must fall inside {$label}.");
+        }
+    }
+
     protected function datesOverlap($startA, $endA, $startB, $endB): bool
     {
         $aStart = Carbon::parse($startA)->toDateString();
@@ -709,6 +753,7 @@ class MonthlyWorklistService
         if ($end->lt($start)) {
             throw new InvalidArgumentException('End date must be on or after start date.');
         }
+        $this->assertDatesInWorkMonth($item, $start, $end);
 
         $visitorIds = $this->normalizeVisitorIds($data);
         if ($visitorIds === []) {
@@ -787,6 +832,7 @@ class MonthlyWorklistService
         if ($end->lt($start)) {
             throw new InvalidArgumentException('End date must be on or after start date.');
         }
+        $this->assertDatesInWorkMonth($assignment->workItem, $start, $end);
 
         $reason = trim((string) ($data['reschedule_reason'] ?? ''));
         if ($reason === '') {

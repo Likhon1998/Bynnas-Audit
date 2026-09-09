@@ -167,4 +167,82 @@ class MonthlyVisitConflictTest extends TestCase
             ->count();
         $this->assertSame(1, $stillBooked);
     }
+
+    public function test_assign_rejects_dates_outside_the_selected_plan_month(): void
+    {
+        $admin = User::query()->where('email', 'admin@bynnasaudit.com')->firstOrFail();
+        $position = Position::query()->create([
+            'serial' => 1,
+            'title' => 'Audit Officer',
+            'slug' => 'ao-month-bound',
+            'color' => '#4C6FFF',
+        ]);
+        $employee = Employee::query()->create([
+            'position_id' => $position->id,
+            'name' => 'Month Bound Officer',
+            'sort_order' => 1,
+        ]);
+        $area = Area::query()->create(['name' => 'Area Z', 'division' => 'D1']);
+        $shakha = Shakha::query()->create(['area_id' => $area->id, 'name' => 'Sep Branch', 'code' => 'SEP-1', 'status' => 'active']);
+        $activity = ActivityType::query()->create([
+            'name' => 'Audit',
+            'slug' => 'audit-month-bound',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+        $plan = AuditPlan::query()->create([
+            'name' => 'FY 2026-2027',
+            'fy_label' => '2026-2027',
+            'start_date' => '2026-07-01',
+            'end_date' => '2027-06-30',
+            'status' => 'active',
+            'generated_at' => now(),
+        ]);
+        $item = MonthlyWorkItem::query()->create([
+            'audit_plan_id' => $plan->id,
+            'fy_label' => $plan->fy_label,
+            'month_index' => 2,
+            'category' => 'shakha_audit',
+            'activity_type_id' => $activity->id,
+            'schedulable_type' => Shakha::class,
+            'schedulable_id' => $shakha->id,
+            'source' => MonthlyWorkItem::SOURCE_YEARLY,
+            'status' => MonthlyWorkItem::STATUS_UNASSIGNED,
+            'entity_label' => $shakha->name,
+        ]);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Visit dates must fall inside Sep 2026');
+
+        app(MonthlyWorklistService::class)->assign($item, [
+            'employee_ids' => [$employee->id],
+            'start_date' => '2026-11-06',
+            'end_date' => '2026-11-09',
+        ], $admin->id);
+    }
+
+    public function test_monthly_visits_page_opens_on_current_month(): void
+    {
+        \Illuminate\Support\Carbon::setTestNow(\Illuminate\Support\Carbon::parse('2026-09-09 12:00:00', 'Asia/Dhaka'));
+
+        try {
+            $admin = User::query()->where('email', 'admin@bynnasaudit.com')->firstOrFail();
+            AuditPlan::query()->create([
+                'name' => 'FY 2026-2027',
+                'fy_label' => '2026-2027',
+                'start_date' => '2026-07-01',
+                'end_date' => '2027-06-30',
+                'status' => 'active',
+                'generated_at' => now(),
+            ]);
+
+            $this->actingAs($admin)
+                ->get(route('monthly-visits.index'))
+                ->assertOk()
+                ->assertViewHas('monthIndex', 2)
+                ->assertViewHas('monthLabel', 'Sep 2026');
+        } finally {
+            \Illuminate\Support\Carbon::setTestNow();
+        }
+    }
 }
