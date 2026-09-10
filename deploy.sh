@@ -89,3 +89,6 @@ php artisan view:cache
 echo "==> Done."
 echo "==> Prefer document root: $APP_DIR/public"
 echo "==> Fallback root index.php is present for project-root docroots."
+echo ""
+echo "==> To match LOCAL demo data on this server (WIPES ALL DATA):"
+echo "    php artisan demo:install --force"

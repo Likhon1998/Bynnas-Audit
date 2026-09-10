@@ -37,5 +37,10 @@ class DatabaseSeeder extends Seeder
             OrganogramLoginSeeder::class,
             DemoDataSeeder::class,
         ]);
+
+        // Heavy sample reports — local/demo/production only (not PHPUnit).
+        if (! app()->environment('testing')) {
+            $this->call(SeptemberFullReportsSeeder::class);
+        }
     }
 }
