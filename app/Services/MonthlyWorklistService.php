@@ -14,6 +14,7 @@ use App\Models\MonthlyWorkItem;
 use App\Models\PlanSchedule;
 use App\Models\ProjectLocation;
 use App\Models\Shakha;
+use App\Models\User;
 use App\Models\VisitExecution;
 use App\Support\FinancialYear;
 use Carbon\Carbon;
@@ -160,6 +161,7 @@ class MonthlyWorklistService
                 'assignment.employee.position',
                 'assignment.visitors.position',
                 'assignment.execution',
+                'assignment.lockedBy',
                 'schedulable',
             ])
             ->orderBy('category')
@@ -683,6 +685,12 @@ class MonthlyWorklistService
                     continue;
                 }
 
+                // Admin-locked visits stay as fixed — do not auto-strip visitors / unassign.
+                if ($assignment->isScheduleLocked()) {
+                    $kept[] = $assignment;
+                    continue;
+                }
+
                 $visitorIds = $assignment->visitorList()->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
                 $remaining = array_values(array_filter($visitorIds, fn ($id) => (int) $id !== (int) $employeeId));
 
@@ -728,6 +736,9 @@ class MonthlyWorklistService
         DB::transaction(function () use ($item, $userId) {
             $assignment = $item->assignment;
             if ($assignment) {
+                $actor = $userId ? User::query()->find($userId) : null;
+                $this->assertScheduleEditable($assignment, $actor);
+
                 AssignmentStatusLog::query()->create([
                     'monthly_assignment_id' => $assignment->id,
                     'from_status' => $assignment->execution?->status ?? 'assigned',
@@ -810,8 +821,16 @@ class MonthlyWorklistService
 
         // Always from DB history for this office — not a manual field.
         $lastUpto = $this->computeLastAuditUpto($item)?->toDateString();
+        $actor = $userId ? User::query()->find($userId) : null;
+        if ($item->assignment) {
+            $this->assertScheduleEditable($item->assignment, $actor);
+        }
 
-        return DB::transaction(function () use ($item, $data, $visitorIds, $start, $end, $duration, $mode, $countOffDays, $lastUpto, $userId) {
+        $shouldLock = array_key_exists('lock_schedule', $data)
+            ? ! empty($data['lock_schedule'])
+            : true;
+
+        return DB::transaction(function () use ($item, $data, $visitorIds, $start, $end, $duration, $mode, $countOffDays, $lastUpto, $userId, $shouldLock) {
             $assignment = MonthlyAssignment::query()->updateOrCreate(
                 ['monthly_work_item_id' => $item->id],
                 [
@@ -834,6 +853,7 @@ class MonthlyWorklistService
             );
 
             $this->syncVisitors($assignment, $visitorIds);
+            $this->applyScheduleLock($assignment, $shouldLock, $userId);
 
             $item->update(['status' => MonthlyWorkItem::STATUS_ASSIGNED]);
 
@@ -852,6 +872,7 @@ class MonthlyWorklistService
                 'reason' => 'Assigned',
                 'meta' => [
                     'visitor_ids' => $visitorIds,
+                    'locked' => (bool) $assignment->fresh()->is_locked,
                 ],
                 'changed_by' => $userId,
             ]);
@@ -865,6 +886,9 @@ class MonthlyWorklistService
      */
     public function reschedule(MonthlyAssignment $assignment, array $data, ?int $userId = null): MonthlyAssignment
     {
+        $actor = $userId ? User::query()->find($userId) : null;
+        $this->assertScheduleEditable($assignment, $actor);
+
         $start = Carbon::parse($data['start_date'])->startOfDay();
         $end = Carbon::parse($data['end_date'])->startOfDay();
         if ($end->lt($start)) {
@@ -896,7 +920,11 @@ class MonthlyWorklistService
             throw new InvalidArgumentException($this->formatConflictMessage($conflicts, $visitorIds));
         }
 
-        return DB::transaction(function () use ($assignment, $data, $visitorIds, $start, $end, $duration, $mode, $countOffDays, $reason, $userId) {
+        $shouldLock = array_key_exists('lock_schedule', $data)
+            ? ! empty($data['lock_schedule'])
+            : (bool) $assignment->is_locked;
+
+        return DB::transaction(function () use ($assignment, $data, $visitorIds, $start, $end, $duration, $mode, $countOffDays, $reason, $userId, $shouldLock) {
             $from = $assignment->execution?->status ?? 'assigned';
 
             $assignment->update([
@@ -918,6 +946,7 @@ class MonthlyWorklistService
             ]);
 
             $this->syncVisitors($assignment, $visitorIds);
+            $this->applyScheduleLock($assignment, $shouldLock, $userId);
 
             $execution = $assignment->execution;
             if ($execution) {
@@ -936,12 +965,88 @@ class MonthlyWorklistService
                     'new_start' => $start->toDateString(),
                     'new_end' => $end->toDateString(),
                     'visitor_ids' => $visitorIds,
+                    'locked' => (bool) $assignment->fresh()->is_locked,
                 ],
                 'changed_by' => $userId,
             ]);
 
             return $assignment->fresh(['employee', 'visitors', 'execution', 'workItem']);
         });
+    }
+
+    public function lockSchedule(MonthlyAssignment $assignment, User $user): MonthlyAssignment
+    {
+        if (! $user->can('monthly_visits.manage')) {
+            throw new InvalidArgumentException('Only planners can lock a visit schedule.');
+        }
+
+        $assignment->update([
+            'is_locked' => true,
+            'locked_by' => $user->id,
+            'locked_at' => now(),
+        ]);
+
+        AssignmentStatusLog::query()->create([
+            'monthly_assignment_id' => $assignment->id,
+            'from_status' => $assignment->execution?->status ?? 'assigned',
+            'to_status' => 'schedule_locked',
+            'reason' => 'Schedule locked',
+            'changed_by' => $user->id,
+        ]);
+
+        return $assignment->fresh();
+    }
+
+    public function unlockSchedule(MonthlyAssignment $assignment, User $user): MonthlyAssignment
+    {
+        $this->assertScheduleEditable($assignment, $user);
+
+        $assignment->update([
+            'is_locked' => false,
+            'locked_by' => null,
+            'locked_at' => null,
+        ]);
+
+        AssignmentStatusLog::query()->create([
+            'monthly_assignment_id' => $assignment->id,
+            'from_status' => 'schedule_locked',
+            'to_status' => $assignment->execution?->status ?? 'assigned',
+            'reason' => 'Schedule unlocked',
+            'changed_by' => $user->id,
+        ]);
+
+        return $assignment->fresh();
+    }
+
+    public function assertScheduleEditable(MonthlyAssignment $assignment, ?User $user): void
+    {
+        if ($assignment->canBeModifiedBy($user)) {
+            return;
+        }
+
+        $locker = $assignment->lockedBy?->name ?: 'an admin';
+        throw new InvalidArgumentException(
+            "This visit is locked by {$locker}. Only that person or Super Admin can change it."
+        );
+    }
+
+    protected function applyScheduleLock(MonthlyAssignment $assignment, bool $shouldLock, ?int $userId): void
+    {
+        if ($shouldLock) {
+            $assignment->update([
+                'is_locked' => true,
+                'locked_by' => $userId,
+                'locked_at' => now(),
+            ]);
+
+            return;
+        }
+
+        $assignment->update([
+            'is_locked' => false,
+            'locked_by' => null,
+            'locked_at' => null,
+        ]);
     }
 
     /**

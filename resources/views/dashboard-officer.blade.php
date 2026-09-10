@@ -1,6 +1,7 @@
 @php
     $stats = $stats ?? [];
     $todayVisits = $todayVisits ?? [];
+    $allocations = $allocations ?? [];
     $firstName = explode(' ', trim(auth()->user()->name))[0] ?? auth()->user()->name;
     $visitsUrl = auth()->user()->canAny(['monthly_visits.manage', 'monthly_visits.execute'])
         ? route('monthly-visits.index', ['fy' => $fy->label ?? null, 'month' => $monthIndex ?? 0])
@@ -8,93 +9,6 @@
     $reportsUrl = auth()->user()->canAny(['audits.create', 'audits.manage'])
         ? route('audits.index')
         : null;
-    $delayedOrOverdue = max((int) ($stats['delayed'] ?? 0), (int) ($stats['overdue'] ?? 0));
-    $cards = [
-        [
-            'label' => 'Visits today',
-            'value' => number_format($stats['visits_today'] ?? 0),
-            'meta' => ($todayLabel ?? 'Today').' · on your calendar',
-            'href' => $visitsUrl,
-            'tone' => 'magenta',
-        ],
-        [
-            'label' => 'Active today',
-            'value' => number_format($stats['today_active'] ?? 0),
-            'meta' => number_format($stats['today_completed'] ?? 0).' done today',
-            'href' => $visitsUrl,
-            'tone' => 'fuchsia',
-        ],
-        [
-            'label' => 'Monthly visits',
-            'value' => number_format($stats['visits_month'] ?? 0),
-            'meta' => ($monthLabel ?? 'This month').' scheduled',
-            'href' => $visitsUrl,
-            'tone' => 'violet',
-        ],
-        [
-            'label' => 'Shakhas this month',
-            'value' => number_format($stats['shakhas_month'] ?? 0),
-            'meta' => 'Branches you cover',
-            'href' => $visitsUrl,
-            'tone' => 'indigo',
-        ],
-        [
-            'label' => 'Planned',
-            'value' => number_format($stats['planned'] ?? 0),
-            'meta' => 'Not started yet',
-            'href' => $visitsUrl,
-            'tone' => 'blue',
-        ],
-        [
-            'label' => 'In progress',
-            'value' => number_format($stats['in_progress'] ?? 0),
-            'meta' => 'Active field work',
-            'href' => $visitsUrl,
-            'tone' => 'cyan',
-        ],
-        [
-            'label' => 'Completed',
-            'value' => number_format($stats['completed'] ?? 0),
-            'meta' => ($stats['month_completion_pct'] ?? 0).'% of month',
-            'href' => $visitsUrl,
-            'tone' => 'sky',
-        ],
-        [
-            'label' => 'Delayed / overdue',
-            'value' => number_format($delayedOrOverdue),
-            'meta' => 'Needs your follow-up',
-            'href' => $visitsUrl,
-            'tone' => 'rose',
-        ],
-        [
-            'label' => 'Critical risk',
-            'value' => number_format($stats['risk_critical'] ?? (($stats['risk_significant'] ?? 0) + ($stats['risk_high'] ?? 0))),
-            'meta' => 'Significant + High in access',
-            'href' => $reportsUrl,
-            'tone' => 'magenta',
-        ],
-        [
-            'label' => 'Not assessed',
-            'value' => number_format($stats['risk_not_assessed'] ?? 0),
-            'meta' => 'Need risk score',
-            'href' => $reportsUrl,
-            'tone' => 'sky',
-        ],
-        [
-            'label' => 'Branch access',
-            'value' => number_format($stats['total_access'] ?? 0),
-            'meta' => 'Shakhas you can work on',
-            'href' => $reportsUrl,
-            'tone' => 'indigo',
-        ],
-        [
-            'label' => 'Draft reports',
-            'value' => number_format($stats['drafts'] ?? 0),
-            'meta' => ($slotsLeft ?? 0).' slots free',
-            'href' => $reportsUrl,
-            'tone' => 'violet',
-        ],
-    ];
 @endphp
 
 <div class="px-4 py-5 lg:px-6">
@@ -114,14 +28,16 @@
             </p>
         </div>
         <form method="GET" action="{{ route('dashboard') }}" class="flex items-center gap-1.5">
-            @can('map.view')
-                <a href="{{ route('map.index') }}" class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-semibold text-slate-700 hover:bg-slate-50">
-                    <svg class="h-3.5 w-3.5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                    </svg>
-                    Map
+            @if ($visitsUrl)
+                <a href="{{ $visitsUrl }}" class="inline-flex h-8 items-center rounded-lg bg-navy-900 px-2.5 text-[12px] font-semibold text-white hover:bg-navy-800">
+                    Monthly visits
                 </a>
-            @endcan
+            @endif
+            @if ($reportsUrl)
+                <a href="{{ $reportsUrl }}" class="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-semibold text-slate-700 hover:bg-slate-50">
+                    Reports
+                </a>
+            @endif
             <input type="hidden" name="fy" value="{{ $fy->label ?? '' }}">
             <select name="month" class="h-8 rounded-lg border-slate-200 bg-white py-0 text-[12px]" onchange="this.form.submit()">
                 @foreach ($monthOptions ?? [] as $opt)
@@ -139,33 +55,14 @@
         </div>
     @endunless
 
-    @include('partials.dashboard-metric-cards', ['cards' => $cards])
-
-    <div class="mt-4 overflow-hidden rounded-xl border border-[#e9d5ff]/60 bg-white/95 shadow-sm">
-        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-3.5 py-2.5">
-            <div>
-                <p class="text-[13px] font-semibold text-navy-900">Today’s visits</p>
-                <p class="text-[10px] text-slate-500">{{ $todayLabel ?? now('Asia/Dhaka')->format('d M Y') }} · {{ count($todayVisits) }} window{{ count($todayVisits) === 1 ? '' : 's' }}</p>
-            </div>
-            @if ($visitsUrl)
-                <a href="{{ $visitsUrl }}" class="text-[11px] font-semibold text-[#7c3aed] hover:underline">Open visits</a>
-            @endif
-        </div>
-        <div class="divide-y divide-slate-100">
-            @forelse ($todayVisits as $row)
-                <div class="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5">
-                    <div class="min-w-0">
-                        <p class="truncate text-[12px] font-semibold text-navy-900">{{ $row['label'] }}</p>
-                        <p class="truncate text-[10px] text-slate-500">{{ $row['purpose'] }} · {{ $row['dates'] }}</p>
-                    </div>
-                    <div class="flex items-center gap-1.5">
-                        <span class="rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize {{ $row['tone']['bg'] }} {{ $row['tone']['text'] }}">{{ $row['status_label'] }}</span>
-                        <a href="{{ $row['execution_url'] }}" class="inline-flex h-7 items-center rounded-lg bg-gradient-to-r from-[#c026d3] via-[#7c3aed] to-[#2563eb] px-2.5 text-[11px] font-semibold text-white">Open</a>
-                    </div>
-                </div>
-            @empty
-                <p class="px-3.5 py-8 text-center text-[12px] text-slate-400">No visits scheduled for today.</p>
-            @endforelse
-        </div>
-    </div>
+    @include('partials.my-field-visits', [
+        'stats' => $stats,
+        'todayVisits' => $todayVisits,
+        'allocations' => $allocations,
+        'todayLabel' => $todayLabel ?? null,
+        'monthLabel' => $monthLabel ?? null,
+        'visitsUrl' => $visitsUrl,
+        'slotsLeft' => $slotsLeft ?? ($stats['slots_left'] ?? 0),
+        'showMonthStats' => true,
+    ])
 </div>

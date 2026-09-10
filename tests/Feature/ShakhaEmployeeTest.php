@@ -39,9 +39,72 @@ class ShakhaEmployeeTest extends TestCase
             ->get(route('shakha-employees.index', ['area_id' => $area->id]))
             ->assertOk()
             ->assertSee('Shakha Employees')
+            ->assertSee('Select a shakha')
+            ->assertDontSee('Karim Hossain');
+
+        $this->actingAs($admin)
+            ->get(route('shakha-employees.index', [
+                'division' => 'Dhaka',
+                'area_id' => $area->id,
+                'shakha_id' => $shakha->id,
+            ]))
+            ->assertOk()
             ->assertSee('Karim Hossain')
             ->assertSee('E-101')
             ->assertSee('Branch Manager');
+    }
+
+    public function test_employee_index_scopes_shakhas_to_selected_division(): void
+    {
+        $admin = User::query()->where('email', 'admin@bynnasaudit.com')->firstOrFail();
+        $dhaka = Area::query()->create(['name' => 'Dhaka North', 'division' => 'Dhaka', 'status' => 'active']);
+        $sylhet = Area::query()->create(['name' => 'Sylhet East', 'division' => 'Sylhet', 'status' => 'active']);
+        $dhakaShakha = Shakha::query()->create(['area_id' => $dhaka->id, 'name' => 'Mirpur Staff Branch', 'code' => 'DHK-S1', 'status' => 'active']);
+        $sylhetShakha = Shakha::query()->create(['area_id' => $sylhet->id, 'name' => 'Sylhet Staff Branch', 'code' => 'SYL-S1', 'status' => 'active']);
+
+        $this->actingAs($admin)
+            ->get(route('shakha-employees.index', ['division' => 'Dhaka']))
+            ->assertOk()
+            ->assertSee('Mirpur Staff Branch')
+            ->assertDontSee('Sylhet Staff Branch');
+
+        $this->assertDatabaseHas('shakhas', ['id' => $dhakaShakha->id]);
+        $this->assertDatabaseHas('shakhas', ['id' => $sylhetShakha->id]);
+    }
+
+    public function test_shakhas_are_ranked_by_employee_count_highest_first(): void
+    {
+        $admin = User::query()->where('email', 'admin@bynnasaudit.com')->firstOrFail();
+        $area = Area::query()->create(['name' => 'Rank Area', 'division' => 'Dhaka', 'status' => 'active']);
+        $low = Shakha::query()->create(['area_id' => $area->id, 'name' => 'Low Staff Shakha', 'code' => 'LOW-1', 'status' => 'active']);
+        $high = Shakha::query()->create(['area_id' => $area->id, 'name' => 'High Staff Shakha', 'code' => 'HIGH-1', 'status' => 'active']);
+
+        ShakhaEmployee::query()->create([
+            'shakha_id' => $low->id,
+            'employee_code' => 'L-1',
+            'name' => 'One Person',
+            'designation' => 'FO',
+            'status' => 'active',
+        ]);
+        foreach (['A', 'B', 'C'] as $i => $code) {
+            ShakhaEmployee::query()->create([
+                'shakha_id' => $high->id,
+                'employee_code' => 'H-'.$code,
+                'name' => 'Staff '.$code,
+                'designation' => 'FO',
+                'status' => 'active',
+            ]);
+        }
+
+        $response = $this->actingAs($admin)
+            ->get(route('shakha-employees.index', ['area_id' => $area->id]))
+            ->assertOk();
+
+        $highPos = strpos($response->getContent(), 'High Staff Shakha');
+        $lowPos = strpos($response->getContent(), 'Low Staff Shakha');
+        $this->assertNotFalse($highPos);
+        $this->assertNotFalse($lowPos);
+        $this->assertLessThan($lowPos, $highPos);
     }
 
     public function test_manager_can_add_employee_under_shakha(): void

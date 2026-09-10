@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Area;
 use App\Models\Shakha;
 use App\Models\ShakhaEmployee;
+use App\Support\Divisions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -15,50 +16,79 @@ class ShakhaEmployeeController extends Controller
 {
     public function index(Request $request): View
     {
+        $division = trim((string) $request->input('division', ''));
+        if ($division !== '' && ! in_array($division, Divisions::OPTIONS, true)) {
+            $division = '';
+        }
+
         $areaId = $request->integer('area_id') ?: null;
         $shakhaId = $request->integer('shakha_id') ?: null;
         $status = (string) $request->input('status', 'all');
         $q = trim((string) $request->input('q', ''));
 
+        if ($areaId) {
+            $area = Area::query()->find($areaId);
+            if (! $area || ($division !== '' && $area->division !== $division)) {
+                $areaId = null;
+                $shakhaId = null;
+            } elseif ($division === '') {
+                $division = (string) $area->division;
+            }
+        }
+
+        if ($shakhaId) {
+            $shakha = Shakha::query()->with('area')->find($shakhaId);
+            if (! $shakha || ($areaId && (int) $shakha->area_id !== $areaId)) {
+                $shakhaId = null;
+            } elseif (! $areaId) {
+                $areaId = (int) $shakha->area_id;
+                $division = (string) ($shakha->area?->division ?: $division);
+            }
+        }
+
         $areas = Area::query()
             ->with(['shakhas' => fn ($query) => $query->orderBy('name')])
-            ->orderBy('name')
-            ->get();
-
-        $shakhas = Shakha::query()
-            ->with('area')
-            ->when($areaId, fn ($query) => $query->where('area_id', $areaId))
-            ->orderBy('name')
-            ->get();
-
-        $employees = ShakhaEmployee::query()
-            ->with(['shakha.area'])
-            ->when($areaId, fn ($query) => $query->whereHas('shakha', fn ($q) => $q->where('area_id', $areaId)))
-            ->when($shakhaId, fn ($query) => $query->where('shakha_id', $shakhaId))
-            ->when(in_array($status, ['active', 'inactive'], true), fn ($query) => $query->where('status', $status))
-            ->when($q !== '', function ($query) use ($q) {
-                $query->where(function ($inner) use ($q) {
-                    $inner->where('employee_code', 'like', "%{$q}%")
-                        ->orWhere('name', 'like', "%{$q}%")
-                        ->orWhere('designation', 'like', "%{$q}%");
-                });
-            })
+            ->when($division !== '', fn ($query) => $query->where('division', $division))
+            ->orderBy('division')
             ->orderBy('name')
             ->get();
 
         $byShakha = Shakha::query()
             ->with('area')
             ->withCount('employees')
+            ->when($division !== '', fn ($query) => $query->whereHas('area', fn ($q) => $q->where('division', $division)))
             ->when($areaId, fn ($query) => $query->where('area_id', $areaId))
+            ->orderByDesc('employees_count')
             ->orderBy('name')
             ->get();
+
+        $shakhas = $byShakha;
+
+        $employees = collect();
+        if ($shakhaId) {
+            $employees = ShakhaEmployee::query()
+                ->with(['shakha.area'])
+                ->where('shakha_id', $shakhaId)
+                ->when(in_array($status, ['active', 'inactive'], true), fn ($query) => $query->where('status', $status))
+                ->when($q !== '', function ($query) use ($q) {
+                    $query->where(function ($inner) use ($q) {
+                        $inner->where('employee_code', 'like', "%{$q}%")
+                            ->orWhere('name', 'like', "%{$q}%")
+                            ->orWhere('designation', 'like', "%{$q}%");
+                    });
+                })
+                ->orderBy('name')
+                ->get();
+        }
 
         return view('shakha-employees.index', [
             'areas' => $areas,
             'shakhas' => $shakhas,
             'employees' => $employees,
             'byShakha' => $byShakha,
+            'divisions' => Divisions::OPTIONS,
             'filters' => [
+                'division' => $division,
                 'area_id' => $areaId,
                 'shakha_id' => $shakhaId,
                 'status' => $status,

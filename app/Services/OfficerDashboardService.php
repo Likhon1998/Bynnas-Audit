@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\AuditReport;
+use App\Models\Employee;
 use App\Models\MonthlyAssignment;
 use App\Models\Shakha;
 use App\Models\ShakhaRiskAssessment;
@@ -132,18 +133,28 @@ class OfficerDashboardService
             ? (int) $today->day
             : null;
 
-        $todayList = $todayAssignments->map(function (MonthlyAssignment $a) {
+        $viewerEmployeeId = (int) ($user->employee_id ?? 0);
+
+        $todayList = $todayAssignments->map(function (MonthlyAssignment $a) use ($viewerEmployeeId) {
             $status = $a->execution?->status ?? VisitExecution::STATUS_PLANNED;
+            $place = $this->placeMeta($a);
+            $team = $this->teamMeta($a, $viewerEmployeeId);
 
             return [
                 'id' => $a->id,
-                'label' => $this->entityLabel($a),
+                'label' => $place['label'],
+                'area' => $place['area'],
+                'division' => $place['division'],
                 'purpose' => $a->purpose ?: ($a->workItem?->activityType?->name ?? 'Visit'),
                 'dates' => $a->visitDateRangeLabel(),
                 'status' => $status,
                 'status_label' => str_replace('_', ' ', $status),
                 'tone' => $this->statusTone($status),
                 'execution_url' => route('monthly-visits.execution', $a),
+                'is_done' => $status === VisitExecution::STATUS_COMPLETED,
+                'is_solo' => $team['is_solo'],
+                'team_label' => $team['label'],
+                'companion_names' => $team['companion_names'],
             ];
         })->values()->all();
 
@@ -153,7 +164,7 @@ class OfficerDashboardService
             'monthMeta' => $monthMeta,
             'monthLabel' => $monthMeta['label'].' '.$monthMeta['year'],
             'monthOptions' => $fy->months(),
-            'todayLabel' => $today->format('d M Y'),
+            'todayLabel' => $today->format('l, d M Y'),
             'fyMonthStrip' => collect($fy->months())->map(fn (array $m) => [
                 'index' => $m['index'],
                 'label' => $m['label'],
@@ -213,12 +224,19 @@ class OfficerDashboardService
                     ];
                 })->values()->all(),
             ],
-            'allocations' => $monthAssignments->map(function (MonthlyAssignment $a) {
+            'allocations' => $monthAssignments->map(function (MonthlyAssignment $a) use ($today, $viewerEmployeeId) {
                 $status = $a->execution?->status ?? VisitExecution::STATUS_PLANNED;
+                $place = $this->placeMeta($a);
+                $team = $this->teamMeta($a, $viewerEmployeeId);
+                $isToday = $a->start_date && $a->end_date
+                    && $a->start_date->lte($today)
+                    && $a->end_date->gte($today);
 
                 return [
                     'id' => $a->id,
-                    'label' => $this->entityLabel($a),
+                    'label' => $place['label'],
+                    'area' => $place['area'],
+                    'division' => $place['division'],
                     'purpose' => $a->purpose ?: ($a->workItem?->activityType?->name ?? 'Visit'),
                     'dates' => $a->visitDateRangeLabel(),
                     'days' => $a->duration_days,
@@ -227,6 +245,10 @@ class OfficerDashboardService
                     'tone' => $this->statusTone($status),
                     'execution_url' => route('monthly-visits.execution', $a),
                     'shakha_id' => $this->shakhaId($a),
+                    'is_today' => $isToday,
+                    'is_solo' => $team['is_solo'],
+                    'team_label' => $team['label'],
+                    'companion_names' => $team['companion_names'],
                 ];
             })->values()->all(),
             'assignedShakhas' => $accessibleShakhas,
@@ -289,9 +311,14 @@ class OfficerDashboardService
 
         return MonthlyAssignment::query()
             ->with([
-                'workItem.schedulable',
-                'workItem.activityType',
+                'workItem' => fn ($q) => $q->with([
+                    'activityType',
+                    'schedulable' => fn ($morphTo) => $morphTo->morphWith([
+                        Shakha::class => ['area'],
+                    ]),
+                ]),
                 'execution',
+                'employee',
                 'visitors',
             ])
             ->where(function ($q) use ($employeeId) {
@@ -331,11 +358,66 @@ class OfficerDashboardService
 
     protected function entityLabel(MonthlyAssignment $a): string
     {
-        return (string) (
+        return $this->placeMeta($a)['label'];
+    }
+
+    /**
+     * Solo vs co-visitors for the logged-in employee.
+     *
+     * @return array{is_solo:bool,label:string,companion_names:list<string>,team_names:list<string>}
+     */
+    protected function teamMeta(MonthlyAssignment $a, int $viewerEmployeeId = 0): array
+    {
+        $team = $a->visitorList();
+        $teamNames = $team->pluck('name')->filter()->values()->all();
+        $companions = $team
+            ->when($viewerEmployeeId > 0, fn ($c) => $c->reject(
+                fn (Employee $e) => (int) $e->id === $viewerEmployeeId
+            ))
+            ->pluck('name')
+            ->filter()
+            ->values()
+            ->all();
+
+        $isSolo = count($teamNames) <= 1;
+
+        return [
+            'is_solo' => $isSolo,
+            'label' => $isSolo
+                ? 'Solo'
+                : ('With '.implode(', ', $companions !== [] ? $companions : array_slice($teamNames, 1))),
+            'companion_names' => $companions,
+            'team_names' => $teamNames,
+        ];
+    }
+
+    /**
+     * @return array{label:string,area:string,division:string}
+     */
+    protected function placeMeta(MonthlyAssignment $a): array
+    {
+        $schedulable = $a->workItem?->schedulable;
+        $label = (string) (
             $a->workItem?->entity_label
-            ?: $a->workItem?->schedulable?->name
+            ?: $schedulable?->name
             ?: 'Visit'
         );
+
+        $area = '';
+        $division = '';
+        if ($schedulable instanceof Shakha) {
+            $area = (string) ($schedulable->area?->name ?: '');
+            $division = (string) ($schedulable->area?->division ?: '');
+            if ($schedulable->code) {
+                $label = $schedulable->name.($schedulable->code ? ' ('.$schedulable->code.')' : '');
+            }
+        }
+
+        return [
+            'label' => $label,
+            'area' => $area,
+            'division' => $division,
+        ];
     }
 
     protected function shakhaId(MonthlyAssignment $a): ?int

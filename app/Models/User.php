@@ -22,6 +22,7 @@ class User extends Authenticatable
         'mail_from_email',
         'password',
         'is_superadmin',
+        'access_profile',
         'is_active',
         'employee_id',
     ];
@@ -68,14 +69,44 @@ class User extends Authenticatable
 
     public function roleLabel(): string
     {
-        $role = $this->getRoleNames()->first() ?: ($this->is_superadmin ? 'superadmin' : null);
+        $role = $this->access_profile
+            ?: $this->getRoleNames()->first()
+            ?: ($this->is_superadmin ? 'superadmin' : null);
 
-        return $role ? \App\Support\RoleAccess::label($role) : '—';
+        if ($role && \App\Support\RoleAccess::isPersonalAccessRole((string) $role)) {
+            $role = $this->access_profile ?: null;
+        }
+
+        return $role ? \App\Support\RoleAccess::label((string) $role) : '—';
     }
 
     public function roleKey(): string
     {
-        return (string) ($this->getRoleNames()->first() ?: ($this->is_superadmin ? 'superadmin' : ''));
+        if ($this->access_profile) {
+            return (string) $this->access_profile;
+        }
+
+        $role = (string) ($this->getRoleNames()->first() ?: ($this->is_superadmin ? 'superadmin' : ''));
+        if ($role !== '' && \App\Support\RoleAccess::isPersonalAccessRole($role)) {
+            return '';
+        }
+
+        return $role;
+    }
+
+    /**
+     * Effective permission names (role + direct).
+     *
+     * @return list<string>
+     */
+    public function grantedPermissionNames(): array
+    {
+        return $this->getAllPermissions()
+            ->pluck('name')
+            ->map(fn ($n) => (string) $n)
+            ->unique()
+            ->values()
+            ->all();
     }
 
     /**

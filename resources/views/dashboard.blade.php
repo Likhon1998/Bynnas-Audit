@@ -84,21 +84,32 @@
                     <span class="h-2 w-8 rounded-full bg-gradient-to-r from-[#ff2d9b] via-[#7c3aed] to-[#2563eb]"></span>
                     <p class="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Bynnas Audit</p>
                 </div>
-                <h1 class="text-[18px] font-semibold tracking-tight text-navy-900">Dashboard</h1>
+                <h1 class="text-[18px] font-semibold tracking-tight text-navy-900">
+                    {{ $viewerName ? 'Hello, '.explode(' ', trim($viewerName))[0] : 'Dashboard' }}
+                </h1>
                 <p class="mt-0.5 text-[12px] text-slate-500">
+                    @if (! empty($viewerRole))
+                        {{ $viewerRole }}
+                        @if (! empty($viewerPosition))
+                            · {{ $viewerPosition }}
+                        @endif
+                        ·
+                    @endif
                     {{ $pulse['period_label'] }}
                     · plan <span class="font-medium text-slate-700">{{ $pulse['plan_status'] }}</span>
                 </p>
             </div>
             <form method="GET" action="{{ route('dashboard') }}" class="flex flex-wrap items-center gap-1.5">
-                @can('map.view')
-                    <a href="{{ route('map.index') }}" class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-semibold text-slate-700 hover:bg-slate-50">
-                        <svg class="h-3.5 w-3.5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                        </svg>
-                        Map
-                    </a>
-                @endcan
+                @if (config('features.map'))
+                    @can('map.view')
+                        <a href="{{ route('map.index') }}" class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-semibold text-slate-700 hover:bg-slate-50">
+                            <svg class="h-3.5 w-3.5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                            </svg>
+                            Map
+                        </a>
+                    @endcan
+                @endif
                 <select name="fy" class="h-8 rounded-lg border-slate-200 bg-white py-0 text-[12px]" onchange="this.form.submit()">
                     @foreach ($pulse['fy_options'] as $fy)
                         <option value="{{ $fy }}" @selected($fy === $pulse['fy_label'])>{{ $fy }}</option>
@@ -113,6 +124,26 @@
                 </select>
             </form>
         </div>
+
+        @if (! empty($myWork) && auth()->user()?->employee_id)
+            <div class="mb-4">
+                <div class="mb-3 flex items-center gap-2">
+                    <span class="h-2 w-2 rounded-full bg-gradient-to-br from-sky-500 to-violet-500 shadow-sm shadow-sky-300"></span>
+                    <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">My field visits</p>
+                    <span class="h-px flex-1 bg-gradient-to-r from-sky-200/80 to-transparent"></span>
+                </div>
+                @include('partials.my-field-visits', [
+                    'stats' => $myWork['stats'] ?? [],
+                    'todayVisits' => $myWork['todayVisits'] ?? [],
+                    'allocations' => $myWork['allocations'] ?? [],
+                    'todayLabel' => $myWork['todayLabel'] ?? null,
+                    'monthLabel' => $myWork['monthLabel'] ?? null,
+                    'visitsUrl' => $visitsUrl,
+                    'slotsLeft' => $myWork['stats']['slots_left'] ?? 0,
+                    'showMonthStats' => true,
+                ])
+            </div>
+        @endif
 
         <div class="space-y-4">
             <div class="rounded-2xl border border-slate-200/80 bg-gradient-to-br from-white via-slate-50/60 to-rose-50/40 p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">

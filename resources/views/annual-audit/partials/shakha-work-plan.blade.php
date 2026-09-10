@@ -84,14 +84,14 @@
         </a>
     </div>
 
-    <div class="overflow-x-auto">
+    <div class="max-h-[calc(100vh-13rem)] overflow-auto">
         <table class="min-w-full border-collapse text-left">
             <thead>
-                <tr class="bg-emerald-50/80 text-[10px] font-semibold tracking-wide text-slate-600">
-                    <th class="border border-slate-200 px-1.5 py-1 text-center w-8">#</th>
-                    <th class="border border-slate-200 px-1.5 py-1 text-center min-w-[56px]">Code</th>
-                    <th class="border border-slate-200 px-2 py-1 min-w-[120px] text-center">Area</th>
-                    <th class="border border-slate-200 px-2 py-1 min-w-[150px] text-center">Branch</th>
+                <tr class="bg-emerald-50 text-[10px] font-semibold tracking-wide text-slate-600">
+                    <th class="sticky top-0 z-20 border border-slate-200 bg-emerald-50 px-1.5 py-1 text-center w-8 shadow-[0_1px_0_#cbd5e1]">#</th>
+                    <th class="sticky top-0 z-20 border border-slate-200 bg-emerald-50 px-1.5 py-1 text-center min-w-[56px] shadow-[0_1px_0_#cbd5e1]">Code</th>
+                    <th class="sticky top-0 z-20 border border-slate-200 bg-emerald-50 px-2 py-1 min-w-[120px] text-center shadow-[0_1px_0_#cbd5e1]">Area</th>
+                    <th class="sticky top-0 z-20 border border-slate-200 bg-emerald-50 px-2 py-1 min-w-[150px] text-center shadow-[0_1px_0_#cbd5e1]">Branch</th>
                     @foreach ($months as $monthIndex => $month)
                         @php
                             $shortYear = $month['index'] <= 5 ? $startYear : $endYear;
@@ -101,12 +101,12 @@
                                 default => $month['label'],
                             };
                         @endphp
-                        <th class="border border-slate-200 px-0.5 py-1 text-center min-w-[42px]">
+                        <th class="sticky top-0 z-20 border border-slate-200 bg-emerald-50 px-0.5 py-1 text-center min-w-[42px] shadow-[0_1px_0_#cbd5e1]">
                             <div class="text-[10px] font-bold leading-none text-navy-900" x-text="monthTotals[{{ $monthIndex }}] ?? 0">{{ $initialMonthTotals[$monthIndex] ?? 0 }}</div>
                             <div class="mt-0.5 text-[8px] font-semibold uppercase leading-none text-slate-500">{{ $monthName }}'{{ $shortYear }}</div>
                         </th>
                     @endforeach
-                    <th class="border border-slate-200 px-1.5 py-1 text-center w-12">Total</th>
+                    <th class="sticky top-0 z-20 border border-slate-200 bg-emerald-50 px-1.5 py-1 text-center w-12 shadow-[0_1px_0_#cbd5e1]">Total</th>
                 </tr>
             </thead>
             @forelse ($shakhaGroups as $group)

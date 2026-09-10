@@ -7,6 +7,7 @@ use App\Models\AuditIndicator;
 use App\Models\AuditReport;
 use App\Models\AuditReportSend;
 use App\Models\Shakha;
+use App\Services\AuditReportCollaborationService;
 use App\Services\AuditReportDocService;
 use App\Services\AuditReportPdfService;
 use App\Services\AuditSummaryService;
@@ -544,7 +545,12 @@ class MakeAuditReport extends Component
             return;
         }
 
-        if (! app(UserAccessService::class)->canAccessShakha(auth()->user(), (int) $this->shakha_id)) {
+        if (! app(UserAccessService::class)->canStartReportForShakha(
+            auth()->user(),
+            (int) $this->shakha_id,
+            (int) $this->report_month,
+            (int) $this->report_year,
+        )) {
             $this->addError('shakha_id', 'আপনি এই শাখায় assign নন — রিপোর্ট শুরু করা যাবে না।');
 
             return;
@@ -564,9 +570,42 @@ class MakeAuditReport extends Component
         $this->applyMonthYearDefaults();
 
         $userId = (int) (auth()->id() ?? 0);
+        $collaboration = app(AuditReportCollaborationService::class);
+        $authUser = auth()->user();
+
+        // Same shakha + month: join the existing shared draft when on the visit team.
+        if ($userId > 0 && $authUser) {
+            $joinable = $collaboration->findJoinableDraft(
+                (int) $this->shakha_id,
+                (int) $this->report_month,
+                (int) $this->report_year,
+                $authUser
+            );
+
+            if ($joinable) {
+                $teamIds = $collaboration->visitorUserIdsForShakhaPeriod(
+                    (int) $this->shakha_id,
+                    (int) $this->report_month,
+                    (int) $this->report_year
+                );
+                $collaboration->syncCollaborators($joinable, $teamIds, $authUser);
+                $joinable->refresh()->load(['collaborators:id,name', 'user:id,name', 'shakha.area']);
+
+                $this->hydrateFromReport($joinable);
+                $this->step = 'wizard';
+                $this->showPreview = false;
+                $this->loadPersistedUndoStack();
+                $this->resetErrorBag();
+                $this->autoSaveHint = 'Shared report opened — both auditors can edit this draft.';
+                session()->flash('status', 'একই শাখার যৌথ নিরীক্ষা — বিদ্যমান শেয়ারড রিপোর্ট খোলা হয়েছে।');
+
+                return;
+            }
+        }
+
         if ($userId > 0) {
             $openDrafts = AuditReport::query()
-                ->ownedBy($userId)
+                ->accessibleBy($userId)
                 ->drafts()
                 ->count();
 
@@ -652,6 +691,18 @@ class MakeAuditReport extends Component
                     'page4' => $this->page4Payload(),
                 ],
             ]);
+
+            $teamIds = $collaboration->visitorUserIdsForShakhaPeriod(
+                (int) $this->shakha_id,
+                (int) $this->report_month,
+                (int) $this->report_year
+            );
+            if ($teamIds !== []) {
+                $collaboration->syncCollaborators($report, $teamIds, $authUser);
+                $report->refresh();
+                $this->auditor_name = (string) ($report->auditor_name ?: $this->auditor_name);
+                $this->sign_auditor_name = $this->auditor_name;
+            }
         } catch (\Throwable $e) {
             report($e);
             $this->addError('shakha_id', 'প্রতিবেদন শুরু করা যায়নি। আবার চেষ্টা করুন।');
@@ -675,7 +726,7 @@ class MakeAuditReport extends Component
     public function resumeReport(int $reportId): void
     {
         $report = AuditReport::query()
-            ->when(auth()->id(), fn ($q) => $q->ownedBy((int) auth()->id()))
+            ->when(auth()->id(), fn ($q) => $q->accessibleBy((int) auth()->id()))
             ->findOrFail($reportId);
 
         $this->hydrateFromReport($report);
@@ -1141,7 +1192,7 @@ class MakeAuditReport extends Component
     {
         $userId = (int) (auth()->id() ?? 0);
         $report = AuditReport::query()
-            ->ownedBy($userId)
+            ->accessibleBy($userId)
             ->completed()
             ->with('shakha')
             ->findOrFail($reportId);
@@ -1202,7 +1253,7 @@ class MakeAuditReport extends Component
 
         $userId = (int) (auth()->id() ?? 0);
         $report = AuditReport::query()
-            ->ownedBy($userId)
+            ->accessibleBy($userId)
             ->completed()
             ->findOrFail((int) $this->mailReportId);
 
@@ -4512,6 +4563,7 @@ class MakeAuditReport extends Component
         $this->capturePreSaveUndoIfNeeded();
 
         $report = AuditReport::query()->findOrFail($this->reportId);
+        abort_unless($report->isAccessibleBy(auth()->user()), 403);
         $pages = (array) $report->pages_data;
         $meta = (array) ($pages['meta'] ?? []);
         $tabsDone = (array) ($meta['tabs_done'] ?? [
@@ -10227,7 +10279,16 @@ class MakeAuditReport extends Component
 
         // Dashboard lists only on select step — keep wizard updates light.
         if (! $isWizard) {
-            $shakhas = app(UserAccessService::class)->accessibleShakhas(auth()->user());
+            $shakhas = app(UserAccessService::class)->reportableShakhas(
+                auth()->user(),
+                (int) $this->report_month,
+                (int) $this->report_year,
+            );
+
+            // Drop a stale pick if month/year changed and this branch is no longer allocated.
+            if ($this->shakha_id && ! $shakhas->contains('id', (int) $this->shakha_id)) {
+                $this->shakha_id = null;
+            }
 
         $branchOptions = $shakhas->values()->map(function ($shakha, $index) {
             return [
@@ -10252,9 +10313,9 @@ class MakeAuditReport extends Component
                 $ongoingReports = collect();
                 if ($status === 'all' || $status === 'draft') {
                     $ongoingQuery = AuditReport::query()
-                        ->ownedBy($userId)
+                        ->accessibleBy($userId)
                         ->drafts()
-                        ->with('shakha.area');
+                        ->with(['shakha.area', 'collaborators:id,name', 'user:id,name']);
                     $this->applyReportListFilters($ongoingQuery);
                     $ongoingReports = $ongoingQuery
                         ->latest('last_saved_at')
@@ -10265,9 +10326,9 @@ class MakeAuditReport extends Component
                 $completedReports = collect();
                 if ($status === 'all' || $status === 'completed') {
                     $completedQuery = AuditReport::query()
-                        ->ownedBy($userId)
+                        ->accessibleBy($userId)
                         ->completed()
-                        ->with('shakha.area');
+                        ->with(['shakha.area', 'collaborators:id,name', 'user:id,name']);
                     $this->applyReportListFilters($completedQuery);
                     // When filtering by month/search, show all matches; otherwise keep a short recent list.
                     $filtered = ($this->listFilterMonth >= 1 && $this->listFilterMonth <= 12)
@@ -10281,8 +10342,8 @@ class MakeAuditReport extends Component
                         ->get();
                 }
 
-                $ongoingCount = AuditReport::query()->ownedBy($userId)->drafts()->count();
-                $completedCount = AuditReport::query()->ownedBy($userId)->completed()->count();
+                $ongoingCount = AuditReport::query()->accessibleBy($userId)->drafts()->count();
+                $completedCount = AuditReport::query()->accessibleBy($userId)->completed()->count();
                 $pendingSlots = max(0, AuditReport::MAX_CONCURRENT_DRAFTS - $ongoingCount);
             }
         }

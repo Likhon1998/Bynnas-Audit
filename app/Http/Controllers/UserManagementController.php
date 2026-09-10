@@ -20,7 +20,7 @@ class UserManagementController extends Controller
     public function index(): View
     {
         $users = User::query()
-            ->with(['roles', 'employee.position', 'assignedShakhas'])
+            ->with(['roles', 'permissions', 'employee.position', 'assignedShakhas'])
             ->orderBy('name')
             ->get();
 
@@ -44,12 +44,16 @@ class UserManagementController extends Controller
 
         if ($prefillEmployeeId) {
             $employee = Employee::query()->with('position')->find($prefillEmployeeId);
-            $suggestedRole = RoleAccess::suggestedRoleFromPosition($employee?->position?->title);
+            $suggestedRole = RoleAccess::suggestedRoleFromPosition(
+                $employee?->position?->title,
+                $employee?->position?->slug
+            );
         }
 
         return view('users.form', array_merge($this->formData(), [
             'prefillEmployeeId' => $prefillEmployeeId,
             'suggestedRole' => $suggestedRole,
+            'selectedPermissions' => RoleAccess::permissionNamesForRole($suggestedRole),
         ]));
     }
 
@@ -80,10 +84,11 @@ class UserManagementController extends Controller
                 'employee_id' => $employeeId,
                 'is_active' => $data['is_active'],
                 'is_superadmin' => $data['role'] === 'superadmin',
+                'access_profile' => $data['role'],
                 'email_verified_at' => now(),
             ]);
 
-            $user->syncRoles([$data['role']]);
+            $this->syncUserAccess($user, $data['role'], $data['permissions'] ?? []);
             $user->assignedShakhas()->sync($data['shakha_ids'] ?? []);
 
             return $user;
@@ -91,16 +96,23 @@ class UserManagementController extends Controller
 
         return redirect()
             ->route('users.index')
-            ->with('status', 'Login created for '.$user->name.' ('.RoleAccess::label($data['role']).').');
+            ->with('status', 'Access granted to '.$user->name.' ('.RoleAccess::label($data['role']).').');
     }
 
     public function edit(User $user): View
     {
-        $user->load(['roles', 'assignedShakhas', 'employee.position']);
+        $user->load(['roles', 'permissions', 'assignedShakhas', 'employee.position']);
+
+        $profile = $user->roleKey() ?: 'audit_officer';
+        if ($profile === '' || ! in_array($profile, RoleAccess::assignableRoleNames(), true)) {
+            $profile = 'audit_officer';
+        }
 
         return view('users.form', array_merge($this->formData(), [
             'user' => $user,
             'prefillEmployeeId' => null,
+            'suggestedRole' => $profile,
+            'selectedPermissions' => $user->grantedPermissionNames() ?: RoleAccess::permissionNamesForRole($profile),
         ]));
     }
 
@@ -108,22 +120,25 @@ class UserManagementController extends Controller
     {
         $data = $this->validated($request, $user);
 
-        $user->fill([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'mail_from_email' => $data['mail_from_email'] ?: null,
-            'employee_id' => $data['employee_id'] ?: null,
-            'is_active' => $data['is_active'],
-            'is_superadmin' => $data['role'] === 'superadmin',
-        ]);
+        DB::transaction(function () use ($data, $user) {
+            $user->fill([
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'mail_from_email' => $data['mail_from_email'] ?: null,
+                'employee_id' => $data['employee_id'] ?: null,
+                'is_active' => $data['is_active'],
+                'is_superadmin' => $data['role'] === 'superadmin',
+                'access_profile' => $data['role'],
+            ]);
 
-        if (! empty($data['password'])) {
-            $user->password = $data['password'];
-        }
+            if (! empty($data['password'])) {
+                $user->password = $data['password'];
+            }
 
-        $user->save();
-        $user->syncRoles([$data['role']]);
-        $user->assignedShakhas()->sync($data['shakha_ids'] ?? []);
+            $user->save();
+            $this->syncUserAccess($user, $data['role'], $data['permissions'] ?? []);
+            $user->assignedShakhas()->sync($data['shakha_ids'] ?? []);
+        });
 
         return redirect()
             ->route('users.index')
@@ -152,9 +167,13 @@ class UserManagementController extends Controller
         }
 
         $name = $user->name;
-        $user->assignedShakhas()->detach();
-        $user->syncRoles([]);
-        $user->delete();
+        DB::transaction(function () use ($user) {
+            $user->assignedShakhas()->detach();
+            $user->syncPermissions([]);
+            $user->syncRoles([]);
+            $this->deletePersonalAccessRole($user->id);
+            $user->delete();
+        });
 
         return redirect()
             ->route('users.index')
@@ -195,18 +214,84 @@ class UserManagementController extends Controller
     }
 
     /**
+     * Apply role preset and exact selected permissions.
+     *
+     * @param  list<string>  $permissions
+     */
+    protected function syncUserAccess(User $user, string $profile, array $permissions): void
+    {
+        $permissions = collect($permissions)
+            ->map(fn ($p) => (string) $p)
+            ->filter(fn ($p) => in_array($p, RoleAccess::allPermissionNames(), true))
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($profile === 'superadmin') {
+            $user->forceFill([
+                'is_superadmin' => true,
+                'access_profile' => 'superadmin',
+            ])->save();
+            $user->syncRoles(['superadmin']);
+            $user->syncPermissions([]);
+            $this->deletePersonalAccessRole($user->id);
+
+            return;
+        }
+
+        $user->forceFill([
+            'is_superadmin' => false,
+            'access_profile' => $profile,
+        ])->save();
+
+        $defaults = RoleAccess::permissionNamesForRole($profile);
+        sort($defaults);
+        $selected = $permissions;
+        sort($selected);
+
+        if ($selected === [] && $defaults !== []) {
+            $selected = $defaults;
+            sort($selected);
+        }
+
+        if ($defaults === $selected && RoleAccess::isSystemRole($profile)) {
+            $user->syncRoles([$profile]);
+            $user->syncPermissions([]);
+            $this->deletePersonalAccessRole($user->id);
+
+            return;
+        }
+
+        // Customized package: personal role holds the exact selected access.
+        $personalName = RoleAccess::personalAccessRoleName((int) $user->id);
+        $personal = Role::findOrCreate($personalName, 'web');
+        $personal->syncPermissions($selected);
+        $user->syncRoles([$personalName]);
+        $user->syncPermissions([]);
+    }
+
+    protected function deletePersonalAccessRole(int $userId): void
+    {
+        $name = RoleAccess::personalAccessRoleName($userId);
+        Role::query()->where('name', $name)->delete();
+    }
+
+    /**
      * @return array<string, mixed>
      */
     protected function formData(): array
     {
         return [
-            'roles' => Role::query()->orderBy('name')->pluck('name'),
+            'roles' => RoleAccess::assignableRoleNames(),
             'roleCatalog' => RoleAccess::catalogWithCustom(),
+            'permissionGroups' => RoleAccess::permissionGroups(),
+            'rolePermissionMap' => RoleAccess::rolePermissionMap(),
             'employees' => Employee::query()->with(['position', 'user'])->orderBy('name')->get(),
             'positions' => Position::query()->orderBy('serial')->get(),
-            'shakhas' => Shakha::query()->orderBy('name')->get(['id', 'name', 'code']),
+            'shakhas' => Shakha::query()->with('area:id,name,division')->orderBy('name')->get(['id', 'name', 'code', 'area_id']),
             'user' => null,
             'suggestedRole' => 'audit_officer',
+            'selectedPermissions' => [],
         ];
     }
 
@@ -215,13 +300,15 @@ class UserManagementController extends Controller
      */
     protected function validated(Request $request, ?User $user = null): array
     {
-        $roleNames = Role::query()->pluck('name')->all();
+        $roleNames = RoleAccess::assignableRoleNames();
         $creatingEmployee = ! $user && $request->boolean('create_employee');
+        $permissionNames = RoleAccess::allPermissionNames();
 
         $request->merge([
             'is_active' => $request->boolean('is_active'),
             'create_employee' => $creatingEmployee,
             'employee_id' => $creatingEmployee ? null : ($request->input('employee_id') ?: null),
+            'permissions' => array_values(array_unique(array_map('strval', (array) $request->input('permissions', [])))),
         ]);
 
         $emailRules = [
@@ -245,6 +332,8 @@ class UserManagementController extends Controller
                 Password::defaults(),
             ],
             'role' => ['required', Rule::in($roleNames)],
+            'permissions' => ['nullable', 'array'],
+            'permissions.*' => ['string', Rule::in($permissionNames)],
             'employee_id' => [
                 'nullable',
                 'integer',
@@ -264,11 +353,20 @@ class UserManagementController extends Controller
         ], [
             'position_id.required' => 'Select an organogram position when creating a new employee.',
             'employee_id.prohibited' => 'Clear the employee link when creating a new employee.',
+            'permissions.*.in' => 'One of the selected access items is invalid.',
         ]);
 
         $data['mail_from_email'] = isset($data['mail_from_email'])
             ? (trim((string) $data['mail_from_email']) ?: null)
             : null;
+
+        $data['permissions'] = array_values(array_unique(array_map('strval', $data['permissions'] ?? [])));
+
+        if ($data['role'] === 'superadmin') {
+            $data['permissions'] = $permissionNames;
+        } elseif ($data['permissions'] === []) {
+            $data['permissions'] = RoleAccess::permissionNamesForRole($data['role']);
+        }
 
         if (! empty($data['employee_id'])) {
             $taken = User::query()

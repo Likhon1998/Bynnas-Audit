@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Carbon;
 
 class AuditReport extends Model
@@ -44,6 +45,13 @@ class AuditReport extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function collaborators(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'audit_report_collaborators')
+            ->withTimestamps()
+            ->orderBy('users.name');
+    }
+
     public function checklistFiles(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(AuditReportChecklistFile::class, 'audit_report_id')
@@ -77,6 +85,61 @@ class AuditReport extends Model
     public function scopeOwnedBy(Builder $query, int $userId): Builder
     {
         return $query->where('user_id', $userId);
+    }
+
+    public function scopeAccessibleBy(Builder $query, int $userId): Builder
+    {
+        return $query->where(function (Builder $inner) use ($userId) {
+            $inner->where('user_id', $userId)
+                ->orWhereHas('collaborators', fn (Builder $q) => $q->where('users.id', $userId));
+        });
+    }
+
+    public function isAccessibleBy(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        $userId = (int) $user->id;
+        if ($userId < 1) {
+            return false;
+        }
+
+        if ((int) $this->user_id === $userId) {
+            return true;
+        }
+
+        if ($this->relationLoaded('collaborators')) {
+            return $this->collaborators->contains(fn (User $u) => (int) $u->id === $userId);
+        }
+
+        return $this->collaborators()->where('users.id', $userId)->exists();
+    }
+
+    public function isOwnedBy(?User $user): bool
+    {
+        return $user !== null && (int) $this->user_id === (int) $user->id;
+    }
+
+    public function collaboratorNamesLabel(): string
+    {
+        $this->loadMissing(['user:id,name', 'collaborators:id,name']);
+
+        $names = collect([$this->user])
+            ->merge($this->collaborators)
+            ->filter()
+            ->pluck('name')
+            ->map(fn ($n) => trim((string) $n))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($names->count() <= 1) {
+            return (string) $names->first();
+        }
+
+        return $names->slice(0, -1)->implode(', ').' ও '.$names->last();
     }
 
     public function scopeDrafts(Builder $query): Builder

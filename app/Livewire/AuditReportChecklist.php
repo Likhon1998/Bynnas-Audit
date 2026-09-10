@@ -46,7 +46,7 @@ class AuditReportChecklist extends Component
     public function mount(AuditReport $report): void
     {
         $userId = (int) (auth()->id() ?? 0);
-        abort_unless($userId > 0 && (int) $report->user_id === $userId, 403);
+        abort_unless($userId > 0 && $report->isAccessibleBy(auth()->user()), 403);
 
         $this->report = $report->load(['shakha.area']);
         $this->ensureFormatsSynced();

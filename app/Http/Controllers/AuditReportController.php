@@ -76,7 +76,7 @@ class AuditReportController extends Controller
     public function checklist(AuditReport $report): View
     {
         $userId = (int) (auth()->id() ?? 0);
-        abort_unless($userId > 0 && (int) $report->user_id === $userId, 403);
+        abort_unless($userId > 0 && $report->isAccessibleBy(auth()->user()), 403);
 
         return view('audits.checklist', [
             'report' => $report,
@@ -86,7 +86,7 @@ class AuditReportController extends Controller
     public function downloadChecklistFile(AuditReport $report, AuditReportChecklistFile $file): StreamedResponse
     {
         $userId = (int) (auth()->id() ?? 0);
-        abort_unless($userId > 0 && (int) $report->user_id === $userId, 403);
+        abort_unless($userId > 0 && $report->isAccessibleBy(auth()->user()), 403);
         abort_unless((int) $file->audit_report_id === (int) $report->id, 404);
         abort_unless($file->stored_path && Storage::disk('public')->exists($file->stored_path), 404);
 

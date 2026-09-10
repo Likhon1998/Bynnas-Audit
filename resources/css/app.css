@@ -139,8 +139,7 @@ html.dark [class*='from-slate-50'] {
 
 @media (min-width: 1024px) {
     .sidebar-shell.sidebar-is-collapsed {
-        width: 0 !important;
-        border-right-width: 0;
+        width: 4.25rem !important;
     }
 
     .sidebar-collapsed .sidebar-link-label,

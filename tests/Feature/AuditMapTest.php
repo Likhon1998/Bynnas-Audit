@@ -17,7 +17,17 @@ class AuditMapTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config(['features.map' => true]);
         $this->seed(RolePermissionSeeder::class);
+    }
+
+    public function test_map_is_hidden_when_feature_flag_is_off(): void
+    {
+        config(['features.map' => false]);
+        $admin = User::query()->where('email', 'admin@bynnasaudit.com')->firstOrFail();
+
+        $this->actingAs($admin)->get(route('map.index'))->assertNotFound();
+        $this->actingAs($admin)->getJson(route('map.live'))->assertNotFound();
     }
 
     public function test_guest_is_redirected_from_map(): void

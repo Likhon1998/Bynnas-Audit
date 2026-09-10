@@ -16,6 +16,8 @@ class DashboardController extends Controller
         OfficerDashboardService $officerDashboard,
     ): View {
         $user = $request->user();
+        $positionTitle = $user?->employee?->position?->title;
+        $roleKey = $user?->roleKey() ?: '';
 
         if ($user && $user->can('dashboard.ops')) {
             $fyLabel = $request->string('fy')->toString() ?: null;
@@ -33,10 +35,19 @@ class DashboardController extends Controller
                 userId: $user->id,
             );
 
+            // Managers / directors who also visit shakhas still see their personal itinerary.
+            $myWork = $user->employee_id
+                ? $officerDashboard->build($user, $fyLabel, $monthIndex)
+                : null;
+
             return view('dashboard', [
                 'mode' => 'ops',
                 'pulse' => $pulse,
+                'myWork' => $myWork,
                 'roleCatalog' => RoleAccess::catalog(),
+                'viewerName' => $user->name,
+                'viewerRole' => RoleAccess::label($roleKey),
+                'viewerPosition' => $positionTitle,
             ]);
         }
 
@@ -53,8 +64,11 @@ class DashboardController extends Controller
 
         return view('dashboard', array_merge($board, [
             'mode' => 'officer',
-            'roleInfo' => RoleAccess::catalog()[$user->roleKey()] ?? null,
+            'roleInfo' => RoleAccess::catalog()[$roleKey] ?? null,
             'slotsLeft' => $board['stats']['slots_left'],
+            'viewerName' => $user?->name,
+            'viewerRole' => RoleAccess::label($roleKey),
+            'viewerPosition' => $positionTitle,
         ]));
     }
 }

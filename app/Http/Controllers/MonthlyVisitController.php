@@ -66,7 +66,7 @@ class MonthlyVisitController extends Controller
             ? Carbon::parse($workingDates[4])
             : $defaultStart->copy()->addDays(4);
 
-        $allocatePayload = $items->map(function (MonthlyWorkItem $item) use ($defaultStart, $defaultEnd) {
+        $allocatePayload = $items->map(function (MonthlyWorkItem $item) use ($defaultStart, $defaultEnd, $user) {
             $assignment = $item->assignment;
             $lastUpto = $this->worklist->computeLastAuditUpto($item);
 
@@ -89,6 +89,11 @@ class MonthlyVisitController extends Controller
                 'last_audit_upto_label' => $this->worklist->formatLastAuditUptoLabel($lastUpto) ?? 'No prior audit on record',
                 'purpose' => $item->activityType?->name,
                 'remarks' => $assignment?->remarks,
+                'is_locked' => (bool) ($assignment?->is_locked),
+                'locked_by_name' => $assignment?->lockedBy?->name,
+                'can_modify' => $assignment
+                    ? $assignment->canBeModifiedBy($user)
+                    : true,
             ];
         })->values();
 
@@ -204,9 +209,11 @@ class MonthlyVisitController extends Controller
             'purpose' => ['nullable', 'string', 'max:255'],
             'remarks' => ['nullable', 'string', 'max:2000'],
             'last_audit_upto' => ['nullable', 'date'],
+            'lock_schedule' => ['nullable', 'boolean'],
         ]);
 
         try {
+            $validated['lock_schedule'] = $request->boolean('lock_schedule');
             $this->worklist->assign($workItem, $validated, $request->user()?->id);
         } catch (\InvalidArgumentException $e) {
             if (str_contains(strtolower($e->getMessage()), 'overlapping') || str_contains(strtolower($e->getMessage()), 'same person')) {
@@ -302,7 +309,9 @@ class MonthlyVisitController extends Controller
 
     public function rescheduleForm(MonthlyAssignment $assignment): View
     {
-        $assignment->load(['workItem', 'employee', 'visitors']);
+        abort_unless($assignment->canBeModifiedBy(auth()->user()), 403);
+
+        $assignment->load(['workItem', 'employee', 'visitors', 'lockedBy']);
 
         return view('monthly-visits.reschedule', [
             'assignment' => $assignment,
@@ -312,6 +321,8 @@ class MonthlyVisitController extends Controller
 
     public function reschedule(Request $request, MonthlyAssignment $assignment): RedirectResponse
     {
+        abort_unless($assignment->canBeModifiedBy($request->user()), 403);
+
         $validated = $request->validate([
             'employee_ids' => ['required', 'array', 'min:1'],
             'employee_ids.*' => ['integer', 'distinct', 'exists:employees,id'],
@@ -323,9 +334,11 @@ class MonthlyVisitController extends Controller
             'purpose' => ['nullable', 'string', 'max:255'],
             'remarks' => ['nullable', 'string', 'max:2000'],
             'reschedule_reason' => ['required', 'string', 'max:1000'],
+            'lock_schedule' => ['nullable', 'boolean'],
         ]);
 
         try {
+            $validated['lock_schedule'] = $request->boolean('lock_schedule');
             $this->worklist->reschedule($assignment, $validated, $request->user()?->id);
         } catch (\InvalidArgumentException $e) {
             return back()->withInput()->withErrors(['reschedule' => $e->getMessage()]);
@@ -336,6 +349,36 @@ class MonthlyVisitController extends Controller
         return redirect()
             ->route('monthly-visits.index', ['fy' => $item->fy_label, 'month' => $item->month_index])
             ->with('status', 'Visit rescheduled. Original dates preserved.');
+    }
+
+    public function lock(Request $request, MonthlyAssignment $assignment): RedirectResponse
+    {
+        try {
+            $this->worklist->lockSchedule($assignment, $request->user());
+        } catch (\InvalidArgumentException $e) {
+            return back()->withErrors(['lock' => $e->getMessage()]);
+        }
+
+        $item = $assignment->workItem;
+
+        return redirect()
+            ->route('monthly-visits.index', ['fy' => $item->fy_label, 'month' => $item->month_index])
+            ->with('status', 'Visit schedule locked. Others cannot change it.');
+    }
+
+    public function unlock(Request $request, MonthlyAssignment $assignment): RedirectResponse
+    {
+        try {
+            $this->worklist->unlockSchedule($assignment, $request->user());
+        } catch (\InvalidArgumentException $e) {
+            return back()->withErrors(['lock' => $e->getMessage()]);
+        }
+
+        $item = $assignment->workItem;
+
+        return redirect()
+            ->route('monthly-visits.index', ['fy' => $item->fy_label, 'month' => $item->month_index])
+            ->with('status', 'Visit schedule unlocked.');
     }
 
     public function storeSpecial(Request $request): RedirectResponse

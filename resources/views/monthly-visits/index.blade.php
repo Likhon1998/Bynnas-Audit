@@ -13,6 +13,7 @@
             oldRemarks: @js(old('remarks')),
             oldLastUpto: @js(old('last_audit_upto')),
             oldCountOffDays: @js((bool) old('count_off_days', false)),
+            oldLockSchedule: @js((bool) old('lock_schedule', true)),
             hasConflict: @js((bool) $conflictWarning),
             conflictWarning: @js($conflictWarning),
         })"
@@ -308,19 +309,43 @@
                                     </td>
                                     <td class="px-3 py-2 whitespace-nowrap text-slate-600">{{ $a?->visitDateRangeLabel() }}</td>
                                     <td class="px-3 py-2 tabular-nums text-slate-600">{{ $a?->duration_days ?: '—' }}</td>
-                                    <td class="px-3 py-2 capitalize text-slate-600">{{ $status }}</td>
+                                    <td class="px-3 py-2 capitalize text-slate-600">
+                                        <span>{{ $status }}</span>
+                                        @if ($a?->is_locked)
+                                            <span class="ml-1 inline-flex rounded bg-amber-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-800 ring-1 ring-amber-200">Locked</span>
+                                        @endif
+                                    </td>
                                     <td class="px-3 py-2 text-right whitespace-nowrap">
                                         @can('monthly_visits.manage')
-                                            <button type="button" @click="openAllocate({{ $item->id }})" class="font-medium text-brand-600 hover:underline">Edit</button>
-                                            @if ($a)
-                                                <span class="text-slate-300">·</span>
+                                            @if ($a?->is_locked && ! $a->canBeModifiedBy(auth()->user()))
+                                                <span class="text-[11px] text-amber-700" title="Locked by {{ $a->lockedBy?->name ?? 'admin' }}">Locked</span>
+                                            @else
+                                                <button type="button" @click="openAllocate({{ $item->id }})" class="font-medium text-brand-600 hover:underline">Edit</button>
+                                                @if ($a)
+                                                    <span class="text-slate-300">·</span>
+                                                @endif
                                             @endif
                                         @endcan
                                         @if ($a)
                                             <a href="{{ route('monthly-visits.execution', $a) }}" class="font-medium text-slate-600 hover:underline">Execute</a>
                                             @can('monthly_visits.manage')
-                                                <span class="text-slate-300">·</span>
-                                                <a href="{{ route('monthly-visits.reschedule', $a) }}" class="font-medium text-slate-500 hover:underline">Move</a>
+                                                @if ($a->canBeModifiedBy(auth()->user()))
+                                                    <span class="text-slate-300">·</span>
+                                                    <a href="{{ route('monthly-visits.reschedule', $a) }}" class="font-medium text-slate-500 hover:underline">Move</a>
+                                                    @if ($a->is_locked)
+                                                        <span class="text-slate-300">·</span>
+                                                        <form method="POST" action="{{ route('monthly-visits.unlock', $a) }}" class="inline">
+                                                            @csrf
+                                                            <button type="submit" class="font-medium text-amber-700 hover:underline">Unlock</button>
+                                                        </form>
+                                                    @else
+                                                        <span class="text-slate-300">·</span>
+                                                        <form method="POST" action="{{ route('monthly-visits.lock', $a) }}" class="inline">
+                                                            @csrf
+                                                            <button type="submit" class="font-medium text-slate-500 hover:underline">Lock</button>
+                                                        </form>
+                                                    @endif
+                                                @endif
                                             @endcan
                                         @endif
                                     </td>
@@ -414,7 +439,15 @@
                                     <input type="checkbox" name="count_off_days" value="1" x-model="form.count_off_days" class="mt-0.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
                                     <span>
                                         <span class="block text-[12px] font-medium text-slate-800">Count off days</span>
-                                        <span class="text-[10px] text-slate-500">Include Fri/Sat &amp; holidays for this visit only</span>
+                                        <span class="block text-[10px] text-slate-500">Include Fri/Sat &amp; holidays in duration</span>
+                                    </span>
+                                </label>
+                                <label class="mt-2 flex cursor-pointer items-start gap-2 rounded-lg border border-amber-100 bg-amber-50/60 px-3 py-2">
+                                    <input type="hidden" name="lock_schedule" :value="form.lock_schedule ? 1 : 0">
+                                    <input type="checkbox" value="1" x-model="form.lock_schedule" class="mt-0.5 rounded border-slate-300 text-amber-600 focus:ring-amber-500">
+                                    <span>
+                                        <span class="block text-[12px] font-medium text-amber-950">Lock schedule</span>
+                                        <span class="block text-[10px] text-amber-800/80">Others cannot edit or move this visit after save</span>
                                     </span>
                                 </label>
 
@@ -548,6 +581,7 @@
                     start_date: '',
                     end_date: '',
                     count_off_days: false,
+                    lock_schedule: true,
                     last_audit_upto: '',
                     last_audit_upto_label: '',
                     purpose: '',
@@ -585,6 +619,12 @@
                 openAllocate(id, useOld = false) {
                     const item = this.items.find((i) => Number(i.id) === Number(id));
                     if (!item) return;
+                    if (item.is_locked && item.can_modify === false) {
+                        alert(item.locked_by_name
+                            ? ('This visit is locked by ' + item.locked_by_name + '.')
+                            : 'This visit is locked.');
+                        return;
+                    }
                     this.current = item;
                     this.staffQuery = '';
                     this.visitorIds = useOld && cfg.oldVisitorIds?.length
@@ -594,6 +634,7 @@
                         start_date: (useOld && cfg.oldStart) || item.start_date,
                         end_date: (useOld && cfg.oldEnd) || item.end_date,
                         count_off_days: useOld ? !!cfg.oldCountOffDays : !!item.count_off_days,
+                        lock_schedule: useOld ? !!cfg.oldLockSchedule : (item.status === 'assigned' ? !!item.is_locked : true),
                         last_audit_upto: item.last_audit_upto || '',
                         last_audit_upto_label: item.last_audit_upto_label || 'No prior audit on record',
                         purpose: item.purpose || item.activity || '',

@@ -90,6 +90,12 @@
                     <textarea name="remarks" rows="2" class="block w-full rounded-lg border-slate-200 text-[13px]">{{ old('remarks') }}</textarea>
                 </div>
 
+                <label class="flex items-start gap-2 rounded-lg border border-amber-100 bg-amber-50/60 px-3 py-2 text-[12px] text-amber-950">
+                    <input type="hidden" name="lock_schedule" value="0">
+                    <input type="checkbox" name="lock_schedule" value="1" class="mt-0.5 rounded border-amber-300 text-amber-600" @checked(old('lock_schedule', true))>
+                    <span>Lock schedule — others cannot change this visit after save</span>
+                </label>
+
                 @if (session('conflict_warning'))
                     <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] text-rose-900">
                         <p class="font-semibold">Cannot allocate — same person at two places</p>

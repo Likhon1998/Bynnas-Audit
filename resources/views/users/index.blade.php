@@ -3,11 +3,16 @@
         <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div>
                 <h1 class="text-[16px] font-semibold tracking-tight text-navy-900">Users &amp; Access</h1>
-                <p class="mt-0.5 text-[12px] text-slate-500">Create logins · deactivate / delete credentials · assign roles &amp; branch access</p>
+                <p class="mt-0.5 text-[12px] text-slate-500">Grant access to people · choose role &amp; permissions · optional extra branches</p>
             </div>
-            <a href="{{ route('users.create') }}" class="inline-flex h-8 items-center rounded-lg bg-navy-900 px-3 text-[12px] font-medium text-white hover:bg-navy-800">
-                + New login
-            </a>
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ route('roles.index') }}" class="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-3 text-[12px] font-semibold text-slate-700 hover:bg-slate-50">
+                    Manage roles
+                </a>
+                <a href="{{ route('users.create') }}" class="inline-flex h-8 items-center rounded-lg bg-navy-900 px-3 text-[12px] font-medium text-white hover:bg-navy-800">
+                    + Grant access
+                </a>
+            </div>
         </div>
 
         @if (session('status'))
@@ -55,7 +60,7 @@
                             <a
                                 href="{{ route('users.create', ['employee_id' => $employee->id]) }}"
                                 class="inline-flex h-7 items-center rounded-md bg-[#2b579a] px-2.5 text-[11px] font-semibold text-white hover:bg-[#204072]"
-                            >Give login</a>
+                            >Grant access</a>
                         </div>
                     @endforeach
                 </div>
@@ -109,7 +114,7 @@
                             </td>
                             <td class="px-3 py-2.5">
                                 <div class="flex flex-wrap items-center justify-end gap-2">
-                                    <a href="{{ route('users.edit', $user) }}" class="text-[11px] font-semibold text-[#2b579a] hover:underline">Edit</a>
+                                    <a href="{{ route('users.edit', $user) }}" class="text-[11px] font-semibold text-[#2b579a] hover:underline">Edit access</a>
                                     @if ($user->id !== auth()->id())
                                         <form method="POST" action="{{ route('users.toggle-active', $user) }}" class="inline">
                                             @csrf

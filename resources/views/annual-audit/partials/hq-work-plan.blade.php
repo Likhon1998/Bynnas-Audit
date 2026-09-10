@@ -81,20 +81,20 @@
         </div>
     </div>
 
-    <div class="overflow-x-auto">
+    <div class="max-h-[calc(100vh-13rem)] overflow-auto">
         <table class="min-w-full border-collapse text-left">
-            <thead>
-                <tr class="bg-emerald-50/80 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
-                    <th rowspan="2" class="border border-slate-200 px-2 py-2 text-center w-10">#</th>
-                    <th rowspan="2" class="border border-slate-200 px-3 py-2 min-w-[240px]">Department / Section</th>
-                    <th colspan="3" class="border border-slate-200 px-2 py-1.5 text-center">1st Quarter</th>
-                    <th colspan="3" class="border border-slate-200 px-2 py-1.5 text-center">2nd Quarter</th>
-                    <th colspan="3" class="border border-slate-200 px-2 py-1.5 text-center">3rd Quarter</th>
-                    <th colspan="3" class="border border-slate-200 px-2 py-1.5 text-center">4th Quarter</th>
-                    <th rowspan="2" class="border border-slate-200 px-2 py-2 text-center w-12">Total</th>
-                    <th rowspan="2" class="border border-slate-200 px-2 py-2 w-16"></th>
+            <thead class="sticky top-0 z-20">
+                <tr class="bg-emerald-50 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+                    <th rowspan="2" class="border border-slate-200 bg-emerald-50 px-2 py-2 text-center w-10">#</th>
+                    <th rowspan="2" class="border border-slate-200 bg-emerald-50 px-3 py-2 min-w-[240px]">Department / Section</th>
+                    <th colspan="3" class="border border-slate-200 bg-emerald-50 px-2 py-1.5 text-center">1st Quarter</th>
+                    <th colspan="3" class="border border-slate-200 bg-emerald-50 px-2 py-1.5 text-center">2nd Quarter</th>
+                    <th colspan="3" class="border border-slate-200 bg-emerald-50 px-2 py-1.5 text-center">3rd Quarter</th>
+                    <th colspan="3" class="border border-slate-200 bg-emerald-50 px-2 py-1.5 text-center">4th Quarter</th>
+                    <th rowspan="2" class="border border-slate-200 bg-emerald-50 px-2 py-2 text-center w-12">Total</th>
+                    <th rowspan="2" class="border border-slate-200 bg-emerald-50 px-2 py-2 w-16"></th>
                 </tr>
-                <tr class="bg-emerald-50/60 text-[9px] font-semibold tracking-wide text-slate-600">
+                <tr class="bg-emerald-50 text-[9px] font-semibold tracking-wide text-slate-600">
                     @foreach ($months as $month)
                         @php
                             $shortYear = $month['index'] <= 5 ? $startYear : $endYear;
@@ -104,7 +104,7 @@
                                 default => $month['label'],
                             };
                         @endphp
-                        <th class="border border-slate-200 px-1 py-1.5 text-center min-w-[48px]">{{ $monthName }}'{{ $shortYear }}</th>
+                        <th class="border border-slate-200 bg-emerald-50 px-1 py-1.5 text-center min-w-[48px]">{{ $monthName }}'{{ $shortYear }}</th>
                     @endforeach
                 </tr>
             </thead>

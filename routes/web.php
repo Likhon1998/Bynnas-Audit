@@ -155,6 +155,8 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
         Route::post('/monthly-visits/items/{workItem}/assign', [MonthlyVisitController::class, 'assign'])->name('monthly-visits.assign.store');
         Route::get('/monthly-visits/assignments/{assignment}/reschedule', [MonthlyVisitController::class, 'rescheduleForm'])->name('monthly-visits.reschedule');
         Route::post('/monthly-visits/assignments/{assignment}/reschedule', [MonthlyVisitController::class, 'reschedule'])->name('monthly-visits.reschedule.store');
+        Route::post('/monthly-visits/assignments/{assignment}/lock', [MonthlyVisitController::class, 'lock'])->name('monthly-visits.lock');
+        Route::post('/monthly-visits/assignments/{assignment}/unlock', [MonthlyVisitController::class, 'unlock'])->name('monthly-visits.unlock');
     });
 
     Route::middleware('permission:projects.manage')->group(function () {

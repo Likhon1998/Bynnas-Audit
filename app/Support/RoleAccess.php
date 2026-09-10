@@ -8,10 +8,13 @@ use Spatie\Permission\Models\Role;
 
 /**
  * Spatie role → what the person can see / do in the app.
- * Positions (organogram) are HR titles; roles control login access.
+ * Organogram positions map to roles; admin issues the login.
  */
 class RoleAccess
 {
+    /** Default password for organogram logins created by admin / seeder. */
+    public const DEFAULT_PASSWORD = '12345678';
+
     /**
      * Built-in roles that cannot be deleted or renamed.
      *
@@ -19,12 +22,109 @@ class RoleAccess
      */
     public static function systemRoles(): array
     {
-        return ['superadmin', 'audit_manager', 'audit_officer'];
+        return [
+            'superadmin',
+            'director_audit',
+            'audit_manager',
+            'senior_officer',
+            'audit_officer',
+        ];
     }
 
     public static function isSystemRole(string $role): bool
     {
         return in_array($role, self::systemRoles(), true);
+    }
+
+    public static function isPersonalAccessRole(string $role): bool
+    {
+        return (bool) preg_match('/^u\d+_access$/', $role);
+    }
+
+    public static function personalAccessRoleName(int $userId): string
+    {
+        return 'u'.$userId.'_access';
+    }
+
+    /**
+     * Roles an admin may assign on the grant-access form (excludes per-user shadow roles).
+     *
+     * @return list<string>
+     */
+    public static function assignableRoleNames(): array
+    {
+        return Role::query()
+            ->orderBy('name')
+            ->pluck('name')
+            ->reject(fn ($name) => self::isPersonalAccessRole((string) $name))
+            ->map(fn ($name) => (string) $name)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Permission names currently attached to a Spatie role (empty if role missing).
+     *
+     * @return list<string>
+     */
+    public static function permissionNamesForRole(string $role): array
+    {
+        $model = Role::query()->where('name', $role)->first();
+        if (! $model) {
+            return [];
+        }
+
+        return $model->permissions()
+            ->pluck('name')
+            ->map(fn ($n) => (string) $n)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function allPermissionNames(): array
+    {
+        $names = [];
+        foreach (self::permissionGroups() as $group) {
+            foreach (array_keys($group['permissions']) as $permission) {
+                $names[] = $permission;
+            }
+        }
+
+        return $names;
+    }
+
+    /**
+     * @return array<string, list<string>>
+     */
+    public static function rolePermissionMap(): array
+    {
+        $map = [];
+        foreach (self::assignableRoleNames() as $role) {
+            $map[$role] = self::permissionNamesForRole($role);
+        }
+
+        return $map;
+    }
+
+    /**
+     * Organogram position slug → Spatie role.
+     *
+     * @return array<string, string>
+     */
+    public static function positionRoleMap(): array
+    {
+        return [
+            'director-audit' => 'director_audit',
+            'joint-director-audit' => 'audit_manager',
+            'deputy-director-audit' => 'audit_manager',
+            'assistant-director-audit' => 'audit_manager',
+            'senior-officer-audit' => 'senior_officer',
+            'officer-audit' => 'audit_officer',
+            'audit-officer' => 'audit_officer',
+        ];
     }
 
     /**
@@ -50,12 +150,30 @@ class RoleAccess
                     'Map',
                     'Ops Dashboard',
                 ],
-                'notes' => 'Can create logins, assign roles, and manage every module.',
+                'notes' => 'Creates logins and assigns roles for every organogram person.',
+            ],
+            'director_audit' => [
+                'label' => 'Director Audit',
+                'summary' => 'Leadership oversight',
+                'menus' => [
+                    'Ops Dashboard',
+                    'Organogram',
+                    'Annual Audit',
+                    'Monthly Visits',
+                    'Projects',
+                    'KPI',
+                    'Audit Reports',
+                    'Findings Matrix',
+                    'Shakha / Areas',
+                    'Map',
+                ],
+                'notes' => 'Sees organisation-wide performance. Cannot manage user logins.',
             ],
             'audit_manager' => [
                 'label' => 'Audit Manager',
-                'summary' => 'Operations & planning',
+                'summary' => 'Planning & operations (JD / DD / AD)',
                 'menus' => [
+                    'Ops Dashboard',
                     'Organogram',
                     'Annual Audit',
                     'Monthly Visits',
@@ -66,23 +184,37 @@ class RoleAccess
                     'Findings Matrix',
                     'Shakha / Areas',
                     'Map',
-                    'Ops Dashboard',
                 ],
-                'notes' => 'Sees all branches. Cannot manage user logins (superadmin only).',
+                'notes' => 'Joint / Deputy / Assistant Directors. Full planning and all branches.',
+            ],
+            'senior_officer' => [
+                'label' => 'Senior Officer',
+                'summary' => 'Field lead + matrix visibility',
+                'menus' => [
+                    'Officer Dashboard',
+                    'Monthly Visits (execute)',
+                    'Audit Reports',
+                    'Findings Matrix',
+                    'KPI',
+                    'Risk',
+                    'All shakhas',
+                    'Map',
+                ],
+                'notes' => 'Personal visit dashboard, can view findings across branches and enter findings.',
             ],
             'audit_officer' => [
                 'label' => 'Audit Officer',
                 'summary' => 'Field work on assigned branches',
                 'menus' => [
-                    'Dashboard (my work)',
+                    'Officer Dashboard',
                     'Map',
                     'Monthly Visits (execute)',
                     'Audit Reports',
                     'Checklists',
-                    'Findings Matrix (enter)',
-                    'Profile / Settings',
+                    'Findings (enter)',
+                    'Profile',
                 ],
-                'notes' => 'Shakhas from Monthly Visits allocations auto-apply. Admin can grant extra branches on Users & Access. Link organogram employee on login.',
+                'notes' => 'Shakhas come from Monthly Visits allocations. Admin can grant extra branches.',
             ],
         ];
     }
@@ -99,7 +231,7 @@ class RoleAccess
         $roles = Role::query()->with('permissions')->orderBy('name')->get();
 
         foreach ($roles as $role) {
-            if (isset($catalog[$role->name])) {
+            if (isset($catalog[$role->name]) || self::isPersonalAccessRole($role->name)) {
                 continue;
             }
 
@@ -222,18 +354,31 @@ class RoleAccess
     }
 
     /**
-     * Suggest a Spatie role from organogram position title.
+     * Suggest a Spatie role from organogram position slug and/or title.
      */
-    public static function suggestedRoleFromPosition(?string $positionTitle): string
+    public static function suggestedRoleFromPosition(?string $positionTitle, ?string $positionSlug = null): string
     {
-        $title = mb_strtolower(trim((string) $positionTitle));
+        $slug = trim((string) $positionSlug);
+        $map = self::positionRoleMap();
+        if ($slug !== '' && isset($map[$slug])) {
+            return $map[$slug];
+        }
 
+        $title = mb_strtolower(trim((string) $positionTitle));
         if ($title === '') {
             return 'audit_officer';
         }
 
+        if (str_contains($title, 'director') && ! str_contains($title, 'assistant') && ! str_contains($title, 'deputy') && ! str_contains($title, 'joint')) {
+            return 'director_audit';
+        }
+
         if (str_contains($title, 'director') || str_contains($title, 'manager') || str_contains($title, 'joint')) {
             return 'audit_manager';
+        }
+
+        if (str_contains($title, 'senior')) {
+            return 'senior_officer';
         }
 
         return 'audit_officer';

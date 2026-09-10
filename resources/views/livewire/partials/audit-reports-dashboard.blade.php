@@ -9,7 +9,7 @@
         <div class="min-w-0">
             <h1 class="text-[14px] font-semibold tracking-tight text-navy-900">Audit Reports</h1>
             <p class="mt-0.5 text-[11px] text-slate-500">
-                Max {{ $maxConcurrentDrafts }} drafts · Auto-save · Continue from where you left off
+                Max {{ $maxConcurrentDrafts }} drafts · Joint visit auditors share one report · Auto-save
             </p>
         </div>
         <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
@@ -43,7 +43,7 @@
     <div class="border-b border-slate-100 px-3 py-2.5 sm:px-4 {{ $canStartNewReport ? '' : 'pointer-events-none opacity-55' }}">
         <div class="mb-1.5 flex items-baseline justify-between gap-2">
             <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Start new</p>
-            <p class="text-[10px] text-slate-400">Branch · month · year</p>
+            <p class="text-[10px] text-slate-400">Allocated branches · month · year</p>
         </div>
         <div class="grid gap-2 lg:grid-cols-[minmax(0,1fr)_118px_88px_auto] lg:items-end">
             <div class="relative min-w-0" @mousedown.outside="open = false">
@@ -106,7 +106,13 @@
                                 ></span>
                             </button>
                         </template>
-                        <p x-show="filtered.length === 0" class="px-2.5 py-2 text-[11px] text-slate-500">No branch matched</p>
+                        <p x-show="filtered.length === 0" class="px-2.5 py-2 text-[11px] text-slate-500">
+                            @if (($shakhaCount ?? 0) === 0)
+                                No allocated shakha for this month
+                            @else
+                                No branch matched
+                            @endif
+                        </p>
                     </div>
                 </div>
                 @error('shakha_id')
@@ -116,7 +122,7 @@
 
             <div>
                 <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Month</label>
-                <select wire:model="report_month" class="block w-full rounded-md border-slate-200 py-1.5 text-[12px] leading-5" @disabled(! $canStartNewReport)>
+                <select wire:model.live="report_month" class="block w-full rounded-md border-slate-200 py-1.5 text-[12px] leading-5" @disabled(! $canStartNewReport)>
                     @for ($m = 1; $m <= 12; $m++)
                         <option value="{{ $m }}">{{ date('F', mktime(0, 0, 0, $m, 1)) }}</option>
                     @endfor
@@ -124,7 +130,7 @@
             </div>
             <div>
                 <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Year</label>
-                <select wire:model="report_year" class="block w-full rounded-md border-slate-200 py-1.5 text-[12px] leading-5" @disabled(! $canStartNewReport)>
+                <select wire:model.live="report_year" class="block w-full rounded-md border-slate-200 py-1.5 text-[12px] leading-5" @disabled(! $canStartNewReport)>
                     @for ($y = now()->year + 1; $y >= now()->year - 6; $y--)
                         <option value="{{ $y }}">{{ $y }}</option>
                     @endfor
@@ -226,6 +232,11 @@
                             @if ($report->memo_no)
                                 <p class="truncate text-[10px] text-slate-400">{{ $report->memo_no }}</p>
                             @endif
+                            @if ($report->relationLoaded('collaborators') && $report->collaborators->isNotEmpty())
+                                <p class="mt-0.5 truncate text-[10px] font-medium text-violet-700">
+                                    Shared · {{ $report->collaboratorNamesLabel() }}
+                                </p>
+                            @endif
                         </td>
                         <td class="whitespace-nowrap px-2 py-2 align-middle text-[12px] text-slate-600">
                             {{ $report->periodLabel() }}
@@ -287,7 +298,7 @@
                                         Send by Gmail
                                     </button>
                                 @endunless
-                                @if ($isDraft)
+                                @if ($isDraft && (int) $report->user_id === (int) auth()->id())
                                     <button
                                         type="button"
                                         wire:click="deleteDraft({{ $report->id }})"

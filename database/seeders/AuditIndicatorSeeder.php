@@ -2,8 +2,10 @@
 
 namespace Database\Seeders;
 
+use App\Models\AuditFinding;
+use App\Models\AuditIndicator;
+use App\Support\AuditIrregularityCatalog;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Artisan;
 
 class AuditIndicatorSeeder extends Seeder
 {
@@ -13,19 +15,31 @@ class AuditIndicatorSeeder extends Seeder
             return;
         }
 
-        $path = storage_path('app/templates/audit/AUDIT_FINDINGS_CONSOLIDATED_FORMAT.xlsx');
-        if (! is_file($path)) {
-            $this->command?->warn('Excel catalog missing at '.$path);
+        $findingsDeleted = AuditFinding::query()->count();
+        $indicatorsDeleted = AuditIndicator::query()->count();
 
-            return;
+        AuditFinding::query()->delete();
+        AuditIndicator::query()->delete();
+
+        $now = now();
+        foreach (AuditIrregularityCatalog::all() as $row) {
+            AuditIndicator::query()->create([
+                'category' => $row['category'],
+                'sub_category' => $row['sub_category'],
+                'indicator_code' => $row['indicator_code'],
+                'title' => $row['title'],
+                'risk_rating' => $row['risk_rating'],
+                'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
         }
 
-        Artisan::call('audit:import-indicators', [
-            'filepath' => $path,
-            '--fresh' => true,
-            '--sheet' => 'August, 2026',
-        ]);
-
-        $this->command?->getOutput()?->write(Artisan::output());
+        $this->command?->info(sprintf(
+            'Findings Matrix catalog replaced: removed %d indicators / %d findings; seeded %d irregularity codes.',
+            $indicatorsDeleted,
+            $findingsDeleted,
+            count(AuditIrregularityCatalog::all())
+        ));
     }
 }

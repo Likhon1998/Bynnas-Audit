@@ -18,12 +18,21 @@
         </div>
         <button
             type="button"
-            class="hidden h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/15 bg-white/[0.04] text-slate-300 transition hover:border-white/30 hover:bg-white/10 hover:text-white lg:flex"
-            @click.stop="toggleSidebarCollapsed()"
-            title="Hide sidebar"
-            aria-label="Hide sidebar"
+            class="sidebar-collapse-btn hidden h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/15 bg-white/[0.04] text-slate-300 transition hover:border-white/30 hover:bg-white/10 hover:text-white lg:flex"
+            @click.stop.prevent="toggleSidebarCollapsed()"
+            :title="sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'"
+            :aria-label="sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'"
+            :aria-expanded="(!sidebarCollapsed).toString()"
         >
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4" aria-hidden="true">
+            <svg
+                class="h-4 w-4 transition-transform duration-200"
+                :class="sidebarCollapsed && 'rotate-180'"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2.4"
+                aria-hidden="true"
+            >
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
         </button>
@@ -43,14 +52,16 @@
                 <span class="sidebar-link-label truncate">Dashboard</span>
             </x-sidebar-link>
 
-            @can('map.view')
-                <x-sidebar-link :href="route('map.index')" :active="request()->routeIs('map.*')" title="Map">
-                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('map.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                    </svg>
-                    <span class="sidebar-link-label truncate">Map</span>
-                </x-sidebar-link>
-            @endcan
+            @if (config('features.map'))
+                @can('map.view')
+                    <x-sidebar-link :href="route('map.index')" :active="request()->routeIs('map.*')" title="Map">
+                        <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('map.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                        </svg>
+                        <span class="sidebar-link-label truncate">Map</span>
+                    </x-sidebar-link>
+                @endcan
+            @endif
 
             @canany(['organogram.view', 'organogram.manage'])
                 <x-sidebar-link :href="route('organogram')" :active="request()->routeIs('organogram')" title="Organogram">
@@ -116,13 +127,24 @@
             @can('findings.view_all')
                 <x-sidebar-link
                     :href="route('audit-findings.index')"
-                    :active="request()->routeIs('audit-findings.*')"
+                    :active="request()->routeIs('audit-findings.*') && ! request()->routeIs('audit-findings.entry*')"
                     title="Findings Matrix"
                 >
-                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('audit-findings.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('audit-findings.*') && ! request()->routeIs('audit-findings.entry*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h10M4 14h16M4 18h10" />
                     </svg>
                     <span class="sidebar-link-label truncate">Findings Matrix</span>
+                </x-sidebar-link>
+            @elsecan('findings.enter')
+                <x-sidebar-link
+                    :href="route('audit-findings.entry')"
+                    :active="request()->routeIs('audit-findings.entry*')"
+                    title="Enter Findings"
+                >
+                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('audit-findings.entry*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h10M4 14h16M4 18h10" />
+                    </svg>
+                    <span class="sidebar-link-label truncate">Enter Findings</span>
                 </x-sidebar-link>
             @endcan
 
@@ -219,6 +241,12 @@
             :class="sidebarCollapsed && 'lg:absolute lg:bottom-full lg:left-full lg:mb-0 lg:ml-1 lg:w-36 lg:shadow-xl'"
         >
             <a href="{{ route('profile.edit') }}" class="block rounded-md px-2 py-1 text-[11px] text-slate-300 hover:bg-white/[0.05] hover:text-white">Profile</a>
+            <button
+                type="button"
+                @click="toggleTheme()"
+                class="block w-full rounded-md px-2 py-1 text-left text-[11px] text-slate-300 hover:bg-white/[0.05] hover:text-white"
+                x-text="darkMode ? 'Light theme' : 'Dark theme'"
+            ></button>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
                 <button type="submit" class="block w-full rounded-md px-2 py-1 text-left text-[11px] text-slate-300 hover:bg-white/[0.05] hover:text-white">Log Out</button>
@@ -226,27 +254,5 @@
         </div>
     </div>
 </aside>
-
-<button
-    type="button"
-    x-show="sidebarCollapsed"
-    x-cloak
-    class="fixed left-0 top-14 z-50 hidden h-7 w-7 items-center justify-center rounded-r-lg border border-l-0 border-slate-200 bg-white text-[#123d70] shadow-[0_4px_12px_rgba(15,23,42,0.2)] transition hover:bg-sky-50 hover:text-sky-700 lg:flex"
-    @click.stop="toggleSidebarCollapsed()"
-    title="Show sidebar"
-    aria-label="Show sidebar"
-    aria-expanded="false"
->
-    <svg
-        class="h-4 w-4 rotate-180"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        stroke-width="2.4"
-        aria-hidden="true"
-    >
-        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-    </svg>
-</button>
 
 <div x-show="sidebarOpen" x-cloak class="fixed inset-0 z-30 bg-slate-950/60 lg:hidden" @click="sidebarOpen = false"></div>

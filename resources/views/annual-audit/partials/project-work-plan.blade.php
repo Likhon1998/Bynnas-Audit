@@ -119,13 +119,13 @@
         </div>
     </div>
 
-    <div class="overflow-x-auto">
+    <div class="max-h-[calc(100vh-13rem)] overflow-auto">
         <table class="min-w-full border-collapse text-left">
-            <thead>
-                <tr class="border-b border-slate-200 bg-emerald-50/60 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
-                    <th class="border border-slate-200 px-2 py-2 text-center w-10">#</th>
-                    <th class="border border-slate-200 px-3 py-2 min-w-[220px]">Name of the Projects / Donor</th>
-                    <th class="border border-slate-200 px-3 py-2 min-w-[180px]">Location of the Projects</th>
+            <thead class="sticky top-0 z-20">
+                <tr class="border-b border-slate-200 bg-emerald-50 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+                    <th class="border border-slate-200 bg-emerald-50 px-2 py-2 text-center w-10">#</th>
+                    <th class="border border-slate-200 bg-emerald-50 px-3 py-2 min-w-[220px]">Name of the Projects / Donor</th>
+                    <th class="border border-slate-200 bg-emerald-50 px-3 py-2 min-w-[180px]">Location of the Projects</th>
                     @foreach ($months as $month)
                         @php
                             $shortYear = $month['index'] <= 5 ? $startYear : $endYear;
@@ -135,12 +135,12 @@
                                 default => $month['label'],
                             };
                         @endphp
-                        <th class="border border-slate-200 px-1 py-2 text-center text-[9px] leading-tight min-w-[52px]">
+                        <th class="border border-slate-200 bg-emerald-50 px-1 py-2 text-center text-[9px] leading-tight min-w-[52px]">
                             {{ $monthName }}'{{ $shortYear }}
                         </th>
                     @endforeach
-                    <th class="border border-slate-200 px-2 py-2 text-center w-12">Total</th>
-                    <th class="border border-slate-200 px-2 py-2 w-28">Actions</th>
+                    <th class="border border-slate-200 bg-emerald-50 px-2 py-2 text-center w-12">Total</th>
+                    <th class="border border-slate-200 bg-emerald-50 px-2 py-2 w-28">Actions</th>
                 </tr>
             </thead>
             <tbody>

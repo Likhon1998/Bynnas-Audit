@@ -52,18 +52,18 @@
         </a>
     </div>
 
-    <div class="overflow-x-auto">
+    <div class="max-h-[calc(100vh-13rem)] overflow-auto">
         <table class="min-w-full border-collapse text-left">
-            <thead>
-                <tr class="bg-amber-200/90 text-[10px] font-semibold tracking-wide text-slate-800">
-                    <th rowspan="2" class="border border-slate-300 px-1.5 py-1 text-center w-8">#</th>
-                    <th rowspan="2" class="border border-slate-300 px-2 py-1 min-w-[150px] text-center">Project Name</th>
-                    <th rowspan="2" class="border border-slate-300 px-2 py-1 min-w-[150px] text-center">Project Location</th>
-                    <th colspan="3" class="border border-slate-300 px-1 py-1 text-center">1st Quarter</th>
-                    <th colspan="3" class="border border-slate-300 px-1 py-1 text-center">2nd Quarter</th>
-                    <th colspan="3" class="border border-slate-300 px-1 py-1 text-center">3rd Quarter</th>
-                    <th colspan="3" class="border border-slate-300 px-1 py-1 text-center">4th Quarter</th>
-                    <th rowspan="2" class="border border-slate-300 px-1.5 py-1 text-center w-12">Total</th>
+            <thead class="sticky top-0 z-20">
+                <tr class="bg-amber-200 text-[10px] font-semibold tracking-wide text-slate-800">
+                    <th rowspan="2" class="border border-slate-300 bg-amber-200 px-1.5 py-1 text-center w-8">#</th>
+                    <th rowspan="2" class="border border-slate-300 bg-amber-200 px-2 py-1 min-w-[150px] text-center">Project Name</th>
+                    <th rowspan="2" class="border border-slate-300 bg-amber-200 px-2 py-1 min-w-[150px] text-center">Project Location</th>
+                    <th colspan="3" class="border border-slate-300 bg-amber-200 px-1 py-1 text-center">1st Quarter</th>
+                    <th colspan="3" class="border border-slate-300 bg-amber-200 px-1 py-1 text-center">2nd Quarter</th>
+                    <th colspan="3" class="border border-slate-300 bg-amber-200 px-1 py-1 text-center">3rd Quarter</th>
+                    <th colspan="3" class="border border-slate-300 bg-amber-200 px-1 py-1 text-center">4th Quarter</th>
+                    <th rowspan="2" class="border border-slate-300 bg-amber-200 px-1.5 py-1 text-center w-12">Total</th>
                 </tr>
                 <tr class="bg-slate-100 text-[9px] font-semibold tracking-wide text-slate-600">
                     @foreach ($months as $monthIndex => $month)
@@ -75,7 +75,7 @@
                                 default => $month['label'],
                             };
                         @endphp
-                        <th class="border border-slate-300 px-0.5 py-1 text-center min-w-[42px]">
+                        <th class="border border-slate-300 bg-slate-100 px-0.5 py-1 text-center min-w-[42px]">
                             <div class="text-[10px] font-bold leading-none text-navy-900" x-text="monthTotals[{{ $monthIndex }}] ?? 0">{{ $initialMonthTotals[$monthIndex] ?? 0 }}</div>
                             <div class="mt-0.5 text-[8px] font-semibold uppercase leading-none text-slate-500">{{ $monthName }}-{{ $shortYear }}</div>
                         </th>
