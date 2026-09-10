@@ -288,7 +288,7 @@ class UserManagementController extends Controller
             'rolePermissionMap' => RoleAccess::rolePermissionMap(),
             'employees' => Employee::query()->with(['position', 'user'])->orderBy('name')->get(),
             'positions' => Position::query()->orderBy('serial')->get(),
-            'shakhas' => Shakha::query()->with('area:id,name,division')->orderBy('name')->get(['id', 'name', 'code', 'area_id']),
+            'shakhas' => Shakha::query()->with(['area:id,name,division', 'latestRiskAssessment'])->orderBy('name')->get(['id', 'name', 'code', 'area_id']),
             'user' => null,
             'suggestedRole' => 'audit_officer',
             'selectedPermissions' => [],

@@ -71,7 +71,7 @@ class UserAccessService
      */
     public function accessibleShakhas(?User $user): Collection
     {
-        $query = Shakha::query()->with('area')->orderBy('name');
+        $query = Shakha::query()->with(['area', 'latestRiskAssessment'])->orderBy('name');
 
         $ids = $this->accessibleShakhaIds($user);
         if ($ids === null) {
@@ -112,7 +112,7 @@ class UserAccessService
      */
     public function reportableShakhas(?User $user, ?int $month = null, ?int $year = null): Collection
     {
-        $query = Shakha::query()->with('area')->orderBy('name');
+        $query = Shakha::query()->with(['area', 'latestRiskAssessment'])->orderBy('name');
 
         $ids = $this->reportableShakhaIds($user, $month, $year);
         if ($ids === null) {

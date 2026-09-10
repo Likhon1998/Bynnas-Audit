@@ -229,10 +229,10 @@
             mymensingh: '#db2777',
         };
         const riskColors = {
-            significant: '#f43f5e',
-            high: '#f43f5e',
-            medium: '#f59e0b',
-            low: '#10b981',
+            significant: '#e11d48',
+            high: '#ea580c',
+            medium: '#d97706',
+            low: '#059669',
             unassessed: '#64748b',
         };
 

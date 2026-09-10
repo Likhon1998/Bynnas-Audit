@@ -5,14 +5,18 @@ namespace App\Console\Commands;
 use App\Models\AuditPlan;
 use App\Models\User;
 use App\Services\MonthlyWorklistService;
+use App\Support\FinancialYear;
 use Illuminate\Console\Command;
 
 class ResetMonthlyVisitAllocations extends Command
 {
     protected $signature = 'visits:reset-allocations
-                            {--wipe-only : Delete allocations without auto-allocating again}';
+                            {--wipe-only : Delete allocations without auto-allocating again}
+                            {--fy= : FY label e.g. 2026-2027 (default: current)}
+                            {--month= : Calendar month 1-12 to re-allocate only (e.g. 9 = September)}
+                            {--fy-month= : FY month index 0-11 only (Jul=0 … Jun=11)}';
 
-    protected $description = 'Delete every monthly visit allocation and optionally re-allocate dates inside each plan month';
+    protected $description = 'Delete monthly visit allocations; optionally re-allocate all months or one month only';
 
     public function handle(MonthlyWorklistService $worklist): int
     {
@@ -23,13 +27,23 @@ class ResetMonthlyVisitAllocations extends Command
             return self::SUCCESS;
         }
 
-        $plans = AuditPlan::query()->orderBy('start_date')->get();
+        $fyLabel = $this->option('fy');
+        if (! $fyLabel || ! preg_match('/^\d{4}-\d{4}$/', (string) $fyLabel)) {
+            $fyLabel = FinancialYear::current(now('Asia/Dhaka'))->label;
+        }
+
+        $plans = AuditPlan::query()
+            ->where('fy_label', $fyLabel)
+            ->orderBy('start_date')
+            ->get();
+
         if ($plans->isEmpty()) {
-            $this->warn('No annual audit plan found. Generate a yearly plan before allocating.');
+            $this->warn("No annual audit plan for {$fyLabel}. Generate the yearly plan first.");
 
             return self::SUCCESS;
         }
 
+        $monthIndexes = $this->resolveMonthIndexes();
         $userId = User::query()->where('is_superadmin', true)->value('id');
 
         foreach ($plans as $plan) {
@@ -39,11 +53,13 @@ class ResetMonthlyVisitAllocations extends Command
                 continue;
             }
 
-            for ($monthIndex = 0; $monthIndex < 12; $monthIndex++) {
+            $this->info("Plan {$plan->fy_label}:");
+            foreach ($monthIndexes as $monthIndex) {
                 $result = $worklist->bulkAllocateMonth($plan, $monthIndex, $userId);
+                $label = FinancialYear::MONTH_LABELS[$monthIndex] ?? (string) $monthIndex;
                 $this->line(sprintf(
-                    '  %s month %d: assigned %d / %d (skipped %d)',
-                    $plan->fy_label,
+                    '  %s (index %d): assigned %d / %d (skipped %d)',
+                    $label,
                     $monthIndex,
                     $result['assigned'],
                     $result['total'],
@@ -52,8 +68,30 @@ class ResetMonthlyVisitAllocations extends Command
             }
         }
 
-        $this->info('Allocations rebuilt with dates inside each selected month.');
+        $this->info('Done.');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * @return list<int>
+     */
+    protected function resolveMonthIndexes(): array
+    {
+        if ($this->option('fy-month') !== null && $this->option('fy-month') !== '') {
+            return [max(0, min(11, (int) $this->option('fy-month')))];
+        }
+
+        if ($this->option('month') !== null && $this->option('month') !== '') {
+            $calendarMonth = (int) $this->option('month');
+            if ($calendarMonth >= 1 && $calendarMonth <= 12) {
+                // Jul=0 … Jun=11
+                return [($calendarMonth + 5) % 12];
+            }
+
+            return [max(0, min(11, $calendarMonth))];
+        }
+
+        return range(0, 11);
     }
 }

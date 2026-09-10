@@ -140,7 +140,14 @@
                                     @endif
                                 </td>
                             @endif
-                            <td class="border border-slate-200 px-2 py-0.5 text-[12px] font-medium text-navy-900">{{ $row['name'] }}</td>
+                            <td class="border border-slate-200 px-2 py-0.5 text-[12px] font-medium {{ ! empty($row['risk']) ? \App\Support\ShakhaRiskTone::textClasses($row['risk']).' '.\App\Support\ShakhaRiskTone::softBgClasses($row['risk']) : 'text-navy-900' }}">
+                                <span class="inline-flex flex-wrap items-center gap-1">
+                                    {{ $row['name'] }}
+                                    @if (! empty($row['risk']))
+                                        <x-shakha-risk-badge :category="$row['risk']" size="xs" />
+                                    @endif
+                                </span>
+                            </td>
                             @foreach ($row['months'] as $monthIndex => $active)
                                 <td class="border border-slate-200 px-0 py-0 text-center {{ $active ? 'bg-emerald-100' : 'bg-white' }}">
                                     <x-audit-month-mark

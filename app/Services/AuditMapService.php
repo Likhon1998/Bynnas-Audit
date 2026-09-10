@@ -6,6 +6,7 @@ use App\Models\AuditFinding;
 use App\Models\AuditReport;
 use App\Models\Shakha;
 use App\Support\BangladeshGazetteer;
+use App\Support\ShakhaRiskTone;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -88,6 +89,7 @@ class AuditMapService
                 'lng' => $point['lng'],
                 'risk' => $risk,
                 'risk_label' => $shakha->latestRiskAssessment?->risk_category ?: 'Not assessed',
+                'risk_color' => ShakhaRiskTone::hex($shakha->latestRiskAssessment?->risk_category),
                 'score' => $score,
                 'compliance_score' => $this->complianceScore($score, $risk),
                 'reports' => (int) $shakha->audit_reports_count,
@@ -120,13 +122,7 @@ class AuditMapService
 
     private function riskKey(?string $category): string
     {
-        return match ($category) {
-            'Significant Risk' => 'significant',
-            'High Risk' => 'high',
-            'Medium Risk' => 'medium',
-            'Low Risk' => 'low',
-            default => 'unassessed',
-        };
+        return ShakhaRiskTone::key($category);
     }
 
     private function areaColor(?string $name): string

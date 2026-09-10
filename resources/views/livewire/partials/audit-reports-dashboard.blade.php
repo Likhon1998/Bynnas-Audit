@@ -92,11 +92,18 @@
                                 :class="highlight === idx ? 'bg-sky-50' : ''"
                             >
                                 <span class="min-w-0 flex-1">
-                                    <span class="block truncate text-[12px] font-semibold leading-tight text-navy-900" x-text="b.name"></span>
-                                    <span class="block truncate text-[10px] leading-tight text-slate-500">
-                                        <span x-text="b.code || '—'"></span>
-                                        <span x-show="b.area"> · </span>
-                                        <span x-text="b.area || ''"></span>
+                                    <span class="block truncate text-[12px] font-semibold leading-tight" :class="b.risk_text || 'text-navy-900'" x-text="b.name"></span>
+                                    <span class="mt-0.5 flex flex-wrap items-center gap-1">
+                                        <span class="truncate text-[10px] leading-tight text-slate-500">
+                                            <span x-text="b.code || '—'"></span>
+                                            <span x-show="b.area"> · </span>
+                                            <span x-text="b.area || ''"></span>
+                                        </span>
+                                        <span
+                                            class="inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-semibold"
+                                            :class="b.risk_badge || 'bg-slate-50 text-slate-500 ring-1 ring-slate-200'"
+                                            x-text="b.risk_short || 'N/A'"
+                                        ></span>
                                     </span>
                                 </span>
                                 <span
@@ -225,10 +232,12 @@
                         $isDraft = $report->isDraft();
                     @endphp
                     <tr class="hover:bg-slate-50/80">
-                        <td class="px-3 py-2 align-middle sm:px-4">
-                            <p class="truncate text-[12px] font-semibold text-navy-900">
-                                {{ $report->shakha_display_name ?: ($report->shakha?->name ?? 'Branch') }}
-                            </p>
+                        <td class="px-3 py-2 align-middle sm:px-4 {{ $report->shakha?->riskCategory() ? \App\Support\ShakhaRiskTone::softBgClasses($report->shakha->riskCategory()) : '' }}">
+                            <x-shakha-name
+                                :name="$report->shakha_display_name ?: ($report->shakha?->name ?? 'Branch')"
+                                :category="$report->shakha?->riskCategory()"
+                                class="text-[12px]"
+                            />
                             @if ($report->memo_no)
                                 <p class="truncate text-[10px] text-slate-400">{{ $report->memo_no }}</p>
                             @endif

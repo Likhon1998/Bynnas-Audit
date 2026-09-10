@@ -145,6 +145,8 @@ class OfficerDashboardService
                 'label' => $place['label'],
                 'area' => $place['area'],
                 'division' => $place['division'],
+                'risk' => $place['risk'],
+                'risk_key' => $place['risk_key'],
                 'purpose' => $a->purpose ?: ($a->workItem?->activityType?->name ?? 'Visit'),
                 'dates' => $a->visitDateRangeLabel(),
                 'status' => $status,
@@ -237,6 +239,8 @@ class OfficerDashboardService
                     'label' => $place['label'],
                     'area' => $place['area'],
                     'division' => $place['division'],
+                    'risk' => $place['risk'],
+                    'risk_key' => $place['risk_key'],
                     'purpose' => $a->purpose ?: ($a->workItem?->activityType?->name ?? 'Visit'),
                     'dates' => $a->visitDateRangeLabel(),
                     'days' => $a->duration_days,
@@ -314,7 +318,7 @@ class OfficerDashboardService
                 'workItem' => fn ($q) => $q->with([
                     'activityType',
                     'schedulable' => fn ($morphTo) => $morphTo->morphWith([
-                        Shakha::class => ['area'],
+                        Shakha::class => ['area', 'latestRiskAssessment'],
                     ]),
                 ]),
                 'execution',
@@ -392,7 +396,7 @@ class OfficerDashboardService
     }
 
     /**
-     * @return array{label:string,area:string,division:string}
+     * @return array{label:string,area:string,division:string,risk:?string,risk_key:string}
      */
     protected function placeMeta(MonthlyAssignment $a): array
     {
@@ -405,18 +409,22 @@ class OfficerDashboardService
 
         $area = '';
         $division = '';
+        $risk = null;
         if ($schedulable instanceof Shakha) {
             $area = (string) ($schedulable->area?->name ?: '');
             $division = (string) ($schedulable->area?->division ?: '');
             if ($schedulable->code) {
                 $label = $schedulable->name.($schedulable->code ? ' ('.$schedulable->code.')' : '');
             }
+            $risk = $schedulable->riskCategory();
         }
 
         return [
             'label' => $label,
             'area' => $area,
             'division' => $division,
+            'risk' => $risk,
+            'risk_key' => \App\Support\ShakhaRiskTone::key($risk),
         ];
     }
 

@@ -211,8 +211,16 @@
                                     x-show="rowMatch($el.dataset.search, listQuery)"
                                 >
                                     <td class="px-3 py-2 text-slate-400">{{ $i + 1 }}</td>
-                                    <td class="px-3 py-2">
-                                        <p class="font-medium text-navy-900">{{ $item->entity_label }}</p>
+                                    <td class="px-3 py-2 {{ ($item->schedulable instanceof \App\Models\Shakha && $item->schedulable->riskCategory()) ? \App\Support\ShakhaRiskTone::softBgClasses($item->schedulable->riskCategory()) : '' }}">
+                                        @if ($item->schedulable instanceof \App\Models\Shakha)
+                                            <x-shakha-name
+                                                :name="$item->entity_label"
+                                                :category="$item->schedulable->riskCategory()"
+                                                class="text-[12px]"
+                                            />
+                                        @else
+                                            <p class="font-medium text-navy-900">{{ $item->entity_label }}</p>
+                                        @endif
                                         <p class="text-[10px] text-slate-400">
                                             {{ $item->isSpecial() ? 'Special' : 'Yearly' }}
                                             · {{ str_replace('_', ' ', $item->category) }}
@@ -299,9 +307,17 @@
                                 >
                                     <td class="px-3 py-2 text-slate-400">{{ $i + 1 }}</td>
                                     <td class="px-3 py-2 font-medium text-navy-900 whitespace-pre-line">{{ $a?->visitorNames("\n") ?: '—' }}</td>
-                                    <td class="px-3 py-2 text-slate-700">
-                                        <p>{{ $item->entity_label }}</p>
-                                        <p class="text-[10px] text-slate-400">
+                                    <td class="px-3 py-2 {{ ($item->schedulable instanceof \App\Models\Shakha && $item->schedulable->riskCategory()) ? \App\Support\ShakhaRiskTone::softBgClasses($item->schedulable->riskCategory()) : '' }}">
+                                        @if ($item->schedulable instanceof \App\Models\Shakha)
+                                            <x-shakha-name
+                                                :name="$item->entity_label"
+                                                :category="$item->schedulable->riskCategory()"
+                                                class="text-[12px]"
+                                            />
+                                        @else
+                                            <p class="font-semibold text-navy-900">{{ $item->entity_label }}</p>
+                                        @endif
+                                        <p class="mt-0.5 text-[10px] text-slate-400">
                                             {{ $a?->purpose ?? $item->activityType?->name }}
                                             @if ($item->isSpecial()) · Special @endif
                                             @if ($a?->last_audit_upto) · Last {{ $a->last_audit_upto->format('M-Y') }} @endif

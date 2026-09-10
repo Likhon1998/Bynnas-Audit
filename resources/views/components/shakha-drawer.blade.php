@@ -132,10 +132,11 @@ function shakhaDrawer() {
         },
         get riskChipClass() {
             const risk = this.shakha.risk;
-            if (risk === 'high' || risk === 'significant') return 'bg-rose-500/20 text-rose-200';
-            if (risk === 'medium') return 'bg-amber-500/20 text-amber-200';
-            if (risk === 'low') return 'bg-emerald-500/20 text-emerald-200';
-            return 'bg-slate-500/20 text-slate-200';
+            if (risk === 'significant') return 'bg-rose-500/20 text-rose-200 ring-1 ring-rose-400/30';
+            if (risk === 'high') return 'bg-orange-500/20 text-orange-200 ring-1 ring-orange-400/30';
+            if (risk === 'medium') return 'bg-amber-500/20 text-amber-200 ring-1 ring-amber-400/30';
+            if (risk === 'low') return 'bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/30';
+            return 'bg-slate-500/20 text-slate-200 ring-1 ring-white/10';
         },
         open(detail) {
             this.shakha = detail && typeof detail === 'object' ? detail : {};

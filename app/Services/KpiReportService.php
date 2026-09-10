@@ -17,7 +17,7 @@ class KpiReportService
     {
         $query = Shakha::query()
             ->join('areas', 'areas.id', '=', 'shakhas.area_id')
-            ->with(['area', 'annualKpis' => fn ($q) => $q->where('fy_label', $fyLabel)])
+            ->with(['area', 'latestRiskAssessment', 'annualKpis' => fn ($q) => $q->where('fy_label', $fyLabel)])
             ->where('shakhas.status', 'active')
             ->orderBy('areas.division')
             ->orderBy('areas.name')

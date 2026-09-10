@@ -10291,6 +10291,8 @@ class MakeAuditReport extends Component
             }
 
         $branchOptions = $shakhas->values()->map(function ($shakha, $index) {
+            $risk = $shakha->riskCategory();
+
             return [
                 'id' => (string) $shakha->id,
                 'serial' => $index + 1,
@@ -10301,6 +10303,11 @@ class MakeAuditReport extends Component
                 'focal' => (string) ($shakha->focal_person_name ?: ''),
                 'active' => $shakha->isActive(),
                 'opening' => optional($shakha->opening_date ?? $shakha->opened_at)->format('d M Y') ?: '',
+                'risk' => $risk ?: 'Not assessed',
+                'risk_key' => \App\Support\ShakhaRiskTone::key($risk),
+                'risk_short' => \App\Support\ShakhaRiskTone::shortLabel($risk),
+                'risk_badge' => \App\Support\ShakhaRiskTone::badgeClasses($risk),
+                'risk_text' => \App\Support\ShakhaRiskTone::textClasses($risk),
             ];
         })->values();
 
@@ -10315,7 +10322,7 @@ class MakeAuditReport extends Component
                     $ongoingQuery = AuditReport::query()
                         ->accessibleBy($userId)
                         ->drafts()
-                        ->with(['shakha.area', 'collaborators:id,name', 'user:id,name']);
+                        ->with(['shakha.area', 'shakha.latestRiskAssessment', 'collaborators:id,name', 'user:id,name']);
                     $this->applyReportListFilters($ongoingQuery);
                     $ongoingReports = $ongoingQuery
                         ->latest('last_saved_at')
@@ -10328,7 +10335,7 @@ class MakeAuditReport extends Component
                     $completedQuery = AuditReport::query()
                         ->accessibleBy($userId)
                         ->completed()
-                        ->with(['shakha.area', 'collaborators:id,name', 'user:id,name']);
+                        ->with(['shakha.area', 'shakha.latestRiskAssessment', 'collaborators:id,name', 'user:id,name']);
                     $this->applyReportListFilters($completedQuery);
                     // When filtering by month/search, show all matches; otherwise keep a short recent list.
                     $filtered = ($this->listFilterMonth >= 1 && $this->listFilterMonth <= 12)

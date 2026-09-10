@@ -162,7 +162,9 @@ class MonthlyWorklistService
                 'assignment.visitors.position',
                 'assignment.execution',
                 'assignment.lockedBy',
-                'schedulable',
+                'schedulable' => fn ($morphTo) => $morphTo->morphWith([
+                    Shakha::class => ['latestRiskAssessment', 'area'],
+                ]),
             ])
             ->orderBy('category')
             ->orderBy('entity_label')

@@ -36,24 +36,27 @@
         <div class="divide-y divide-sky-100/80">
             @foreach ($todayActiveList as $row)
                 <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5">
-                    <div class="min-w-0 flex-1">
-                        <div class="flex flex-wrap items-center gap-1.5">
-                            <p class="text-[14px] font-semibold text-navy-900">{{ $row['label'] }}</p>
-                            @if (! empty($row['is_solo']))
-                                <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 ring-1 ring-slate-200">Solo</span>
-                            @elseif (! empty($row['team_label']))
-                                <span class="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-800 ring-1 ring-violet-200">{{ $row['team_label'] }}</span>
-                            @endif
+                        <div class="min-w-0 flex-1">
+                            <div class="flex flex-wrap items-center gap-1.5">
+                                <p class="text-[14px] font-semibold {{ ! empty($row['risk']) ? \App\Support\ShakhaRiskTone::textClasses($row['risk']) : 'text-navy-900' }}">{{ $row['label'] }}</p>
+                                @if (! empty($row['risk']))
+                                    <x-shakha-risk-badge :category="$row['risk']" size="xs" />
+                                @endif
+                                @if (! empty($row['is_solo']))
+                                    <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 ring-1 ring-slate-200">Solo</span>
+                                @elseif (! empty($row['team_label']))
+                                    <span class="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-800 ring-1 ring-violet-200">{{ $row['team_label'] }}</span>
+                                @endif
+                            </div>
+                            <p class="mt-0.5 text-[11px] text-slate-500">
+                                @if ($row['division'] || $row['area'])
+                                    {{ collect([$row['division'] ?? null, $row['area'] ?? null])->filter()->implode(' · ') }}
+                                    ·
+                                @endif
+                                {{ $row['purpose'] }}
+                                · {{ $row['dates'] }}
+                            </p>
                         </div>
-                        <p class="mt-0.5 text-[11px] text-slate-500">
-                            @if ($row['division'] || $row['area'])
-                                {{ collect([$row['division'] ?? null, $row['area'] ?? null])->filter()->implode(' · ') }}
-                                ·
-                            @endif
-                            {{ $row['purpose'] }}
-                            · {{ $row['dates'] }}
-                        </p>
-                    </div>
                     <div class="flex shrink-0 items-center gap-2">
                         <span class="rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize {{ $row['tone']['bg'] }} {{ $row['tone']['text'] }}">{{ $row['status_label'] }}</span>
                         <a href="{{ $row['execution_url'] }}" class="inline-flex h-9 items-center rounded-lg bg-navy-900 px-3.5 text-[12px] font-semibold text-white hover:bg-navy-800">
@@ -117,9 +120,12 @@
             <div class="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 {{ ! empty($row['is_today']) ? 'bg-sky-50/70' : '' }}">
                 <div class="min-w-0 flex-1">
                     <div class="flex flex-wrap items-center gap-1.5">
-                        <p class="truncate text-[12px] font-semibold text-navy-900">{{ $row['label'] }}</p>
+                        <p class="truncate text-[12px] font-semibold {{ ! empty($row['risk']) ? \App\Support\ShakhaRiskTone::textClasses($row['risk']) : 'text-navy-900' }}">{{ $row['label'] }}</p>
                         @if (! empty($row['is_today']))
                             <span class="rounded bg-sky-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">Today</span>
+                        @endif
+                        @if (! empty($row['risk']))
+                            <x-shakha-risk-badge :category="$row['risk']" size="xs" />
                         @endif
                         @if (! empty($row['is_solo']))
                             <span class="rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold text-slate-600 ring-1 ring-slate-200">Solo</span>

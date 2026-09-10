@@ -92,7 +92,7 @@ class AnnualAuditReportBuilder
     public function shakhaMatrix(?string $division = null, ?int $areaId = null): Collection
     {
         $shakhas = Shakha::query()
-            ->with('area')
+            ->with(['area', 'latestRiskAssessment'])
             ->where('status', 'active')
             ->when($areaId, fn ($q) => $q->where('area_id', $areaId))
             ->when($division, fn ($q) => $q->whereHas('area', fn ($a) => $a->where('division', $division)))
@@ -130,6 +130,7 @@ class AnnualAuditReportBuilder
                 'code' => $shakha->code,
                 'area' => $shakha->area?->name,
                 'division' => $shakha->area?->division,
+                'risk' => $shakha->riskCategory(),
                 'category' => AuditPolicy::CATEGORY_SHAKHA,
                 'schedulable_type' => Shakha::class,
                 'months' => $months,

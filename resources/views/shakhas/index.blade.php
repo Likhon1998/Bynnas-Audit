@@ -8,13 +8,16 @@
             kpi: 'all',
             riskTab: 'all',
             rows: @js($rows),
+            riskMap: @js(\App\Support\ShakhaRiskTone::jsMap()),
             riskBadge(risk) {
-                return {
-                    'Low Risk': 'bg-emerald-50 text-emerald-700',
-                    'Medium Risk': 'bg-amber-50 text-amber-700',
-                    'High Risk': 'bg-orange-50 text-orange-700',
-                    'Significant Risk': 'bg-rose-50 text-rose-700',
-                }[risk] || 'bg-slate-50 text-slate-400';
+                return (this.riskMap[risk] || this.riskMap['Not assessed'] || {}).badge
+                    || 'bg-slate-50 text-slate-500 ring-1 ring-slate-200';
+            },
+            riskText(risk) {
+                return (this.riskMap[risk] || this.riskMap['Not assessed'] || {}).text || 'text-navy-900';
+            },
+            riskSoft(risk) {
+                return (this.riskMap[risk] || {}).soft || '';
             },
             get areasForDivision() {
                 const names = this.rows
@@ -184,9 +187,18 @@
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <template x-for="(row, index) in filtered" :key="row.id">
-                            <tr class="text-[12px]">
+                            <tr class="text-[12px]" :class="riskSoft(row.risk)">
                                 <td class="px-4 py-2.5 tabular-nums text-slate-400" x-text="index + 1"></td>
-                                <td class="px-4 py-2.5 font-medium text-navy-900" x-text="row.name"></td>
+                                <td class="px-4 py-2.5">
+                                    <div class="flex flex-wrap items-center gap-1.5">
+                                        <span class="font-semibold" :class="riskText(row.risk)" x-text="row.name"></span>
+                                        <span
+                                            class="inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-semibold"
+                                            :class="riskBadge(row.risk)"
+                                            x-text="(riskMap[row.risk] || riskMap['Not assessed'] || {}).short || 'N/A'"
+                                        ></span>
+                                    </div>
+                                </td>
                                 <td class="px-4 py-2.5 text-slate-600" x-text="row.area || '—'"></td>
                                 <td class="px-4 py-2.5 text-slate-600" x-text="row.division || '—'"></td>
                                 <td class="px-4 py-2.5 text-slate-500" x-text="row.code || '—'"></td>

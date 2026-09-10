@@ -233,13 +233,14 @@
                                     @checked(in_array((int) $shakha->id, $selectedShakhas, true))
                                 >
                                 <span class="min-w-0 flex-1">
-                                    <span class="font-medium text-navy-900">{{ $shakha->name }}</span>
+                                    <span class="font-medium {{ $shakha->riskCategory() ? \App\Support\ShakhaRiskTone::textClasses($shakha->riskCategory()) : 'text-navy-900' }}">{{ $shakha->name }}</span>
                                     <span class="text-[10px] text-slate-400">
                                         {{ $shakha->code }}
                                         @if ($shakha->area)
                                             · {{ $shakha->area->division }} · {{ $shakha->area->name }}
                                         @endif
                                     </span>
+                                    <x-shakha-risk-badge class="ml-1" :category="$shakha->riskCategory()" size="xs" />
                                 </span>
                             </label>
                         @empty
