@@ -10,6 +10,8 @@ set -euo pipefail
 #   rsync -a --delete \
 #     --exclude '.env' --exclude 'storage/' --exclude 'bootstrap/cache/' \
 #     --exclude 'node_modules/' --exclude '.git/' --exclude 'vendor/' \
+#     --exclude 'database/*.sqlite' --exclude 'database/*.sqlite-*' \
+#     --exclude 'public/hot' --exclude 'public/storage' \
 #     ~/repositories/Bynnas-Audit/ ~/audit.bynnas.com/
 #   cd ~/audit.bynnas.com && bash deploy.sh
 
@@ -87,3 +89,6 @@ php artisan view:cache
 echo "==> Done."
 echo "==> Prefer document root: $APP_DIR/public"
 echo "==> Fallback root index.php is present for project-root docroots."
+echo ""
+echo "==> To match LOCAL demo data on this server (WIPES ALL DATA):"
+echo "    php artisan demo:install --force"

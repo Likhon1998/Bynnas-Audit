@@ -16,7 +16,7 @@ class AnnualAuditTest extends TestCase
 
     public function test_annual_audit_page_loads_for_authenticated_user(): void
     {
-        $user = User::factory()->create(['email_verified_at' => now()]);
+        $user = User::factory()->create(['email_verified_at' => now(), 'is_superadmin' => true]);
 
         $this->actingAs($user)
             ->get(route('annual-audit.index'))
@@ -30,7 +30,7 @@ class AnnualAuditTest extends TestCase
         $this->seed(\Database\Seeders\OrganizationSeeder::class);
         $this->seed(\Database\Seeders\ShakhaSeeder::class);
 
-        $user = User::factory()->create(['email_verified_at' => now()]);
+        $user = User::factory()->create(['email_verified_at' => now(), 'is_superadmin' => true]);
 
         $this->actingAs($user)
             ->post(route('annual-audit.generate'))
@@ -56,7 +56,7 @@ class AnnualAuditTest extends TestCase
         $this->seed(\Database\Seeders\OrganizationSeeder::class);
         $this->seed(\Database\Seeders\ShakhaSeeder::class);
 
-        $user = User::factory()->create(['email_verified_at' => now()]);
+        $user = User::factory()->create(['email_verified_at' => now(), 'is_superadmin' => true]);
         $this->actingAs($user)->post(route('annual-audit.generate'))->assertRedirect();
 
         $shakha = Shakha::query()->with('area')->where('status', 'active')->orderBy('name')->firstOrFail();
@@ -78,7 +78,7 @@ class AnnualAuditTest extends TestCase
         $this->seed(\Database\Seeders\OrganizationSeeder::class);
         $this->seed(\Database\Seeders\ShakhaSeeder::class);
 
-        $user = User::factory()->create(['email_verified_at' => now()]);
+        $user = User::factory()->create(['email_verified_at' => now(), 'is_superadmin' => true]);
         $this->actingAs($user)->post(route('annual-audit.generate'))->assertRedirect();
 
         $response = $this->actingAs($user)
@@ -93,7 +93,7 @@ class AnnualAuditTest extends TestCase
     {
         $this->seed(\Database\Seeders\AnnualAuditSeeder::class);
 
-        $user = User::factory()->create(['email_verified_at' => now()]);
+        $user = User::factory()->create(['email_verified_at' => now(), 'is_superadmin' => true]);
 
         $response = $this->actingAs($user)
             ->get(route('annual-audit.export', ['mode' => 'all', 'fy' => '2026-2027']));
@@ -123,7 +123,7 @@ class AnnualAuditTest extends TestCase
         $this->seed(\Database\Seeders\OrganizationSeeder::class);
         $this->seed(\Database\Seeders\ShakhaSeeder::class);
 
-        $user = User::factory()->create(['email_verified_at' => now()]);
+        $user = User::factory()->create(['email_verified_at' => now(), 'is_superadmin' => true]);
         $this->actingAs($user)->post(route('annual-audit.generate'))->assertRedirect();
 
         $plan = AuditPlan::query()->where('fy_label', '2026-2027')->firstOrFail();
@@ -188,7 +188,7 @@ class AnnualAuditTest extends TestCase
 
     public function test_admin_can_create_next_financial_year_plan(): void
     {
-        $user = User::factory()->create(['email_verified_at' => now()]);
+        $user = User::factory()->create(['email_verified_at' => now(), 'is_superadmin' => true]);
 
         $this->actingAs($user)
             ->get(route('annual-audit.index'))

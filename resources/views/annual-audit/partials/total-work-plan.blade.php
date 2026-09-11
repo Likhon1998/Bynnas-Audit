@@ -70,15 +70,15 @@
         </a>
     </div>
 
-    <div class="overflow-x-auto">
+    <div class="max-h-[calc(100vh-13rem)] overflow-auto">
         <table class="min-w-full border-collapse text-left">
-            <thead>
+            <thead class="sticky top-0 z-20">
                 <tr class="bg-sky-100 text-[10px] font-semibold tracking-wide text-navy-900">
-                    <th rowspan="2" class="border border-slate-300 px-3 py-1.5 min-w-[150px]">Category</th>
-                    <th colspan="3" class="border border-slate-300 px-1 py-1 text-center bg-emerald-200/80">1st Quarter</th>
-                    <th colspan="3" class="border border-slate-300 px-1 py-1 text-center bg-amber-200/80">2nd Quarter</th>
-                    <th colspan="3" class="border border-slate-300 px-1 py-1 text-center bg-sky-200/80">3rd Quarter</th>
-                    <th colspan="3" class="border border-slate-300 px-1 py-1 text-center bg-teal-200/80">4th Quarter</th>
+                    <th rowspan="2" class="border border-slate-300 bg-sky-100 px-3 py-1.5 min-w-[150px]">Category</th>
+                    <th colspan="3" class="border border-slate-300 px-1 py-1 text-center bg-emerald-200">1st Quarter</th>
+                    <th colspan="3" class="border border-slate-300 px-1 py-1 text-center bg-amber-200">2nd Quarter</th>
+                    <th colspan="3" class="border border-slate-300 px-1 py-1 text-center bg-sky-200">3rd Quarter</th>
+                    <th colspan="3" class="border border-slate-300 px-1 py-1 text-center bg-teal-200">4th Quarter</th>
                     <th rowspan="2" class="border border-slate-300 px-2 py-1.5 text-center bg-sky-200 text-navy-900 min-w-[56px]">Total</th>
                 </tr>
                 <tr class="bg-slate-100 text-[9px] font-semibold tracking-wide text-slate-600">

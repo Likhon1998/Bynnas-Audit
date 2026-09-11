@@ -14,7 +14,7 @@ class PksfWorkPlanTest extends TestCase
     {
         $this->seed(\Database\Seeders\AnnualAuditSeeder::class);
 
-        $user = User::factory()->create(['email_verified_at' => now()]);
+        $user = User::factory()->create(['email_verified_at' => now(), 'is_superadmin' => true]);
 
         $this->actingAs($user)
             ->get(route('annual-audit.index', ['tab' => 'pksf']))
@@ -32,7 +32,7 @@ class PksfWorkPlanTest extends TestCase
     public function test_admin_can_export_pksf_excel(): void
     {
         $this->seed(\Database\Seeders\AnnualAuditSeeder::class);
-        $user = User::factory()->create(['email_verified_at' => now()]);
+        $user = User::factory()->create(['email_verified_at' => now(), 'is_superadmin' => true]);
 
         $response = $this->actingAs($user)
             ->get(route('annual-audit.export', ['mode' => 'pksf', 'fy' => '2026-2027']));

@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use App\Support\RoleAccess;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
@@ -34,6 +35,7 @@ class RolePermissionSeeder extends Seeder
             'findings.enter',
             'dashboard.ops',
             'dashboard.officer',
+            'map.view',
         ];
 
         foreach ($permissions as $permission) {
@@ -41,12 +43,14 @@ class RolePermissionSeeder extends Seeder
         }
 
         $superadmin = Role::findOrCreate('superadmin');
+        $director = Role::findOrCreate('director_audit');
         $manager = Role::findOrCreate('audit_manager');
+        $senior = Role::findOrCreate('senior_officer');
         $officer = Role::findOrCreate('audit_officer');
 
         $superadmin->syncPermissions(Permission::all());
 
-        $manager->syncPermissions([
+        $leadership = [
             'organogram.view',
             'organogram.manage',
             'annual_audit.manage',
@@ -63,6 +67,23 @@ class RolePermissionSeeder extends Seeder
             'findings.view_all',
             'findings.enter',
             'dashboard.ops',
+            'map.view',
+        ];
+
+        $director->syncPermissions($leadership);
+        $manager->syncPermissions($leadership);
+
+        $senior->syncPermissions([
+            'organogram.view',
+            'monthly_visits.execute',
+            'kpis.manage',
+            'risk.manage',
+            'shakhas.view_all',
+            'audits.create',
+            'findings.view_all',
+            'findings.enter',
+            'dashboard.officer',
+            'map.view',
         ]);
 
         $officer->syncPermissions([
@@ -70,13 +91,14 @@ class RolePermissionSeeder extends Seeder
             'findings.enter',
             'monthly_visits.execute',
             'dashboard.officer',
+            'map.view',
         ]);
 
         $admin = User::query()->updateOrCreate(
             ['email' => 'admin@bynnasaudit.com'],
             [
                 'name' => 'Bynnas Admin',
-                'password' => Hash::make('12345678'),
+                'password' => Hash::make(RoleAccess::DEFAULT_PASSWORD),
                 'email_verified_at' => now(),
                 'is_superadmin' => true,
                 'is_active' => true,

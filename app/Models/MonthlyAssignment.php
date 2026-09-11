@@ -31,6 +31,9 @@ class MonthlyAssignment extends Model
         'original_end_date',
         'reschedule_reason',
         'assigned_by',
+        'is_locked',
+        'locked_by',
+        'locked_at',
     ];
 
     protected function casts(): array
@@ -45,6 +48,8 @@ class MonthlyAssignment extends Model
             'last_audit_upto_override' => 'boolean',
             'is_override_conflict' => 'boolean',
             'count_off_days' => 'boolean',
+            'is_locked' => 'boolean',
+            'locked_at' => 'datetime',
         ];
     }
 
@@ -79,6 +84,36 @@ class MonthlyAssignment extends Model
     public function assignedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_by');
+    }
+
+    public function lockedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'locked_by');
+    }
+
+    public function isScheduleLocked(): bool
+    {
+        return (bool) $this->is_locked;
+    }
+
+    /**
+     * Locked visits can only be changed by Super Admin or the person who locked them.
+     */
+    public function canBeModifiedBy(?User $user): bool
+    {
+        if (! $this->isScheduleLocked()) {
+            return true;
+        }
+
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        return $this->locked_by !== null && (int) $this->locked_by === (int) $user->id;
     }
 
     /** @return Collection<int, Employee> */

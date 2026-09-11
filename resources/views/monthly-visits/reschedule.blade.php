@@ -56,6 +56,11 @@
                     <input type="checkbox" name="count_off_days" value="1" class="mt-0.5 rounded border-amber-300 text-amber-600" @checked(old('count_off_days', $assignment->count_off_days))>
                     <span>Special request — count Fri/Sat &amp; holidays as working days</span>
                 </label>
+                <label class="flex items-start gap-2 rounded-lg border border-amber-100 bg-amber-50/60 px-3 py-2 text-[12px] text-amber-950">
+                    <input type="hidden" name="lock_schedule" value="0">
+                    <input type="checkbox" name="lock_schedule" value="1" class="mt-0.5 rounded border-amber-300 text-amber-600" @checked(old('lock_schedule', $assignment->is_locked ?? true))>
+                    <span>Keep schedule locked — others cannot change this visit</span>
+                </label>
                 <div>
                     <label class="mb-1 block text-[11px] font-medium text-slate-600">Reschedule reason (required)</label>
                     <textarea name="reschedule_reason" required rows="2" class="block w-full rounded-lg border-slate-200 text-[13px]">{{ old('reschedule_reason') }}</textarea>

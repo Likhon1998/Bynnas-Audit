@@ -109,6 +109,18 @@ class FinancialYear
         return (($date->year - $this->startDate->year) * 12) + ($date->month - $this->startDate->month);
     }
 
+    /** @return array{fy:string,month:int} */
+    public static function currentVisitQuery(?Carbon $asOf = null): array
+    {
+        $asOf = $asOf ? $asOf->copy() : now('Asia/Dhaka');
+        $fy = self::current($asOf);
+
+        return [
+            'fy' => $fy->label,
+            'month' => $fy->monthIndexForDate($asOf) ?? 0,
+        ];
+    }
+
     /**
      * @return array{q1:list<int>,q2:list<int>,q3:list<int>,q4:list<int>}
      */

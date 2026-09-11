@@ -74,6 +74,13 @@ class Shakha extends Model
         ]);
     }
 
+    public function riskCategory(): ?string
+    {
+        $category = $this->latestRiskAssessment?->risk_category;
+
+        return $category ? \App\Support\ShakhaRiskTone::label($category) : null;
+    }
+
     public function schedules(): MorphMany
     {
         return $this->morphMany(PlanSchedule::class, 'schedulable');

@@ -1,0 +1,4 @@
+{{ $bodyText }}
+
+—
+Sent by {{ $fromName }}

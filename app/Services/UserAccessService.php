@@ -71,7 +71,7 @@ class UserAccessService
      */
     public function accessibleShakhas(?User $user): Collection
     {
-        $query = Shakha::query()->with('area')->orderBy('name');
+        $query = Shakha::query()->with(['area', 'latestRiskAssessment'])->orderBy('name');
 
         $ids = $this->accessibleShakhaIds($user);
         if ($ids === null) {
@@ -88,6 +88,82 @@ class UserAccessService
     public function canAccessShakha(?User $user, int $shakhaId): bool
     {
         $ids = $this->accessibleShakhaIds($user);
+        if ($ids === null) {
+            return true;
+        }
+
+        return in_array($shakhaId, $ids, true);
+    }
+
+    /**
+     * Who may browse every branch when starting an audit report.
+     * Only Super Admin — field managers/officers use their monthly allocations.
+     */
+    public function canBrowseAllShakhasForReports(?User $user): bool
+    {
+        return $user !== null && $user->isSuperAdmin();
+    }
+
+    /**
+     * Shakhas available in the Audit Reports branch picker.
+     * Super Admin: all. Everyone else: monthly-visit allocations for the report month (+ optional user_shakha).
+     *
+     * @return Collection<int, Shakha>
+     */
+    public function reportableShakhas(?User $user, ?int $month = null, ?int $year = null): Collection
+    {
+        $query = Shakha::query()->with(['area', 'latestRiskAssessment'])->orderBy('name');
+
+        $ids = $this->reportableShakhaIds($user, $month, $year);
+        if ($ids === null) {
+            return $query->get();
+        }
+
+        if ($ids === []) {
+            return collect();
+        }
+
+        return $query->whereIn('id', $ids)->get();
+    }
+
+    /**
+     * @return list<int>|null  null = all shakhas
+     */
+    public function reportableShakhaIds(?User $user, ?int $month = null, ?int $year = null): ?array
+    {
+        if (! $user) {
+            return [];
+        }
+
+        if ($this->canBrowseAllShakhasForReports($user)) {
+            return null;
+        }
+
+        $ids = collect();
+
+        if ($user->employee_id && Schema::hasTable('monthly_assignments')) {
+            $ids = $ids->merge($this->visitAssignedShakhaIds(
+                (int) $user->employee_id,
+                $month,
+                $year,
+            ));
+        }
+
+        // Admin extras still allow an exception grant outside the visit plan.
+        if (Schema::hasTable('user_shakha')) {
+            $ids = $ids->merge($user->assignedShakhas()->pluck('shakhas.id'));
+        }
+
+        return $ids->map(fn ($id) => (int) $id)->unique()->values()->all();
+    }
+
+    public function canStartReportForShakha(
+        ?User $user,
+        int $shakhaId,
+        ?int $month = null,
+        ?int $year = null,
+    ): bool {
+        $ids = $this->reportableShakhaIds($user, $month, $year);
         if ($ids === null) {
             return true;
         }
@@ -156,13 +232,14 @@ class UserAccessService
     }
 
     /**
-     * Shakha IDs from monthly visits where this employee is allocated (any FY/month).
+     * Shakha IDs from monthly visits where this employee is allocated.
+     * When month/year are set, only visits overlapping that calendar month count.
      *
      * @return list<int>
      */
-    protected function visitAssignedShakhaIds(int $employeeId): array
+    protected function visitAssignedShakhaIds(int $employeeId, ?int $month = null, ?int $year = null): array
     {
-        $assignments = MonthlyAssignment::query()
+        $query = MonthlyAssignment::query()
             ->where(function ($q) use ($employeeId) {
                 $q->where('employee_id', $employeeId)
                     ->orWhereHas('visitors', fn ($v) => $v->where('employees.id', $employeeId));
@@ -170,6 +247,18 @@ class UserAccessService
             ->whereHas('workItem', function ($q) {
                 $q->where('schedulable_type', Shakha::class);
             })
+            ->whereNotNull('start_date')
+            ->whereNotNull('end_date');
+
+        if ($month !== null && $year !== null && $month >= 1 && $month <= 12 && $year >= 2000) {
+            $monthStart = sprintf('%04d-%02d-01', $year, $month);
+            $monthEnd = date('Y-m-t', strtotime($monthStart));
+            $query
+                ->whereDate('start_date', '<=', $monthEnd)
+                ->whereDate('end_date', '>=', $monthStart);
+        }
+
+        $assignments = $query
             ->with('workItem:id,schedulable_id,schedulable_type')
             ->get();
 

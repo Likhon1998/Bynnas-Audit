@@ -8,13 +8,16 @@
             kpi: 'all',
             riskTab: 'all',
             rows: @js($rows),
+            riskMap: @js(\App\Support\ShakhaRiskTone::jsMap()),
             riskBadge(risk) {
-                return {
-                    'Low Risk': 'bg-emerald-50 text-emerald-700',
-                    'Medium Risk': 'bg-amber-50 text-amber-700',
-                    'High Risk': 'bg-orange-50 text-orange-700',
-                    'Significant Risk': 'bg-rose-50 text-rose-700',
-                }[risk] || 'bg-slate-50 text-slate-400';
+                return (this.riskMap[risk] || this.riskMap['Not assessed'] || {}).badge
+                    || 'bg-slate-50 text-slate-500 ring-1 ring-slate-200';
+            },
+            riskText(risk) {
+                return (this.riskMap[risk] || this.riskMap['Not assessed'] || {}).text || 'text-navy-900';
+            },
+            riskSoft(risk) {
+                return (this.riskMap[risk] || {}).soft || '';
             },
             get areasForDivision() {
                 const names = this.rows
@@ -59,16 +62,20 @@
                 </p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
-                <a
-                    href="{{ route('shakhas.risk.export', ['fy' => $fyLabel]) }}"
-                    class="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[12px] font-medium text-emerald-800 hover:bg-emerald-100"
-                >
-                    Export Risk Excel
-                </a>
-                <a href="{{ route('shakhas.create') }}" class="inline-flex items-center gap-1 rounded-lg bg-navy-900 px-2.5 py-1.5 text-[12px] font-medium text-white hover:bg-navy-800">
-                    <span class="text-[13px] leading-none">+</span>
-                    Add Shakha
-                </a>
+                @can('risk.manage')
+                    <a
+                        href="{{ route('shakhas.risk.export', ['fy' => $fyLabel]) }}"
+                        class="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[12px] font-medium text-emerald-800 hover:bg-emerald-100"
+                    >
+                        Export Risk Excel
+                    </a>
+                @endcan
+                @can('shakhas.manage')
+                    <a href="{{ route('shakhas.create') }}" class="inline-flex items-center gap-1 rounded-lg bg-navy-900 px-2.5 py-1.5 text-[12px] font-medium text-white hover:bg-navy-800">
+                        <span class="text-[13px] leading-none">+</span>
+                        Add Shakha
+                    </a>
+                @endcan
             </div>
         </div>
 
@@ -180,9 +187,18 @@
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <template x-for="(row, index) in filtered" :key="row.id">
-                            <tr class="text-[12px]">
+                            <tr class="text-[12px]" :class="riskSoft(row.risk)">
                                 <td class="px-4 py-2.5 tabular-nums text-slate-400" x-text="index + 1"></td>
-                                <td class="px-4 py-2.5 font-medium text-navy-900" x-text="row.name"></td>
+                                <td class="px-4 py-2.5">
+                                    <div class="flex flex-wrap items-center gap-1.5">
+                                        <span class="font-semibold" :class="riskText(row.risk)" x-text="row.name"></span>
+                                        <span
+                                            class="inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-semibold"
+                                            :class="riskBadge(row.risk)"
+                                            x-text="(riskMap[row.risk] || riskMap['Not assessed'] || {}).short || 'N/A'"
+                                        ></span>
+                                    </div>
+                                </td>
                                 <td class="px-4 py-2.5 text-slate-600" x-text="row.area || '—'"></td>
                                 <td class="px-4 py-2.5 text-slate-600" x-text="row.division || '—'"></td>
                                 <td class="px-4 py-2.5 text-slate-500" x-text="row.code || '—'"></td>
@@ -192,11 +208,15 @@
                                         <span class="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">Ready</span>
                                     </template>
                                     <template x-if="!row.kpi_ready">
-                                        <a
-                                            :href="row.kpi_url"
-                                            class="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-800 hover:bg-amber-100"
-                                            title="Enter annual KPI first"
-                                        >Not ready — enter KPI</a>
+                                        @can('kpis.manage')
+                                            <a
+                                                :href="row.kpi_url"
+                                                class="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-800 hover:bg-amber-100"
+                                                title="Enter annual KPI first"
+                                            >Not ready — enter KPI</a>
+                                        @else
+                                            <span class="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-800">Not ready</span>
+                                        @endcan
                                     </template>
                                 </td>
                                 <td class="px-4 py-2.5">
@@ -210,26 +230,30 @@
                                 <td class="px-4 py-2.5 text-slate-500" x-text="row.added_on"></td>
                                 <td class="px-4 py-2.5 text-right">
                                     <div class="inline-flex items-center gap-1.5">
-                                        <template x-if="row.kpi_ready">
-                                            <a
-                                                :href="row.risk_url"
-                                                class="inline-flex rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:border-amber-200 hover:bg-amber-50 hover:text-amber-800"
-                                            >Risk</a>
-                                        </template>
-                                        <template x-if="!row.kpi_ready">
-                                            <span
-                                                class="inline-flex cursor-not-allowed rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-400"
-                                                title="Complete annual KPI for this FY first, then open Risk."
-                                            >Risk locked</span>
-                                        </template>
+                                        @can('risk.manage')
+                                            <template x-if="row.kpi_ready">
+                                                <a
+                                                    :href="row.risk_url"
+                                                    class="inline-flex rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:border-amber-200 hover:bg-amber-50 hover:text-amber-800"
+                                                >Risk</a>
+                                            </template>
+                                            <template x-if="!row.kpi_ready">
+                                                <span
+                                                    class="inline-flex cursor-not-allowed rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-400"
+                                                    title="Complete annual KPI for this FY first, then open Risk."
+                                                >Risk locked</span>
+                                            </template>
+                                        @endcan
                                         <a
                                             :href="row.staff_url"
                                             class="inline-flex rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800"
                                         >Staff</a>
-                                        <a
-                                            :href="row.edit_url"
-                                            class="inline-flex rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
-                                        >Edit</a>
+                                        @can('shakhas.manage')
+                                            <a
+                                                :href="row.edit_url"
+                                                class="inline-flex rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
+                                            >Edit</a>
+                                        @endcan
                                     </div>
                                 </td>
                             </tr>

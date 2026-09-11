@@ -2,19 +2,26 @@
 
 namespace App\Livewire;
 
+use App\Mail\AuditReportSentMail;
 use App\Models\AuditIndicator;
 use App\Models\AuditReport;
+use App\Models\AuditReportSend;
 use App\Models\Shakha;
+use App\Services\AuditReportCollaborationService;
 use App\Services\AuditReportDocService;
 use App\Services\AuditReportPdfService;
 use App\Services\AuditSummaryService;
 use App\Services\UserAccessService;
+use App\Support\AuditComplianceHeading;
+use App\Support\AuditCopyRecipients;
 use App\Support\AuditReportPaginator;
+use App\Support\AuditScoreSheet;
 use App\Support\AuditTableHeaders;
 use App\Support\CustomTableSchema;
 use App\Support\ExcelTsvParser;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Component;
@@ -65,6 +72,13 @@ class MakeAuditReport extends Component
     public string $auditor_name = '';
 
     public string $auditor_designation = 'অফিসার অডিট';
+
+    /**
+     * Cover page অনুলিপি (distribution) list — editable per report.
+     *
+     * @var list<string>
+     */
+    public array $copyRecipients = [];
 
     public bool $showPreview = false;
 
@@ -268,7 +282,7 @@ class MakeAuditReport extends Component
     /** @var list<array<string, mixed>> */
     public array $page18Findings = [];
 
-    public string $page19_compliance_title = '৫.০০ বিগত অভ্যন্তরীণ নিরীক্ষা প্রতিবেদনের জবাবের কমপ্লায়েন্স (Compliance of Previous Internal Audit Report Reply)';
+    public string $page19_compliance_title = '৫.০ বিগত অভ্যন্তরীণ নিরীক্ষা প্রতিবেদনের জবাবের কমপ্লায়েন্স (Compliance of Previous Internal Audit Report Reply)';
 
     public string $page19_compliance_period = '';
 
@@ -277,7 +291,7 @@ class MakeAuditReport extends Component
     /** @var list<array<string, string>> */
     public array $page19ComplianceRows = [];
 
-    public string $page20_it_title = '৬.০০ আইটি (সফটওয়্যার) সংক্রান্ত চেকলিস্ট';
+    public string $page20_it_title = '৬.০ আইটি (সফটওয়্যার) সংক্রান্ত চেকলিস্ট';
 
     public string $page20_it_org_line1 = 'ডিএসকে';
 
@@ -334,6 +348,31 @@ class MakeAuditReport extends Component
     /** all | draft | completed */
     public string $listFilterStatus = 'all';
 
+    /** Compose / send completed report by email */
+    public bool $showSendMailModal = false;
+
+    public ?int $mailReportId = null;
+
+    public string $mailReportLabel = '';
+
+    public string $mailFromName = '';
+
+    public string $mailFromEmail = '';
+
+    public string $mailToEmail = '';
+
+    public string $mailCcEmail = '';
+
+    public string $mailSubject = '';
+
+    public string $mailBody = '';
+
+    public bool $mailAttachPdf = true;
+
+    public string $mailError = '';
+
+    public bool $mailSending = false;
+
     /**
      * Lightweight undo index (full block payloads live in cache — avoids Livewire snapshot bloat).
      *
@@ -354,6 +393,7 @@ class MakeAuditReport extends Component
         $this->report_date = now()->toDateString();
         $this->memo_no = 'অডিট/শাখা - ';
         $this->applyMonthYearDefaults();
+        $this->ensureCopyRecipientsDefaults();
         $this->ensureTableHeadersDefaults();
         $this->ensurePage2Defaults();
         $this->ensureTocDefaults();
@@ -505,7 +545,12 @@ class MakeAuditReport extends Component
             return;
         }
 
-        if (! app(UserAccessService::class)->canAccessShakha(auth()->user(), (int) $this->shakha_id)) {
+        if (! app(UserAccessService::class)->canStartReportForShakha(
+            auth()->user(),
+            (int) $this->shakha_id,
+            (int) $this->report_month,
+            (int) $this->report_year,
+        )) {
             $this->addError('shakha_id', 'আপনি এই শাখায় assign নন — রিপোর্ট শুরু করা যাবে না।');
 
             return;
@@ -525,9 +570,42 @@ class MakeAuditReport extends Component
         $this->applyMonthYearDefaults();
 
         $userId = (int) (auth()->id() ?? 0);
+        $collaboration = app(AuditReportCollaborationService::class);
+        $authUser = auth()->user();
+
+        // Same shakha + month: join the existing shared draft when on the visit team.
+        if ($userId > 0 && $authUser) {
+            $joinable = $collaboration->findJoinableDraft(
+                (int) $this->shakha_id,
+                (int) $this->report_month,
+                (int) $this->report_year,
+                $authUser
+            );
+
+            if ($joinable) {
+                $teamIds = $collaboration->visitorUserIdsForShakhaPeriod(
+                    (int) $this->shakha_id,
+                    (int) $this->report_month,
+                    (int) $this->report_year
+                );
+                $collaboration->syncCollaborators($joinable, $teamIds, $authUser);
+                $joinable->refresh()->load(['collaborators:id,name', 'user:id,name', 'shakha.area']);
+
+                $this->hydrateFromReport($joinable);
+                $this->step = 'wizard';
+                $this->showPreview = false;
+                $this->loadPersistedUndoStack();
+                $this->resetErrorBag();
+                $this->autoSaveHint = 'Shared report opened — both auditors can edit this draft.';
+                session()->flash('status', 'একই শাখার যৌথ নিরীক্ষা — বিদ্যমান শেয়ারড রিপোর্ট খোলা হয়েছে।');
+
+                return;
+            }
+        }
+
         if ($userId > 0) {
             $openDrafts = AuditReport::query()
-                ->ownedBy($userId)
+                ->accessibleBy($userId)
                 ->drafts()
                 ->count();
 
@@ -605,6 +683,7 @@ class MakeAuditReport extends Component
                         ],
                         'active_tab' => 'cover',
                     ],
+                    'cover' => $this->coverPayload(),
                     'tableHeaders' => $this->tableHeaders,
                     'page2' => $this->page2Payload(),
                     'toc' => $this->tocPayload(),
@@ -612,6 +691,18 @@ class MakeAuditReport extends Component
                     'page4' => $this->page4Payload(),
                 ],
             ]);
+
+            $teamIds = $collaboration->visitorUserIdsForShakhaPeriod(
+                (int) $this->shakha_id,
+                (int) $this->report_month,
+                (int) $this->report_year
+            );
+            if ($teamIds !== []) {
+                $collaboration->syncCollaborators($report, $teamIds, $authUser);
+                $report->refresh();
+                $this->auditor_name = (string) ($report->auditor_name ?: $this->auditor_name);
+                $this->sign_auditor_name = $this->auditor_name;
+            }
         } catch (\Throwable $e) {
             report($e);
             $this->addError('shakha_id', 'প্রতিবেদন শুরু করা যায়নি। আবার চেষ্টা করুন।');
@@ -635,7 +726,7 @@ class MakeAuditReport extends Component
     public function resumeReport(int $reportId): void
     {
         $report = AuditReport::query()
-            ->when(auth()->id(), fn ($q) => $q->ownedBy((int) auth()->id()))
+            ->when(auth()->id(), fn ($q) => $q->accessibleBy((int) auth()->id()))
             ->findOrFail($reportId);
 
         $this->hydrateFromReport($report);
@@ -1097,6 +1188,151 @@ class MakeAuditReport extends Component
         session()->flash('status', 'খসড়া রিপোর্ট মুছে ফেলা হয়েছে।');
     }
 
+    public function openSendMailModal(int $reportId): void
+    {
+        $userId = (int) (auth()->id() ?? 0);
+        $report = AuditReport::query()
+            ->accessibleBy($userId)
+            ->completed()
+            ->with('shakha')
+            ->findOrFail($reportId);
+
+        $user = auth()->user();
+        $branch = trim((string) ($report->shakha_display_name ?: $report->shakha?->name ?: 'Branch'));
+        $period = $report->periodLabel();
+
+        $this->mailReportId = $report->id;
+        $this->mailReportLabel = $branch.' · '.$period;
+        $this->mailFromName = (string) ($user?->name ?: '');
+        $this->mailFromEmail = (string) ($user?->mailSenderAddress() ?: config('mail.from.address', ''));
+        $this->mailToEmail = '';
+        $this->mailCcEmail = '';
+        $this->mailSubject = 'Audit Report — '.$branch.' ('.$period.')';
+        $this->mailBody = "Dear Sir/Madam,\n\nPlease find the completed audit report for {$branch} ({$period}).\n\nRegards,\n".$this->mailFromName;
+        $this->mailAttachPdf = true;
+        $this->mailError = '';
+        $this->mailSending = false;
+        $this->showSendMailModal = true;
+        $this->resetErrorBag();
+    }
+
+    public function closeSendMailModal(): void
+    {
+        $this->showSendMailModal = false;
+        $this->mailReportId = null;
+        $this->mailReportLabel = '';
+        $this->mailToEmail = '';
+        $this->mailError = '';
+        $this->mailSending = false;
+        $this->resetErrorBag();
+    }
+
+    public function sendReportByMail(): void
+    {
+        if ($this->mailSending) {
+            return;
+        }
+
+        $this->mailError = '';
+        $this->validate([
+            'mailFromName' => 'required|string|max:120',
+            'mailFromEmail' => 'required|email|max:190',
+            'mailToEmail' => 'required|email|max:190',
+            'mailCcEmail' => 'nullable|email|max:190',
+            'mailSubject' => 'required|string|max:200',
+            'mailBody' => 'required|string|max:10000',
+            'mailAttachPdf' => 'boolean',
+        ], [], [
+            'mailFromName' => 'sender name',
+            'mailFromEmail' => 'sender email',
+            'mailToEmail' => 'receiver email',
+            'mailCcEmail' => 'CC email',
+            'mailSubject' => 'subject',
+            'mailBody' => 'message',
+        ]);
+
+        $userId = (int) (auth()->id() ?? 0);
+        $report = AuditReport::query()
+            ->accessibleBy($userId)
+            ->completed()
+            ->findOrFail((int) $this->mailReportId);
+
+        $this->mailSending = true;
+
+        $pdfBinary = null;
+        $pdfFilename = null;
+        $attached = false;
+
+        if ($this->mailAttachPdf) {
+            try {
+                $this->hydrateFromReport($report);
+                $this->step = 'select';
+                $pdfBinary = app(AuditReportPdfService::class)->output($this->reportViewData());
+                $pdfFilename = 'audit-report-'.$this->reportExportBasename().'.pdf';
+                $attached = $pdfBinary !== '';
+            } catch (\Throwable $e) {
+                report($e);
+                $this->mailError = 'PDF attach failed: '.$e->getMessage();
+                $this->mailSending = false;
+                $this->backToSelect(saveFirst: false);
+
+                return;
+            }
+            $this->backToSelect(saveFirst: false);
+        }
+
+        $status = AuditReportSend::STATUS_SENT;
+        $errorMessage = null;
+
+        try {
+            $mailable = new AuditReportSentMail(
+                fromName: trim($this->mailFromName),
+                fromEmail: trim($this->mailFromEmail),
+                subjectLine: trim($this->mailSubject),
+                bodyText: trim($this->mailBody),
+                pdfBinary: $attached ? $pdfBinary : null,
+                pdfFilename: $attached ? $pdfFilename : null,
+            );
+
+            $pending = Mail::to(trim($this->mailToEmail));
+            if (trim($this->mailCcEmail) !== '') {
+                $pending->cc(trim($this->mailCcEmail));
+            }
+            $pending->send($mailable);
+        } catch (\Throwable $e) {
+            report($e);
+            $status = AuditReportSend::STATUS_FAILED;
+            $errorMessage = $e->getMessage();
+        }
+
+        AuditReportSend::query()->create([
+            'audit_report_id' => $report->id,
+            'sent_by_user_id' => $userId,
+            'from_name' => trim($this->mailFromName),
+            'from_email' => trim($this->mailFromEmail),
+            'to_email' => trim($this->mailToEmail),
+            'cc_email' => trim($this->mailCcEmail) !== '' ? trim($this->mailCcEmail) : null,
+            'subject' => trim($this->mailSubject),
+            'body' => trim($this->mailBody),
+            'attached_pdf' => $attached,
+            'status' => $status,
+            'error_message' => $errorMessage,
+            'sent_at' => now(),
+        ]);
+
+        $this->mailSending = false;
+
+        if ($status === AuditReportSend::STATUS_FAILED) {
+            $this->mailError = 'Send failed: '.($errorMessage ?: 'Unknown error');
+
+            return;
+        }
+
+        $to = trim($this->mailToEmail);
+        $this->closeSendMailModal();
+        session()->flash('status', 'Report emailed to '.$to.'.');
+    }
+
     public function updatedAuditStartDate(): void
     {
         $this->refreshDerivedDates();
@@ -1317,8 +1553,7 @@ class MakeAuditReport extends Component
     {
         $this->ensurePage19Defaults();
         $this->syncPage19SectionsToToc();
-        $this->persistDraft(markTab: 'page19', flash: true, flashMessage: 'পৃষ্ঠা ১৯ (৫.০০ কমপ্লায়েন্স) সংরক্ষণ হয়েছে।');
-        $this->activeTab = 'page20';
+        $this->persistDraft(markTab: 'page19', flash: true, flashMessage: '৫.০ কমপ্লায়েন্স সংরক্ষণ হয়েছে।');
     }
 
     public function savePage20(): void
@@ -1510,14 +1745,14 @@ class MakeAuditReport extends Component
 
     /**
      * Insert a block at any absolute index (0 = top of page body).
-     * $type: section|finding|criteria|observation|stats|custom_table|risk|root_cause|recommendation|jobab_table|followup_pack|finding_format_pack
+     * $type: section|finding|criteria|observation|stats|custom_table|compliance_table|risk|root_cause|recommendation|jobab_table|followup_pack|finding_format_pack
      */
     public function insertBlockAt(int $index, string $type = 'finding'): void
     {
         $this->ensureReportBlocksDefaults();
         $allowed = [
             'section', 'finding', 'criteria', 'observation', 'stats', 'custom_table',
-            'risk', 'root_cause', 'recommendation', 'jobab_table', 'followup_pack',
+            'compliance_table', 'it_checklist', 'external_audit', 'audit_score', 'risk', 'root_cause', 'recommendation', 'jobab_table', 'followup_pack',
             'finding_format_pack', 'text_box',
         ];
         $type = in_array($type, $allowed, true) ? $type : 'finding';
@@ -1574,6 +1809,14 @@ class MakeAuditReport extends Component
             array_splice($this->reportBlocks, $index, 0, [$this->blankRecommendationBox()]);
         } elseif ($type === 'jobab_table') {
             array_splice($this->reportBlocks, $index, 0, [$this->blankJobabBlock()]);
+        } elseif ($type === 'compliance_table') {
+            array_splice($this->reportBlocks, $index, 0, [$this->blankComplianceBlock()]);
+        } elseif ($type === 'it_checklist') {
+            array_splice($this->reportBlocks, $index, 0, [$this->blankItChecklistBlock()]);
+        } elseif ($type === 'external_audit') {
+            array_splice($this->reportBlocks, $index, 0, [$this->blankExternalAuditBlock()]);
+        } elseif ($type === 'audit_score') {
+            array_splice($this->reportBlocks, $index, 0, [$this->blankAuditScoreBlock()]);
         } elseif ($type === 'followup_pack') {
             $pack = [
                 $this->blankRiskBox(),
@@ -2150,6 +2393,7 @@ class MakeAuditReport extends Component
 
     protected function afterBlocksChanged(): void
     {
+        $this->renumberSectionsAndFindings();
         $this->syncSectionsFromReportBlocks();
         $this->syncLegacyFinancialFromReportSections();
         $this->syncLegacyUtilityFromBlocks();
@@ -2158,6 +2402,106 @@ class MakeAuditReport extends Component
         if ($this->reportId) {
             $this->autoSaveDraft();
         }
+    }
+
+    /**
+     * Keep বিভাগ / utility / finding serials sequential in document order.
+     * Inserting a section after ২.০ when ৩.০ exists → new becomes ৩.০, old ৩.০→৪.০, findings ৩.১→৪.১, etc.
+     *
+     * @return array<string, string> old serial → new serial
+     */
+    protected function renumberSectionsAndFindings(): array
+    {
+        $sectionLike = [
+            'section', 'compliance_table', 'it_checklist', 'external_audit', 'audit_score',
+        ];
+        $serialMap = [];
+        $sectionMajor = 0;
+        $findingParentMajor = 0;
+        $findingMinor = 0;
+
+        foreach ($this->reportBlocks as $i => $block) {
+            $type = (string) ($block['type'] ?? '');
+            if (in_array($type, $sectionLike, true)) {
+                $sectionMajor++;
+                $newSerial = \App\Support\BanglaNumerals::fromInt($sectionMajor).'.০';
+                $oldSerial = trim((string) ($block['serial'] ?? ''));
+                if ($oldSerial !== '' && $oldSerial !== $newSerial) {
+                    $serialMap[$oldSerial] = $newSerial;
+                }
+                $this->reportBlocks[$i]['serial'] = $newSerial;
+                if (array_key_exists('title', $block)) {
+                    $this->reportBlocks[$i]['title'] = $this->retitleWithSerial(
+                        (string) ($block['title'] ?? ''),
+                        $oldSerial,
+                        $newSerial
+                    );
+                }
+                if ($type === 'section') {
+                    $findingParentMajor = $sectionMajor;
+                    $findingMinor = 0;
+                }
+            } elseif ($type === 'finding') {
+                if ($findingParentMajor < 1) {
+                    $findingParentMajor = max(1, $sectionMajor);
+                }
+                $findingMinor++;
+                $newSerial = \App\Support\BanglaNumerals::fromInt($findingParentMajor)
+                    .'.'
+                    .\App\Support\BanglaNumerals::fromInt($findingMinor);
+                $oldSerial = trim((string) ($block['serial'] ?? ''));
+                if ($oldSerial !== '' && $oldSerial !== $newSerial) {
+                    $serialMap[$oldSerial] = $newSerial;
+                }
+                $this->reportBlocks[$i]['serial'] = $newSerial;
+            }
+        }
+
+        if ($serialMap === []) {
+            return [];
+        }
+
+        foreach ($this->tocRows as $ti => $row) {
+            if (($row['type'] ?? 'item') !== 'item') {
+                continue;
+            }
+            $s = trim((string) ($row['serial'] ?? ''));
+            if ($s !== '' && isset($serialMap[$s])) {
+                $this->tocRows[$ti]['serial'] = $serialMap[$s];
+            }
+        }
+
+        foreach ($this->reportBlocks as $i => $block) {
+            if (! $this->isStatsLike((string) ($block['type'] ?? ''))) {
+                continue;
+            }
+            $linked = trim((string) ($block['linked_finding_serial'] ?? ''));
+            if ($linked !== '' && isset($serialMap[$linked])) {
+                $this->reportBlocks[$i]['linked_finding_serial'] = $serialMap[$linked];
+            }
+        }
+
+        return $serialMap;
+    }
+
+    /**
+     * Replace a leading serial in a title (or any leading N.N) with $newSerial.
+     */
+    protected function retitleWithSerial(string $title, string $oldSerial, string $newSerial): string
+    {
+        $title = trim($title);
+        if ($title === '') {
+            return $newSerial;
+        }
+        if ($oldSerial !== '' && str_starts_with($title, $oldSerial)) {
+            $rest = trim(mb_substr($title, mb_strlen($oldSerial)));
+
+            return $rest !== '' ? $newSerial.' '.$rest : $newSerial;
+        }
+        $stripped = preg_replace('/^[০-৯0-9]+[\.٫.][০-৯0-9]+\s*/u', '', $title) ?? $title;
+        $stripped = trim($stripped);
+
+        return $stripped !== '' ? $newSerial.' '.$stripped : $newSerial;
     }
 
     /**
@@ -2272,7 +2616,7 @@ class MakeAuditReport extends Component
     protected function isUtilityBlockType(string $type): bool
     {
         return in_array($type, [
-            'criteria', 'observation', 'stats', 'custom_table', 'vat', 'tax',
+            'criteria', 'observation', 'stats', 'custom_table', 'compliance_table', 'it_checklist', 'external_audit', 'audit_score', 'vat', 'tax',
             'jobab_table', 'text_box',
         ], true);
     }
@@ -2341,6 +2685,1163 @@ class MakeAuditReport extends Component
             'সুপারিশ (Recommendation) :',
             'প্রযোজ্য সকল ক্ষেত্রে ট্যাক্স প্রদান নিশ্চিত করা।'
         );
+    }
+
+    /**
+     * Compliance of previous internal audit reply — template table.
+     *
+     * @return array{type:string,serial:string,title:string,title_en:string,period:string,followup_date:string,headers:list<string>,rows:list<array<string,mixed>>}
+     */
+    protected function blankComplianceBlock(?string $serial = null): array
+    {
+        $serial = $serial ?: $this->nextSectionSerialFromBlocks();
+        $headers = array_values(AuditTableHeaders::defaults()['compliance']);
+
+        return [
+            'type' => 'compliance_table',
+            'serial' => $serial,
+            'title' => $serial.' '.AuditComplianceHeading::DEFAULT_BN,
+            'title_en' => AuditComplianceHeading::DEFAULT_EN,
+            'period' => '',
+            'followup_date' => '',
+            'headers' => $headers,
+            'rows' => array_fill(0, 5, $this->blankComplianceRow(count($headers))),
+        ];
+    }
+
+    /**
+     * @return array{prev_para_no:string,findings:string,first_discovery_period:string,management_reply:string,current_status:string,current_para_no:string,extra:list<string>}
+     */
+    protected function blankComplianceRow(int $headerCount = 6): array
+    {
+        $extraCount = max(0, $headerCount - 6);
+
+        return [
+            'prev_para_no' => '',
+            'findings' => '',
+            'first_discovery_period' => '',
+            'management_reply' => '',
+            'current_status' => '',
+            'current_para_no' => '',
+            'extra' => array_fill(0, $extraCount, ''),
+        ];
+    }
+
+    /**
+     * @param  array<string,mixed>  $block
+     * @return array{type:string,serial:string,title:string,title_en:string,period:string,followup_date:string,headers:list<string>,rows:list<array<string,mixed>>}
+     */
+    protected function normalizeComplianceBlock(array $block): array
+    {
+        $defaultHeaders = array_values(AuditTableHeaders::defaults()['compliance']);
+        $headers = array_values((array) ($block['headers'] ?? []));
+        if (count($headers) < 6) {
+            $headers = $defaultHeaders;
+        }
+        foreach ($headers as $i => $h) {
+            $headers[$i] = trim((string) $h) !== '' ? (string) $h : (string) ($defaultHeaders[$i] ?? 'কলাম');
+        }
+
+        $rows = [];
+        foreach (array_values((array) ($block['rows'] ?? [])) as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $merged = array_merge($this->blankComplianceRow(count($headers)), $row);
+            $extra = array_values((array) ($merged['extra'] ?? []));
+            $extraCount = max(0, count($headers) - 6);
+            if (count($extra) < $extraCount) {
+                $extra = array_pad($extra, $extraCount, '');
+            } elseif (count($extra) > $extraCount) {
+                $extra = array_slice($extra, 0, $extraCount);
+            }
+            $merged['extra'] = $extra;
+            $rows[] = $merged;
+        }
+        if ($rows === []) {
+            $rows = array_fill(0, 5, $this->blankComplianceRow(count($headers)));
+        }
+
+        $serial = trim((string) ($block['serial'] ?? ''));
+        $title = trim((string) ($block['title'] ?? ''));
+        $titleEn = trim((string) ($block['title_en'] ?? ''));
+        if ($titleEn === '' && preg_match('/^(.*?)\s*(\([^)]*\))\s*$/u', $title, $m)) {
+            $title = trim($m[1]);
+            $titleEn = trim($m[2]);
+        }
+        if ($serial === '' && preg_match('/^([০-৯0-9]+[\.٫.][০-৯0-9]+)/u', $title, $m)) {
+            $serial = $m[1];
+        }
+        if ($serial === '') {
+            $serial = '৫.০';
+        }
+        if ($title === '') {
+            $title = $serial.' '.AuditComplianceHeading::DEFAULT_BN;
+        }
+        if ($titleEn === '') {
+            $titleEn = AuditComplianceHeading::DEFAULT_EN;
+        }
+
+        return [
+            'type' => 'compliance_table',
+            'serial' => $serial,
+            'title' => $title,
+            'title_en' => $titleEn,
+            'period' => (string) ($block['period'] ?? ''),
+            'followup_date' => (string) ($block['followup_date'] ?? ''),
+            'headers' => $headers,
+            'rows' => $rows,
+        ];
+    }
+
+    public function addComplianceBlockRow(int $blockIndex): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'compliance_table') {
+            return;
+        }
+        $block = $this->normalizeComplianceBlock($this->reportBlocks[$blockIndex]);
+        $block['rows'][] = $this->blankComplianceRow(count($block['headers']));
+        $this->reportBlocks[$blockIndex] = $block;
+        $this->afterBlocksChanged();
+    }
+
+    public function removeComplianceBlockRow(int $blockIndex, int $rowIndex): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'compliance_table') {
+            return;
+        }
+        $block = $this->normalizeComplianceBlock($this->reportBlocks[$blockIndex]);
+        if (! isset($block['rows'][$rowIndex]) || count($block['rows']) <= 1) {
+            return;
+        }
+        unset($block['rows'][$rowIndex]);
+        $block['rows'] = array_values($block['rows']);
+        $this->reportBlocks[$blockIndex] = $block;
+        $this->afterBlocksChanged();
+    }
+
+    public function addComplianceBlockColumn(int $blockIndex): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'compliance_table') {
+            return;
+        }
+        $block = $this->normalizeComplianceBlock($this->reportBlocks[$blockIndex]);
+        $block['headers'][] = 'নতুন কলাম';
+        foreach ($block['rows'] as $i => $row) {
+            $extra = array_values((array) ($row['extra'] ?? []));
+            $extra[] = '';
+            $block['rows'][$i]['extra'] = $extra;
+        }
+        $this->reportBlocks[$blockIndex] = $block;
+        $this->afterBlocksChanged();
+    }
+
+    public function removeComplianceBlockColumn(int $blockIndex, int $headerIndex): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'compliance_table') {
+            return;
+        }
+        $block = $this->normalizeComplianceBlock($this->reportBlocks[$blockIndex]);
+        if ($headerIndex < 6 || ! isset($block['headers'][$headerIndex]) || count($block['headers']) <= 6) {
+            return;
+        }
+        unset($block['headers'][$headerIndex]);
+        $block['headers'] = array_values($block['headers']);
+        $extraIndex = $headerIndex - 6;
+        foreach ($block['rows'] as $i => $row) {
+            $extra = array_values((array) ($row['extra'] ?? []));
+            if (isset($extra[$extraIndex])) {
+                unset($extra[$extraIndex]);
+            }
+            $block['rows'][$i]['extra'] = array_values($extra);
+        }
+        $this->reportBlocks[$blockIndex] = $block;
+        $this->afterBlocksChanged();
+    }
+
+    public function fillComplianceBlockFromReport(int $blockIndex): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'compliance_table') {
+            return;
+        }
+        $this->ensureReportBlocksDefaults();
+        $block = $this->normalizeComplianceBlock($this->reportBlocks[$blockIndex]);
+
+        $items = [];
+        foreach ($this->reportBlocks as $b) {
+            if (($b['type'] ?? '') !== 'finding') {
+                continue;
+            }
+            $serial = trim((string) ($b['serial'] ?? ''));
+            if ($serial === '') {
+                continue;
+            }
+            $title = trim((string) ($b['title'] ?? ''));
+            if ($title === '' || $title === 'শিরোনাম') {
+                $title = trim((string) ($b['body'] ?? ''));
+            }
+            $items[] = ['serial' => $serial, 'title' => $title];
+        }
+        if ($items === []) {
+            return;
+        }
+
+        while (count($block['rows']) < count($items)) {
+            $block['rows'][] = $this->blankComplianceRow(count($block['headers']));
+        }
+        foreach ($items as $i => $item) {
+            if (! isset($block['rows'][$i])) {
+                break;
+            }
+            if (trim((string) ($block['rows'][$i]['prev_para_no'] ?? '')) === '') {
+                $block['rows'][$i]['prev_para_no'] = $item['serial'];
+            }
+            if (trim((string) ($block['rows'][$i]['findings'] ?? '')) === '' && $item['title'] !== '') {
+                $block['rows'][$i]['findings'] = $item['title'];
+            }
+        }
+
+        $this->reportBlocks[$blockIndex] = $block;
+        $this->afterBlocksChanged();
+    }
+
+    /**
+     * IT (Software) checklist — template descriptions, editable ticks/comments.
+     *
+     * @return array<string, mixed>
+     */
+    protected function blankItChecklistBlock(?string $serial = null): array
+    {
+        $serial = $serial ?: $this->nextSectionSerialFromBlocks();
+        $branch = $this->shakha_display_name !== '' ? $this->shakha_display_name : '';
+
+        return [
+            'type' => 'it_checklist',
+            'serial' => $serial,
+            'title' => $serial.' আইটি (সফটওয়্যার) সংক্রান্ত চেকলিস্ট',
+            'org_line1' => 'ডিএসকে “অভ্যন্তরীণ নিরীক্ষা বিভাগ”',
+            'org_line2' => 'আইটি (সফটওয়্যার) বিষয়ক সংক্রান্ত',
+            'org_line3' => '',
+            'program' => 'ক্ষুদ্র ঋণ',
+            'branch' => $branch,
+            'instruction' => 'প্রযোজ্য ক্ষেত্রে টিক চিহ্ন দিন',
+            'headers_r1' => array_values(AuditTableHeaders::defaults()['it_r1']),
+            'headers_r2' => array_values(AuditTableHeaders::defaults()['it_r2']),
+            'extra_headers' => [],
+            'rows' => $this->defaultPage20ItChecklistRows(),
+        ];
+    }
+
+    /**
+     * @param  array<string,mixed>  $block
+     * @return array<string,mixed>
+     */
+    protected function normalizeItChecklistBlock(array $block): array
+    {
+        $headersR1 = array_values((array) ($block['headers_r1'] ?? []));
+        if (count($headersR1) < 6) {
+            $headersR1 = array_values(AuditTableHeaders::defaults()['it_r1']);
+        }
+        $headersR2 = array_values((array) ($block['headers_r2'] ?? []));
+        if (count($headersR2) < 3) {
+            $headersR2 = array_values(AuditTableHeaders::defaults()['it_r2']);
+        }
+        $extraHeaders = array_values(array_map('strval', (array) ($block['extra_headers'] ?? [])));
+        $extraCount = count($extraHeaders);
+
+        $templateRows = $this->defaultPage20ItChecklistRows();
+        $rows = [];
+        $savedRows = array_values((array) ($block['rows'] ?? []));
+        if ($savedRows === []) {
+            $savedRows = $templateRows;
+        }
+
+        foreach ($savedRows as $i => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $template = $templateRows[$i] ?? $this->blankPage20ItChecklistRow();
+            $merged = array_merge($this->blankPage20ItChecklistRow(), $template, $row);
+            if (trim((string) ($merged['description'] ?? '')) === '' && isset($template['description'])) {
+                $merged['description'] = $template['description'];
+            }
+            if (trim((string) ($merged['sl_no'] ?? '')) === '' && isset($template['sl_no'])) {
+                $merged['sl_no'] = $template['sl_no'];
+            }
+            // If this row still has no answers, keep the official template ticks/remarks.
+            $hasAnswer = trim((string) ($merged['compliance'] ?? '')) !== ''
+                || trim((string) ($merged['action_owner'] ?? '')) !== ''
+                || trim((string) ($merged['management_comments'] ?? '')) !== ''
+                || trim((string) ($merged['recommendation'] ?? '')) !== '';
+            if (! $hasAnswer) {
+                $merged['compliance'] = (string) ($template['compliance'] ?? '');
+                $merged['action_owner'] = (string) ($template['action_owner'] ?? '');
+                $merged['management_comments'] = (string) ($template['management_comments'] ?? '');
+                $merged['recommendation'] = (string) ($template['recommendation'] ?? '');
+            }
+            $extra = array_values((array) ($merged['extra'] ?? []));
+            if (count($extra) < $extraCount) {
+                $extra = array_pad($extra, $extraCount, '');
+            } elseif (count($extra) > $extraCount) {
+                $extra = array_slice($extra, 0, $extraCount);
+            }
+            $merged['extra'] = $extra;
+            $rows[] = $merged;
+        }
+
+        $serial = trim((string) ($block['serial'] ?? ''));
+        $title = trim((string) ($block['title'] ?? ''));
+        if ($serial === '' && preg_match('/^([০-৯0-9]+[\.٫.][০-৯0-9]+)/u', $title, $m)) {
+            $serial = $m[1];
+        }
+        if ($serial === '' || $serial === '৬.০০') {
+            $serial = '৬.০';
+        }
+        if ($title === '') {
+            $title = $serial.' আইটি (সফটওয়্যার) সংক্রান্ত চেকলিস্ট';
+        }
+        if (str_contains($title, '৬.০০')) {
+            $title = str_replace('৬.০০', '৬.০', $title);
+        }
+
+        $branch = (string) ($block['branch'] ?? '');
+        if ($branch === '' && $this->shakha_display_name !== '') {
+            $branch = $this->shakha_display_name;
+        }
+
+        return [
+            'type' => 'it_checklist',
+            'serial' => $serial,
+            'title' => $title,
+            'org_line1' => (string) (($block['org_line1'] ?? '') !== '' ? $block['org_line1'] : 'ডিএসকে “অভ্যন্তরীণ নিরীক্ষা বিভাগ”'),
+            'org_line2' => (string) (($block['org_line2'] ?? '') !== '' ? $block['org_line2'] : 'আইটি (সফটওয়্যার) বিষয়ক সংক্রান্ত'),
+            'org_line3' => (string) ($block['org_line3'] ?? ''),
+            'program' => (string) (($block['program'] ?? '') !== '' ? $block['program'] : 'ক্ষুদ্র ঋণ'),
+            'branch' => $branch,
+            'instruction' => (string) (($block['instruction'] ?? '') !== '' ? $block['instruction'] : 'প্রযোজ্য ক্ষেত্রে টিক চিহ্ন দিন'),
+            'headers_r1' => $headersR1,
+            'headers_r2' => $headersR2,
+            'extra_headers' => $extraHeaders,
+            'rows' => $rows,
+        ];
+    }
+
+    public function setItChecklistCompliance(int $blockIndex, int $rowIndex, string $value): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'it_checklist') {
+            return;
+        }
+        $value = in_array($value, ['yes', 'no', 'na'], true) ? $value : '';
+        $block = $this->normalizeItChecklistBlock($this->reportBlocks[$blockIndex]);
+        if (! isset($block['rows'][$rowIndex])) {
+            return;
+        }
+        // Toggle off if clicking the same value again.
+        if (($block['rows'][$rowIndex]['compliance'] ?? '') === $value) {
+            $block['rows'][$rowIndex]['compliance'] = '';
+        } else {
+            $block['rows'][$rowIndex]['compliance'] = $value;
+        }
+        $this->reportBlocks[$blockIndex] = $block;
+        $this->afterBlocksChanged();
+    }
+
+    public function addItChecklistBlockRow(int $blockIndex): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'it_checklist') {
+            return;
+        }
+        $block = $this->normalizeItChecklistBlock($this->reportBlocks[$blockIndex]);
+        $n = count($block['rows']) + 1;
+        $bnDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+        $sl = ($n < 10 ? '০' : '').strtr((string) $n, array_combine(range('0', '9'), $bnDigits));
+        $row = array_merge($this->blankPage20ItChecklistRow(), [
+            'sl_no' => $sl,
+            'extra' => array_fill(0, count($block['extra_headers']), ''),
+        ]);
+        $block['rows'][] = $row;
+        $this->reportBlocks[$blockIndex] = $block;
+        $this->afterBlocksChanged();
+    }
+
+    public function removeItChecklistBlockRow(int $blockIndex, int $rowIndex): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'it_checklist') {
+            return;
+        }
+        $block = $this->normalizeItChecklistBlock($this->reportBlocks[$blockIndex]);
+        if (! isset($block['rows'][$rowIndex]) || count($block['rows']) <= 1) {
+            return;
+        }
+        unset($block['rows'][$rowIndex]);
+        $block['rows'] = array_values($block['rows']);
+        $this->reportBlocks[$blockIndex] = $block;
+        $this->afterBlocksChanged();
+    }
+
+    public function addItChecklistBlockColumn(int $blockIndex): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'it_checklist') {
+            return;
+        }
+        $block = $this->normalizeItChecklistBlock($this->reportBlocks[$blockIndex]);
+        $block['extra_headers'][] = 'নতুন কলাম';
+        foreach ($block['rows'] as $i => $row) {
+            $extra = array_values((array) ($row['extra'] ?? []));
+            $extra[] = '';
+            $block['rows'][$i]['extra'] = $extra;
+        }
+        $this->reportBlocks[$blockIndex] = $block;
+        $this->afterBlocksChanged();
+    }
+
+    public function removeItChecklistBlockColumn(int $blockIndex, int $extraIndex): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'it_checklist') {
+            return;
+        }
+        $block = $this->normalizeItChecklistBlock($this->reportBlocks[$blockIndex]);
+        if (! isset($block['extra_headers'][$extraIndex])) {
+            return;
+        }
+        unset($block['extra_headers'][$extraIndex]);
+        $block['extra_headers'] = array_values($block['extra_headers']);
+        foreach ($block['rows'] as $i => $row) {
+            $extra = array_values((array) ($row['extra'] ?? []));
+            if (isset($extra[$extraIndex])) {
+                unset($extra[$extraIndex]);
+            }
+            $block['rows'][$i]['extra'] = array_values($extra);
+        }
+        $this->reportBlocks[$blockIndex] = $block;
+        $this->afterBlocksChanged();
+    }
+
+    /**
+     * Move old fixed page20 IT checklist into an insertable report block (once).
+     */
+    protected function migrateLegacyPage20ItIntoBlocks(): void
+    {
+        foreach ($this->reportBlocks as $block) {
+            if (($block['type'] ?? '') === 'it_checklist') {
+                return;
+            }
+        }
+
+        $hasContent = false;
+        foreach ($this->page20ItChecklistRows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            foreach (['compliance', 'action_owner', 'management_comments', 'recommendation'] as $key) {
+                if (trim((string) ($row[$key] ?? '')) !== '') {
+                    $hasContent = true;
+                    break 2;
+                }
+            }
+        }
+        if (! $hasContent && trim($this->page20_it_branch) === '') {
+            return;
+        }
+
+        $this->ensurePage20Defaults();
+        $title = trim($this->page20_it_title);
+        $serial = '৬.০';
+        if (preg_match('/^([০-৯0-9]+[\.٫.][০-৯0-9]+)/u', $title, $m)) {
+            $serial = str_replace('৬.০০', '৬.০', $m[1]);
+        }
+        if (str_contains($title, '৬.০০')) {
+            $title = str_replace('৬.০০', '৬.০', $title);
+        }
+
+        $this->reportBlocks[] = $this->normalizeItChecklistBlock([
+            'type' => 'it_checklist',
+            'serial' => $serial,
+            'title' => $title !== '' ? $title : $serial.' আইটি (সফটওয়্যার) সংক্রান্ত চেকলিস্ট',
+            'org_line1' => $this->page20_it_org_line1,
+            'org_line2' => $this->page20_it_org_line2,
+            'org_line3' => $this->page20_it_org_line3,
+            'program' => $this->page20_it_program,
+            'branch' => $this->page20_it_branch,
+            'instruction' => $this->page20_it_instruction,
+            'rows' => $this->page20ItChecklistRows,
+        ]);
+    }
+
+    /**
+     * Previous External Audit Report compliance table (insertable).
+     *
+     * @return array<string, mixed>
+     */
+    protected function blankExternalAuditBlock(?string $serial = null): array
+    {
+        $serial = $serial ?: $this->nextSectionSerialFromBlocks();
+        $branch = $this->shakha_display_name !== '' ? $this->shakha_display_name : '';
+
+        return [
+            'type' => 'external_audit',
+            'serial' => $serial,
+            'title' => $serial.' Compliance of Previous External Audit Report',
+            'branch_label' => 'Name of Branch----',
+            'branch' => $branch,
+            'headers' => array_values(AuditTableHeaders::defaults()['external_audit']),
+            'rows' => $this->defaultExternalAuditRows(),
+        ];
+    }
+
+    /**
+     * @return array{area_of_observation:string,year_of_reporting:string,external_observation:string,compliance:string,internal_index_no:string,extra:list<string>}
+     */
+    protected function blankExternalAuditRow(int $headerCount = 5): array
+    {
+        $extraCount = max(0, $headerCount - 5);
+
+        return [
+            'area_of_observation' => '',
+            'year_of_reporting' => '',
+            'external_observation' => '',
+            'compliance' => '',
+            'internal_index_no' => '',
+            'extra' => array_fill(0, $extraCount, ''),
+        ];
+    }
+
+    /**
+     * Sample rows matching the official external-audit compliance template.
+     *
+     * @return list<array<string, mixed>>
+     */
+    protected function defaultExternalAuditRows(): array
+    {
+        $dash = '----------';
+        $found = 'This observation was found at present visit in this branch';
+        $notFound = 'This observation was not found';
+
+        return [
+            [
+                'area_of_observation' => 'VAT and Tax',
+                'year_of_reporting' => '2022-2023',
+                'external_observation' => 'Tax and VAT are deducted but not deposited to the Govt. treasury in due time.',
+                'compliance' => $notFound,
+                'internal_index_no' => $dash,
+                'extra' => [],
+            ],
+            [
+                'area_of_observation' => 'Finance and Accounts',
+                'year_of_reporting' => '2022-2023',
+                'external_observation' => 'Salary paid in cash.',
+                'compliance' => $notFound,
+                'internal_index_no' => $dash,
+                'extra' => [],
+            ],
+            [
+                'area_of_observation' => 'Finance and Accounts',
+                'year_of_reporting' => '2021-2022',
+                'external_observation' => 'Tax and VAT were miscalculated / not properly maintained in some cases.',
+                'compliance' => $notFound,
+                'internal_index_no' => $dash,
+                'extra' => [],
+            ],
+            [
+                'area_of_observation' => 'Admin',
+                'year_of_reporting' => '2022-2023',
+                'external_observation' => 'The office rent agreement was made on cartridge paper.',
+                'compliance' => $notFound,
+                'internal_index_no' => $dash,
+                'extra' => [],
+            ],
+            [
+                'area_of_observation' => 'Software Management',
+                'year_of_reporting' => '2022-2023',
+                'external_observation' => 'Software related control / backup issues were reported in previous external audit.',
+                'compliance' => $notFound,
+                'internal_index_no' => $dash,
+                'extra' => [],
+            ],
+            [
+                'area_of_observation' => 'Program and Operation',
+                'year_of_reporting' => '2021-2022',
+                'external_observation' => 'Portfolio at Risk (PAR) and Delinquency ratio of some branch offices are not in compliance with the DSK benchmark.',
+                'compliance' => $found,
+                'internal_index_no' => $dash,
+                'extra' => [],
+            ],
+            [
+                'area_of_observation' => 'Accounts and Finance',
+                'year_of_reporting' => '2020-2021',
+                'external_observation' => 'No allowance provided for fund embezzlement for the amount BDT 2,35,70,843.',
+                'compliance' => $notFound,
+                'internal_index_no' => $dash,
+                'extra' => [],
+            ],
+            [
+                'area_of_observation' => 'Program and Operation',
+                'year_of_reporting' => '2020-2021, 2024-2025',
+                'external_observation' => 'Anomalies regarding the project proposal/application form (Loan application form, guarantor\'s NID was not found, NID was not attested, signature & seal missing).',
+                'compliance' => $found,
+                'internal_index_no' => $dash,
+                'extra' => [],
+            ],
+            [
+                'area_of_observation' => 'Software Management',
+                'year_of_reporting' => '2021-2022',
+                'external_observation' => 'Software access control / user password management was not properly maintained.',
+                'compliance' => $notFound,
+                'internal_index_no' => $dash,
+                'extra' => [],
+            ],
+            [
+                'area_of_observation' => 'Fixed Assets Management',
+                'year_of_reporting' => '2021-2022',
+                'external_observation' => 'Fixed assets register was not updated / physical verification was incomplete.',
+                'compliance' => $notFound,
+                'internal_index_no' => $dash,
+                'extra' => [],
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string,mixed>  $block
+     * @return array<string,mixed>
+     */
+    protected function normalizeExternalAuditBlock(array $block): array
+    {
+        $defaultHeaders = array_values(AuditTableHeaders::defaults()['external_audit']);
+        $headers = array_values((array) ($block['headers'] ?? []));
+        if (count($headers) < 5) {
+            $headers = $defaultHeaders;
+        }
+        foreach ($headers as $i => $h) {
+            $headers[$i] = trim((string) $h) !== '' ? (string) $h : (string) ($defaultHeaders[$i] ?? 'Column');
+        }
+
+        $rows = [];
+        foreach (array_values((array) ($block['rows'] ?? [])) as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            // Legacy page21 rows may include compliance_area — fold into area if area empty.
+            if (trim((string) ($row['area_of_observation'] ?? '')) === '' && trim((string) ($row['compliance_area'] ?? '')) !== '') {
+                $row['area_of_observation'] = (string) $row['compliance_area'];
+            }
+            $merged = array_merge($this->blankExternalAuditRow(count($headers)), $row);
+            $extra = array_values((array) ($merged['extra'] ?? []));
+            $extraCount = max(0, count($headers) - 5);
+            if (count($extra) < $extraCount) {
+                $extra = array_pad($extra, $extraCount, '');
+            } elseif (count($extra) > $extraCount) {
+                $extra = array_slice($extra, 0, $extraCount);
+            }
+            $merged['extra'] = $extra;
+            unset($merged['compliance_area']);
+            $rows[] = $merged;
+        }
+        if ($rows === []) {
+            $rows = $this->defaultExternalAuditRows();
+            foreach ($rows as $i => $row) {
+                $rows[$i]['extra'] = array_fill(0, max(0, count($headers) - 5), '');
+            }
+        }
+
+        $serial = trim((string) ($block['serial'] ?? ''));
+        $title = trim((string) ($block['title'] ?? ''));
+        if ($serial === '' && preg_match('/^([০-৯0-9]+[\.٫.][০-۹0-9]+)/u', $title, $m)) {
+            $serial = $m[1];
+        }
+        if ($serial === '' || $serial === '৭.০০') {
+            $serial = '৭.০';
+        }
+        if ($title === '') {
+            $title = $serial.' Compliance of Previous External Audit Report';
+        }
+        if (str_contains($title, '৭.০০')) {
+            $title = str_replace('৭.০০', '৭.০', $title);
+        }
+
+        $branch = (string) ($block['branch'] ?? '');
+        if ($branch === '' && $this->shakha_display_name !== '') {
+            $branch = $this->shakha_display_name;
+        }
+
+        return [
+            'type' => 'external_audit',
+            'serial' => $serial,
+            'title' => $title,
+            'branch_label' => (string) (($block['branch_label'] ?? '') !== '' ? $block['branch_label'] : 'Name of Branch----'),
+            'branch' => $branch,
+            'headers' => $headers,
+            'rows' => $rows,
+        ];
+    }
+
+    public function addExternalAuditBlockRow(int $blockIndex): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'external_audit') {
+            return;
+        }
+        $block = $this->normalizeExternalAuditBlock($this->reportBlocks[$blockIndex]);
+        $block['rows'][] = $this->blankExternalAuditRow(count($block['headers']));
+        $this->reportBlocks[$blockIndex] = $block;
+        $this->afterBlocksChanged();
+    }
+
+    public function removeExternalAuditBlockRow(int $blockIndex, int $rowIndex): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'external_audit') {
+            return;
+        }
+        $block = $this->normalizeExternalAuditBlock($this->reportBlocks[$blockIndex]);
+        if (! isset($block['rows'][$rowIndex]) || count($block['rows']) <= 1) {
+            return;
+        }
+        unset($block['rows'][$rowIndex]);
+        $block['rows'] = array_values($block['rows']);
+        $this->reportBlocks[$blockIndex] = $block;
+        $this->afterBlocksChanged();
+    }
+
+    public function addExternalAuditBlockColumn(int $blockIndex): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'external_audit') {
+            return;
+        }
+        $block = $this->normalizeExternalAuditBlock($this->reportBlocks[$blockIndex]);
+        $block['headers'][] = 'New Column';
+        foreach ($block['rows'] as $i => $row) {
+            $extra = array_values((array) ($row['extra'] ?? []));
+            $extra[] = '';
+            $block['rows'][$i]['extra'] = $extra;
+        }
+        $this->reportBlocks[$blockIndex] = $block;
+        $this->afterBlocksChanged();
+    }
+
+    public function removeExternalAuditBlockColumn(int $blockIndex, int $headerIndex): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'external_audit') {
+            return;
+        }
+        $block = $this->normalizeExternalAuditBlock($this->reportBlocks[$blockIndex]);
+        if ($headerIndex < 5 || ! isset($block['headers'][$headerIndex])) {
+            return;
+        }
+        $extraIndex = $headerIndex - 5;
+        unset($block['headers'][$headerIndex]);
+        $block['headers'] = array_values($block['headers']);
+        foreach ($block['rows'] as $i => $row) {
+            $extra = array_values((array) ($row['extra'] ?? []));
+            if (isset($extra[$extraIndex])) {
+                unset($extra[$extraIndex]);
+            }
+            $block['rows'][$i]['extra'] = array_values($extra);
+        }
+        $this->reportBlocks[$blockIndex] = $block;
+        $this->afterBlocksChanged();
+    }
+
+    /**
+     * @param  array<string,mixed>  $row
+     * @return array<string,mixed>
+     */
+    protected function normalizeExternalAuditPasteRow(array $row, int $headerCount = 5): array
+    {
+        $merged = array_merge($this->blankExternalAuditRow($headerCount), $row);
+        $extra = array_values((array) ($merged['extra'] ?? []));
+        $extraCount = max(0, $headerCount - 5);
+        if (count($extra) < $extraCount) {
+            $extra = array_pad($extra, $extraCount, '');
+        } elseif (count($extra) > $extraCount) {
+            $extra = array_slice($extra, 0, $extraCount);
+        }
+        $merged['extra'] = $extra;
+
+        return $merged;
+    }
+
+    /**
+     * Move old fixed page21 external audit into an insertable report block (once).
+     */
+    protected function migrateLegacyPage21ExternalIntoBlocks(): void
+    {
+        foreach ($this->reportBlocks as $block) {
+            if (($block['type'] ?? '') === 'external_audit') {
+                return;
+            }
+        }
+
+        $hasContent = false;
+        foreach ($this->page21ExternalAuditRows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            foreach (['area_of_observation', 'compliance_area', 'year_of_reporting', 'external_observation', 'compliance', 'internal_index_no'] as $key) {
+                if (trim((string) ($row[$key] ?? '')) !== '') {
+                    $hasContent = true;
+                    break 2;
+                }
+            }
+        }
+        if (! $hasContent && trim($this->page21_branch_name) === '') {
+            return;
+        }
+
+        $this->ensurePage21Defaults();
+        $title = trim($this->page21_section_title);
+        $serial = '৭.০';
+        if (preg_match('/^([০-৯0-9]+[\.٫.][০-৯0-9]+)/u', $title, $m)) {
+            $serial = str_replace('৭.০০', '৭.০', $m[1]);
+        }
+        if (str_contains($title, '৭.০০')) {
+            $title = str_replace('৭.০০', '৭.০', $title);
+        }
+
+        $this->reportBlocks[] = $this->normalizeExternalAuditBlock([
+            'type' => 'external_audit',
+            'serial' => $serial,
+            'title' => $title !== '' ? $title : $serial.' Compliance of Previous External Audit Report',
+            'branch' => $this->page21_branch_name,
+            'rows' => $this->page21ExternalAuditRows,
+        ]);
+    }
+
+    /**
+     * Sample-based Audit Score sheet (insertable, auto-calculates C/E/F/G).
+     *
+     * @return array<string, mixed>
+     */
+    protected function blankAuditScoreBlock(?string $serial = null): array
+    {
+        $serial = $serial ?: $this->nextSectionSerialFromBlocks();
+        $branch = $this->shakha_display_name !== '' ? $this->shakha_display_name : '';
+        $period = $this->audit_period_label !== '' ? $this->audit_period_label : '';
+
+        return $this->normalizeAuditScoreBlock([
+            'type' => 'audit_score',
+            'serial' => $serial,
+            'branch_name_code' => $branch,
+            'branch_category' => '',
+            'audit_period' => $period,
+            'section_label' => 'Sample-based observations',
+            'extra_headers' => [],
+            'rows' => [
+                $this->blankAuditScoreRow(),
+                $this->blankAuditScoreRow(),
+                $this->blankAuditScoreRow(),
+            ],
+            'adjustments' => AuditScoreSheet::defaultAdjustments(),
+            'subsequent' => AuditScoreSheet::defaultSubsequent(),
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function blankAuditScoreRow(int $extraCount = 0): array
+    {
+        return [
+            'title' => '',
+            'category' => 'Medium',
+            'sample_size' => '',
+            'risk_weight' => '3',
+            'instance_size' => '',
+            'extra' => array_fill(0, max(0, $extraCount), ''),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $block
+     * @return array<string, mixed>
+     */
+    protected function normalizeAuditScoreBlock(array $block): array
+    {
+        $extraHeaders = array_values(array_map('strval', (array) ($block['extra_headers'] ?? [])));
+        $extraCount = count($extraHeaders);
+
+        $rows = [];
+        foreach (array_values((array) ($block['rows'] ?? [])) as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $merged = array_merge($this->blankAuditScoreRow($extraCount), $row);
+            $category = trim((string) ($merged['category'] ?? ''));
+            if ($category === '') {
+                $category = 'Medium';
+            }
+            $merged['category'] = $category;
+            if (trim((string) ($merged['risk_weight'] ?? '')) === '') {
+                $merged['risk_weight'] = AuditScoreSheet::riskWeightForCategory($category);
+            }
+            $extra = array_values((array) ($merged['extra'] ?? []));
+            if (count($extra) < $extraCount) {
+                $extra = array_pad($extra, $extraCount, '');
+            } elseif (count($extra) > $extraCount) {
+                $extra = array_slice($extra, 0, $extraCount);
+            }
+            $merged['extra'] = $extra;
+            $rows[] = AuditScoreSheet::computeRow($merged);
+        }
+        if ($rows === []) {
+            $rows = [
+                AuditScoreSheet::computeRow($this->blankAuditScoreRow($extraCount)),
+                AuditScoreSheet::computeRow($this->blankAuditScoreRow($extraCount)),
+                AuditScoreSheet::computeRow($this->blankAuditScoreRow($extraCount)),
+            ];
+        }
+
+        $adjustments = [];
+        foreach (array_values((array) ($block['adjustments'] ?? [])) as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            $adjustments[] = [
+                'label' => (string) ($item['label'] ?? ''),
+                'value' => (string) ($item['value'] ?? ''),
+            ];
+        }
+        if ($adjustments === []) {
+            $adjustments = AuditScoreSheet::defaultAdjustments();
+        }
+
+        $subsequent = [];
+        foreach (array_values((array) ($block['subsequent'] ?? [])) as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            $subsequent[] = [
+                'label' => (string) ($item['label'] ?? ''),
+                'value' => (string) ($item['value'] ?? ''),
+            ];
+        }
+        if ($subsequent === []) {
+            $subsequent = AuditScoreSheet::defaultSubsequent();
+        }
+
+        $summary = AuditScoreSheet::summarize($rows, $adjustments, $subsequent);
+
+        $serial = trim((string) ($block['serial'] ?? ''));
+        if ($serial === '') {
+            $serial = '৮.০';
+        }
+
+        $branch = (string) ($block['branch_name_code'] ?? '');
+        if ($branch === '' && $this->shakha_display_name !== '') {
+            $branch = $this->shakha_display_name;
+        }
+        $period = (string) ($block['audit_period'] ?? '');
+        if ($period === '' && $this->audit_period_label !== '') {
+            $period = $this->audit_period_label;
+        }
+
+        return [
+            'type' => 'audit_score',
+            'serial' => $serial,
+            'branch_name_code' => $branch,
+            'branch_category' => (string) ($block['branch_category'] ?? ''),
+            'audit_period' => $period,
+            'section_label' => (string) (($block['section_label'] ?? '') !== '' ? $block['section_label'] : 'Sample-based observations'),
+            'extra_headers' => $extraHeaders,
+            'rows' => $rows,
+            'adjustments' => $adjustments,
+            'subsequent' => $subsequent,
+            'initial_score' => AuditScoreSheet::formatPercent($summary['initial']),
+            'final_score' => AuditScoreSheet::formatPercent($summary['final']),
+            'adjusted_score' => AuditScoreSheet::formatPercent($summary['adjusted']),
+            'audit_score' => $summary['audit_score_display'],
+            'performance_grade' => $summary['grade'],
+        ];
+    }
+
+    public function addAuditScoreBlockRow(int $blockIndex): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'audit_score') {
+            return;
+        }
+        $block = $this->normalizeAuditScoreBlock($this->reportBlocks[$blockIndex]);
+        $block['rows'][] = AuditScoreSheet::computeRow($this->blankAuditScoreRow(count($block['extra_headers'])));
+        $this->reportBlocks[$blockIndex] = $this->normalizeAuditScoreBlock($block);
+        $this->afterBlocksChanged();
+    }
+
+    public function removeAuditScoreBlockRow(int $blockIndex, int $rowIndex): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'audit_score') {
+            return;
+        }
+        $block = $this->normalizeAuditScoreBlock($this->reportBlocks[$blockIndex]);
+        if (! isset($block['rows'][$rowIndex]) || count($block['rows']) <= 1) {
+            return;
+        }
+        unset($block['rows'][$rowIndex]);
+        $block['rows'] = array_values($block['rows']);
+        $this->reportBlocks[$blockIndex] = $this->normalizeAuditScoreBlock($block);
+        $this->afterBlocksChanged();
+    }
+
+    public function addAuditScoreBlockColumn(int $blockIndex): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'audit_score') {
+            return;
+        }
+        $block = $this->normalizeAuditScoreBlock($this->reportBlocks[$blockIndex]);
+        $block['extra_headers'][] = 'New Column';
+        foreach ($block['rows'] as $i => $row) {
+            $extra = array_values((array) ($row['extra'] ?? []));
+            $extra[] = '';
+            $block['rows'][$i]['extra'] = $extra;
+        }
+        $this->reportBlocks[$blockIndex] = $this->normalizeAuditScoreBlock($block);
+        $this->afterBlocksChanged();
+    }
+
+    public function removeAuditScoreBlockColumn(int $blockIndex, int $extraIndex): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'audit_score') {
+            return;
+        }
+        $block = $this->normalizeAuditScoreBlock($this->reportBlocks[$blockIndex]);
+        if (! isset($block['extra_headers'][$extraIndex])) {
+            return;
+        }
+        unset($block['extra_headers'][$extraIndex]);
+        $block['extra_headers'] = array_values($block['extra_headers']);
+        foreach ($block['rows'] as $i => $row) {
+            $extra = array_values((array) ($row['extra'] ?? []));
+            if (isset($extra[$extraIndex])) {
+                unset($extra[$extraIndex]);
+            }
+            $block['rows'][$i]['extra'] = array_values($extra);
+        }
+        $this->reportBlocks[$blockIndex] = $this->normalizeAuditScoreBlock($block);
+        $this->afterBlocksChanged();
+    }
+
+    public function addAuditScoreAdjustmentRow(int $blockIndex): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'audit_score') {
+            return;
+        }
+        $block = $this->normalizeAuditScoreBlock($this->reportBlocks[$blockIndex]);
+        $block['adjustments'][] = ['label' => 'New adjustment', 'value' => ''];
+        $this->reportBlocks[$blockIndex] = $this->normalizeAuditScoreBlock($block);
+        $this->afterBlocksChanged();
+    }
+
+    public function removeAuditScoreAdjustmentRow(int $blockIndex, int $rowIndex): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'audit_score') {
+            return;
+        }
+        $block = $this->normalizeAuditScoreBlock($this->reportBlocks[$blockIndex]);
+        if (! isset($block['adjustments'][$rowIndex])) {
+            return;
+        }
+        unset($block['adjustments'][$rowIndex]);
+        $block['adjustments'] = array_values($block['adjustments']);
+        $this->reportBlocks[$blockIndex] = $this->normalizeAuditScoreBlock($block);
+        $this->afterBlocksChanged();
+    }
+
+    public function recalculateAuditScoreBlock(int $blockIndex): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'audit_score') {
+            return;
+        }
+        $this->reportBlocks[$blockIndex] = $this->normalizeAuditScoreBlock($this->reportBlocks[$blockIndex]);
+    }
+
+    public function setAuditScoreCategory(int $blockIndex, int $rowIndex, string $category): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'audit_score') {
+            return;
+        }
+        $block = $this->normalizeAuditScoreBlock($this->reportBlocks[$blockIndex]);
+        if (! isset($block['rows'][$rowIndex])) {
+            return;
+        }
+        $category = in_array($category, AuditScoreSheet::categoryOptions(), true) ? $category : 'Medium';
+        $block['rows'][$rowIndex]['category'] = $category;
+        $block['rows'][$rowIndex]['risk_weight'] = AuditScoreSheet::riskWeightForCategory($category);
+        $this->reportBlocks[$blockIndex] = $this->normalizeAuditScoreBlock($block);
+        $this->afterBlocksChanged();
+    }
+
+    /**
+     * Prefill score rows from every finding; attach nearest following Report Rating Box when present.
+     */
+    public function fillAuditScoreBlockFromReport(int $blockIndex): void
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'audit_score') {
+            return;
+        }
+
+        $blocks = array_values($this->reportBlocks);
+        $built = [];
+        $stopTypes = [
+            'finding', 'section', 'compliance_table', 'it_checklist', 'external_audit', 'audit_score',
+        ];
+
+        for ($i = 0; $i < count($blocks); $i++) {
+            if (($blocks[$i]['type'] ?? '') !== 'finding') {
+                continue;
+            }
+            $serial = trim((string) ($blocks[$i]['serial'] ?? ''));
+            $body = trim((string) ($blocks[$i]['body'] ?? ''));
+            $title = trim((string) ($blocks[$i]['title'] ?? ''));
+            $text = $body !== '' ? $body : $title;
+            if ($serial !== '' && $text !== '') {
+                $text = $serial.' '.$text;
+            } elseif ($serial !== '') {
+                $text = $serial;
+            }
+            if (trim($text) === '' || $text === 'শিরোনাম') {
+                continue;
+            }
+
+            $category = AuditScoreSheet::categoryFromFindingRating((string) ($blocks[$i]['rating'] ?? ''));
+            $sample = '';
+            $instances = '';
+
+            for ($j = $i + 1; $j < count($blocks); $j++) {
+                $t = (string) ($blocks[$j]['type'] ?? '');
+                if (in_array($t, $stopTypes, true)) {
+                    break;
+                }
+                if ($this->isStatsLike($t)) {
+                    $statsRows = array_values((array) ($blocks[$j]['rows'] ?? []));
+                    $stats = $statsRows[0] ?? [];
+                    $sample = (string) ($stats['sample_size'] ?? '');
+                    $instances = (string) ($stats['instances_found'] ?? '');
+                    break;
+                }
+            }
+
+            $built[] = AuditScoreSheet::computeRow([
+                'title' => $text,
+                'category' => $category,
+                'sample_size' => $sample,
+                'risk_weight' => AuditScoreSheet::riskWeightForCategory($category),
+                'instance_size' => $instances,
+                'extra' => [],
+            ]);
+        }
+
+        $block = $this->normalizeAuditScoreBlock($this->reportBlocks[$blockIndex]);
+        if ($built !== []) {
+            $extraCount = count($block['extra_headers']);
+            foreach ($built as $ri => $row) {
+                $built[$ri]['extra'] = array_fill(0, $extraCount, '');
+            }
+            $block['rows'] = $built;
+        }
+        if ($block['branch_name_code'] === '' && $this->shakha_display_name !== '') {
+            $block['branch_name_code'] = $this->shakha_display_name;
+        }
+        if ($block['audit_period'] === '' && $this->audit_period_label !== '') {
+            $block['audit_period'] = $this->audit_period_label;
+        }
+        $this->reportBlocks[$blockIndex] = $this->normalizeAuditScoreBlock($block);
+        $this->afterBlocksChanged();
     }
 
     /**
@@ -2574,6 +4075,7 @@ class MakeAuditReport extends Component
             ['kind' => 'fixed', 'label' => 'Cover Page', 'tab' => 'cover', 'anchor' => 'audit-cover', 'depth' => 0],
             ['kind' => 'fixed', 'label' => 'এক নজরে', 'tab' => 'page2', 'anchor' => 'audit-page2', 'depth' => 0],
             ['kind' => 'fixed', 'label' => 'সূচিপত্র ও শ্রেণীবিন্যাস', 'tab' => 'page3', 'anchor' => 'audit-page3', 'depth' => 0],
+            ['kind' => 'fixed', 'label' => 'আর্থিক নিরীক্ষা', 'tab' => 'page4', 'anchor' => 'audit-page4', 'depth' => 0],
         ];
 
         foreach ($this->reportBlocks as $block) {
@@ -2582,11 +4084,61 @@ class MakeAuditReport extends Component
                 $serial = trim((string) ($block['serial'] ?? ''));
                 $title = trim((string) ($block['title'] ?? ''));
                 $label = $title !== '' ? $title : ($serial !== '' ? $serial : 'বিভাগ');
+                // Skip sections that only repeat the fixed page label ("আর্থিক নিরীক্ষা").
+                if ($this->outlineSectionDuplicatesPageLabel($serial, $title)) {
+                    continue;
+                }
                 $items[] = [
                     'kind' => 'section',
                     'label' => $label,
                     'tab' => 'page4',
                     'anchor' => self::sectionAnchorId($serial !== '' ? $serial : $title),
+                    'depth' => 0,
+                ];
+            } elseif ($type === 'compliance_table') {
+                $serial = trim((string) ($block['serial'] ?? ''));
+                $title = trim((string) ($block['title'] ?? ''));
+                $label = $title !== '' ? $title : ($serial !== '' ? $serial.' কমপ্লায়েন্স' : 'কমপ্লায়েন্স');
+                $short = mb_strlen($label) > 52 ? mb_substr($label, 0, 52).'…' : $label;
+                $items[] = [
+                    'kind' => 'compliance',
+                    'label' => $short,
+                    'tab' => 'page4',
+                    'anchor' => self::sectionAnchorId($serial !== '' ? $serial : 'compliance'),
+                    'depth' => 0,
+                ];
+            } elseif ($type === 'it_checklist') {
+                $serial = trim((string) ($block['serial'] ?? ''));
+                $title = trim((string) ($block['title'] ?? ''));
+                $label = $title !== '' ? $title : ($serial !== '' ? $serial.' আইটি চেকলিস্ট' : 'আইটি চেকলিস্ট');
+                $short = mb_strlen($label) > 52 ? mb_substr($label, 0, 52).'…' : $label;
+                $items[] = [
+                    'kind' => 'it_checklist',
+                    'label' => $short,
+                    'tab' => 'page4',
+                    'anchor' => self::sectionAnchorId($serial !== '' ? $serial : 'it'),
+                    'depth' => 0,
+                ];
+            } elseif ($type === 'external_audit') {
+                $serial = trim((string) ($block['serial'] ?? ''));
+                $title = trim((string) ($block['title'] ?? ''));
+                $label = $title !== '' ? $title : ($serial !== '' ? $serial.' External Audit' : 'External Audit Compliance');
+                $short = mb_strlen($label) > 52 ? mb_substr($label, 0, 52).'…' : $label;
+                $items[] = [
+                    'kind' => 'external_audit',
+                    'label' => $short,
+                    'tab' => 'page4',
+                    'anchor' => self::sectionAnchorId($serial !== '' ? $serial : 'external'),
+                    'depth' => 0,
+                ];
+            } elseif ($type === 'audit_score') {
+                $serial = trim((string) ($block['serial'] ?? ''));
+                $label = $serial !== '' ? $serial.' Audit Score Sheet' : 'Audit Score Sheet';
+                $items[] = [
+                    'kind' => 'audit_score',
+                    'label' => $label,
+                    'tab' => 'page4',
+                    'anchor' => self::sectionAnchorId($serial !== '' ? $serial : 'audit-score'),
                     'depth' => 0,
                 ];
             } elseif ($type === 'finding') {
@@ -2607,6 +4159,21 @@ class MakeAuditReport extends Component
         }
 
         return $items;
+    }
+
+    /**
+     * True when a section title is just the page-4 label again (with/without serial / English).
+     */
+    protected function outlineSectionDuplicatesPageLabel(string $serial, string $title): bool
+    {
+        $text = $title !== '' ? $title : $serial;
+        if ($serial !== '') {
+            $text = preg_replace('/^'.preg_quote($serial, '/').'\s*/u', '', $text) ?? $text;
+        }
+        $text = preg_replace('/\s*\([^)]*Financial Audit[^)]*\)\s*/iu', '', $text) ?? $text;
+        $text = trim($text, " \t\n\r\0\x0B:.-–—");
+
+        return $text === '' || $text === 'আর্থিক নিরীক্ষা';
     }
 
     public function goToOutlineItem(string $tab, string $anchor = ''): void
@@ -2679,6 +4246,23 @@ class MakeAuditReport extends Component
         $this->staffRows[] = [
             'cells' => array_fill(0, count($this->staffColumns), ''),
         ];
+    }
+
+    public function addCopyRecipient(): void
+    {
+        $this->ensureCopyRecipientsDefaults();
+        $this->copyRecipients[] = '';
+    }
+
+    public function removeCopyRecipient(int $index): void
+    {
+        $this->ensureCopyRecipientsDefaults();
+        if (! isset($this->copyRecipients[$index]) || count($this->copyRecipients) <= 1) {
+            return;
+        }
+
+        unset($this->copyRecipients[$index]);
+        $this->copyRecipients = array_values($this->copyRecipients);
     }
 
     public function removeStaffRow(int $index): void
@@ -2836,6 +4420,34 @@ class MakeAuditReport extends Component
     /**
      * @return array<string, mixed>
      */
+    protected function coverAuditScoreData(): array
+    {
+        foreach ($this->reportBlocks as $block) {
+            if (! is_array($block) || ($block['type'] ?? '') !== 'audit_score') {
+                continue;
+            }
+
+            $summary = AuditScoreSheet::summarize(
+                array_values((array) ($block['rows'] ?? [])),
+                array_values((array) ($block['adjustments'] ?? AuditScoreSheet::defaultAdjustments())),
+                array_values((array) ($block['subsequent'] ?? AuditScoreSheet::defaultSubsequent())),
+            );
+
+            return [
+                'audit_score_display' => $summary['audit_score_display'] ?: '—',
+                'performance_grade' => $summary['grade'] ?: '—',
+            ];
+        }
+
+        return [
+            'audit_score_display' => '—',
+            'performance_grade' => '—',
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     protected function reportViewData(): array
     {
         $this->ensurePage2Defaults();
@@ -2859,6 +4471,7 @@ class MakeAuditReport extends Component
         $this->ensurePage19Defaults();
         $this->ensurePage20Defaults();
         $this->ensurePage21Defaults();
+        $this->ensureCopyRecipientsDefaults();
 
         $logoDataUri = null;
         $logoPath = null;
@@ -2879,6 +4492,7 @@ class MakeAuditReport extends Component
             'documentSheets' => $document['sheets'],
             'ratingColor' => AuditReport::ratingColor($this->control_rating),
             'control_rating' => $this->control_rating,
+            ...$this->coverAuditScoreData(),
             'memo_no' => $this->memo_no,
             'report_date' => $this->report_date,
             'shakha_display_name' => $this->shakha_display_name,
@@ -2892,6 +4506,11 @@ class MakeAuditReport extends Component
             'comments_received_date' => $this->comments_received_date,
             'auditor_name' => $this->auditor_name,
             'auditor_designation' => $this->auditor_designation,
+            'copy_recipients' => $this->normalizedCopyRecipients(),
+            'page19_compliance_title' => $this->page19_compliance_title,
+            'page19_compliance_period' => $this->page19_compliance_period,
+            'page19_compliance_followup_date' => $this->page19_compliance_followup_date,
+            'page19ComplianceRows' => $this->page19ComplianceRows,
             'glance_as_of' => $this->glance_as_of,
             'branch_opening_date' => $this->branch_opening_date,
             'staff_info_as_of' => $this->staff_info_as_of,
@@ -2944,6 +4563,7 @@ class MakeAuditReport extends Component
         $this->capturePreSaveUndoIfNeeded();
 
         $report = AuditReport::query()->findOrFail($this->reportId);
+        abort_unless($report->isAccessibleBy(auth()->user()), 403);
         $pages = (array) $report->pages_data;
         $meta = (array) ($pages['meta'] ?? []);
         $tabsDone = (array) ($meta['tabs_done'] ?? [
@@ -2957,19 +4577,21 @@ class MakeAuditReport extends Component
             $tabsDone[$markTab] = true;
         }
 
-        // Report ends at page 4 — drop legacy page5–21 progress keys.
+        // Active wizard tabs: cover → page4 findings (compliance is an insertable block).
         $tabsDone = array_intersect_key($tabsDone, array_flip(['cover', 'page2', 'page3', 'page4']));
 
         $meta['tabs_done'] = $tabsDone;
         $meta['active_tab'] = $this->activeTab;
 
         $pages['meta'] = $meta;
+        $pages['cover'] = $this->coverPayload();
         $pages['tableHeaders'] = $this->tableHeaders;
         $pages['page2'] = $this->page2Payload();
         $pages['toc'] = $this->tocPayload();
         $pages['page3'] = $this->page3Payload();
         $pages['page4'] = $this->page4Payload();
-        // Keep legacy page5–21 payloads if present (UI ends at page4; do not wipe older drafts on autosave).
+        $pages['page19'] = $this->page19Payload();
+        // Keep legacy page5–18/20–21 payloads if present (do not wipe older drafts on autosave).
         $progress = AuditReport::computeProgress($pages, [
             'memo_no' => $this->memo_no,
             'auditor_name' => $this->auditor_name,
@@ -3016,6 +4638,9 @@ class MakeAuditReport extends Component
     {
         $pages = (array) $report->pages_data;
         $page2 = (array) ($pages['page2'] ?? []);
+        $cover = (array) ($pages['cover'] ?? []);
+        $this->copyRecipients = AuditCopyRecipients::normalize($cover['copy_recipients'] ?? null);
+        $this->ensureCopyRecipientsDefaults();
         $toc = (array) ($pages['toc'] ?? []);
         $page3 = (array) ($pages['page3'] ?? []);
         $page4 = (array) ($pages['page4'] ?? []);
@@ -3083,6 +4708,14 @@ class MakeAuditReport extends Component
         foreach ($this->reportBlocks as $i => $block) {
             if (($block['type'] ?? '') === 'custom_table') {
                 $this->reportBlocks[$i] = CustomTableSchema::normalize(is_array($block) ? $block : []);
+            } elseif (($block['type'] ?? '') === 'compliance_table') {
+                $this->reportBlocks[$i] = $this->normalizeComplianceBlock(is_array($block) ? $block : []);
+            } elseif (($block['type'] ?? '') === 'it_checklist') {
+                $this->reportBlocks[$i] = $this->normalizeItChecklistBlock(is_array($block) ? $block : []);
+            } elseif (($block['type'] ?? '') === 'external_audit') {
+                $this->reportBlocks[$i] = $this->normalizeExternalAuditBlock(is_array($block) ? $block : []);
+            } elseif (($block['type'] ?? '') === 'audit_score') {
+                $this->reportBlocks[$i] = $this->normalizeAuditScoreBlock(is_array($block) ? $block : []);
             }
         }
         $this->financial_criteria = (string) ($page4['financial_criteria'] ?? '');
@@ -3158,6 +4791,9 @@ class MakeAuditReport extends Component
             $this->page20ItChecklistRows = array_values((array) $page19['page19ItChecklistRows']);
         }
 
+        $this->migrateLegacyPage19ComplianceIntoBlocks();
+        $this->migrateLegacyPage20ItIntoBlocks();
+
         $this->page21_section_title = (string) ($page21['page21_section_title'] ?? $this->page21_section_title);
         $this->page21_year_of_reporting = (string) ($page21['page21_year_of_reporting'] ?? '');
         $this->page21_branch_name = (string) ($page21['page21_branch_name'] ?? '');
@@ -3165,6 +4801,8 @@ class MakeAuditReport extends Component
         $this->page21_sign_label = (string) ($page21['page21_sign_label'] ?? $this->page21_sign_label);
         $this->page21_sign_name = (string) ($page21['page21_sign_name'] ?? '');
         $this->page21_sign_designation = (string) ($page21['page21_sign_designation'] ?? '');
+
+        $this->migrateLegacyPage21ExternalIntoBlocks();
 
         $this->ensureTableHeadersDefaults();
         $this->ensurePage2Defaults();
@@ -3190,9 +4828,42 @@ class MakeAuditReport extends Component
      */
     protected function stampedDocument(): array
     {
+        $this->ensurePage19Defaults();
+
         return [
-            'sheets' => AuditReportPaginator::buildSheets($this->tocRows),
+            'sheets' => AuditReportPaginator::buildSheets(
+                $this->tocRows,
+                hasFinancial: true,
+                hasFinancialDetail: false,
+                hasFinancialPage6: false,
+                hasFinancialPage7: false,
+                hasFinancialPage8: false,
+                hasFinancialPage9: false,
+                hasFinancialPage10: false,
+                hasFinancialPage11: false,
+                hasFinancialPage12: false,
+                hasFinancialPage13: false,
+                hasFinancialPage14: false,
+                hasFinancialPage15: false,
+                hasFinancialPage16: false,
+                hasFinancialPage17: false,
+                hasFinancialPage18: false,
+                hasFinancialPage19: false,
+                hasFinancialPage20: false,
+                hasFinancialPage21: false,
+            ),
         ];
+    }
+
+    protected function hasComplianceContent(): bool
+    {
+        foreach ($this->reportBlocks as $block) {
+            if (($block['type'] ?? '') === 'compliance_table') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -3239,7 +4910,7 @@ class MakeAuditReport extends Component
                 'Medium (C)' => ['bg' => '#F4B084', 'color' => '#111111'],
                 'Minor (D)' => ['bg' => '#FFF2CC', 'color' => '#111111'],
                 'Satisfactory (E)' => ['bg' => '#70AD47', 'color' => '#ffffff'],
-                default => ['bg' => '#ffffff', 'color' => '#111111'],
+            default => ['bg' => '#ffffff', 'color' => '#111111'],
             },
         };
     }
@@ -3338,6 +5009,32 @@ class MakeAuditReport extends Component
             $make('item', '১.২', 'ভ্যাট ও ট্যাক্স পরিশোধ না করা', 'Major (B)', 2),
         ];
     }
+
+    protected function ensureCopyRecipientsDefaults(): void
+    {
+        if ($this->copyRecipients === []) {
+            $this->copyRecipients = AuditCopyRecipients::defaults();
+        }
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function normalizedCopyRecipients(): array
+    {
+        return AuditCopyRecipients::normalize($this->copyRecipients);
+    }
+
+    /**
+     * @return array{copy_recipients: list<string>}
+     */
+    protected function coverPayload(): array
+    {
+        return [
+            'copy_recipients' => $this->normalizedCopyRecipients(),
+        ];
+    }
+
     protected function ensureSignatureDefaults(): void
     {
         if ($this->sign_auditor_name === '') {
@@ -3467,6 +5164,14 @@ class MakeAuditReport extends Component
                 );
             } elseif ($type === 'custom_table') {
                 $migrated[] = CustomTableSchema::normalize(is_array($block) ? $block : []);
+            } elseif ($type === 'compliance_table') {
+                $migrated[] = $this->normalizeComplianceBlock(is_array($block) ? $block : []);
+            } elseif ($type === 'it_checklist') {
+                $migrated[] = $this->normalizeItChecklistBlock(is_array($block) ? $block : []);
+            } elseif ($type === 'external_audit') {
+                $migrated[] = $this->normalizeExternalAuditBlock(is_array($block) ? $block : []);
+            } elseif ($type === 'audit_score') {
+                $migrated[] = $this->normalizeAuditScoreBlock(is_array($block) ? $block : []);
             } elseif ($type === 'jobab_table') {
                 $migrated[] = $this->normalizeJobabBlock(is_array($block) ? $block : []);
             } elseif ($type === 'text_box') {
@@ -3603,12 +5308,12 @@ class MakeAuditReport extends Component
         ];
         $max = 0;
         foreach ($this->reportBlocks as $block) {
-            if (($block['type'] ?? '') !== 'section') {
-                continue;
-            }
-            $latin = strtr((string) ($block['serial'] ?? ''), $map);
-            if (preg_match('/^(\d+)/', $latin, $m)) {
-                $max = max($max, (int) $m[1]);
+            $type = $block['type'] ?? '';
+            if ($type === 'section' || $type === 'compliance_table' || $type === 'it_checklist' || $type === 'external_audit' || $type === 'audit_score') {
+                $latin = strtr((string) ($block['serial'] ?? ''), $map);
+                if (preg_match('/^(\d+)/', $latin, $m)) {
+                    $max = max($max, (int) $m[1]);
+                }
             }
         }
 
@@ -3736,6 +5441,72 @@ class MakeAuditReport extends Component
                     'status' => (string) ($prev['status'] ?? ''),
                     'page_no' => (string) ($prev['page_no'] ?? ''),
                     'preview_page' => (int) ($prev['preview_page'] ?? 2),
+                ];
+            } elseif ($type === 'compliance_table') {
+                $sectionSerial = trim((string) ($block['serial'] ?? '')) ?: '৫.০';
+                $sectionTitle = trim((string) ($block['title'] ?? ''));
+                $sectionLabel = preg_replace('/^'.preg_quote($sectionSerial, '/').'\s*/u', '', $sectionTitle) ?? $sectionTitle;
+                $sectionLabel = trim($sectionLabel, " \t\n\r\0\x0B:");
+                if ($sectionLabel === '') {
+                    $sectionLabel = 'বিগত অভ্যন্তরীণ নিরীক্ষা প্রতিবেদনের জবাবের কমপ্লায়েন্স (Compliance of Previous Internal Audit Report Reply)';
+                }
+                $rows[] = [
+                    'type' => 'section',
+                    'serial' => $sectionSerial,
+                    'finding' => $sectionLabel,
+                    'amount' => '',
+                    'rating' => '',
+                    'status' => '',
+                    'page_no' => '',
+                    'preview_page' => 2,
+                ];
+            } elseif ($type === 'it_checklist') {
+                $sectionSerial = trim((string) ($block['serial'] ?? '')) ?: '৬.০';
+                $sectionTitle = trim((string) ($block['title'] ?? ''));
+                $sectionLabel = preg_replace('/^'.preg_quote($sectionSerial, '/').'\s*/u', '', $sectionTitle) ?? $sectionTitle;
+                $sectionLabel = trim($sectionLabel, " \t\n\r\0\x0B:");
+                if ($sectionLabel === '') {
+                    $sectionLabel = 'আইটি (সফটওয়্যার) সংক্রান্ত চেকলিস্ট';
+                }
+                $rows[] = [
+                    'type' => 'section',
+                    'serial' => $sectionSerial,
+                    'finding' => $sectionLabel,
+                    'amount' => '',
+                    'rating' => '',
+                    'status' => '',
+                    'page_no' => '',
+                    'preview_page' => 2,
+                ];
+            } elseif ($type === 'external_audit') {
+                $sectionSerial = trim((string) ($block['serial'] ?? '')) ?: '৭.০';
+                $sectionTitle = trim((string) ($block['title'] ?? ''));
+                $sectionLabel = preg_replace('/^'.preg_quote($sectionSerial, '/').'\s*/u', '', $sectionTitle) ?? $sectionTitle;
+                $sectionLabel = trim($sectionLabel, " \t\n\r\0\x0B:");
+                if ($sectionLabel === '') {
+                    $sectionLabel = 'Compliance of Previous External Audit Report';
+                }
+                $rows[] = [
+                    'type' => 'section',
+                    'serial' => $sectionSerial,
+                    'finding' => $sectionLabel,
+                    'amount' => '',
+                    'rating' => '',
+                    'status' => '',
+                    'page_no' => '',
+                    'preview_page' => 2,
+                ];
+            } elseif ($type === 'audit_score') {
+                $sectionSerial = trim((string) ($block['serial'] ?? '')) ?: '৮.০';
+                $rows[] = [
+                    'type' => 'section',
+                    'serial' => $sectionSerial,
+                    'finding' => 'Audit Score / Sample-based Observations',
+                    'amount' => '',
+                    'rating' => '',
+                    'status' => '',
+                    'page_no' => '',
+                    'preview_page' => 2,
                 ];
             }
         }
@@ -3874,6 +5645,30 @@ class MakeAuditReport extends Component
 
         if (str_ends_with($path, 'ItChecklistRows') || str_contains($path, 'page20ItChecklistRows')) {
             $rows = array_map(fn (array $row) => $this->normalizeItChecklistPasteRow($row), $rows);
+        }
+
+        if ($path === 'page19ComplianceRows') {
+            $rows = array_map(fn (array $row) => $this->normalizeCompliancePasteRow($row), $rows);
+        }
+
+        if (preg_match('/^reportBlocks\.(\d+)\.rows$/', $path, $m)) {
+            $blockIndex = (int) $m[1];
+            $blockType = $this->reportBlocks[$blockIndex]['type'] ?? '';
+            if ($blockType === 'compliance_table') {
+                $headerCount = count((array) ($this->reportBlocks[$blockIndex]['headers'] ?? []));
+                $rows = array_map(
+                    fn (array $row) => $this->normalizeCompliancePasteRow($row, $headerCount),
+                    $rows
+                );
+            } elseif ($blockType === 'it_checklist') {
+                $rows = array_map(fn (array $row) => $this->normalizeItChecklistPasteRow($row), $rows);
+            } elseif ($blockType === 'external_audit') {
+                $headerCount = count((array) ($this->reportBlocks[$blockIndex]['headers'] ?? []));
+                $rows = array_map(
+                    fn (array $row) => $this->normalizeExternalAuditPasteRow($row, $headerCount),
+                    $rows
+                );
+            }
         }
 
         $this->assignPasteRows($path, $rows, $replace);
@@ -4107,6 +5902,28 @@ class MakeAuditReport extends Component
 
         unset($cursor);
         $this->{$root} = $data;
+    }
+
+    /**
+     * @param  array<string, string>  $row
+     * @return array<string, mixed>
+     */
+    protected function normalizeCompliancePasteRow(array $row, int $headerCount = 6): array
+    {
+        $extra = array_values((array) ($row['extra'] ?? []));
+        foreach ($row as $key => $value) {
+            if (! is_string($key) || ! preg_match('/^extra\.(\d+)$/', $key, $m)) {
+                continue;
+            }
+            $extra[(int) $m[1]] = (string) $value;
+            unset($row[$key]);
+        }
+        if ($extra !== []) {
+            ksort($extra);
+            $row['extra'] = array_values($extra);
+        }
+
+        return array_merge($this->blankComplianceRow(max(6, $headerCount)), $row);
     }
 
     /**
@@ -4377,6 +6194,14 @@ class MakeAuditReport extends Component
         foreach ($this->reportBlocks as $block) {
             if (($block['type'] ?? '') === 'custom_table') {
                 $blocks[] = CustomTableSchema::normalize(is_array($block) ? $block : []);
+            } elseif (($block['type'] ?? '') === 'compliance_table') {
+                $blocks[] = $this->normalizeComplianceBlock(is_array($block) ? $block : []);
+            } elseif (($block['type'] ?? '') === 'it_checklist') {
+                $blocks[] = $this->normalizeItChecklistBlock(is_array($block) ? $block : []);
+            } elseif (($block['type'] ?? '') === 'external_audit') {
+                $blocks[] = $this->normalizeExternalAuditBlock(is_array($block) ? $block : []);
+            } elseif (($block['type'] ?? '') === 'audit_score') {
+                $blocks[] = $this->normalizeAuditScoreBlock(is_array($block) ? $block : []);
             } else {
                 $blocks[] = $block;
             }
@@ -7844,11 +9669,29 @@ class MakeAuditReport extends Component
 
     protected function ensurePage19Defaults(): void
     {
+        $this->ensureTableHeadersDefaults();
+        if ($this->page19_compliance_title === '' || str_starts_with($this->page19_compliance_title, '৫.০০')) {
+            $this->page19_compliance_title = '৫.০ বিগত অভ্যন্তরীণ নিরীক্ষা প্রতিবেদনের জবাবের কমপ্লায়েন্স (Compliance of Previous Internal Audit Report Reply)';
+        }
+
+        $extraCount = max(0, count(AuditTableHeaders::get($this->tableHeaders, 'compliance')) - 6);
+
         if ($this->page19ComplianceRows === []) {
             $this->page19ComplianceRows = $this->defaultPage19ComplianceRows();
         } else {
             $this->page19ComplianceRows = array_values(array_map(
-                fn ($row) => array_merge($this->blankPage19ComplianceRow(), (array) $row),
+                function ($row) use ($extraCount) {
+                    $merged = array_merge($this->blankPage19ComplianceRow(), (array) $row);
+                    $extra = array_values((array) ($merged['extra'] ?? []));
+                    if (count($extra) < $extraCount) {
+                        $extra = array_pad($extra, $extraCount, '');
+                    } elseif (count($extra) > $extraCount) {
+                        $extra = array_slice($extra, 0, $extraCount);
+                    }
+                    $merged['extra'] = $extra;
+
+                    return $merged;
+                },
                 $this->page19ComplianceRows
             ));
         }
@@ -7924,10 +9767,12 @@ class MakeAuditReport extends Component
     }
 
     /**
-     * @return array{prev_para_no:string,findings:string,first_discovery_period:string,management_reply:string,current_status:string,current_para_no:string}
+     * @return array{prev_para_no:string,findings:string,first_discovery_period:string,management_reply:string,current_status:string,current_para_no:string,extra:list<string>}
      */
     protected function blankPage19ComplianceRow(): array
     {
+        $extraCount = max(0, count(AuditTableHeaders::get($this->tableHeaders, 'compliance')) - 6);
+
         return [
             'prev_para_no' => '',
             'findings' => '',
@@ -7935,44 +9780,48 @@ class MakeAuditReport extends Component
             'management_reply' => '',
             'current_status' => '',
             'current_para_no' => '',
+            'extra' => array_fill(0, $extraCount, ''),
         ];
     }
 
     /**
-     * @return list<array<string, string>>
+     * Official IT checklist template (descriptions + sample ticks/remarks).
+     *
+     * @return list<array<string, mixed>>
      */
     protected function defaultPage20ItChecklistRows(): array
     {
-        $descriptions = [
-            'শাখার ল্যাপটপ গুলোতে নির্দিষ্ট সময় পর পর Anti Virus দেওয়া হয় কিনা?',
-            'Original Microsoft Window Software দিয়ে শাখার ল্যাপটপ গুলো পরিচালনা হচ্ছে কিনা?',
-            'অধিক পুরাতন/ব্যবহার অযোগ্য ল্যাপটপ শাখায় ব্যবহার করা হচ্ছে কিনা?',
-            'ব্যবস্থাপক,সহকারী ব্যবস্থাপকের কম্পিউটার/ল্যাপটপ পরিচালনার ন্যূনতম জ্ঞান (বাংলা ও ইংরেজি টাইপকরণ, এমএস ওয়ার্ড, এক্সেল, ই-মেইল, পাওয়ার পয়েন্ট ইত্যাদি) আছে কিনা?',
-            'ব্যবস্থাপক,সহকারী ব্যবস্থাপকের কম্পিউটার/ল্যাপটপ পরিচালনার ন্যূনতম প্রশিক্ষণ পেয়েছে কিনা?',
-            'ব্যবস্থাপক,সহকারী ব্যবস্থাপকের কম্পিউটার/ল্যাপটপ পরিচালনার ন্যূনতম আইটি বিষয়ক সচেতনতার প্রশিক্ষণ পেয়েছে কিনা (অবাঞ্ছিত মেসেজেস পরিহার করা বিষয়ক)?',
-            'Strong Unique Password ব্যবহার করা ও অন্যদের সাথে শেয়ার করা থেকে বিরত থাকে কিনা?',
-            'নির্দিষ্ট সময় পর পর Strong Unique Password পরিবর্তন করা হয় কিনা?',
-            'একই Strong Unique Password ব্যবস্থাপক ও সহকারী ব্যবস্থাপক মিলে ০২জনেই ব্যবহার করে কিনা?',
-            'শাখার ল্যাপটপ গুলোতে ব্যক্তিগত ফাইল, ছবি ভিডিও রাখা হয় কিনা?',
-            'শাখার ল্যাপটপ গুলোতে ভিন্ন ভিন্ন সুপারভাইজার কর্তৃক প্রাথমিক এন্ট্রি Strong Unique Password আলাদা আলাদা ব্যবহার করা হয় কিনা?',
-            'নির্দিষ্ট সময় পর পর laptop Auto lock/Auto Screen off হয় কিনা?',
-            'ব্যবস্থাপক ও সহকারী ব্যবস্থাপক বর্তমান মাইক্রোফিন৩৬০ সফটওয়্যার অপারেটিং কার্যক্রম (সদস্য ভর্তি, ঋণ বিতরণ, সঞ্চয় ও ঋণ আদায়, সঞ্চয় ফেরত, ভাউচার পোস্টিং, সদস্য ও ঋণী স্থানান্তর করা ইত্যাদি) করতে পারে কিনা?',
-            'ব্যবস্থাপক ও সহকারী ব্যবস্থাপক বর্তমান মাইক্রোফিন৩৬০ সফটওয়্যার এর সকল রিপোর্ট সম্পর্কে ধারণা ও দেখতে এবং প্রিন্ট করতে পারে কিনা?',
-            'শাখা পর্যায়ের সকল কর্মকর্তার ওয়াইফাই ছাড়া মোবাইল ব্যক্তিগত ডাটা থাকে কিনা?',
-            'শাখা পর্যায়ের সকল কর্মকর্তা মাইক্রোফিন৩৬০ সফটওয়্যার এর এ্যাপ (App) ব্যবহার প্রশিক্ষণ পেয়েছে কিনা?',
-            'শাখা পর্যায়ের সকল মাঠকর্মীবৃন্দ মাইক্রোফিন৩৬০ সফটওয়্যার এর এ্যাপ (App) ব্যবহার করে অপারেটিং কার্যক্রম/পোস্টিং এর কাজ (সদস্য ভর্তি, ঋণ বিতরণ, সঞ্চয় ও ঋণ আদায়) করে কিনা?',
-            'দিন শেষে laptop নিরাপদ জায়গায় সংরক্ষণ করে কিনা?',
-            'শাখা অফিসে সিসি ক্যামেরা আছে কিনা এবং সক্রিয় আছে কিনা?',
-            'শাখা অফিসে সিসি ক্যামেরার নিয়মিত ডাটা ব্যাকআপ রাখা হয় কিনা?',
-            'শাখা অফিসে সিসি ক্যামেরার তথ্য পর্যবেক্ষণের জন্য আলাদা মনিটর আছে কিনা?',
-            'শাখা অফিসে সিসি ক্যামেরা গুলো ঠিক আছে কিনা তা নিয়মিত রি-চেক করা হয় কিনা?',
-            'শাখা অফিসে সিসি ক্যামেরা গুলোর নিয়ন্ত্রণ নির্ধারিত সুপারভাইজারের কাছে আছে কিনা?',
+        // [description, compliance yes|no|na, management_comments, recommendation]
+        $items = [
+            ['শাখার ল্যাপটপ গুলোতে নির্দিষ্ট সময় পর পর Anti Virus দেওয়া হয় কিনা?', 'yes', '', ''],
+            ['Original Microsoft Window Software দিয়ে শাখার ল্যাপটপ গুলো পরিচালনা হচ্ছে কিনা?', 'yes', '', ''],
+            ['অধিক পুরাতন/ব্যবহার অযোগ্য ল্যাপটপ শাখায় ব্যবহার করা হচ্ছে কিনা?', 'yes', '', ''],
+            ['ব্যবস্থাপক,সহকারী ব্যবস্থাপকের কম্পিউটার/ল্যাপটপ পরিচালনার ন্যূনতম জ্ঞান (বাংলা ও ইংরেজি টাইপকরণ, এমএস ওয়ার্ড, এক্সেল, ই-মেইল, পাওয়ার পয়েন্ট ইত্যাদি) আছে কিনা?', 'yes', '', 'সহকারী শাখা ব্যবস্থাপক/হিসাব কর্মকর্তা উক্ত ক্ষেত্রে কোনো ঘাটতি নেই'],
+            ['ব্যবস্থাপক,সহকারী ব্যবস্থাপকের কম্পিউটার/ল্যাপটপ পরিচালনার ন্যূনতম প্রশিক্ষণ পেয়েছে কিনা?', 'yes', '', ''],
+            ['ব্যবস্থাপক,সহকারী ব্যবস্থাপকের কম্পিউটার/ল্যাপটপ পরিচালনার ন্যূনতম আইটি বিষয়ক সচেতনতার প্রশিক্ষণ পেয়েছে কিনা (অবাঞ্ছিত মেসেজেস পরিহার করা বিষয়ক)?', 'yes', '', ''],
+            ['Strong Unique Password ব্যবহার করা ও অন্যদের সাথে শেয়ার করা থেকে বিরত থাকে কিনা?', 'no', '', ''],
+            ['নির্দিষ্ট সময় পর পর Strong Unique Password পরিবর্তন করা হয় কিনা?', 'no', '', 'পাসওয়ার্ড ব্যবহার করা হচ্ছে না'],
+            ['একই Strong Unique Password ব্যবস্থাপক ও সহকারী ব্যবস্থাপক মিলে ০২জনেই ব্যবহার করে কিনা?', 'no', '', 'পাসওয়ার্ড দেওয়া নেই'],
+            ['শাখার ল্যাপটপ গুলোতে ব্যক্তিগত ফাইল, ছবি ভিডিও রাখা হয় কিনা?', 'no', '', ''],
+            ['শাখার ল্যাপটপ গুলোতে ভিন্ন ভিন্ন সুপারভাইজার কর্তৃক প্রাথমিক এন্ট্রি Strong Unique Password আলাদা আলাদা ব্যবহার করা হয় কিনা?', 'no', '', ''],
+            ['নির্দিষ্ট সময় পর পর laptop Auto lock/Auto Screen off হয় কিনা?', 'yes', '', ''],
+            ['ব্যবস্থাপক ও সহকারী ব্যবস্থাপক বর্তমান মাইক্রোফিন৩৬০ সফটওয়্যার অপারেটিং কার্যক্রম (সদস্য ভর্তি, ঋণ বিতরণ, সঞ্চয় ও ঋণ আদায়, সঞ্চয় ফেরত, ভাউচার পোস্টিং, সদস্য ও ঋণী স্থানান্তর করা ইত্যাদি) করতে পারে কিনা?', 'yes', '', ''],
+            ['ব্যবস্থাপক ও সহকারী ব্যবস্থাপক বর্তমান মাইক্রোফিন৩৬০ সফটওয়্যার এর সকল রিপোর্ট সম্পর্কে ধারণা ও দেখতে এবং প্রিন্ট করতে পারে কিনা?', 'yes', '', ''],
+            ['শাখা পর্যায়ের সকল কর্মকর্তার ওয়াইফাই ছাড়া মোবাইল ব্যক্তিগত ডাটা থাকে কিনা?', 'yes', '', ''],
+            ['শাখা পর্যায়ের সকল কর্মকর্তা মাইক্রোফিন৩৬০ সফটওয়্যার এর এ্যাপ (App) ব্যবহার প্রশিক্ষণ পেয়েছে কিনা?', 'yes', '', ''],
+            ['শাখা পর্যায়ের সকল মাঠকর্মীবৃন্দ মাইক্রোফিন৩৬০ সফটওয়্যার এর এ্যাপ (App) ব্যবহার করে অপারেটিং কার্যক্রম/পোস্টিং এর কাজ (সদস্য ভর্তি, ঋণ বিতরণ, সঞ্চয় ও ঋণ আদায়) করে কিনা?', 'yes', '', ''],
+            ['দিন শেষে laptop নিরাপদ জায়গায় সংরক্ষণ করে কিনা?', 'yes', '', ''],
+            ['শাখা অফিসে সিসি ক্যামেরা আছে কিনা এবং সক্রিয় আছে কিনা?', 'yes', '', 'শাখায় কোন সিসি ক্যামেরা নাই।'],
+            ['শাখা অফিসে সিসি ক্যামেরার নিয়মিত ডাটা ব্যাকআপ রাখা হয় কিনা?', 'na', '', 'প্রযোজ্য নয়'],
+            ['শাখা অফিসে সিসি ক্যামেরার তথ্য পর্যবেক্ষণের জন্য আলাদা মনিটর আছে কিনা?', 'na', '', 'প্রযোজ্য নয়'],
+            ['শাখা অফিসে সিসি ক্যামেরা গুলো ঠিক আছে কিনা তা নিয়মিত রি-চেক করা হয় কিনা?', 'na', '', 'প্রযোজ্য নয়'],
+            ['শাখা অফিসে সিসি ক্যামেরা গুলোর নিয়ন্ত্রণ নির্ধারিত সুপারভাইজারের কাছে আছে কিনা?', 'na', '', 'প্রযোজ্য নয়'],
         ];
 
         $bnDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
         $rows = [];
 
-        foreach ($descriptions as $index => $description) {
+        foreach ($items as $index => [$description, $compliance, $managementComments, $recommendation]) {
             $n = $index + 1;
             $sl = ($n < 10 ? '০' : '')
                 .strtr((string) $n, array_combine(range('0', '9'), $bnDigits));
@@ -7980,15 +9829,15 @@ class MakeAuditReport extends Component
             $rows[] = array_merge($this->blankPage20ItChecklistRow(), [
                 'sl_no' => $sl,
                 'description' => $description,
+                'compliance' => $compliance,
+                'management_comments' => $managementComments,
+                'recommendation' => $recommendation,
             ]);
         }
 
         return $rows;
     }
 
-    /**
-     * @return array{sl_no:string,description:string,compliance:string,action_owner:string,management_comments:string,recommendation:string}
-     */
     protected function blankPage20ItChecklistRow(): array
     {
         return [
@@ -7998,6 +9847,7 @@ class MakeAuditReport extends Component
             'action_owner' => '',
             'management_comments' => '',
             'recommendation' => '',
+            'extra' => [],
         ];
     }
 
@@ -8017,6 +9867,86 @@ class MakeAuditReport extends Component
         }
         unset($this->page19ComplianceRows[$rowIndex]);
         $this->page19ComplianceRows = array_values($this->page19ComplianceRows);
+    }
+
+    public function addPage19ComplianceColumn(): void
+    {
+        $this->ensurePage19Defaults();
+        $headers = array_values(AuditTableHeaders::get($this->tableHeaders, 'compliance'));
+        $headers[] = 'নতুন কলাম';
+        $this->tableHeaders['compliance'] = $headers;
+
+        foreach ($this->page19ComplianceRows as $i => $row) {
+            $extra = array_values((array) ($row['extra'] ?? []));
+            $extra[] = '';
+            $this->page19ComplianceRows[$i]['extra'] = $extra;
+        }
+    }
+
+    public function removePage19ComplianceColumn(int $headerIndex): void
+    {
+        $this->ensurePage19Defaults();
+        $headers = array_values(AuditTableHeaders::get($this->tableHeaders, 'compliance'));
+        if ($headerIndex < 6 || ! isset($headers[$headerIndex]) || count($headers) <= 6) {
+            return;
+        }
+
+        unset($headers[$headerIndex]);
+        $this->tableHeaders['compliance'] = array_values($headers);
+
+        $extraIndex = $headerIndex - 6;
+        foreach ($this->page19ComplianceRows as $i => $row) {
+            $extra = array_values((array) ($row['extra'] ?? []));
+            if (isset($extra[$extraIndex])) {
+                unset($extra[$extraIndex]);
+            }
+            $this->page19ComplianceRows[$i]['extra'] = array_values($extra);
+        }
+    }
+
+    /**
+     * Fill অনুচ্ছেদ নম্বর + শিরোনাম from current report finding blocks.
+     */
+    public function fillComplianceNumbersFromReport(): void
+    {
+        $this->ensurePage19Defaults();
+        $this->ensureReportBlocksDefaults();
+
+        $items = [];
+        foreach ($this->reportBlocks as $block) {
+            if (($block['type'] ?? '') !== 'finding') {
+                continue;
+            }
+            $serial = trim((string) ($block['serial'] ?? ''));
+            if ($serial === '') {
+                continue;
+            }
+            $title = trim((string) ($block['title'] ?? ''));
+            if ($title === '' || $title === 'শিরোনাম') {
+                $title = trim((string) ($block['body'] ?? ''));
+            }
+            $items[] = ['serial' => $serial, 'title' => $title];
+        }
+
+        if ($items === []) {
+            return;
+        }
+
+        while (count($this->page19ComplianceRows) < count($items)) {
+            $this->page19ComplianceRows[] = $this->blankPage19ComplianceRow();
+        }
+
+        foreach ($items as $i => $item) {
+            if (! isset($this->page19ComplianceRows[$i])) {
+                break;
+            }
+            if (trim((string) ($this->page19ComplianceRows[$i]['prev_para_no'] ?? '')) === '') {
+                $this->page19ComplianceRows[$i]['prev_para_no'] = $item['serial'];
+            }
+            if (trim((string) ($this->page19ComplianceRows[$i]['findings'] ?? '')) === '' && $item['title'] !== '') {
+                $this->page19ComplianceRows[$i]['findings'] = $item['title'];
+            }
+        }
     }
 
     public function addPage20ItChecklistRow(): void
@@ -8083,18 +10013,32 @@ class MakeAuditReport extends Component
         $this->ensureTocDefaults();
 
         $complianceFinding = 'বিগত অভ্যন্তরীণ নিরীক্ষা প্রতিবেদনের জবাবের কমপ্লায়েন্স (Compliance of Previous Internal Audit Report Reply)';
-        $itFinding = 'আইটি (সফটওয়্যার) সংক্রান্ত চেকলিস্ট';
+        $found = false;
 
         foreach ($this->tocRows as $i => $row) {
             if (($row['type'] ?? 'item') !== 'section') {
                 continue;
             }
-            if (($row['serial'] ?? '') === '৫.০০') {
+            $serial = (string) ($row['serial'] ?? '');
+            if (in_array($serial, ['৫.০', '৫.০০', '5.0', '5.00'], true)) {
+                $this->tocRows[$i]['serial'] = '৫.০';
                 $this->tocRows[$i]['finding'] = $complianceFinding;
+                $this->tocRows[$i]['preview_page'] = 4;
+                $found = true;
             }
-            if (($row['serial'] ?? '') === '৬.০০') {
-                $this->tocRows[$i]['finding'] = $itFinding;
-            }
+        }
+
+        if (! $found) {
+            $this->tocRows[] = [
+                'type' => 'section',
+                'serial' => '৫.০',
+                'finding' => $complianceFinding,
+                'amount' => '',
+                'rating' => '',
+                'status' => '',
+                'page_no' => '',
+                'preview_page' => 4,
+            ];
         }
     }
 
@@ -8112,6 +10056,66 @@ class MakeAuditReport extends Component
                 $this->tocRows[$i]['finding'] = $externalFinding;
             }
         }
+    }
+
+    /**
+     * Move old fixed page19 compliance data into an insertable report block (once).
+     */
+    protected function migrateLegacyPage19ComplianceIntoBlocks(): void
+    {
+        foreach ($this->reportBlocks as $block) {
+            if (($block['type'] ?? '') === 'compliance_table') {
+                return;
+            }
+        }
+
+        $hasContent = false;
+        foreach ($this->page19ComplianceRows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            foreach (['prev_para_no', 'findings', 'first_discovery_period', 'management_reply', 'current_status', 'current_para_no'] as $key) {
+                if (trim((string) ($row[$key] ?? '')) !== '') {
+                    $hasContent = true;
+                    break 2;
+                }
+            }
+        }
+        if (! $hasContent && trim($this->page19_compliance_period) === '' && trim($this->page19_compliance_followup_date) === '') {
+            return;
+        }
+
+        $headers = array_values(AuditTableHeaders::get($this->tableHeaders, 'compliance'));
+        $rows = [];
+        foreach ($this->page19ComplianceRows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $merged = array_merge($this->blankComplianceRow(count($headers)), $row);
+            $extra = array_values((array) ($merged['extra'] ?? []));
+            $extraCount = max(0, count($headers) - 6);
+            $merged['extra'] = array_pad(array_slice($extra, 0, $extraCount), $extraCount, '');
+            $rows[] = $merged;
+        }
+        if ($rows === []) {
+            $rows = array_fill(0, 5, $this->blankComplianceRow(count($headers)));
+        }
+
+        $title = trim($this->page19_compliance_title);
+        $serial = '৫.০';
+        if (preg_match('/^([০-৯0-9]+[\.٫.][০-৯0-9]+)/u', $title, $m)) {
+            $serial = $m[1];
+        }
+
+        $this->reportBlocks[] = $this->normalizeComplianceBlock([
+            'type' => 'compliance_table',
+            'serial' => $serial,
+            'title' => $title !== '' ? $title : $serial.' বিগত অভ্যন্তরীণ নিরীক্ষা প্রতিবেদনের জবাবের কমপ্লায়েন্স (Compliance of Previous Internal Audit Report Reply)',
+            'period' => $this->page19_compliance_period,
+            'followup_date' => $this->page19_compliance_followup_date,
+            'headers' => $headers,
+            'rows' => $rows,
+        ]);
     }
 
     protected function page19Payload(): array
@@ -8275,21 +10279,37 @@ class MakeAuditReport extends Component
 
         // Dashboard lists only on select step — keep wizard updates light.
         if (! $isWizard) {
-            $shakhas = app(UserAccessService::class)->accessibleShakhas(auth()->user());
+            $shakhas = app(UserAccessService::class)->reportableShakhas(
+                auth()->user(),
+                (int) $this->report_month,
+                (int) $this->report_year,
+            );
 
-            $branchOptions = $shakhas->values()->map(function ($shakha, $index) {
-                return [
-                    'id' => (string) $shakha->id,
-                    'serial' => $index + 1,
-                    'name' => $shakha->name,
-                    'code' => (string) ($shakha->code ?: ''),
-                    'area' => (string) ($shakha->area?->name ?: ''),
-                    'division' => (string) ($shakha->area?->division ?: ''),
-                    'focal' => (string) ($shakha->focal_person_name ?: ''),
-                    'active' => $shakha->isActive(),
-                    'opening' => optional($shakha->opening_date ?? $shakha->opened_at)->format('d M Y') ?: '',
-                ];
-            })->values();
+            // Drop a stale pick if month/year changed and this branch is no longer allocated.
+            if ($this->shakha_id && ! $shakhas->contains('id', (int) $this->shakha_id)) {
+                $this->shakha_id = null;
+            }
+
+        $branchOptions = $shakhas->values()->map(function ($shakha, $index) {
+            $risk = $shakha->riskCategory();
+
+            return [
+                'id' => (string) $shakha->id,
+                'serial' => $index + 1,
+                'name' => $shakha->name,
+                'code' => (string) ($shakha->code ?: ''),
+                'area' => (string) ($shakha->area?->name ?: ''),
+                'division' => (string) ($shakha->area?->division ?: ''),
+                'focal' => (string) ($shakha->focal_person_name ?: ''),
+                'active' => $shakha->isActive(),
+                'opening' => optional($shakha->opening_date ?? $shakha->opened_at)->format('d M Y') ?: '',
+                'risk' => $risk ?: 'Not assessed',
+                'risk_key' => \App\Support\ShakhaRiskTone::key($risk),
+                'risk_short' => \App\Support\ShakhaRiskTone::shortLabel($risk),
+                'risk_badge' => \App\Support\ShakhaRiskTone::badgeClasses($risk),
+                'risk_text' => \App\Support\ShakhaRiskTone::textClasses($risk),
+            ];
+        })->values();
 
             $userId = (int) (auth()->id() ?? 0);
             if ($userId > 0) {
@@ -8300,9 +10320,9 @@ class MakeAuditReport extends Component
                 $ongoingReports = collect();
                 if ($status === 'all' || $status === 'draft') {
                     $ongoingQuery = AuditReport::query()
-                        ->ownedBy($userId)
+                        ->accessibleBy($userId)
                         ->drafts()
-                        ->with('shakha.area');
+                        ->with(['shakha.area', 'shakha.latestRiskAssessment', 'collaborators:id,name', 'user:id,name']);
                     $this->applyReportListFilters($ongoingQuery);
                     $ongoingReports = $ongoingQuery
                         ->latest('last_saved_at')
@@ -8313,9 +10333,9 @@ class MakeAuditReport extends Component
                 $completedReports = collect();
                 if ($status === 'all' || $status === 'completed') {
                     $completedQuery = AuditReport::query()
-                        ->ownedBy($userId)
+                        ->accessibleBy($userId)
                         ->completed()
-                        ->with('shakha.area');
+                        ->with(['shakha.area', 'shakha.latestRiskAssessment', 'collaborators:id,name', 'user:id,name']);
                     $this->applyReportListFilters($completedQuery);
                     // When filtering by month/search, show all matches; otherwise keep a short recent list.
                     $filtered = ($this->listFilterMonth >= 1 && $this->listFilterMonth <= 12)
@@ -8329,8 +10349,8 @@ class MakeAuditReport extends Component
                         ->get();
                 }
 
-                $ongoingCount = AuditReport::query()->ownedBy($userId)->drafts()->count();
-                $completedCount = AuditReport::query()->ownedBy($userId)->completed()->count();
+                $ongoingCount = AuditReport::query()->accessibleBy($userId)->drafts()->count();
+                $completedCount = AuditReport::query()->accessibleBy($userId)->completed()->count();
                 $pendingSlots = max(0, AuditReport::MAX_CONCURRENT_DRAFTS - $ongoingCount);
             }
         }
@@ -8369,6 +10389,7 @@ class MakeAuditReport extends Component
             'shakhaCount' => $shakhas->count(),
             'selectedShakhaLabel' => $this->selectedShakhaLabel(),
             'ratingColor' => AuditReport::ratingColor($this->control_rating),
+            ...$this->coverAuditScoreData(),
             'monthLabel' => Carbon::create(null, $this->report_month, 1)->format('F'),
             'logoUrl' => $this->resolveLogoUrl(),
             'documentSheets' => $document['sheets'],

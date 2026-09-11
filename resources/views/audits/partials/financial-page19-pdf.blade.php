@@ -1,35 +1,36 @@
 @php
     $dash = $dash ?? '………………';
+    $coreFields = ['prev_para_no', 'findings', 'first_discovery_period', 'management_reply', 'current_status', 'current_para_no'];
+    $headers = array_values($tableHeaders['compliance'] ?? \App\Support\AuditTableHeaders::defaults()['compliance']);
+    $extraCount = max(0, count($headers) - count($coreFields));
+    $headingBlock = [
+        'serial' => '',
+        'title' => $page19_compliance_title ?? '',
+        'title_en' => '',
+        'period' => $page19_compliance_period ?? '',
+        'followup_date' => $page19_compliance_followup_date ?? '',
+    ];
 @endphp
 
-<p class="bold" style="margin:0 0 2mm;font-size:10px;">{{ $page19_compliance_title ?? '' }}</p>
-
-<p style="margin:0 0 2mm;font-size:8px;">
-    <span class="bold">নিরীক্ষাকাল:</span> {{ $page19_compliance_period ?? '' }}
-    &nbsp;&nbsp;
-    <span class="bold">ফলোআপের তারিখ:</span> {{ $page19_compliance_followup_date ?? '' }}
-</p>
+@include('audits.partials.compliance-heading', ['block' => $headingBlock, 'forDoc' => true])
 
 <table class="doc-table" style="margin-bottom:5mm;font-size:7px;">
     <thead>
         <tr>
-            <th>বিগত প্রতিবেদনের অনুচ্ছেদ নং</th>
-            <th>নিরীক্ষা ও পরিবীক্ষণে প্রাপ্ত ঘটনা সমূহ</th>
-            <th>প্রথম উদঘাটনের সময়কাল</th>
-            <th>ব্যবস্থাপনার জবাব</th>
-            <th>বর্তমান অবস্থা</th>
-            <th>বর্তমান প্রতিবেদনের অনুচ্ছেদ নং</th>
+            @foreach ($headers as $header)
+                <th>{{ $header }}</th>
+            @endforeach
         </tr>
     </thead>
     <tbody>
         @foreach ($page19ComplianceRows ?? [] as $row)
             <tr>
-                <td class="center">{{ $row['prev_para_no'] ?? '' }}</td>
-                <td>{{ $row['findings'] ?? '' }}</td>
-                <td class="center">{{ $row['first_discovery_period'] ?? '' }}</td>
-                <td>{{ $row['management_reply'] ?? '' }}</td>
-                <td>{{ $row['current_status'] ?? '' }}</td>
-                <td class="center">{{ $row['current_para_no'] ?? '' }}</td>
+                @foreach ($coreFields as $field)
+                    <td class="{{ in_array($field, ['prev_para_no', 'first_discovery_period', 'current_para_no'], true) ? 'center' : '' }}">{{ $row[$field] ?? '' }}</td>
+                @endforeach
+                @for ($ei = 0; $ei < $extraCount; $ei++)
+                    <td>{{ $row['extra'][$ei] ?? '' }}</td>
+                @endfor
             </tr>
         @endforeach
     </tbody>

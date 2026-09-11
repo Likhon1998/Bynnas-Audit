@@ -8,7 +8,7 @@
         <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
             <div>
                 <div class="flex items-center gap-1.5 text-[11px] text-slate-400">
-                    <a href="{{ route('kpis.index', ['fy' => $fyLabel]) }}" class="hover:text-brand-600">Annual KPI</a>
+                    <a href="{{ route('kpis.index', ['fy' => $fyLabel]) }}" class="hover:text-brand-600">Annual Key Performance Indicator (KPI)</a>
                     <span>/</span>
                     <span class="text-slate-600">{{ $existing ? 'Edit' : 'Enter' }}</span>
                 </div>

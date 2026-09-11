@@ -79,6 +79,8 @@ class AnnualAuditReportBuilder
             'pending' => max(0, $planned - $completed),
             'shakha' => $totals[AuditPolicy::CATEGORY_SHAKHA]['planned'] ?? 0,
             'area' => $totals[AuditPolicy::CATEGORY_AREA]['planned'] ?? 0,
+            'pksf' => $totals[AuditPolicy::CATEGORY_PKSF]['planned'] ?? 0,
+            'hq' => $totals[AuditPolicy::CATEGORY_HQ]['planned'] ?? 0,
             'project_audit' => $totals[AuditPolicy::CATEGORY_PROJECT_AUDIT]['planned'] ?? 0,
             'project_monitoring' => $totals[AuditPolicy::CATEGORY_PROJECT_MONITORING]['planned'] ?? 0,
         ];
@@ -90,7 +92,7 @@ class AnnualAuditReportBuilder
     public function shakhaMatrix(?string $division = null, ?int $areaId = null): Collection
     {
         $shakhas = Shakha::query()
-            ->with('area')
+            ->with(['area', 'latestRiskAssessment'])
             ->where('status', 'active')
             ->when($areaId, fn ($q) => $q->where('area_id', $areaId))
             ->when($division, fn ($q) => $q->whereHas('area', fn ($a) => $a->where('division', $division)))
@@ -128,6 +130,7 @@ class AnnualAuditReportBuilder
                 'code' => $shakha->code,
                 'area' => $shakha->area?->name,
                 'division' => $shakha->area?->division,
+                'risk' => $shakha->riskCategory(),
                 'category' => AuditPolicy::CATEGORY_SHAKHA,
                 'schedulable_type' => Shakha::class,
                 'months' => $months,

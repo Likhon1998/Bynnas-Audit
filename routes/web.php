@@ -5,6 +5,7 @@ use App\Http\Controllers\AreaController;
 use App\Http\Controllers\AuditFindingController;
 use App\Http\Controllers\AuditReportController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\MapController;
 use App\Http\Controllers\MonthlyVisitController;
 use App\Http\Controllers\OrganogramController;
 use App\Http\Controllers\ProfileController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\RiskAssessmentController;
 use App\Http\Controllers\ShakhaController;
 use App\Http\Controllers\ShakhaEmployeeController;
 use App\Http\Controllers\ShakhaKpiController;
+use App\Http\Controllers\SuperAdminChatController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\RoleManagementController;
 use Illuminate\Support\Facades\Route;
@@ -25,6 +27,16 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified', 'active'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    Route::middleware('permission:map.view')->group(function () {
+        Route::get('/map', [MapController::class, 'index'])->name('map.index');
+        Route::get('/map/live', [MapController::class, 'live'])->name('map.live');
+    });
+
+    Route::middleware(['superadmin', 'throttle:20,1'])->prefix('superadmin/chat')->name('superadmin.chat.')->group(function () {
+        Route::get('/history', [SuperAdminChatController::class, 'history'])->name('history');
+        Route::post('/ask', [SuperAdminChatController::class, 'ask'])->name('ask');
+    });
 
     Route::middleware('role_or_permission:superadmin|users.manage')->group(function () {
         Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
@@ -61,21 +73,24 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
 
     Route::middleware('permission:audits.create|audits.manage')->group(function () {
         Route::get('/audits', [AuditReportController::class, 'index'])->name('audits.index');
+        Route::get('/audits/send-history', [AuditReportController::class, 'sendHistory'])->name('audits.send-history');
         Route::get('/audits/{report}/checklist', [AuditReportController::class, 'checklist'])->name('audits.checklist');
         Route::get('/audits/{report}/checklist/{file}/download', [AuditReportController::class, 'downloadChecklistFile'])->name('audits.checklist.download');
         Route::get('/checklists', fn () => view('checklists.index'))->name('checklists.index');
     });
 
-    Route::middleware('permission:findings.view_all|findings.enter')->group(function () {
+    Route::middleware('permission:findings.view_all')->group(function () {
         Route::get('/audit-findings', [AuditFindingController::class, 'index'])->name('audit-findings.index');
         Route::get('/audit-findings/summary', [AuditFindingController::class, 'summary'])->name('audit-findings.summary');
         Route::get('/audit-findings/summary/export', [AuditFindingController::class, 'exportSummary'])->name('audit-findings.summary.export');
         Route::get('/audit-findings/summary/export-ppt', [AuditFindingController::class, 'exportSummaryPpt'])->name('audit-findings.summary.export-ppt');
         Route::get('/audit-findings/export', [AuditFindingController::class, 'export'])->name('audit-findings.export');
+        Route::get('/audit-findings/{indicator}', [AuditFindingController::class, 'show'])->whereNumber('indicator')->name('audit-findings.show');
+    });
+    Route::middleware('permission:findings.enter')->group(function () {
         Route::get('/audit-findings/entry', [AuditFindingController::class, 'entry'])->name('audit-findings.entry');
         Route::post('/audit-findings/entry', [AuditFindingController::class, 'storeEntry'])->name('audit-findings.entry.store');
         Route::patch('/audit-findings/findings/{finding}/staff', [AuditFindingController::class, 'updateStaff'])->name('audit-findings.staff.update');
-        Route::get('/audit-findings/{indicator}', [AuditFindingController::class, 'show'])->name('audit-findings.show');
     });
 
     Route::middleware('permission:shakhas.manage|shakhas.view_all')->group(function () {
@@ -140,6 +155,8 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
         Route::post('/monthly-visits/items/{workItem}/assign', [MonthlyVisitController::class, 'assign'])->name('monthly-visits.assign.store');
         Route::get('/monthly-visits/assignments/{assignment}/reschedule', [MonthlyVisitController::class, 'rescheduleForm'])->name('monthly-visits.reschedule');
         Route::post('/monthly-visits/assignments/{assignment}/reschedule', [MonthlyVisitController::class, 'reschedule'])->name('monthly-visits.reschedule.store');
+        Route::post('/monthly-visits/assignments/{assignment}/lock', [MonthlyVisitController::class, 'lock'])->name('monthly-visits.lock');
+        Route::post('/monthly-visits/assignments/{assignment}/unlock', [MonthlyVisitController::class, 'unlock'])->name('monthly-visits.unlock');
     });
 
     Route::middleware('permission:projects.manage')->group(function () {

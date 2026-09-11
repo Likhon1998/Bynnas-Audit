@@ -3,8 +3,10 @@
 namespace App\Support\PhpWord;
 
 use App\Livewire\MakeAuditReport;
+use App\Support\AuditComplianceHeading;
 use App\Support\AuditDocumentLayout as Doc;
 use App\Support\AuditReportClassification;
+use App\Support\AuditScoreSheet;
 use App\Support\AuditTableHeaders;
 use App\Support\BanglaNumerals;
 use App\Support\CustomTableSchema;
@@ -227,17 +229,8 @@ class AuditReportDocxBuilder
 
         $this->addSpacer($section, 200);
         $section->addText('অনুলিপি:', $this->fontBold);
-        foreach ([
-            'নির্বাহী পরিচালক',
-            'উপ-নির্বাহী পরিচালক',
-            'পরিচালক ঋণ',
-            'উপ-প্রধান ঋণ',
-            'যুগ্ম পরিচালক প্রশাসন ও মানব সম্পদ',
-            'ফোকাল পার্সন',
-            'অঞ্চলিক ব্যবস্থাপক',
-            'শাখা ব্যবস্থাপক',
-            'অফিস কপি',
-        ] as $index => $item) {
+        $copyRecipients = \App\Support\AuditCopyRecipients::normalize($data['copy_recipients'] ?? null);
+        foreach ($copyRecipients as $index => $item) {
             $section->addText(BanglaNumerals::fromInt($index + 1).'. '.$item, $this->fontBody, ['indentation' => ['left' => 360]]);
         }
     }
@@ -455,10 +448,326 @@ class AuditReportDocxBuilder
                 $this->addObservationTable($section, $obsHeading !== '' ? $obsHeading : 'Report Rating Box:', $obsRows, $data);
             } elseif ($type === 'custom_table') {
                 $this->addCustomTable($section, is_array($block) ? $block : []);
+            } elseif ($type === 'compliance_table') {
+                $this->addComplianceTable($section, is_array($block) ? $block : []);
+            } elseif ($type === 'it_checklist') {
+                $this->addItChecklistTable($section, is_array($block) ? $block : []);
+            } elseif ($type === 'external_audit') {
+                $this->addExternalAuditTable($section, is_array($block) ? $block : []);
+            } elseif ($type === 'audit_score') {
+                $this->addAuditScoreTable($section, is_array($block) ? $block : []);
             } elseif ($type === 'jobab_table') {
                 $this->addJobabTable($section, is_array($block) ? $block : []);
             }
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $block
+     */
+    protected function addComplianceTable($section, array $block): void
+    {
+        $this->addSpacer($section, 120);
+        $lines = AuditComplianceHeading::lines($block);
+        $center = ['alignment' => Jc::CENTER, 'spaceAfter' => 40];
+
+        $section->addText($lines['bn'], $this->fontBold, $center);
+        $section->addText($lines['en'], $this->fontBold, $center);
+        $section->addText($lines['period_line'], ['name' => self::FONT, 'size' => 9], ['alignment' => Jc::CENTER, 'spaceAfter' => 40]);
+        $section->addText($lines['followup_line'], ['name' => self::FONT, 'size' => 9], ['alignment' => Jc::CENTER, 'spaceAfter' => 120]);
+
+        $headers = array_values((array) ($block['headers'] ?? AuditTableHeaders::defaults()['compliance']));
+        if (count($headers) < 6) {
+            $headers = array_values(AuditTableHeaders::defaults()['compliance']);
+        }
+        $coreFields = ['prev_para_no', 'findings', 'first_discovery_period', 'management_reply', 'current_status', 'current_para_no'];
+        $extraCount = max(0, count($headers) - count($coreFields));
+
+        $compliance = $section->addTable($this->gridTable);
+        $compliance->addRow();
+        foreach ($headers as $header) {
+            $compliance->addCell(1500)->addText((string) $header, ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
+        }
+        foreach (array_values((array) ($block['rows'] ?? [])) as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $compliance->addRow();
+            foreach ($coreFields as $field) {
+                $align = in_array($field, ['prev_para_no', 'first_discovery_period', 'current_para_no'], true)
+                    ? ['alignment' => Jc::CENTER]
+                    : [];
+                $compliance->addCell(1500)->addText((string) ($row[$field] ?? ''), ['name' => self::FONT, 'size' => 7], $align);
+            }
+            for ($ei = 0; $ei < $extraCount; $ei++) {
+                $compliance->addCell(1500)->addText((string) ($row['extra'][$ei] ?? ''), ['name' => self::FONT, 'size' => 7]);
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $block
+     */
+    protected function addItChecklistTable($section, array $block): void
+    {
+        $this->addSpacer($section, 120);
+        $center = ['alignment' => Jc::CENTER, 'spaceAfter' => 60];
+        $tickFont = ['name' => 'Segoe UI Symbol', 'size' => 12, 'bold' => true];
+        $cellFont = ['name' => self::FONT, 'size' => 9];
+        $headerFont = ['name' => self::FONT, 'size' => 9, 'bold' => true];
+
+        $section->addText((string) ($block['title'] ?? ''), ['name' => self::FONT, 'size' => 12, 'bold' => true], $center);
+        foreach (['org_line1', 'org_line2', 'org_line3'] as $key) {
+            $line = trim((string) ($block[$key] ?? ''));
+            if ($line !== '') {
+                $section->addText($line, ['name' => self::FONT, 'size' => 10], $center);
+            }
+        }
+        $section->addText(
+            'কর্মসূচীর নাম : '.($block['program'] ?? '').'    শাখার নাম : '.($block['branch'] ?? ''),
+            ['name' => self::FONT, 'size' => 10],
+            ['alignment' => Jc::CENTER, 'spaceAfter' => 60]
+        );
+        $section->addText(
+            (string) ($block['instruction'] ?? 'প্রযোজ্য ক্ষেত্রে টিক চিহ্ন দিন'),
+            ['name' => self::FONT, 'size' => 10, 'bold' => true],
+            ['alignment' => Jc::CENTER, 'spaceAfter' => 140]
+        );
+
+        $h1 = array_values((array) ($block['headers_r1'] ?? AuditTableHeaders::defaults()['it_r1']));
+        $h2 = array_values((array) ($block['headers_r2'] ?? AuditTableHeaders::defaults()['it_r2']));
+        $extraHeaders = array_values((array) ($block['extra_headers'] ?? []));
+
+        $checklist = $section->addTable($this->gridTable);
+        $checklist->addRow();
+        $checklist->addCell(700, ['vMerge' => 'restart'])->addText((string) ($h1[0] ?? 'ক্রমিক'), $headerFont, ['alignment' => Jc::CENTER]);
+        $checklist->addCell(2400, ['vMerge' => 'restart'])->addText((string) ($h1[1] ?? 'বিবরণ'), $headerFont, ['alignment' => Jc::CENTER]);
+        $checklist->addCell(1800, ['gridSpan' => 3])->addText((string) ($h1[2] ?? 'Compliance'), $headerFont, ['alignment' => Jc::CENTER]);
+        $checklist->addCell(1100, ['vMerge' => 'restart'])->addText((string) ($h1[3] ?? 'Action Owner'), $headerFont, ['alignment' => Jc::CENTER]);
+        $checklist->addCell(1300, ['vMerge' => 'restart'])->addText((string) ($h1[4] ?? 'Management Comments'), $headerFont, ['alignment' => Jc::CENTER]);
+        $checklist->addCell(1300, ['vMerge' => 'restart'])->addText((string) ($h1[5] ?? 'Recommendation'), $headerFont, ['alignment' => Jc::CENTER]);
+        foreach ($extraHeaders as $eh) {
+            $checklist->addCell(900, ['vMerge' => 'restart'])->addText((string) $eh, $headerFont, ['alignment' => Jc::CENTER]);
+        }
+
+        $checklist->addRow();
+        $checklist->addCell(700, ['vMerge' => 'continue']);
+        $checklist->addCell(2400, ['vMerge' => 'continue']);
+        $checklist->addCell(600)->addText((string) ($h2[0] ?? 'Yes'), $headerFont, ['alignment' => Jc::CENTER]);
+        $checklist->addCell(600)->addText((string) ($h2[1] ?? 'No'), $headerFont, ['alignment' => Jc::CENTER]);
+        $checklist->addCell(600)->addText((string) ($h2[2] ?? 'N/A'), $headerFont, ['alignment' => Jc::CENTER]);
+        $checklist->addCell(1100, ['vMerge' => 'continue']);
+        $checklist->addCell(1300, ['vMerge' => 'continue']);
+        $checklist->addCell(1300, ['vMerge' => 'continue']);
+        foreach ($extraHeaders as $unused) {
+            $checklist->addCell(900, ['vMerge' => 'continue']);
+        }
+
+        foreach (array_values((array) ($block['rows'] ?? [])) as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $compliance = (string) ($row['compliance'] ?? '');
+            $checklist->addRow();
+            $checklist->addCell(700)->addText((string) ($row['sl_no'] ?? ''), ['name' => self::FONT, 'size' => 9, 'bold' => true], ['alignment' => Jc::CENTER]);
+            $checklist->addCell(2400)->addText((string) ($row['description'] ?? ''), $cellFont);
+            $checklist->addCell(600)->addText($compliance === 'yes' ? '✓' : '', $tickFont, ['alignment' => Jc::CENTER]);
+            $checklist->addCell(600)->addText($compliance === 'no' ? '✓' : '', $tickFont, ['alignment' => Jc::CENTER]);
+            $checklist->addCell(600)->addText($compliance === 'na' ? '✓' : '', $tickFont, ['alignment' => Jc::CENTER]);
+            $checklist->addCell(1100)->addText((string) ($row['action_owner'] ?? ''), $cellFont);
+            $checklist->addCell(1300)->addText((string) ($row['management_comments'] ?? ''), $cellFont);
+            $checklist->addCell(1300)->addText((string) ($row['recommendation'] ?? ''), $cellFont);
+            for ($ei = 0; $ei < count($extraHeaders); $ei++) {
+                $checklist->addCell(900)->addText((string) ($row['extra'][$ei] ?? ''), $cellFont);
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $block
+     */
+    protected function addExternalAuditTable($section, array $block): void
+    {
+        $this->addSpacer($section, 120);
+        $center = ['alignment' => Jc::CENTER, 'spaceAfter' => 60];
+        $cellFont = ['name' => self::FONT, 'size' => 9];
+        $headerFont = ['name' => self::FONT, 'size' => 9, 'bold' => true];
+
+        $section->addText(
+            (string) ($block['title'] ?? ''),
+            ['name' => self::FONT, 'size' => 12, 'bold' => true, 'underline' => 'single'],
+            $center
+        );
+        $section->addText(
+            trim((string) ($block['branch_label'] ?? 'Name of Branch----').' '.(string) ($block['branch'] ?? '')),
+            ['name' => self::FONT, 'size' => 10, 'bold' => true],
+            ['alignment' => Jc::CENTER, 'spaceAfter' => 140]
+        );
+
+        $coreFields = ['area_of_observation', 'year_of_reporting', 'external_observation', 'compliance', 'internal_index_no'];
+        $headers = array_values((array) ($block['headers'] ?? AuditTableHeaders::defaults()['external_audit']));
+        if (count($headers) < 5) {
+            $headers = array_values(AuditTableHeaders::defaults()['external_audit']);
+        }
+        $extraCount = max(0, count($headers) - count($coreFields));
+        $widths = [1300, 1000, 3400, 2000, 1300];
+        for ($ei = 0; $ei < $extraCount; $ei++) {
+            $widths[] = 900;
+        }
+
+        $table = $section->addTable($this->gridTable);
+        $table->addRow();
+        foreach ($headers as $i => $header) {
+            $w = $widths[$i] ?? 900;
+            $table->addCell($w, ['bgColor' => 'F0E4D4'])->addText((string) $header, $headerFont, ['alignment' => Jc::CENTER]);
+        }
+
+        foreach (array_values((array) ($block['rows'] ?? [])) as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $table->addRow();
+            foreach ($coreFields as $fi => $field) {
+                $align = in_array($field, ['area_of_observation', 'year_of_reporting', 'internal_index_no'], true)
+                    ? ['alignment' => Jc::CENTER]
+                    : [];
+                $table->addCell($widths[$fi] ?? 900)->addText((string) ($row[$field] ?? ''), $cellFont, $align);
+            }
+            for ($ei = 0; $ei < $extraCount; $ei++) {
+                $table->addCell($widths[5 + $ei] ?? 900)->addText((string) ($row['extra'][$ei] ?? ''), $cellFont);
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $block
+     */
+    protected function addAuditScoreTable($section, array $block): void
+    {
+        $this->addSpacer($section, 120);
+        $rows = array_values((array) ($block['rows'] ?? []));
+        $extraHeaders = array_values((array) ($block['extra_headers'] ?? []));
+        $extraCount = count($extraHeaders);
+        $adjustments = array_values((array) ($block['adjustments'] ?? []));
+        $subsequent = array_values((array) ($block['subsequent'] ?? []));
+        $summary = AuditScoreSheet::summarize($rows, $adjustments, $subsequent);
+        $cellFont = ['name' => self::FONT, 'size' => 8];
+        $boldCell = ['name' => self::FONT, 'size' => 8, 'bold' => true];
+        $headerFont = ['name' => self::FONT, 'size' => 8, 'bold' => true, 'color' => 'FFFFFF'];
+        $center = ['alignment' => Jc::CENTER];
+
+        $meta = $section->addTable(['borderSize' => 0, 'borderColor' => 'FFFFFF', 'cellMargin' => 40]);
+        $meta->addRow();
+        $left = $meta->addCell(5200);
+        $left->addText('Branch Name & Code: '.($block['branch_name_code'] ?? ''), ['name' => self::FONT, 'size' => 9, 'bold' => true]);
+        $left->addText('Branch Category: '.($block['branch_category'] ?? ''), ['name' => self::FONT, 'size' => 9]);
+        $left->addText('Audit period: '.($block['audit_period'] ?? ''), ['name' => self::FONT, 'size' => 9]);
+        $right = $meta->addCell(3800);
+        $box = $right->addTable($this->gridTable);
+        $box->addRow();
+        $box->addCell(1800, ['bgColor' => 'E7E6E6'])->addText('Audit Score', $boldCell, $center);
+        $box->addCell(1800, ['bgColor' => 'C6EFCE'])->addText($summary['audit_score_display'] !== '' ? $summary['audit_score_display'] : '—', ['name' => self::FONT, 'size' => 9, 'bold' => true], $center);
+        $box->addRow();
+        $box->addCell(1800, ['bgColor' => 'E7E6E6'])->addText('Performance Grade', $boldCell, $center);
+        $box->addCell(1800, ['bgColor' => 'F4B183'])->addText($summary['grade'] !== '' ? $summary['grade'] : '—', $boldCell, $center);
+
+        $this->addSpacer($section, 80);
+        $widths = [2600, 850, 650, 650, 750, 650, 850, 750, 650];
+        for ($ei = 0; $ei < $extraCount; $ei++) {
+            $widths[] = 700;
+        }
+        $colCount = count($widths);
+        $leftSpan = $colCount - 1;
+        $table = $section->addTable($this->gridTable);
+
+        $table->addRow();
+        $table->addCell($widths[0], ['vMerge' => 'restart', 'bgColor' => '1F4E79'])->addText('Observation Title', $headerFont, $center);
+        $table->addCell($widths[1], ['vMerge' => 'restart', 'bgColor' => '1F4E79'])->addText('Category', $headerFont, $center);
+        $table->addCell($widths[2] + $widths[3] + $widths[4], ['gridSpan' => 3, 'bgColor' => '1F4E79'])->addText('Sample Score', $headerFont, $center);
+        $table->addCell($widths[5], ['vMerge' => 'restart', 'bgColor' => '1F4E79'])->addText('Instance (D)', $headerFont, $center);
+        $table->addCell($widths[6] + $widths[7], ['gridSpan' => 2, 'bgColor' => '1F4E79'])->addText('Achieved Score', $headerFont, $center);
+        $table->addCell($widths[8], ['vMerge' => 'restart', 'bgColor' => '1F4E79'])->addText('G=(F/C)', $headerFont, $center);
+        foreach ($extraHeaders as $ei => $eh) {
+            $table->addCell($widths[9 + $ei] ?? 700, ['vMerge' => 'restart', 'bgColor' => '1F4E79'])->addText((string) $eh, $headerFont, $center);
+        }
+
+        $table->addRow();
+        $table->addCell($widths[0], ['vMerge' => 'continue']);
+        $table->addCell($widths[1], ['vMerge' => 'continue']);
+        $table->addCell($widths[2], ['bgColor' => '2E75B6'])->addText('A', $headerFont, $center);
+        $table->addCell($widths[3], ['bgColor' => '2E75B6'])->addText('B', $headerFont, $center);
+        $table->addCell($widths[4], ['bgColor' => '2E75B6'])->addText('C=A*B', $headerFont, $center);
+        $table->addCell($widths[5], ['vMerge' => 'continue']);
+        $table->addCell($widths[6], ['bgColor' => '2E75B6'])->addText('E=A-D', $headerFont, $center);
+        $table->addCell($widths[7], ['bgColor' => '2E75B6'])->addText('F=E*B', $headerFont, $center);
+        $table->addCell($widths[8], ['vMerge' => 'continue']);
+        foreach ($extraHeaders as $ei => $unused) {
+            $table->addCell($widths[9 + $ei] ?? 700, ['vMerge' => 'continue']);
+        }
+
+        $table->addRow();
+        $table->addCell(array_sum($widths), ['gridSpan' => $colCount, 'bgColor' => 'F8CBAD'])->addText((string) ($block['section_label'] ?? 'Sample-based observations'), $boldCell);
+
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $computed = AuditScoreSheet::computeRow($row);
+            $cat = (string) ($computed['category'] ?? '');
+            $calcBg = str_replace('#', '', AuditScoreSheet::calcCellBg($cat));
+            $gBg = str_replace('#', '', AuditScoreSheet::gCellBg($cat));
+            $inBg = str_replace('#', '', AuditScoreSheet::inputCellBg($cat));
+            $table->addRow();
+            $table->addCell($widths[0])->addText((string) ($computed['title'] ?? ''), $cellFont);
+            $table->addCell($widths[1], ['bgColor' => $inBg])->addText((string) ($computed['category'] ?? ''), $cellFont, $center);
+            $table->addCell($widths[2], ['bgColor' => $inBg])->addText((string) ($computed['sample_size'] ?? ''), $cellFont, $center);
+            $table->addCell($widths[3], ['bgColor' => $inBg])->addText((string) ($computed['risk_weight'] ?? ''), $cellFont, $center);
+            $table->addCell($widths[4], ['bgColor' => $calcBg])->addText((string) ($computed['risk_weighted_c'] ?? ''), $boldCell, $center);
+            $table->addCell($widths[5], ['bgColor' => $inBg])->addText((string) ($computed['instance_size'] ?? ''), $cellFont, $center);
+            $table->addCell($widths[6], ['bgColor' => $calcBg])->addText((string) ($computed['samples_not_reported_e'] ?? ''), $boldCell, $center);
+            $table->addCell($widths[7], ['bgColor' => $calcBg])->addText((string) ($computed['risk_weighted_f'] ?? ''), $boldCell, $center);
+            $table->addCell($widths[8], ['bgColor' => $gBg])->addText((string) ($computed['audit_score_g'] ?? ''), $boldCell, $center);
+            for ($ei = 0; $ei < $extraCount; $ei++) {
+                $table->addCell($widths[9 + $ei] ?? 700)->addText((string) ($row['extra'][$ei] ?? ''), $cellFont, $center);
+            }
+        }
+
+        $blue = ['name' => self::FONT, 'size' => 8, 'bold' => true, 'color' => 'FFFFFF'];
+        $table->addRow();
+        $table->addCell(array_sum(array_slice($widths, 0, $leftSpan)), ['gridSpan' => $leftSpan, 'bgColor' => '1F4E79'])->addText('Initial Audit Score', $blue);
+        $table->addCell($widths[$leftSpan], ['bgColor' => '1F4E79'])->addText(AuditScoreSheet::formatPercent($summary['initial']) ?: '—', $blue, $center);
+
+        $table->addRow();
+        $table->addCell(array_sum($widths), ['gridSpan' => $colCount, 'bgColor' => 'F8CBAD'])->addText('Other Considerations:', $boldCell);
+
+        foreach ($adjustments as $adj) {
+            if (! is_array($adj)) {
+                continue;
+            }
+            $table->addRow();
+            $table->addCell(array_sum(array_slice($widths, 0, $leftSpan)), ['gridSpan' => $leftSpan])->addText((string) ($adj['label'] ?? ''), $cellFont);
+            $table->addCell($widths[$leftSpan])->addText(AuditScoreSheet::formatPercent(AuditScoreSheet::parseNumber($adj['value'] ?? null)), $cellFont, $center);
+        }
+
+        $table->addRow();
+        $table->addCell(array_sum(array_slice($widths, 0, $leftSpan)), ['gridSpan' => $leftSpan, 'bgColor' => '1F4E79'])->addText('Final Audit Score', $blue);
+        $table->addCell($widths[$leftSpan], ['bgColor' => '1F4E79'])->addText(AuditScoreSheet::formatPercent($summary['final']) ?: '—', $blue, $center);
+
+        $table->addRow();
+        $table->addCell(array_sum($widths), ['gridSpan' => $colCount, 'bgColor' => 'F8CBAD'])->addText('Other Relevant Considerations:', $boldCell);
+
+        foreach ($subsequent as $sub) {
+            if (! is_array($sub)) {
+                continue;
+            }
+            $table->addRow();
+            $table->addCell(array_sum(array_slice($widths, 0, $leftSpan)), ['gridSpan' => $leftSpan])->addText((string) ($sub['label'] ?? ''), $cellFont);
+            $table->addCell($widths[$leftSpan])->addText(AuditScoreSheet::formatPercent(AuditScoreSheet::parseNumber($sub['value'] ?? null)), $cellFont, $center);
+        }
+
+        $table->addRow();
+        $table->addCell(array_sum(array_slice($widths, 0, $leftSpan)), ['gridSpan' => $leftSpan, 'bgColor' => '1F4E79'])->addText('Adjusted Audit Score', $blue);
+        $table->addCell($widths[$leftSpan], ['bgColor' => '1F4E79'])->addText(AuditScoreSheet::formatPercent($summary['adjusted']) ?: '—', $blue, $center);
     }
 
     /**
@@ -844,28 +1153,23 @@ class AuditReportDocxBuilder
     protected function addCoverRating($cell, array $data): void
     {
         $ratingTable = $cell->addTable([
-            'borderSize' => 0,
+            'borderSize' => 6,
+            'borderColor' => '222222',
             'cellMargin' => 40,
             'alignment' => Jc::CENTER,
             'width' => 100 * 50,
             'unit' => 'pct',
         ]);
         $ratingTable->addRow();
-        $ratingTable->addCell($this->pct(100), ['bgColor' => '1D4ED8', 'valign' => 'center'])
-            ->addText("Branch Internal\nControl Rating", ['name' => self::FONT, 'size' => 8, 'bold' => true, 'color' => 'FFFFFF'], ['alignment' => Jc::CENTER]);
+        $ratingTable->addCell($this->pct(48), ['bgColor' => 'E7E6E6', 'valign' => 'center'])
+            ->addText('Audit Score', ['name' => self::FONT, 'size' => 7.5, 'bold' => true], ['alignment' => Jc::START]);
+        $ratingTable->addCell($this->pct(52), ['bgColor' => 'C6EFCE', 'valign' => 'center'])
+            ->addText((string) ($data['audit_score_display'] ?? '—'), ['name' => self::FONT, 'size' => 8, 'bold' => true], ['alignment' => Jc::CENTER]);
         $ratingTable->addRow();
-        $ratingTable->addCell($this->pct(100), [
-            'borderTopSize' => 12,
-            'borderTopColor' => 'F97316',
-            'borderBottomSize' => 12,
-            'borderBottomColor' => 'F97316',
-            'borderLeftSize' => 12,
-            'borderLeftColor' => 'F97316',
-            'borderRightSize' => 12,
-            'borderRightColor' => 'F97316',
-            'bgColor' => ltrim((string) ($data['ratingColor'] ?? '16A34A'), '#'),
-            'valign' => 'center',
-        ])->addText($data['control_rating'] ?: '—', ['name' => self::FONT, 'size' => 10, 'bold' => true, 'color' => 'FFFFFF'], ['alignment' => Jc::CENTER]);
+        $ratingTable->addCell($this->pct(48), ['bgColor' => 'E7E6E6', 'valign' => 'center'])
+            ->addText('Performance Grade', ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::START]);
+        $ratingTable->addCell($this->pct(52), ['bgColor' => 'F4B183', 'valign' => 'center'])
+            ->addText((string) ($data['performance_grade'] ?? '—'), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
     }
 
     /**
@@ -2139,28 +2443,14 @@ class AuditReportDocxBuilder
      */
     protected function buildFinancialPage19($section, array $data): void
     {
-        $this->addSpacer($section, 120);
-        $section->addText($data['page19_compliance_title'] ?? '', $this->fontBold, ['spaceAfter' => 80]);
-        $section->addText(
-            'নিরীক্ষাকাল: '.($data['page19_compliance_period'] ?? '').'    ফলোআপের তারিখ: '.($data['page19_compliance_followup_date'] ?? ''),
-            ['name' => self::FONT, 'size' => 8],
-            ['spaceAfter' => 80]
-        );
-
-        $compliance = $section->addTable($this->gridTable);
-        $compliance->addRow();
-        foreach (AuditTableHeaders::get($data['tableHeaders'] ?? [], 'compliance') as $header) {
-            $compliance->addCell(1500)->addText($header, ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
-        }
-        foreach ($data['page19ComplianceRows'] ?? [] as $row) {
-            $compliance->addRow();
-            $compliance->addCell(1500)->addText((string) ($row['prev_para_no'] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
-            $compliance->addCell(2000)->addText((string) ($row['findings'] ?? ''), ['name' => self::FONT, 'size' => 7]);
-            $compliance->addCell(1500)->addText((string) ($row['first_discovery_period'] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
-            $compliance->addCell(2000)->addText((string) ($row['management_reply'] ?? ''), ['name' => self::FONT, 'size' => 7]);
-            $compliance->addCell(1500)->addText((string) ($row['current_status'] ?? ''), ['name' => self::FONT, 'size' => 7]);
-            $compliance->addCell(1500)->addText((string) ($row['current_para_no'] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
-        }
+        $this->addComplianceTable($section, [
+            'title' => (string) ($data['page19_compliance_title'] ?? ''),
+            'title_en' => '',
+            'period' => (string) ($data['page19_compliance_period'] ?? ''),
+            'followup_date' => (string) ($data['page19_compliance_followup_date'] ?? ''),
+            'headers' => array_values(AuditTableHeaders::get($data['tableHeaders'] ?? [], 'compliance')),
+            'rows' => array_values((array) ($data['page19ComplianceRows'] ?? [])),
+        ]);
     }
 
     /**
@@ -2182,50 +2472,19 @@ class AuditReportDocxBuilder
      */
     protected function buildFinancialPage20($section, array $data): void
     {
-        $this->addSpacer($section, 120);
-        $section->addText($data['page20_it_title'] ?? '', $this->fontBold, ['alignment' => Jc::CENTER, 'spaceAfter' => 80]);
-        $section->addText(
-            trim(($data['page20_it_org_line1'] ?? '')."\n".($data['page20_it_org_line2'] ?? '')."\n".($data['page20_it_org_line3'] ?? '')),
-            ['name' => self::FONT, 'size' => 9],
-            ['alignment' => Jc::CENTER, 'spaceAfter' => 80]
-        );
-        $section->addText(
-            'কর্মসূচীর নাম: '.($data['page20_it_program'] ?? '').'    শাখার নাম: '.($data['page20_it_branch'] ?? ''),
-            ['name' => self::FONT, 'size' => 8],
-            ['alignment' => Jc::CENTER, 'spaceAfter' => 80]
-        );
-        $section->addText($data['page20_it_instruction'] ?? 'প্রযোজ্য ক্ষেত্রে টিক চিহ্ন দিন', $this->fontBold, ['alignment' => Jc::CENTER, 'spaceAfter' => 80]);
-
-        $checklist = $section->addTable($this->gridTable);
-        $checklist->addRow();
-        $checklist->addCell(800, ['vMerge' => 'restart'])->addText($this->hdr($data, 'it_r1', 0), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
-        $checklist->addCell(2200, ['vMerge' => 'restart'])->addText($this->hdr($data, 'it_r1', 1), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
-        $checklist->addCell(1800, ['gridSpan' => 3])->addText($this->hdr($data, 'it_r1', 2), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
-        $checklist->addCell(1200, ['vMerge' => 'restart'])->addText($this->hdr($data, 'it_r1', 3), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
-        $checklist->addCell(1500, ['vMerge' => 'restart'])->addText($this->hdr($data, 'it_r1', 4), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
-        $checklist->addCell(1500, ['vMerge' => 'restart'])->addText($this->hdr($data, 'it_r1', 5), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
-        $checklist->addRow();
-        $checklist->addCell(800, ['vMerge' => 'continue']);
-        $checklist->addCell(2200, ['vMerge' => 'continue']);
-        $checklist->addCell(600)->addText($this->hdr($data, 'it_r2', 0), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
-        $checklist->addCell(600)->addText($this->hdr($data, 'it_r2', 1), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
-        $checklist->addCell(600)->addText($this->hdr($data, 'it_r2', 2), ['name' => self::FONT, 'size' => 7, 'bold' => true], ['alignment' => Jc::CENTER]);
-        $checklist->addCell(1200, ['vMerge' => 'continue']);
-        $checklist->addCell(1500, ['vMerge' => 'continue']);
-        $checklist->addCell(1500, ['vMerge' => 'continue']);
-
-        foreach ($data['page20ItChecklistRows'] ?? [] as $row) {
-            $compliance = (string) ($row['compliance'] ?? '');
-            $checklist->addRow();
-            $checklist->addCell(800)->addText((string) ($row['sl_no'] ?? ''), ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
-            $checklist->addCell(2200)->addText((string) ($row['description'] ?? ''), ['name' => self::FONT, 'size' => 7]);
-            $checklist->addCell(600)->addText($compliance === 'yes' ? '✓' : '', ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
-            $checklist->addCell(600)->addText($compliance === 'no' ? '✓' : '', ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
-            $checklist->addCell(600)->addText($compliance === 'na' ? '✓' : '', ['name' => self::FONT, 'size' => 7], ['alignment' => Jc::CENTER]);
-            $checklist->addCell(1200)->addText((string) ($row['action_owner'] ?? ''), ['name' => self::FONT, 'size' => 7]);
-            $checklist->addCell(1500)->addText((string) ($row['management_comments'] ?? ''), ['name' => self::FONT, 'size' => 7]);
-            $checklist->addCell(1500)->addText((string) ($row['recommendation'] ?? ''), ['name' => self::FONT, 'size' => 7]);
-        }
+        $this->addItChecklistTable($section, [
+            'title' => (string) ($data['page20_it_title'] ?? ''),
+            'org_line1' => (string) ($data['page20_it_org_line1'] ?? ''),
+            'org_line2' => (string) ($data['page20_it_org_line2'] ?? ''),
+            'org_line3' => (string) ($data['page20_it_org_line3'] ?? ''),
+            'program' => (string) ($data['page20_it_program'] ?? ''),
+            'branch' => (string) ($data['page20_it_branch'] ?? ''),
+            'instruction' => (string) ($data['page20_it_instruction'] ?? 'প্রযোজ্য ক্ষেত্রে টিক চিহ্ন দিন'),
+            'headers_r1' => AuditTableHeaders::get($data['tableHeaders'] ?? [], 'it_r1'),
+            'headers_r2' => AuditTableHeaders::get($data['tableHeaders'] ?? [], 'it_r2'),
+            'extra_headers' => [],
+            'rows' => array_values((array) ($data['page20ItChecklistRows'] ?? [])),
+        ]);
     }
 
     /**

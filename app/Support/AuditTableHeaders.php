@@ -221,12 +221,12 @@ class AuditTableHeaders
                 'পার্থক্য',
             ],
             'compliance' => [
-                'বিগত প্রতিবেদনের অনুচ্ছেদ নং',
-                'নিরীক্ষা ও পরিবীক্ষণে প্রাপ্ত ঘটনা সমূহ',
-                'প্রথম উদঘাটনের সময়কাল',
-                'ব্যবস্থাপনার জবাব',
-                'বর্তমান অবস্থা',
-                'বর্তমান প্রতিবেদনের অনুচ্ছেদ নং',
+                'অনুচ্ছেদ নম্বর',
+                'নিরীক্ষা আপত্তির শিরোনাম',
+                'প্রথম উদ্ঘাটনের সময়কাল',
+                'শাখা কার্যালয়ের জবাব (সার-সংক্ষেপ)',
+                'নিরীক্ষা মতামত',
+                'বর্তমান ব্যবস্থাপকের মতামত',
             ],
             'it_r1' => [
                 'ক্রমিক',
@@ -249,6 +249,13 @@ class AuditTableHeaders
                 'Compliance',
                 'Internal audit report (Index No)',
             ],
+            'external_audit' => [
+                'Area of Observation',
+                'Year of reporting',
+                'External Audit observation',
+                'Compliance',
+                'Internal audit report (Index No)',
+            ],
             'classification_importance' => [
                 'পর্যবেক্ষণসমূহের গুরুত্বের মাত্রা',
                 'কোড',
@@ -262,7 +269,25 @@ class AuditTableHeaders
     }
 
     /**
+     * Legacy compliance headers (pre template refresh).
+     *
+     * @return list<string>
+     */
+    public static function legacyComplianceHeaders(): array
+    {
+        return [
+            'বিগত প্রতিবেদনের অনুচ্ছেদ নং',
+            'নিরীক্ষা ও পরিবীক্ষণে প্রাপ্ত ঘটনা সমূহ',
+            'প্রথম উদঘাটনের সময়কাল',
+            'ব্যবস্থাপনার জবাব',
+            'বর্তমান অবস্থা',
+            'বর্তমান প্রতিবেদনের অনুচ্ছেদ নং',
+        ];
+    }
+
+    /**
      * Merge saved headers with defaults (fill missing keys/indexes).
+     * Preserves extra columns beyond the default width (e.g. compliance +কলাম).
      *
      * @param  array<string, mixed>  $saved
      * @return array<string, list<string>>
@@ -273,10 +298,21 @@ class AuditTableHeaders
 
         foreach (self::defaults() as $key => $defaults) {
             $current = array_values((array) ($saved[$key] ?? []));
+
+            if ($key === 'compliance' && self::isLegacyComplianceHeaders($current)) {
+                $current = array_merge(
+                    self::defaults()['compliance'],
+                    array_slice($current, count(self::legacyComplianceHeaders()))
+                );
+            }
+
             $row = [];
             foreach ($defaults as $i => $default) {
                 $value = isset($current[$i]) ? trim((string) $current[$i]) : '';
                 $row[] = $value !== '' ? $value : $default;
+            }
+            for ($i = count($defaults); $i < count($current); $i++) {
+                $row[] = trim((string) $current[$i]);
             }
             $merged[$key] = $row;
         }
@@ -290,14 +326,25 @@ class AuditTableHeaders
      */
     public static function get(array $headers, string $key): array
     {
-        $defaults = self::defaults()[$key] ?? [];
-        $current = array_values((array) ($headers[$key] ?? []));
-        $row = [];
-        foreach ($defaults as $i => $default) {
-            $value = isset($current[$i]) ? trim((string) $current[$i]) : '';
-            $row[] = $value !== '' ? $value : $default;
+        return self::merge($headers)[$key] ?? [];
+    }
+
+    /**
+     * @param  list<mixed>  $headers
+     */
+    protected static function isLegacyComplianceHeaders(array $headers): bool
+    {
+        $legacy = self::legacyComplianceHeaders();
+        if (count($headers) < count($legacy)) {
+            return false;
         }
 
-        return $row;
+        foreach ($legacy as $i => $label) {
+            if (trim((string) ($headers[$i] ?? '')) !== $label) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

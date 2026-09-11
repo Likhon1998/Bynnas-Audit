@@ -15,6 +15,9 @@ use App\Models\PlanSchedule;
 use App\Models\Shakha;
 use App\Models\User;
 use App\Models\VisitExecution;
+use App\Support\AuditIrregularityCatalog;
+use App\Support\FinancialYear;
+use App\Support\RoleAccess;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -51,27 +54,18 @@ class DemoDataSeeder extends Seeder
             return;
         }
 
-        $rows = [
-            ['category' => 'সদস্য ও সঞ্চয়', 'sub_category' => 'সদস্য ভর্তি', 'indicator_code' => 'DEMO-01', 'title' => 'সদস্য ভর্তি নিবন্ধন যাচাই', 'risk_rating' => 'Medium'],
-            ['category' => 'সদস্য ও সঞ্চয়', 'sub_category' => 'সঞ্চয়', 'indicator_code' => 'DEMO-02', 'title' => 'সঞ্চয় জমার রসিদ মিল', 'risk_rating' => 'High'],
-            ['category' => 'ঋণ বিতরণ', 'sub_category' => 'ঋণ অনুমোদন', 'indicator_code' => 'DEMO-03', 'title' => 'ঋণ অনুমোদন নথি যাচাই', 'risk_rating' => 'High'],
-            ['category' => 'ঋণ বিতরণ', 'sub_category' => 'বিতরণ', 'indicator_code' => 'DEMO-04', 'title' => 'ঋণ বিতরণের নগদ হস্তান্তর', 'risk_rating' => 'Critical'],
-            ['category' => 'আদায়', 'sub_category' => 'কিস্তি আদায়', 'indicator_code' => 'DEMO-05', 'title' => 'কিস্তি আদায় রেজিস্টার', 'risk_rating' => 'Medium'],
-            ['category' => 'আদায়', 'sub_category' => 'বকেয়া', 'indicator_code' => 'DEMO-06', 'title' => 'বকেয়া ঋণ পর্যবেক্ষণ', 'risk_rating' => 'High'],
-            ['category' => 'ক্যাশ ও ব্যাংক', 'sub_category' => 'ক্যাশ', 'indicator_code' => 'DEMO-07', 'title' => 'দৈনিক ক্যাশ ক্লোজিং', 'risk_rating' => 'Critical'],
-            ['category' => 'ক্যাশ ও ব্যাংক', 'sub_category' => 'ব্যাংক', 'indicator_code' => 'DEMO-08', 'title' => 'ব্যাংক রিকনসিলিয়েশন', 'risk_rating' => 'High'],
-            ['category' => 'শাখা পরিচালনা', 'sub_category' => 'সমিতি', 'indicator_code' => 'DEMO-09', 'title' => 'সমিতি সভার উপস্থিতি', 'risk_rating' => 'Low'],
-            ['category' => 'শাখা পরিচালনা', 'sub_category' => 'কর্মী', 'indicator_code' => 'DEMO-10', 'title' => 'ফিল্ড অফিসার সফর রিপোর্ট', 'risk_rating' => 'Medium'],
-            ['category' => 'আর্থিক নিরীক্ষা (রিপোর্ট)', 'sub_category' => 'রিপোর্ট', 'indicator_code' => 'রিপোর্ট-DEMO-1', 'title' => 'আর্থিক নিয়ন্ত্রণ দুর্বলতা', 'risk_rating' => 'High'],
-            ['category' => 'আর্থিক নিরীক্ষা (রিপোর্ট)', 'sub_category' => 'রিপোর্ট', 'indicator_code' => 'রিপোর্ট-DEMO-2', 'title' => 'অভ্যন্তরীণ নিয়ন্ত্রণ ঘাটতি', 'risk_rating' => 'Medium'],
-        ];
-
         $now = now();
-        foreach ($rows as $row) {
-            AuditIndicator::query()->updateOrCreate(
-                ['indicator_code' => $row['indicator_code']],
-                $row + ['is_active' => true, 'created_at' => $now, 'updated_at' => $now]
-            );
+        foreach (AuditIrregularityCatalog::all() as $row) {
+            AuditIndicator::query()->create([
+                'category' => $row['category'],
+                'sub_category' => $row['sub_category'],
+                'indicator_code' => $row['indicator_code'],
+                'title' => $row['title'],
+                'risk_rating' => $row['risk_rating'],
+                'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
         }
     }
 
@@ -87,37 +81,44 @@ class DemoDataSeeder extends Seeder
             ])
             ->get();
 
-        $manager = User::query()->updateOrCreate(
-            ['email' => 'manager@bynnasaudit.com'],
-            [
-                'name' => 'Audit Manager (Demo)',
-                'password' => Hash::make('12345678'),
-                'email_verified_at' => now(),
-                'is_superadmin' => false,
-                'is_active' => true,
-                'employee_id' => $managerEmployee?->id,
-            ]
-        );
-        if (method_exists($manager, 'syncRoles')) {
-            $manager->syncRoles(['audit_manager']);
+        // Prefer organogram login (same email as employee). Demo aliases stay only if unused.
+        if ($managerEmployee) {
+            $manager = User::query()->where('employee_id', $managerEmployee->id)->first()
+                ?? User::query()->updateOrCreate(
+                    ['email' => 'manager@bynnasaudit.com'],
+                    [
+                        'name' => $managerEmployee->name,
+                        'password' => Hash::make(RoleAccess::DEFAULT_PASSWORD),
+                        'email_verified_at' => now(),
+                        'is_superadmin' => false,
+                        'is_active' => true,
+                        'employee_id' => $managerEmployee->id,
+                    ]
+                );
+            if (method_exists($manager, 'syncRoles') && ! $manager->isSuperAdmin()) {
+                $manager->syncRoles(['audit_manager']);
+            }
         }
 
         $shakhas = Shakha::query()->orderBy('id')->limit(80)->pluck('id');
         $chunks = $shakhas->chunk(20)->values();
 
         foreach ($officerEmployees->values() as $index => $employee) {
-            $user = User::query()->updateOrCreate(
-                ['email' => 'officer'.($index + 1).'@bynnasaudit.com'],
-                [
-                    'name' => $employee->name.' (Demo Officer)',
-                    'password' => Hash::make('12345678'),
-                    'email_verified_at' => now(),
-                    'is_superadmin' => false,
-                    'is_active' => true,
-                    'employee_id' => $employee->id,
-                ]
-            );
-            if (method_exists($user, 'syncRoles')) {
+            $user = User::query()->where('employee_id', $employee->id)->first();
+            if (! $user) {
+                $user = User::query()->updateOrCreate(
+                    ['email' => 'officer'.($index + 1).'@bynnasaudit.com'],
+                    [
+                        'name' => $employee->name,
+                        'password' => Hash::make(RoleAccess::DEFAULT_PASSWORD),
+                        'email_verified_at' => now(),
+                        'is_superadmin' => false,
+                        'is_active' => true,
+                        'employee_id' => $employee->id,
+                    ]
+                );
+            }
+            if (method_exists($user, 'syncRoles') && ! $user->isSuperAdmin()) {
                 $user->syncRoles(['audit_officer']);
             }
 
@@ -229,7 +230,7 @@ class DemoDataSeeder extends Seeder
         $shakhas = Shakha::query()->orderBy('id')->limit(100)->get();
         $now = now();
         $rows = [];
-        $categories = ['Low', 'Medium', 'High', 'Critical'];
+        $categories = ['Low Risk', 'Medium Risk', 'High Risk', 'Significant Risk'];
 
         foreach ($shakhas as $i => $shakha) {
             $score = 25 + ($i * 3) % 70;
@@ -391,7 +392,7 @@ class DemoDataSeeder extends Seeder
                 continue;
             }
 
-            $monthStart = now('Asia/Dhaka')->startOfMonth()->addMonthsNoOverflow($monthIndex)->startOfDay();
+            $monthStart = FinancialYear::fromLabel($plan->fy_label)->dateForMonthIndex($monthIndex);
             $monthEnd = $monthStart->copy()->endOfMonth()->startOfDay();
             $duration = 1 + ($index % 3); // 1–3 calendar days
 

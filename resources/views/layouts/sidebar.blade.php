@@ -1,7 +1,7 @@
 <aside
     :class="[
         sidebarOpen ? 'translate-x-0' : '-translate-x-full',
-        sidebarCollapsed ? 'sidebar-collapsed lg:w-14' : 'w-[188px]',
+        sidebarCollapsed ? 'sidebar-collapsed sidebar-is-collapsed' : '',
     ]"
     class="sidebar-shell fixed inset-y-0 left-0 z-40 flex w-[188px] shrink-0 flex-col overflow-hidden text-white transition-[width,transform] duration-200 ease-out lg:static lg:translate-x-0"
 >
@@ -18,13 +18,21 @@
         </div>
         <button
             type="button"
-            class="hidden h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 transition hover:bg-white/[0.08] hover:text-white lg:inline-flex"
-            @click="toggleSidebarCollapsed()"
-            :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
-            :aria-label="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+            class="sidebar-collapse-btn hidden h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/15 bg-white/[0.04] text-slate-300 transition hover:border-white/30 hover:bg-white/10 hover:text-white lg:flex"
+            @click.stop.prevent="toggleSidebarCollapsed()"
+            :title="sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'"
+            :aria-label="sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'"
             :aria-expanded="(!sidebarCollapsed).toString()"
         >
-            <svg class="h-3.5 w-3.5 transition-transform duration-200" :class="sidebarCollapsed && 'rotate-180'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <svg
+                class="h-4 w-4 transition-transform duration-200"
+                :class="sidebarCollapsed && 'rotate-180'"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2.4"
+                aria-hidden="true"
+            >
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
         </button>
@@ -44,6 +52,17 @@
                 <span class="sidebar-link-label truncate">Dashboard</span>
             </x-sidebar-link>
 
+            @if (config('features.map'))
+                @can('map.view')
+                    <x-sidebar-link :href="route('map.index')" :active="request()->routeIs('map.*')" title="Map">
+                        <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('map.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                        </svg>
+                        <span class="sidebar-link-label truncate">Map</span>
+                    </x-sidebar-link>
+                @endcan
+            @endif
+
             @canany(['organogram.view', 'organogram.manage'])
                 <x-sidebar-link :href="route('organogram')" :active="request()->routeIs('organogram')" title="Organogram">
                     <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('organogram') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
@@ -54,11 +73,11 @@
             @endcanany
 
             @can('annual_audit.manage')
-                <x-sidebar-link :href="route('annual-audit.index')" :active="request()->routeIs('annual-audit.*')" title="Annual Audit">
+                <x-sidebar-link :href="route('annual-audit.index')" :active="request()->routeIs('annual-audit.*')" title="Annual Audit Plan">
                     <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('annual-audit.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M4 11h16M5 5h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z" />
                     </svg>
-                    <span class="sidebar-link-label truncate">Annual Audit</span>
+                    <span class="sidebar-link-label truncate">Annual Audit Plan</span>
                 </x-sidebar-link>
             @endcan
 
@@ -81,11 +100,11 @@
             @endcan
 
             @can('kpis.manage')
-                <x-sidebar-link :href="route('kpis.index')" :active="request()->routeIs('kpis.*')" title="KPI">
+                <x-sidebar-link :href="route('kpis.index')" :active="request()->routeIs('kpis.*')" title="Key Performance Indicator (KPI)">
                     <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('kpis.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2a2 2 0 012-2h2a2 2 0 012 2v2m-6 0h6M7 7h.01M12 7h.01M17 7h.01M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" />
                     </svg>
-                    <span class="sidebar-link-label truncate">KPI</span>
+                    <span class="sidebar-link-label truncate">Key Performance Indicator (KPI)</span>
                 </x-sidebar-link>
             @endcan
 
@@ -105,33 +124,32 @@
                 </x-sidebar-link>
             @endcanany
 
-            @canany(['findings.view_all', 'findings.enter'])
+            @can('findings.view_all')
                 <x-sidebar-link
                     :href="route('audit-findings.index')"
-                    :active="request()->routeIs('audit-findings.*')"
+                    :active="request()->routeIs('audit-findings.*') && ! request()->routeIs('audit-findings.entry*')"
                     title="Findings Matrix"
                 >
-                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('audit-findings.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('audit-findings.*') && ! request()->routeIs('audit-findings.entry*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h10M4 14h16M4 18h10" />
                     </svg>
                     <span class="sidebar-link-label truncate">Findings Matrix</span>
                 </x-sidebar-link>
-            @endcanany
+            @elsecan('findings.enter')
+                <x-sidebar-link
+                    :href="route('audit-findings.entry')"
+                    :active="request()->routeIs('audit-findings.entry*')"
+                    title="Enter Findings"
+                >
+                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('audit-findings.entry*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h10M4 14h16M4 18h10" />
+                    </svg>
+                    <span class="sidebar-link-label truncate">Enter Findings</span>
+                </x-sidebar-link>
+            @endcan
 
             @canany(['shakhas.manage', 'shakhas.view_all', 'areas.manage'])
                 <div x-data="{ shakhaOpen: {{ request()->routeIs('shakhas.*') || request()->routeIs('areas.*') || request()->routeIs('shakha-employees.*') ? 'true' : 'false' }} }">
-                    {{-- Collapsed: go straight to All Shakha --}}
-                    <a
-                        href="{{ route('shakhas.index') }}"
-                        title="Shakha"
-                        class="sidebar-link group relative hidden items-center justify-center rounded-lg px-1.5 py-1.5 text-[12px] tracking-tight transition {{ request()->routeIs('shakhas.*') || request()->routeIs('areas.*') || request()->routeIs('shakha-employees.*') ? 'sidebar-link-active text-white font-medium shadow-[0_6px_16px_rgba(37,99,235,0.3)]' : 'text-slate-300 hover:bg-white/[0.04] hover:text-white' }}"
-                        :class="sidebarCollapsed && 'lg:!flex'"
-                    >
-                        <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('shakhas.*') || request()->routeIs('areas.*') || request()->routeIs('shakha-employees.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
-                        </svg>
-                    </a>
-
                     <div :class="sidebarCollapsed && 'lg:hidden'">
                         <button
                             type="button"
@@ -223,6 +241,12 @@
             :class="sidebarCollapsed && 'lg:absolute lg:bottom-full lg:left-full lg:mb-0 lg:ml-1 lg:w-36 lg:shadow-xl'"
         >
             <a href="{{ route('profile.edit') }}" class="block rounded-md px-2 py-1 text-[11px] text-slate-300 hover:bg-white/[0.05] hover:text-white">Profile</a>
+            <button
+                type="button"
+                @click="toggleTheme()"
+                class="block w-full rounded-md px-2 py-1 text-left text-[11px] text-slate-300 hover:bg-white/[0.05] hover:text-white"
+                x-text="darkMode ? 'Light theme' : 'Dark theme'"
+            ></button>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
                 <button type="submit" class="block w-full rounded-md px-2 py-1 text-left text-[11px] text-slate-300 hover:bg-white/[0.05] hover:text-white">Log Out</button>

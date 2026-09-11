@@ -38,9 +38,11 @@
                 <a href="{{ route('shakhas.index') }}" class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-medium text-slate-600 hover:bg-slate-50">
                     Back to list
                 </a>
-                <a href="{{ route('areas.create') }}" class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-medium text-slate-600 hover:bg-slate-50">
-                    Add Area
-                </a>
+                @can('areas.manage')
+                    <a href="{{ route('areas.create') }}" class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-medium text-slate-600 hover:bg-slate-50">
+                        Add Area
+                    </a>
+                @endcan
             </div>
         </div>
 
@@ -72,8 +74,12 @@
                     @if ($areas->isEmpty())
                         <div class="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-[12px] text-amber-800">
                             <p class="font-medium">No areas available</p>
-                            <p class="mt-0.5 text-amber-700">Create an area first, then return here to add a shakha.</p>
-                            <a href="{{ route('areas.create') }}" class="mt-2 inline-flex text-[12px] font-semibold text-amber-900 underline">Go to Add Area</a>
+                            @can('areas.manage')
+                                <p class="mt-0.5 text-amber-700">Create an area first, then return here to add a shakha.</p>
+                                <a href="{{ route('areas.create') }}" class="mt-2 inline-flex text-[12px] font-semibold text-amber-900 underline">Go to Add Area</a>
+                            @else
+                                <p class="mt-0.5 text-amber-700">Ask an Area Manager to create an area before adding this Shakha.</p>
+                            @endcan
                         </div>
                     @endif
 
@@ -290,11 +296,13 @@
                 </div>
 
                 <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 p-4">
-                    <p class="text-[12px] font-medium text-navy-900">Need a new area?</p>
-                    <p class="mt-1 text-[11px] text-slate-500">If the target area is missing, create it first then continue here.</p>
-                    <a href="{{ route('areas.create') }}" class="mt-2.5 inline-flex text-[12px] font-semibold text-brand-600 hover:text-brand-700">
-                        Create area →
-                    </a>
+                    @can('areas.manage')
+                        <p class="text-[12px] font-medium text-navy-900">Need a new area?</p>
+                        <p class="mt-1 text-[11px] text-slate-500">If the target area is missing, create it first then continue here.</p>
+                        <a href="{{ route('areas.create') }}" class="mt-2.5 inline-flex text-[12px] font-semibold text-brand-600 hover:text-brand-700">
+                            Create area →
+                        </a>
+                    @endcan
                 </div>
             </aside>
         </form>

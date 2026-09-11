@@ -155,11 +155,47 @@ class UserAccessManagementTest extends TestCase
             ->get(route('dashboard'))
             ->assertOk()
             ->assertSee('Hello, Officer')
-            ->assertSee('Visits today')
-            ->assertSee('Monthly visits')
-            ->assertSee('Today’s visits')
+            ->assertSee('Where to go today')
+            ->assertSee('My monthly visits')
             ->assertDontSee('Unassigned visits')
             ->assertDontSee('Active projects');
+    }
+
+    public function test_superadmin_can_grant_custom_selected_permissions(): void
+    {
+        $admin = User::query()->where('email', 'admin@bynnasaudit.com')->firstOrFail();
+
+        $this->actingAs($admin)
+            ->get(route('users.create'))
+            ->assertOk()
+            ->assertSee('Grant access')
+            ->assertSee('Select access')
+            ->assertSee('Extra shakha access');
+
+        $this->actingAs($admin)->post(route('users.store'), [
+            'name' => 'Custom Access Officer',
+            'email' => 'custom.access@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+            'role' => 'audit_officer',
+            'permissions' => [
+                'audits.create',
+                'findings.enter',
+                'monthly_visits.execute',
+                'dashboard.officer',
+                'map.view',
+                'findings.view_all', // extra beyond officer preset
+            ],
+            'is_active' => '1',
+        ])->assertRedirect(route('users.index'));
+
+        $user = User::query()->where('email', 'custom.access@example.com')->firstOrFail();
+        $this->assertSame('audit_officer', $user->access_profile);
+        $this->assertSame('Audit Officer', $user->roleLabel());
+        $this->assertTrue($user->can('findings.view_all'));
+        $this->assertTrue($user->can('audits.create'));
+        $this->assertFalse($user->can('users.manage'));
+        $this->assertTrue($user->hasRole(\App\Support\RoleAccess::personalAccessRoleName((int) $user->id)));
     }
 
     public function test_manager_sees_ops_dashboard_and_not_users_menu_route(): void
@@ -174,8 +210,9 @@ class UserAccessManagementTest extends TestCase
             ->assertSee('Significant')
             ->assertSee('Annual plan shakhas')
             ->assertSee('Monthly plan shakhas')
-            ->assertSee('Annual target achieved')
-            ->assertSee('KPI entered');
+            ->assertDontSee('Annual target achieved')
+            ->assertSee('Key Performance Indicator (KPI) entered')
+            ->assertDontSee('Where to go today');
 
         $this->actingAs($manager)
             ->get(route('users.index'))

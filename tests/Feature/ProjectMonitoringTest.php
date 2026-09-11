@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Project;
 use App\Models\User;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -11,11 +12,18 @@ class ProjectMonitoringTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(RolePermissionSeeder::class);
+    }
+
     public function test_project_monitoring_tab_shows_excel_style_layout(): void
     {
         $this->seed(\Database\Seeders\AnnualAuditSeeder::class);
 
         $user = User::factory()->create(['email_verified_at' => now()]);
+        $user->assignRole('audit_manager');
 
         $this->actingAs($user)
             ->get(route('annual-audit.index', ['tab' => 'project_monitoring']))
@@ -31,6 +39,7 @@ class ProjectMonitoringTest extends TestCase
         $this->seed(\Database\Seeders\AnnualAuditSeeder::class);
 
         $user = User::factory()->create(['email_verified_at' => now()]);
+        $user->assignRole('audit_manager');
 
         $this->actingAs($user)
             ->get(route('annual-audit.index', ['tab' => 'project_audit']))
@@ -44,6 +53,7 @@ class ProjectMonitoringTest extends TestCase
     public function test_admin_can_add_project_from_monitoring_tab(): void
     {
         $user = User::factory()->create(['email_verified_at' => now()]);
+        $user->assignRole('audit_manager');
 
         $this->actingAs($user)
             ->post(route('annual-audit.projects.store'), [
@@ -68,6 +78,7 @@ class ProjectMonitoringTest extends TestCase
         $this->seed(\Database\Seeders\AnnualAuditSeeder::class);
 
         $user = User::factory()->create(['email_verified_at' => now()]);
+        $user->assignRole('audit_manager');
 
         $response = $this->actingAs($user)
             ->get(route('annual-audit.export', ['mode' => 'audit']));
@@ -116,6 +127,7 @@ class ProjectMonitoringTest extends TestCase
     public function test_admin_can_remove_location_and_project(): void
     {
         $user = User::factory()->create(['email_verified_at' => now()]);
+        $user->assignRole('audit_manager');
 
         $this->actingAs($user)
             ->post(route('annual-audit.projects.store'), [

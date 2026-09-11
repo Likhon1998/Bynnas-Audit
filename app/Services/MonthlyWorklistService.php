@@ -14,6 +14,7 @@ use App\Models\MonthlyWorkItem;
 use App\Models\PlanSchedule;
 use App\Models\ProjectLocation;
 use App\Models\Shakha;
+use App\Models\User;
 use App\Models\VisitExecution;
 use App\Support\FinancialYear;
 use Carbon\Carbon;
@@ -46,12 +47,40 @@ class MonthlyWorklistService
             }
         }
 
-        $plan = AuditPlan::query()->orderByDesc('start_date')->first();
+        $currentLabel = FinancialYear::current(now('Asia/Dhaka'))->label;
+        $plan = AuditPlan::query()->where('fy_label', $currentLabel)->first()
+            ?? AuditPlan::query()->orderByDesc('start_date')->first();
         if (! $plan) {
             throw new InvalidArgumentException('No annual audit plan found. Generate a yearly plan first.');
         }
 
         return $plan;
+    }
+
+    public function currentMonthIndex(AuditPlan $plan, ?Carbon $asOf = null): int
+    {
+        $asOf = ($asOf ?? now('Asia/Dhaka'))->copy();
+        $fy = FinancialYear::fromLabel($plan->fy_label);
+        $index = $fy->monthIndexForDate($asOf);
+        if ($index !== null) {
+            return $index;
+        }
+
+        return $asOf->lt($fy->startDate) ? 0 : 11;
+    }
+
+    public function clearAllAllocations(): int
+    {
+        return (int) DB::transaction(function () {
+            AssignmentStatusLog::query()->delete();
+            VisitExecution::query()->delete();
+            DB::table('monthly_assignment_visitors')->delete();
+            $count = MonthlyAssignment::query()->count();
+            MonthlyAssignment::query()->delete();
+            MonthlyWorkItem::query()->update(['status' => MonthlyWorkItem::STATUS_UNASSIGNED]);
+
+            return $count;
+        });
     }
 
     /**
@@ -132,7 +161,10 @@ class MonthlyWorklistService
                 'assignment.employee.position',
                 'assignment.visitors.position',
                 'assignment.execution',
-                'schedulable',
+                'assignment.lockedBy',
+                'schedulable' => fn ($morphTo) => $morphTo->morphWith([
+                    Shakha::class => ['latestRiskAssessment', 'area'],
+                ]),
             ])
             ->orderBy('category')
             ->orderBy('entity_label')
@@ -151,26 +183,64 @@ class MonthlyWorklistService
     {
         $this->refreshFromYearly($plan, $monthIndex, $userId);
 
-        $cleared = 0;
-        $repacked = false;
+        $cleared = $this->clearAssignmentsOutsideMonth($plan, $monthIndex, $userId);
+        $repacked = $cleared > 0;
 
         if (! $repack) {
             $first = $this->allocateUnassignedFlexible($plan, $monthIndex, $userId);
             if ($first['skipped'] === 0) {
-                return $first + ['cleared' => 0, 'repacked' => false];
+                return $first + ['cleared' => $cleared, 'repacked' => $repacked];
             }
             // Existing long bookings leave no room — rebalance the month.
             $repack = true;
         }
 
         if ($repack) {
-            $cleared = $this->clearMonthForRepack($plan, $monthIndex, $userId);
+            $cleared += $this->clearMonthForRepack($plan, $monthIndex, $userId);
             $repacked = true;
         }
 
         $result = $this->allocateUnassignedFlexible($plan, $monthIndex, $userId, coverageFirst: true);
 
         return $result + ['cleared' => $cleared, 'repacked' => $repacked];
+    }
+
+    /**
+     * Drop assignments whose dates do not belong to this FY month (e.g. Sep work
+     * items that were stored with November dates).
+     */
+    public function clearAssignmentsOutsideMonth(AuditPlan $plan, int $monthIndex, ?int $userId = null): int
+    {
+        $fy = FinancialYear::fromLabel($plan->fy_label);
+        $monthStart = $fy->dateForMonthIndex($monthIndex)->toDateString();
+        $monthEnd = $fy->dateForMonthIndex($monthIndex)->copy()->endOfMonth()->toDateString();
+
+        $items = MonthlyWorkItem::query()
+            ->where('audit_plan_id', $plan->id)
+            ->where('month_index', $monthIndex)
+            ->where('status', MonthlyWorkItem::STATUS_ASSIGNED)
+            ->with('assignment')
+            ->get();
+
+        $cleared = 0;
+        foreach ($items as $item) {
+            $assignment = $item->assignment;
+            if (! $assignment?->start_date || ! $assignment->end_date) {
+                $this->unassign($item, $userId);
+                $cleared++;
+
+                continue;
+            }
+
+            $start = $assignment->start_date->toDateString();
+            $end = $assignment->end_date->toDateString();
+            if ($start < $monthStart || $end > $monthEnd) {
+                $this->unassign($item, $userId);
+                $cleared++;
+            }
+        }
+
+        return $cleared;
     }
 
     /**
@@ -617,6 +687,12 @@ class MonthlyWorklistService
                     continue;
                 }
 
+                // Admin-locked visits stay as fixed — do not auto-strip visitors / unassign.
+                if ($assignment->isScheduleLocked()) {
+                    $kept[] = $assignment;
+                    continue;
+                }
+
                 $visitorIds = $assignment->visitorList()->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
                 $remaining = array_values(array_filter($visitorIds, fn ($id) => (int) $id !== (int) $employeeId));
 
@@ -662,6 +738,9 @@ class MonthlyWorklistService
         DB::transaction(function () use ($item, $userId) {
             $assignment = $item->assignment;
             if ($assignment) {
+                $actor = $userId ? User::query()->find($userId) : null;
+                $this->assertScheduleEditable($assignment, $actor);
+
                 AssignmentStatusLog::query()->create([
                     'monthly_assignment_id' => $assignment->id,
                     'from_status' => $assignment->execution?->status ?? 'assigned',
@@ -689,6 +768,22 @@ class MonthlyWorklistService
         return null;
     }
 
+    protected function assertDatesInWorkMonth(?MonthlyWorkItem $item, Carbon $start, Carbon $end): void
+    {
+        if (! $item?->fy_label) {
+            return;
+        }
+
+        $fy = FinancialYear::fromLabel($item->fy_label);
+        $monthStart = $fy->dateForMonthIndex((int) $item->month_index);
+        $monthEnd = $monthStart->copy()->endOfMonth()->startOfDay();
+        $label = $fy->months()[(int) $item->month_index]['label'].' '.$fy->months()[(int) $item->month_index]['year'];
+
+        if ($start->lt($monthStart) || $end->gt($monthEnd)) {
+            throw new InvalidArgumentException("Visit dates must fall inside {$label}.");
+        }
+    }
+
     protected function datesOverlap($startA, $endA, $startB, $endB): bool
     {
         $aStart = Carbon::parse($startA)->toDateString();
@@ -709,6 +804,7 @@ class MonthlyWorklistService
         if ($end->lt($start)) {
             throw new InvalidArgumentException('End date must be on or after start date.');
         }
+        $this->assertDatesInWorkMonth($item, $start, $end);
 
         $visitorIds = $this->normalizeVisitorIds($data);
         if ($visitorIds === []) {
@@ -727,8 +823,16 @@ class MonthlyWorklistService
 
         // Always from DB history for this office — not a manual field.
         $lastUpto = $this->computeLastAuditUpto($item)?->toDateString();
+        $actor = $userId ? User::query()->find($userId) : null;
+        if ($item->assignment) {
+            $this->assertScheduleEditable($item->assignment, $actor);
+        }
 
-        return DB::transaction(function () use ($item, $data, $visitorIds, $start, $end, $duration, $mode, $countOffDays, $lastUpto, $userId) {
+        $shouldLock = array_key_exists('lock_schedule', $data)
+            ? ! empty($data['lock_schedule'])
+            : true;
+
+        return DB::transaction(function () use ($item, $data, $visitorIds, $start, $end, $duration, $mode, $countOffDays, $lastUpto, $userId, $shouldLock) {
             $assignment = MonthlyAssignment::query()->updateOrCreate(
                 ['monthly_work_item_id' => $item->id],
                 [
@@ -751,6 +855,7 @@ class MonthlyWorklistService
             );
 
             $this->syncVisitors($assignment, $visitorIds);
+            $this->applyScheduleLock($assignment, $shouldLock, $userId);
 
             $item->update(['status' => MonthlyWorkItem::STATUS_ASSIGNED]);
 
@@ -769,6 +874,7 @@ class MonthlyWorklistService
                 'reason' => 'Assigned',
                 'meta' => [
                     'visitor_ids' => $visitorIds,
+                    'locked' => (bool) $assignment->fresh()->is_locked,
                 ],
                 'changed_by' => $userId,
             ]);
@@ -782,11 +888,15 @@ class MonthlyWorklistService
      */
     public function reschedule(MonthlyAssignment $assignment, array $data, ?int $userId = null): MonthlyAssignment
     {
+        $actor = $userId ? User::query()->find($userId) : null;
+        $this->assertScheduleEditable($assignment, $actor);
+
         $start = Carbon::parse($data['start_date'])->startOfDay();
         $end = Carbon::parse($data['end_date'])->startOfDay();
         if ($end->lt($start)) {
             throw new InvalidArgumentException('End date must be on or after start date.');
         }
+        $this->assertDatesInWorkMonth($assignment->workItem, $start, $end);
 
         $reason = trim((string) ($data['reschedule_reason'] ?? ''));
         if ($reason === '') {
@@ -812,7 +922,11 @@ class MonthlyWorklistService
             throw new InvalidArgumentException($this->formatConflictMessage($conflicts, $visitorIds));
         }
 
-        return DB::transaction(function () use ($assignment, $data, $visitorIds, $start, $end, $duration, $mode, $countOffDays, $reason, $userId) {
+        $shouldLock = array_key_exists('lock_schedule', $data)
+            ? ! empty($data['lock_schedule'])
+            : (bool) $assignment->is_locked;
+
+        return DB::transaction(function () use ($assignment, $data, $visitorIds, $start, $end, $duration, $mode, $countOffDays, $reason, $userId, $shouldLock) {
             $from = $assignment->execution?->status ?? 'assigned';
 
             $assignment->update([
@@ -834,6 +948,7 @@ class MonthlyWorklistService
             ]);
 
             $this->syncVisitors($assignment, $visitorIds);
+            $this->applyScheduleLock($assignment, $shouldLock, $userId);
 
             $execution = $assignment->execution;
             if ($execution) {
@@ -852,12 +967,88 @@ class MonthlyWorklistService
                     'new_start' => $start->toDateString(),
                     'new_end' => $end->toDateString(),
                     'visitor_ids' => $visitorIds,
+                    'locked' => (bool) $assignment->fresh()->is_locked,
                 ],
                 'changed_by' => $userId,
             ]);
 
             return $assignment->fresh(['employee', 'visitors', 'execution', 'workItem']);
         });
+    }
+
+    public function lockSchedule(MonthlyAssignment $assignment, User $user): MonthlyAssignment
+    {
+        if (! $user->can('monthly_visits.manage')) {
+            throw new InvalidArgumentException('Only planners can lock a visit schedule.');
+        }
+
+        $assignment->update([
+            'is_locked' => true,
+            'locked_by' => $user->id,
+            'locked_at' => now(),
+        ]);
+
+        AssignmentStatusLog::query()->create([
+            'monthly_assignment_id' => $assignment->id,
+            'from_status' => $assignment->execution?->status ?? 'assigned',
+            'to_status' => 'schedule_locked',
+            'reason' => 'Schedule locked',
+            'changed_by' => $user->id,
+        ]);
+
+        return $assignment->fresh();
+    }
+
+    public function unlockSchedule(MonthlyAssignment $assignment, User $user): MonthlyAssignment
+    {
+        $this->assertScheduleEditable($assignment, $user);
+
+        $assignment->update([
+            'is_locked' => false,
+            'locked_by' => null,
+            'locked_at' => null,
+        ]);
+
+        AssignmentStatusLog::query()->create([
+            'monthly_assignment_id' => $assignment->id,
+            'from_status' => 'schedule_locked',
+            'to_status' => $assignment->execution?->status ?? 'assigned',
+            'reason' => 'Schedule unlocked',
+            'changed_by' => $user->id,
+        ]);
+
+        return $assignment->fresh();
+    }
+
+    public function assertScheduleEditable(MonthlyAssignment $assignment, ?User $user): void
+    {
+        if ($assignment->canBeModifiedBy($user)) {
+            return;
+        }
+
+        $locker = $assignment->lockedBy?->name ?: 'an admin';
+        throw new InvalidArgumentException(
+            "This visit is locked by {$locker}. Only that person or Super Admin can change it."
+        );
+    }
+
+    protected function applyScheduleLock(MonthlyAssignment $assignment, bool $shouldLock, ?int $userId): void
+    {
+        if ($shouldLock) {
+            $assignment->update([
+                'is_locked' => true,
+                'locked_by' => $userId,
+                'locked_at' => now(),
+            ]);
+
+            return;
+        }
+
+        $assignment->update([
+            'is_locked' => false,
+            'locked_by' => null,
+            'locked_at' => null,
+        ]);
     }
 
     /**

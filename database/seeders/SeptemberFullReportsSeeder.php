@@ -13,16 +13,17 @@ use App\Support\BanglaNumerals;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 
 /**
- * Wipe all audit reports, then create 5 fully documented September 2026 reports.
+ * Wipe all audit reports + findings, then create 5 fully documented September 2026 reports
+ * linked to existing Finding Matrix headings so Summary/Matrix populate automatically.
  */
 class SeptemberFullReportsSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->wipeAllReports();
-
         $admin = User::query()->where('email', 'admin@bynnasaudit.com')->first()
             ?? User::query()->orderBy('id')->first();
 
@@ -32,27 +33,76 @@ class SeptemberFullReportsSeeder extends Seeder
             return;
         }
 
-        $shakhas = Shakha::query()->with('area')->orderBy('id')->limit(5)->get();
+        $shakhas = Shakha::query()->with('area')->where('status', 'active')->orderBy('id')->limit(5)->get();
         if ($shakhas->count() < 5) {
-            $this->command?->error('Need at least 5 shakhas.');
+            $shakhas = Shakha::query()->with('area')->orderBy('id')->limit(5)->get();
+        }
+        if ($shakhas->count() < 5) {
+            $this->command?->error('Need at least 5 shakhas. No existing report data was deleted.');
 
             return;
         }
 
-        $indicators = AuditIndicator::query()
+        $catalog = AuditIndicator::query()
+            ->where(function ($q) {
+                $q->where('is_active', true)->orWhereNull('is_active');
+            })
             ->whereNotNull('title')
             ->where('title', '!=', '')
-            ->orderBy('id')
-            ->limit(120)
-            ->get(['id', 'title', 'indicator_code', 'risk_rating']);
+            ->orderBy('category')
+            ->orderBy('indicator_code')
+            ->get(['id', 'title', 'indicator_code', 'category', 'sub_category', 'risk_rating']);
 
-        if ($indicators->count() < 15) {
-            $this->command?->error('Need Finding Matrix indicators (AuditIndicator) to build শিরোনাম links.');
+        if ($catalog->count() < 4) {
+            $this->command?->error('Need at least 4 existing Finding Matrix headings. No report data was deleted.');
 
             return;
         }
 
-        $ratings = ['Satisfactory', 'Minor', 'Medium', 'Major', 'Unsatisfactory'];
+        $indicatorMap = $catalog->keyBy('indicator_code');
+        $blueprints = $this->reportBlueprints();
+
+        // Drop findings whose codes are missing from the live catalog.
+        foreach ($blueprints as &$blueprint) {
+            $blueprint['findings'] = array_values(array_filter(
+                $blueprint['findings'],
+                fn (array $finding) => $indicatorMap->has((string) ($finding['indicator_code'] ?? ''))
+            ));
+        }
+        unset($blueprint);
+
+        $blueprints = array_values(array_filter(
+            $blueprints,
+            fn (array $blueprint) => count($blueprint['findings']) > 0
+        ));
+
+        if ($blueprints === []) {
+            // Fallback: build from any 4 category-diverse live headings.
+            $indicators = $catalog
+                ->unique(fn (AuditIndicator $indicator) => trim((string) $indicator->category) ?: 'indicator-'.$indicator->id)
+                ->take(4)
+                ->values();
+            if ($indicators->count() < 4) {
+                $indicators = $indicators
+                    ->merge($catalog->whereNotIn('id', $indicators->pluck('id')))
+                    ->take(4)
+                    ->values();
+            }
+            $indicatorMap = $indicators->keyBy('indicator_code');
+            $blueprints = $this->logicalBlueprintsFromExistingHeadings($indicators);
+        }
+
+        $usedCodes = collect($blueprints)
+            ->flatMap(fn (array $b) => collect($b['findings'])->pluck('indicator_code'))
+            ->unique()
+            ->values();
+
+        $this->command?->info(
+            'Using '.$usedCodes->count().' Finding Matrix headings across reports: '
+            .$usedCodes->implode(', ')
+        );
+
+        $ratings = ['Major', 'Medium', 'Minor', 'Major', 'Medium'];
         $controlMap = [
             'Satisfactory' => 'Satisfactory (E)',
             'Minor' => 'Minor (D)',
@@ -61,68 +111,87 @@ class SeptemberFullReportsSeeder extends Seeder
             'Unsatisfactory' => 'Unsatisfactory (F)',
         ];
 
-        $blueprints = $this->reportBlueprints();
+        $storedFiles = $this->reportStoragePaths();
 
-        foreach ($shakhas->values() as $i => $shakha) {
-            $bp = $blueprints[$i];
-            $control = $ratings[$i];
-            $memo = 'DSK/IA/SEP-2026/'.str_pad((string) ($i + 1), 3, '0', STR_PAD_LEFT);
+        // All database destruction + reconstruction is atomic. Any incomplete Matrix sync
+        // rolls the entire operation back, preserving the previous production dataset.
+        DB::transaction(function () use (
+            $admin,
+            $shakhas,
+            $blueprints,
+            $indicatorMap,
+            $ratings,
+            $controlMap
+        ): void {
+            $this->wipeAllReports();
 
-            $auditStart = '2026-09-0'.(1 + $i);
-            $auditEnd = '2026-09-'.str_pad((string) (5 + $i), 2, '0', STR_PAD_LEFT);
-            $reportDate = '2026-09-'.str_pad((string) (12 + $i), 2, '0', STR_PAD_LEFT);
+            foreach ($shakhas->values() as $i => $shakha) {
+                $bp = $blueprints[$i];
+                $control = $ratings[$i];
+                $memo = 'DSK/IA/SEP-2026/'.str_pad((string) ($i + 1), 3, '0', STR_PAD_LEFT);
 
-            $pages = $this->buildPagesData(
-                $shakha,
-                $bp,
-                $indicators,
-                $controlMap[$control],
-                $reportDate,
-                $i
-            );
+                $auditStart = '2026-09-0'.(1 + ($i % 5));
+                $auditEnd = '2026-09-'.str_pad((string) (5 + ($i % 5)), 2, '0', STR_PAD_LEFT);
+                $reportDate = '2026-09-'.str_pad((string) (12 + ($i % 10)), 2, '0', STR_PAD_LEFT);
 
-            $progress = AuditReport::computeProgress($pages, [
-                'memo_no' => $memo,
-                'auditor_name' => $admin->name,
-            ]);
+                $pages = $this->buildPagesData(
+                    $shakha,
+                    $bp,
+                    $indicatorMap,
+                    $controlMap[$control],
+                    $reportDate,
+                    $i
+                );
 
-            $report = AuditReport::query()->create([
-                'shakha_id' => $shakha->id,
-                'user_id' => $admin->id,
-                'status' => AuditReport::STATUS_COMPLETED,
-                'report_month' => 9,
-                'report_year' => 2026,
-                'memo_no' => $memo,
-                'report_date' => $reportDate,
-                'control_rating' => $control,
-                'shakha_display_name' => $shakha->name.($shakha->code ? ' ('.$shakha->code.')' : ''),
-                'area_display_name' => $shakha->area?->name ?? '',
-                'audit_period_label' => 'সেপ্টেম্বর ২০২৬',
-                'audit_start_date' => $auditStart,
-                'audit_end_date' => $auditEnd,
-                'working_days' => 5 + $i,
-                'period_scope' => 'Full Branch Audit',
-                'draft_sent_date' => '2026-09-'.str_pad((string) (8 + $i), 2, '0', STR_PAD_LEFT),
-                'comments_received_date' => '2026-09-'.str_pad((string) (10 + $i), 2, '0', STR_PAD_LEFT),
-                'auditor_name' => $admin->name,
-                'auditor_designation' => 'Internal Audit Officer',
-                'pages_data' => $pages,
-                'current_tab' => 'page4',
-                'progress_pct' => max(100, $progress),
-                'last_saved_at' => now(),
-                'completed_at' => now(),
-            ]);
+                $progress = AuditReport::computeProgress($pages, [
+                    'memo_no' => $memo,
+                    'auditor_name' => $admin->name,
+                ]);
 
-            try {
+                $report = AuditReport::query()->create([
+                    'shakha_id' => $shakha->id,
+                    'user_id' => $admin->id,
+                    'status' => AuditReport::STATUS_COMPLETED,
+                    'report_month' => 9,
+                    'report_year' => 2026,
+                    'memo_no' => $memo,
+                    'report_date' => $reportDate,
+                    'control_rating' => $control,
+                    'shakha_display_name' => $shakha->name.($shakha->code ? ' ('.$shakha->code.')' : ''),
+                    'area_display_name' => $shakha->area?->name ?? '',
+                    'audit_period_label' => 'সেপ্টেম্বর ২০২৬',
+                    'audit_start_date' => $auditStart,
+                    'audit_end_date' => $auditEnd,
+                    'working_days' => 5 + ($i % 5),
+                    'period_scope' => 'Full Branch Audit',
+                    'draft_sent_date' => '2026-09-'.str_pad((string) (8 + ($i % 5)), 2, '0', STR_PAD_LEFT),
+                    'comments_received_date' => '2026-09-'.str_pad((string) (10 + ($i % 5)), 2, '0', STR_PAD_LEFT),
+                    'auditor_name' => $admin->name,
+                    'auditor_designation' => 'Internal Audit Officer',
+                    'pages_data' => $pages,
+                    'current_tab' => 'page4',
+                    'progress_pct' => max(100, $progress),
+                    'last_saved_at' => now(),
+                    'completed_at' => now(),
+                ]);
+
                 $synced = app(\App\Services\AuditSummaryService::class)->syncFromReport($report);
+                $expected = count($bp['findings']);
+                if ($synced !== $expected) {
+                    throw new RuntimeException(
+                        "{$memo}: expected {$expected} Matrix rows, synchronized {$synced}."
+                    );
+                }
+
                 $this->command?->info("Created: {$memo} — {$shakha->name} (matrix synced: {$synced})");
-            } catch (\Throwable $e) {
-                report($e);
-                $this->command?->info("Created: {$memo} — {$shakha->name} (matrix sync skipped)");
             }
+        });
+
+        foreach ($storedFiles as $path) {
+            Storage::disk('public')->delete($path);
         }
 
-        $this->command?->info('Done: 5 full September 2026 reports.');
+        $this->command?->info('Done: 5 full September 2026 reports (matrix + consolidated summary ready).');
     }
 
     protected function wipeAllReports(): void
@@ -137,21 +206,102 @@ class SeptemberFullReportsSeeder extends Seeder
             DB::table('audit_report_checklist_items')->delete();
         }
         if (Schema::hasTable('audit_checklist_submissions') && Schema::hasColumn('audit_checklist_submissions', 'audit_report_id')) {
-            AuditChecklistSubmission::query()->whereNotNull('audit_report_id')->update(['audit_report_id' => null]);
+            AuditChecklistSubmission::query()->whereNotNull('audit_report_id')->delete();
         }
 
-        $count = AuditReport::query()->count();
+        $reportCount = AuditReport::query()->count();
         AuditReport::query()->delete();
 
-        // Clear September 2026 matrix rows so re-seeded links stay clean.
+        $findingCount = 0;
         if (Schema::hasTable('audit_findings')) {
-            \App\Models\AuditFinding::query()
-                ->where('audit_month', 9)
-                ->where('audit_year', 2026)
-                ->delete();
+            $findingCount = \App\Models\AuditFinding::query()->count();
+            \App\Models\AuditFinding::query()->delete();
         }
 
-        $this->command?->warn("Deleted {$count} previous audit report(s).");
+        $this->command?->warn("Deleted {$reportCount} report(s) and {$findingCount} finding(s).");
+    }
+
+    /**
+     * Capture report-owned uploads before deleting their database records.
+     *
+     * @return list<string>
+     */
+    protected function reportStoragePaths(): array
+    {
+        $paths = AuditReport::query()
+            ->whereNotNull('logo_path')
+            ->pluck('logo_path');
+
+        if (Schema::hasTable('audit_report_checklist_files')) {
+            $paths = $paths->merge(
+                AuditReportChecklistFile::query()->whereNotNull('stored_path')->pluck('stored_path')
+            );
+        }
+
+        return $paths
+            ->map(fn ($path) => trim((string) $path))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Build five complete report structures around headings that already exist in the Matrix.
+     * Every selected heading is reused across all five branches for useful consolidated summaries.
+     *
+     * @param  \Illuminate\Support\Collection<int, AuditIndicator>  $indicators
+     * @return list<array{theme:string,findings:list<array<string,mixed>>}>
+     */
+    protected function logicalBlueprintsFromExistingHeadings($indicators): array
+    {
+        $ratings = ['Major (B)', 'Medium (C)', 'Minor (D)', 'Medium (C)'];
+        $blueprints = [];
+
+        for ($reportIndex = 0; $reportIndex < 5; $reportIndex++) {
+            $findings = [];
+
+            foreach ($indicators->values() as $findingIndex => $indicator) {
+                $sectionNo = $findingIndex + 1;
+                $sample = 24 + ($reportIndex * 3) + ($findingIndex * 2);
+                $instances = 2 + (($reportIndex + $findingIndex) % 6);
+                $population = $sample * (4 + ($findingIndex % 3));
+                $amount = 12500 + ($reportIndex * 4750) + ($findingIndex * 8250);
+                $category = trim((string) ($indicator->category ?: 'অভ্যন্তরীণ নিয়ন্ত্রণ'));
+                $title = trim((string) $indicator->title);
+                $sampleBn = BanglaNumerals::fromInt($sample);
+                $instancesBn = BanglaNumerals::fromInt($instances);
+
+                $findings[] = [
+                    'section' => [
+                        BanglaNumerals::fromInt($sectionNo).'.০',
+                        BanglaNumerals::fromInt($sectionNo).'.০ '.$category,
+                    ],
+                    'serial' => BanglaNumerals::fromInt($sectionNo).'.১',
+                    'indicator_code' => (string) $indicator->indicator_code,
+                    'title' => 'শিরোনাম',
+                    'body' => $title,
+                    'amount' => BanglaNumerals::fromLatin(number_format($amount)),
+                    'rating' => $ratings[$findingIndex % count($ratings)],
+                    'criteria' => 'প্রতিষ্ঠানের অনুমোদিত নীতিমালা, কার্যপদ্ধতি ও সংশ্লিষ্ট নিয়ন্ত্রণ নির্দেশনা অনুযায়ী '
+                        .$title.' সংক্রান্ত কার্যক্রম যথাযথভাবে সম্পন্ন ও প্রমাণসহ সংরক্ষণ করতে হবে।',
+                    'observation' => "নিরীক্ষায় {$sampleBn}টি নমুনা যাচাই করে {$instancesBn}টি ক্ষেত্রে “{$title}” সংক্রান্ত ব্যত্যয় পাওয়া গেছে।",
+                    'stats' => [(string) $population, (string) $sample, (string) $instances],
+                    'risk' => 'নিয়ন্ত্রণের ব্যত্যয় অব্যাহত থাকলে আর্থিক ক্ষতি, ভুল প্রতিবেদন অথবা নীতিমালা পরিপালনে ঘাটতি সৃষ্টি হতে পারে।',
+                    'root' => 'নিয়মিত তদারকি, নথি যাচাই ও দায়িত্বভিত্তিক পর্যালোচনা পর্যাপ্ত ছিল না।',
+                    'reco' => 'সংশ্লিষ্ট নথি সংশোধন করে নিয়ন্ত্রণ চেকলিস্ট চালু এবং শাখা ব্যবস্থাপকের মাসিক পর্যালোচনা নিশ্চিত করা।',
+                    'jobab' => 'শাখা ব্যবস্থাপক ব্যত্যয়গুলো যাচাই করে সংশোধন এবং পরবর্তী মাস থেকে নিয়মিত তদারকি নিশ্চিত করবেন।',
+                    'status' => $reportIndex % 2 === 0 ? 'চলমান' : 'সমাধানের পথে',
+                ];
+            }
+
+            $blueprints[] = [
+                'theme' => 'শাখাভিত্তিক সমন্বিত নিরীক্ষা — প্রতিবেদন '.($reportIndex + 1),
+                'findings' => $findings,
+            ];
+        }
+
+        return $blueprints;
     }
 
     /**
@@ -159,210 +309,166 @@ class SeptemberFullReportsSeeder extends Seeder
      */
     protected function reportBlueprints(): array
     {
-        return [
+        $blueprints = [
             [
-                'theme' => 'আর্থিক নিয়ন্ত্রণ ও ভ্যাট-ট্যাক্স',
+                'theme' => 'অর্থ, হিসাব ও প্রশাসন সংক্রান্ত',
                 'findings' => [
                     [
-                        'section' => ['১.০', '১.০ আর্থিক নিরীক্ষা (Financial Audit)'],
+                        'section' => ['১.০', '১.০ অর্থ, হিসাব ও প্রশাসন সংক্রান্ত'],
                         'serial' => '১.১',
+                        'indicator_code' => '২০০০-১',
                         'title' => 'শিরোনাম',
-                        'body' => 'ভ্যাট ও ট্যাক্স নির্ধারিত সময়ে সরকারি কোষাগারে জমা না দিয়ে হস্তমজুদ রাখা হয়েছে।',
+                        'body' => 'দৈনিক আর্থিক চাহিদা রেজিস্টারে প্রদানকৃত চাহিদা অপেক্ষায় প্রকৃত খরচ কম হওয়া',
                         'amount' => '৪৫,২৫০',
                         'rating' => 'Major (B)',
-                        'criteria' => 'প্রতিষ্ঠানের আর্থিক নীতিমালা ও এনবিআর নির্দেশনা অনুযায়ী প্রযোজ্য ভ্যাট-ট্যাক্স নির্ধারিত হারে ও সময়ে জমা দিতে হবে।',
-                        'observation' => 'নমুনা যাচাইয়ে দেখা যায়, আগস্ট–সেপ্টেম্বর মাসে উৎসে কর কর্তনকৃত অর্থ গড়ে ৮–১২ দিন হস্তমজুদ রাখা হয়েছে।',
+                        'criteria' => 'দৈনিক আর্থিক চাহিদা রেজিস্টারে উল্লেখিত চাহিদার সাথে প্রকৃত খরচ মিল রেখে হিসাব রাখতে হবে।',
+                        'observation' => 'নমুনা যাচাইয়ে দেখা যায়, চাহিদা রেজিস্টারে উল্লেখিত পরিমাণের চেয়ে প্রকৃত খরচ উল্লেখযোগ্যভাবে কম।',
                         'stats' => ['১২০', '২৫', '০৮'],
-                        'risk' => 'বহিঃনিরীক্ষা কর্তৃক আপত্তি ও জরিমানার আশঙ্কা।',
-                        'root' => 'শাখায় সময়মতো জমাদানের তদারকি দুর্বল।',
-                        'reco' => 'প্রতি মাসের নির্ধারিত তারিখের মধ্যে ভ্যাট-ট্যাক্স জমা নিশ্চিত করতে চেকলিস্ট চালু করা।',
-                        'jobab' => 'শাখা ব্যবস্থাপক জানিয়েছেন—অবিলম্বে জমাদান নিয়মিত করা হবে।',
+                        'risk' => 'অতিরিক্ত চাহিদা উত্তোলন ও তহবিল অপব্যবহারের আশঙ্কা।',
+                        'root' => 'চাহিদা ও প্রকৃত খরচের দৈনিক মিল যাচাই না করা।',
+                        'reco' => 'প্রতিদিন চাহিদা vs প্রকৃত খরচ মিলিয়ে রেজিস্টার হালনাগাদ করা।',
+                        'jobab' => 'শাখা ব্যবস্থাপক চাহিদা রেজিস্টার নিয়মিত মিল যাচাই করবেন।',
                         'status' => 'চলমান',
                     ],
                     [
                         'section' => null,
                         'serial' => '১.২',
+                        'indicator_code' => '২০০০-২',
                         'title' => 'শিরোনাম',
-                        'body' => 'কিছু খরচ ভাউচারে সহপ্রমাণক অসম্পূর্ণ অবস্থায় অনুমোদিত হয়েছে।',
+                        'body' => 'ঋণ অনুমোদন ব্যতীত দৈনিক আর্থিক চাহিদা রেজিস্টারে ঋণ বিতরণের চাহিদা রাখা যা ঋণ নীতিমালা বহি:র্ভুত',
                         'amount' => '১৮,৭৫০',
                         'rating' => 'Medium (C)',
-                        'criteria' => 'প্রতিটি খরচের সাথে প্রয়োজনীয় সহপ্রমাণক সংরক্ষণ ও যাচাই বাধ্যতামূলক।',
-                        'observation' => '২৫টি ভাউচারের মধ্যে ৬টিতে বিল/রশিদ সংযুক্ত ছিল না।',
+                        'criteria' => 'ঋণ বিতরণের চাহিদা কেবল অনুমোদিত ঋণের বিপরীতে রাখা যাবে।',
+                        'observation' => 'কয়েকটি ক্ষেত্রে অনুমোদন ছাড়াই ঋণ বিতরণের চাহিদা রেজিস্টারে এন্ট্রি পাওয়া গেছে।',
                         'stats' => ['৮৫', '২৫', '০৬'],
-                        'risk' => 'অনুপযুক্ত খরচ অনুমোদনের ঝুঁকি।',
-                        'root' => 'ভাউচার পর্যালোচনায় চেকলিস্ট ব্যবহার না করা।',
-                        'reco' => 'প্রতিটি ভাউচারে সহপ্রমাণক চেকলিস্ট সংযুক্ত করে অনুমোদন দেওয়া।',
-                        'jobab' => 'এবিএম দায়িত্ব নিয়ে চেকলিস্ট চালু করবেন।',
+                        'risk' => 'ঋণ নীতিমালা লঙ্ঘন ও অননুমোদিত বিতরণের ঝুঁকি।',
+                        'root' => 'চাহিদা এন্ট্রির পূর্বে অনুমোদন যাচাই না করা।',
+                        'reco' => 'অনুমোদিত ঋণ তালিকা ছাড়া চাহিদা এন্ট্রি নিষিদ্ধ করা।',
+                        'jobab' => 'এবিএম অনুমোদন যাচাই প্রক্রিয়া চালু করবেন।',
                         'status' => 'সমাধানের পথে',
                     ],
                     [
-                        'section' => ['২.০', '২.০ ঋণ ও সঞ্চয় পরিচালনা'],
+                        'section' => ['২.০', '২.০ নগদ উত্তোলন ও বিতরণ'],
                         'serial' => '২.১',
+                        'indicator_code' => '২০০০-৩',
                         'title' => 'শিরোনাম',
-                        'body' => 'কিছু ঋণ নথিতে গ্যারান্টর তথ্য ও আপডেটেড ছবি অনুপস্থিত।',
+                        'body' => 'দৈনিক আর্থিক চাহিদা রেজিস্টারে খরচের চাহিদা না রেখে ব্যাংক থেকে টাকা উত্তোলন করে ঋণ বিতরন ও খরচ করা',
                         'amount' => '২,১৫,০০০',
-                        'rating' => 'Minor (D)',
-                        'criteria' => 'ঋণ অনুমোদনের পূর্বে সকল প্রয়োজনীয় কাগজপত্র সম্পূর্ণ থাকতে হবে।',
-                        'observation' => '৪০টি ঋণ ফাইলের মধ্যে ৫টিতে গ্যারান্টর NID কপি ছিল না।',
+                        'rating' => 'Major (B)',
+                        'criteria' => 'ব্যাংক উত্তোলনের পূর্বে খরচের চাহিদা রেজিস্টারে এন্ট্রি বাধ্যতামূলক।',
+                        'observation' => 'চাহিদা এন্ট্রি ছাড়াই ব্যাংক উত্তোলন করে ঋণ বিতরণ ও খরচ করা হয়েছে।',
                         'stats' => ['৩২০', '৪০', '০৫'],
-                        'risk' => 'ঋণ আদায়ে আইনি জটিলতা সৃষ্টি হতে পারে।',
-                        'root' => 'ফাইল কমপ্লিটনেস চেক উপেক্ষা।',
-                        'reco' => 'নতুন ঋণ অনুমোদনের আগে ফাইল চেকলিস্ট বাধ্যতামূলক করা।',
-                        'jobab' => 'মাঠকর্মীরা অনুপস্থিত কাগজপত্র ৭ দিনের মধ্যে সংগ্রহ করবে।',
+                        'risk' => 'নগদ নিয়ন্ত্রণ দুর্বল ও অনিয়মের সুযোগ।',
+                        'root' => 'উত্তোলন পূর্ব চেকলিস্ট অনুসরণ না করা।',
+                        'reco' => 'চাহিদা এন্ট্রি ছাড়া ব্যাংক উত্তোলন নিষিদ্ধ করা।',
+                        'jobab' => 'বিএম উত্তোলন পূর্ব যাচাই নিশ্চিত করবেন।',
                         'status' => 'চলমান',
                     ],
                 ],
             ],
             [
-                'theme' => 'নগদ ব্যবস্থাপনা ও অভ্যন্তরীণ নিয়ন্ত্রণ',
+                'theme' => 'স্টক ও কর্মসূচী (ঋণ) সংক্রান্ত',
                 'findings' => [
                     [
-                        'section' => ['১.০', '১.০ নগদ ও ব্যাংক ব্যবস্থাপনা'],
+                        'section' => ['১.০', '১.০ স্টক ও মজুদ নিয়ন্ত্রণ'],
                         'serial' => '১.১',
+                        'indicator_code' => '২০০০-৪',
                         'title' => 'শিরোনাম',
-                        'body' => 'ক্যাশ লিমিট অতিক্রম করে একাধিক দিন নগদ হাতে রাখা হয়েছে।',
-                        'amount' => '৯২,৪০০',
-                        'rating' => 'Major (B)',
-                        'criteria' => 'শাখার অনুমোদিত নগদ সীমা অতিক্রম করা যাবে না; অতিরিক্ত অর্থ ব্যাংকে জমা দিতে হবে।',
-                        'observation' => 'সেপ্টেম্বর মাসের ৭টি কার্যদিবসে ক্যাশ ব্যালেন্স নির্ধারিত সীমার উপরে ছিল।',
-                        'stats' => ['৩০', '৩০', '০৭'],
-                        'risk' => 'চুরি/অনিয়মের ঝুঁকি বৃদ্ধি পায়।',
-                        'root' => 'দৈনিক ক্যাশ মনিটরিং দুর্বল।',
-                        'reco' => 'প্রতিদিন বিকালে সীমা অতিক্রম করলে ব্যাংক জমা বাধ্যতামূলক করা।',
-                        'jobab' => 'বিএম প্রতিদিন ক্যাশ রিপোর্ট পর্যালোচনা করবেন।',
-                        'status' => 'চলমান',
-                    ],
-                    [
-                        'section' => null,
-                        'serial' => '১.২',
-                        'title' => 'শিরোনাম',
-                        'body' => 'ব্যাংক সমন্বয় বিবরণী (BRS) নিয়মিত প্রস্তুত হয়নি।',
-                        'amount' => '৮,৫০০',
-                        'rating' => 'Medium (C)',
-                        'criteria' => 'প্রতি মাস শেষে ব্যাংক সমন্বয় বিবরণী প্রস্তুত ও যাচাই করতে হবে।',
-                        'observation' => 'জুলাই ও আগস্ট মাসের BRS ফাইলে সংরক্ষিত ছিল না।',
-                        'stats' => ['০৩', '০৩', '০২'],
-                        'risk' => 'ব্যাংক ও বইয়ের পার্থক্য অদৃশ্য থাকতে পারে।',
-                        'root' => 'হিসাবরক্ষকের কাজে সময়সূচি মেনে চলা হয়নি।',
-                        'reco' => 'মাসের ৫ তারিখের মধ্যে BRS সম্পন্ন ও স্বাক্ষরিত রাখা।',
-                        'jobab' => 'হিসাবরক্ষক আগামী সপ্তাহে পূর্ববর্তী BRS সম্পন্ন করবেন।',
-                        'status' => 'সমাধানের পথে',
-                    ],
-                    [
-                        'section' => ['২.০', '২.০ অভ্যন্তরীণ নিয়ন্ত্রণ'],
-                        'serial' => '২.১',
-                        'title' => 'শিরোনাম',
-                        'body' => 'স্ট্যাম্প রেজিস্টারে স্টক ও ব্যবহারের হিসাব মিলছে না।',
+                        'body' => 'স্টক/মজুদ রেজিষ্টারে স্টেশনারী/অন্যান্য ঋণ কার্যক্রমের প্রিন্টিং সামগ্রী এন্ট্রি না দেওয়া এবং স্টক রেজিস্টার আপডেট না থাকা।',
                         'amount' => '৩,২০০',
                         'rating' => 'Minor (D)',
-                        'criteria' => 'স্ট্যাম্প ক্রয়, ব্যবহার ও অবশিষ্ট স্টকের হিসাব নিয়মিত হালনাগাদ রাখতে হবে।',
-                        'observation' => 'রেজিস্টার অনুযায়ী ৮০টি স্ট্যাম্প থাকা উচিত; ভৌত গণনায় পাওয়া গেছে ৭২টি।',
+                        'criteria' => 'স্টেশনারি ও প্রিন্টিং সামগ্রীর প্রাপ্তি, ব্যবহার ও অবশিষ্ট স্টক নিয়মিত রেজিস্টারে হালনাগাদ রাখতে হবে।',
+                        'observation' => 'ভৌত যাচাইয়ে স্টক রেজিস্টার হালনাগাদ নয় এবং এন্ট্রি অনুপস্থিত।',
                         'stats' => ['১', '১', '১'],
                         'risk' => 'সম্পদ অপচয়/অসঙ্গতির আশঙ্কা।',
                         'root' => 'দৈনিক স্টক আপডেট না করা।',
-                        'reco' => 'সাপ্তাহিক স্ট্যাম্প স্টক ভেরিফিকেশন চালু করা।',
+                        'reco' => 'সাপ্তাহিক স্টক ভেরিফিকেশন চালু করা।',
                         'jobab' => 'অফিস সহকারী রেজিস্টার হালনাগাদ করবেন।',
                         'status' => 'চলমান',
                     ],
-                ],
-            ],
-            [
-                'theme' => 'সদস্য ভর্তি ও সমিতি পরিচালনা',
-                'findings' => [
                     [
-                        'section' => ['১.০', '১.০ সদস্য ভর্তি ও KYC'],
-                        'serial' => '১.১',
+                        'section' => ['২.০', '২.০ কর্মসূচী সংক্রান্ত — ঋণ'],
+                        'serial' => '২.১',
+                        'indicator_code' => '১০০০-১',
                         'title' => 'শিরোনাম',
-                        'body' => 'নতুন সদস্য ফর্মে NID যাচাই ও ছবি সংযুক্তি অসম্পূর্ণ।',
-                        'amount' => '১৫,৭৫০',
-                        'rating' => 'Medium (C)',
-                        'criteria' => 'সদস্য ভর্তির সময় NID, ছবি ও প্রয়োজনীয় তথ্য সম্পূর্ণ যাচাই করতে হবে।',
-                        'observation' => '৫০টি নতুন সদস্য ফর্মের মধ্যে ৯টিতে ছবি বা NID কপি অনুপস্থিত।',
-                        'stats' => ['২১০', '৫০', '০৯'],
-                        'risk' => 'পরিচয় যাচাই দুর্বল হলে প্রতারণার ঝুঁকি।',
-                        'root' => 'ভর্তি চেকলিস্ট পুরোপুরি অনুসরণ না করা।',
-                        'reco' => 'অসম্পূর্ণ ফর্ম অনুমোদন না দেওয়া; চেকলিস্ট বাধ্যতামূলক।',
-                        'jobab' => 'মাঠকর্মীরা ১০ দিনের মধ্যে নথি সম্পূর্ণ করবে।',
+                        'body' => 'পাসবইতে এন্ট্রি না দিয়ে সদস্যর কাছ থেকে কিস্তি আদায় করা (সদস্যর নাম,আইডি, সমিতি নং, আদায় তারিখ)',
+                        'amount' => '১২,৬০০',
+                        'rating' => 'Major (B)',
+                        'criteria' => 'প্রতিটি কিস্তি আদায়ের সময় সদস্যের পাসবইয়ে তারিখ ও পরিমাণ লিখে স্বাক্ষর করতে হবে।',
+                        'observation' => 'কয়েকটি ক্ষেত্রে পাসবইয়ে এন্ট্রি ছাড়াই কিস্তি আদায় করা হয়েছে।',
+                        'stats' => ['৬', '৬', '১'],
+                        'risk' => 'আর্থিক অনিয়ম ও সদস্য অসন্তোষের সম্ভাবনা।',
+                        'root' => 'পাসবই এন্ট্রি নিয়ন্ত্রণ দুর্বল।',
+                        'reco' => 'আদায়ের সাথে সাথে পাসবই এন্ট্রি বাধ্যতামূলক করা।',
+                        'jobab' => 'মাঠকর্মীরা তালিকাভুক্ত সদস্যদের পাসবই হালনাগাদ করবে।',
                         'status' => 'চলমান',
                     ],
                     [
                         'section' => null,
-                        'serial' => '১.২',
+                        'serial' => '২.২',
+                        'indicator_code' => '১০০০-২',
                         'title' => 'শিরোনাম',
-                        'body' => 'কিছু সমিতির সভা রেজুলেশন নিয়মিত হালনাগাদ নেই।',
-                        'amount' => '৬,২০০',
-                        'rating' => 'Minor (D)',
-                        'criteria' => 'সমিতি সভার সিদ্ধান্ত লিখিতভাবে সংরক্ষণ করতে হবে।',
-                        'observation' => '১২টি সমিতির মধ্যে ৩টিতে গত ২ মাসের রেজুলেশন পাওয়া যায়নি।',
-                        'stats' => ['৪৫', '১২', '০৩'],
-                        'risk' => 'শাসন ব্যবস্থায় স্বচ্ছতা কমে যায়।',
-                        'root' => 'সভা নথি সংরক্ষণে অমনোযোগ।',
-                        'reco' => 'প্রতি সভার পর ৪৮ ঘণ্টার মধ্যে রেজুলেশন ফাইলভুক্ত করা।',
-                        'jobab' => 'কেন্দ্র ব্যবস্থাপক নথি হালনাগাদ করবেন।',
-                        'status' => 'সমাধানের পথে',
-                    ],
-                    [
-                        'section' => ['২.০', '২.০ সঞ্চয় আদায়'],
-                        'serial' => '২.১',
-                        'title' => 'শিরোনাম',
-                        'body' => 'কিছু কেন্দ্রে সঞ্চয় আদায়ের রশিদ সিরিয়াল গ্যাপ রয়েছে।',
-                        'amount' => '১২,৬০০',
-                        'rating' => 'Major (B)',
-                        'criteria' => 'রশিদ বইয়ের সিরিয়াল ধারাবাহিক ও হিসাবভুক্ত থাকতে হবে।',
-                        'observation' => 'রশিদ নং ১০৪৫–১০৫০ এর ব্যবহার/বাতিলের ব্যাখ্যা নেই।',
-                        'stats' => ['৬', '৬', '১'],
-                        'risk' => 'আর্থিক অনিয়মের সম্ভাবনা।',
-                        'root' => 'রশিদ নিয়ন্ত্রণ রেজিস্টার যথাযথ নয়।',
-                        'reco' => 'হারানো/বাতিল রশিদের তদন্ত ও লিখিত ব্যাখ্যা সংরক্ষণ।',
+                        'body' => 'কর্মী কর্তৃক পাশ বইয়ের ব্যালেন্স কাটাকাটি করে আত্নসাৎ করা',
+                        'amount' => '৯২,৪০০',
+                        'rating' => 'Critical (A)',
+                        'criteria' => 'পাসবইয়ের ব্যালেন্স কাটাকাটি নিষিদ্ধ; যেকোনো সংশোধন অনুমোদিত পদ্ধতিতে হতে হবে।',
+                        'observation' => 'পাসবইয়ে কাটাকাটি ও ব্যালেন্স অসঙ্গতি পাওয়া গেছে।',
+                        'stats' => ['৩০', '৩০', '০৭'],
+                        'risk' => 'আত্মসাৎ ও প্রতিষ্ঠানের আর্থিক ক্ষতির ঝুঁকি।',
+                        'root' => 'পাসবই ক্রসচেক ও তদারকি দুর্বল।',
+                        'reco' => 'নিয়মিত পাসবই ক্রসচেক ও দায়ী কর্মীর বিরুদ্ধে ব্যবস্থা।',
                         'jobab' => 'বিএম তদন্ত করে নিরীক্ষা দলে জবাব দিবেন।',
                         'status' => 'চলমান',
                     ],
                 ],
             ],
             [
-                'theme' => 'বাজেট, ব্যয় ও স্থায়ী সম্পদ',
+                'theme' => 'কর্মসূচী ও স্থায়ী সম্পদ',
                 'findings' => [
                     [
-                        'section' => ['১.০', '১.০ বাজেট ও ব্যয় নিয়ন্ত্রণ'],
+                        'section' => ['১.০', '১.০ কর্মসূচী সংক্রান্ত — ঋণ'],
                         'serial' => '১.১',
+                        'indicator_code' => '১০০০-৩',
                         'title' => 'শিরোনাম',
-                        'body' => 'আপ্যায়ন ও স্টেশনারি খাতে বাজেটের চেয়ে ব্যয় বেশি হয়েছে।',
-                        'amount' => '২৭,৮০০',
+                        'body' => 'যাতায়াতে মোটরসাইকেল ব্যবহার করে বিল নেওয়া হচ্ছে সিএনজি+রিক্সা',
+                        'amount' => '৮,৫০০',
                         'rating' => 'Medium (C)',
-                        'criteria' => 'অনুমোদিত বাজেট সীমার মধ্যে ব্যয় নিয়ন্ত্রণ করতে হবে।',
-                        'observation' => 'সেপ্টেম্বর পর্যন্ত আপ্যায়ন খাতে বাজেটের ১২৮% ব্যয় দেখা গেছে।',
-                        'stats' => ['৮', '৮', '২'],
-                        'risk' => 'বাজেট শৃঙ্খলা ভঙ্গ ও অতিরিক্ত ব্যয়।',
-                        'root' => 'মাসভিত্তিক বাজেট মনিটরিং না থাকা।',
-                        'reco' => 'প্রতি মাসে বাজেট vs প্রকৃত ব্যয় রিভিউ করা।',
-                        'jobab' => 'শাখা আগামী মাস থেকে খাতভিত্তিক নিয়ন্ত্রণ করবে।',
-                        'status' => 'চলমান',
+                        'criteria' => 'যাতায়াত বিল প্রকৃত ব্যবহৃত যানবাহন অনুযায়ী দাখিল করতে হবে।',
+                        'observation' => 'মোটরসাইকেল ব্যবহারেও সিএনজি/রিক্সা বিল দাখিলের প্রমাণ পাওয়া গেছে।',
+                        'stats' => ['০৩', '০৩', '০২'],
+                        'risk' => 'খরচের অতিরিক্ত দাবি ও নীতি লঙ্ঘন।',
+                        'root' => 'যাতায়াত বিল যাচাই দুর্বল।',
+                        'reco' => 'যানবাহন লগ ও বিল মিলিয়ে অনুমোদন দেওয়া।',
+                        'jobab' => 'বিএম বিল যাচাই কঠোর করবেন।',
+                        'status' => 'সমাধানের পথে',
                     ],
                     [
                         'section' => null,
                         'serial' => '১.২',
+                        'indicator_code' => '১০০০-৪',
                         'title' => 'শিরোনাম',
-                        'body' => 'কিছু স্থায়ী সম্পদের ট্যাগ ও রেজিস্টার এন্ট্রি মিলছে না।',
-                        'amount' => '৬৫,০০০',
-                        'rating' => 'Minor (D)',
-                        'criteria' => 'সকল স্থায়ী সম্পদ ট্যাগসহ রেজিস্টারে হালনাগাদ থাকতে হবে।',
-                        'observation' => '১৮টি সম্পদের মধ্যে ৩টিতে অ্যাসেট ট্যাগ অনুপস্থিত।',
-                        'stats' => ['৪২', '১৮', '০৩'],
-                        'risk' => 'সম্পদ হারানোর ঝুঁকি।',
-                        'root' => 'ফিজিক্যাল ভেরিফিকেশন নিয়মিত নয়।',
-                        'reco' => 'ত্রৈমাসিক অ্যাসেট ভেরিফিকেশন সম্পন্ন করা।',
-                        'jobab' => 'অফিস সহকারী ট্যাগ সংযুক্ত করবেন।',
+                        'body' => 'সহকারী ব্যবস্থাপক কর্তৃক বাস্তবে পাস বই ক্রসচেক না করেই রির্পোট করা হয়েছে',
+                        'amount' => '৬,২০০',
+                        'rating' => 'Medium (C)',
+                        'criteria' => 'সহকারী ব্যবস্থাপককে বাস্তবে পাসবই ক্রসচেক করে প্রতিবেদন দিতে হবে।',
+                        'observation' => 'ক্রসচেক ছাড়াই পাসবই সংক্রান্ত রিপোর্ট দাখিল করা হয়েছে।',
+                        'stats' => ['৪৫', '১২', '০৩'],
+                        'risk' => 'ভুল/অসম্পূর্ণ তথ্যের ভিত্তিতে সিদ্ধান্ত।',
+                        'root' => 'ক্রসচেক পদ্ধতি অনুসরণ না করা।',
+                        'reco' => 'ক্রসচেক সই ছাড়া রিপোর্ট গ্রহণ না করা।',
+                        'jobab' => 'এবিএম ক্রসচেক চেকলিস্ট চালু করবেন।',
                         'status' => 'সমাধানের পথে',
                     ],
                     [
-                        'section' => ['২.০', '২.০ ক্রয় ও কোটেশন'],
+                        'section' => ['২.০', '২.০ স্থায়ী সম্পদ সংক্রান্ত'],
                         'serial' => '২.১',
+                        'indicator_code' => '৩০০০-১',
                         'title' => 'শিরোনাম',
-                        'body' => 'নির্ধারিত সীমার উপরে ক্রয়ে পর্যাপ্ত কোটেশন সংগ্রহ করা হয়নি।',
+                        'body' => 'স্থায়ী সম্পদ ক্রয়ের কোটেশন সংগ্রহ না করা',
                         'amount' => '৪১,৫০০',
                         'rating' => 'Major (B)',
-                        'criteria' => 'নির্ধারিত সীমার উপরে ক্রয়ে ন্যূনতম ৩টি কোটেশন সংগ্রহ করতে হবে।',
-                        'observation' => '৪টি ক্রয়ের মধ্যে ২টিতে মাত্র ১টি কোটেশন পাওয়া গেছে।',
+                        'criteria' => 'নির্ধারিত সীমার উপরে ক্রয়ে ন্যূনতম কোটেশন সংগ্রহ করতে হবে।',
+                        'observation' => 'কয়েকটি স্থায়ী সম্পদ ক্রয়ে কোটেশন সংগ্রহ করা হয়নি।',
                         'stats' => ['১২', '৪', '২'],
                         'risk' => 'স্বচ্ছতা ও মূল্য সুবিধা না পাওয়ার আশঙ্কা।',
                         'root' => 'ক্রয় নীতিমালা অনুসরণে ঘাটতি।',
@@ -373,63 +479,148 @@ class SeptemberFullReportsSeeder extends Seeder
                 ],
             ],
             [
-                'theme' => 'কমপ্লায়েন্স, আইটি ও ফলোআপ',
+                'theme' => 'স্থায়ী সম্পদ ও অর্থ-হিসাব',
                 'findings' => [
                     [
-                        'section' => ['১.০', '১.০ পূর্ববর্তী নিরীক্ষা ফলোআপ'],
+                        'section' => ['১.০', '১.০ স্থায়ী সম্পদ সংক্রান্ত'],
                         'serial' => '১.১',
+                        'indicator_code' => '৩০০০-২',
                         'title' => 'শিরোনাম',
-                        'body' => 'পূর্ববর্তী নিরীক্ষার কয়েকটি সুপারিশ এখনো বাস্তবায়িত হয়নি।',
-                        'amount' => '২২,৪০০',
-                        'rating' => 'Medium (C)',
-                        'criteria' => 'নিরীক্ষা সুপারিশ নির্ধারিত সময়ে বাস্তবায়ন ও অবস্থা হালনাগাদ করতে হবে।',
-                        'observation' => 'গতলোআপ তালিকার ১০টির মধ্যে ৪টি এখনো Open।',
-                        'stats' => ['১০', '১০', '০৪'],
-                        'risk' => 'পুনরাবৃত্ত অনিয়ম অব্যাহত থাকতে পারে।',
-                        'root' => 'ফলোআপ মনিটরিং দুর্বল।',
-                        'reco' => 'মাসিক ফলোআপ মিটিং ও স্ট্যাটাস আপডেট চালু করা।',
-                        'jobab' => 'বিএম অক্টোবরের মধ্যে Open আইটেম ক্লোজ করবেন।',
+                        'body' => 'স্থায়ী সম্পদ ক্রয়ের ক্রয় কমিটি ব্যতীত ক্রয় করা',
+                        'amount' => '৬৫,০০০',
+                        'rating' => 'Major (B)',
+                        'criteria' => 'নির্ধারিত সীমার ক্রয় ক্রয় কমিটির মাধ্যমে সম্পন্ন করতে হবে।',
+                        'observation' => 'ক্রয় কমিটি ছাড়াই স্থায়ী সম্পদ ক্রয় করা হয়েছে।',
+                        'stats' => ['৪২', '১৮', '০৩'],
+                        'risk' => 'স্বচ্ছতাহীন ক্রয় ও নীতি লঙ্ঘন।',
+                        'root' => 'ক্রয় কমিটি গঠন/অনুমোদন এড়িয়ে যাওয়া।',
+                        'reco' => 'ক্রয় কমিটি অনুমোদন ছাড়া ক্রয় নিষিদ্ধ করা।',
+                        'jobab' => 'শাখা কমিটি প্রক্রিয়া মেনে চলবে।',
                         'status' => 'চলমান',
                     ],
                     [
                         'section' => null,
                         'serial' => '১.২',
+                        'indicator_code' => '৩০০০-৩',
                         'title' => 'শিরোনাম',
-                        'body' => 'সিস্টেম ইউজার অ্যাক্সেস রিভিউ নিয়মিত নয়; সাবেক কর্মীর অ্যাকাউন্ট সক্রিয়।',
-                        'amount' => '৩৫,০০০',
-                        'rating' => 'Major (B)',
-                        'criteria' => 'কর্মচারী বদলি/প্রস্থানের সাথে সাথে সিস্টেম অ্যাক্সেস নিষ্ক্রিয় করতে হবে।',
-                        'observation' => '২টি সাবেক ইউজার অ্যাকাউন্ট এখনো Active অবস্থায় পাওয়া গেছে।',
-                        'stats' => ['২৮', '২৮', '০২'],
-                        'risk' => 'অননুমোদিত ডেটা অ্যাক্সেসের ঝুঁকি।',
-                        'root' => 'HR ও আইটি হ্যান্ডওভার প্রক্রিয়া দুর্বল।',
-                        'reco' => 'প্রস্থান চেকলিস্টে সিস্টেম ডিঅ্যাক্টিভেশন যুক্ত করা।',
-                        'jobab' => 'আইটি সাপোর্ট অবিলম্বে অ্যাকাউন্ট নিষ্ক্রিয় করবে।',
+                        'body' => 'স্থায়ী সম্পদ ক্রয়ের মূল্য ব্যাংক চেকে না দিয়ে নগদে পরিশোধ করা',
+                        'amount' => '২৭,৮০০',
+                        'rating' => 'Medium (C)',
+                        'criteria' => 'স্থায়ী সম্পদ ক্রয়ের মূল্য ব্যাংক চেকের মাধ্যমে পরিশোধ করতে হবে।',
+                        'observation' => 'কিছু ক্রয়ে নগদে মূল্য পরিশোধ করা হয়েছে।',
+                        'stats' => ['৮', '৮', '২'],
+                        'risk' => 'নগদ লেনদেনে অনিয়ম ও নিরীক্ষা ঝুঁকি।',
+                        'root' => 'পেমেন্ট নীতিমালা অনুসরণ না করা।',
+                        'reco' => 'নগদ পরিশোধ নিষিদ্ধ করে চেক/ট্রান্সফার বাধ্যতামূলক করা।',
+                        'jobab' => 'হিসাবরক্ষক পেমেন্ট পদ্ধতি সংশোধন করবেন।',
                         'status' => 'সমাধানের পথে',
                     ],
                     [
-                        'section' => ['২.০', '২.০ ডকুমেন্টেশন ও সংরক্ষণ'],
+                        'section' => ['২.০', '২.০ অর্থ ও হিসাব সংক্রান্ত'],
                         'serial' => '২.১',
+                        'indicator_code' => '৪০০০-১',
                         'title' => 'শিরোনাম',
-                        'body' => 'গুরুত্বপূর্ণ নিরীক্ষা ও নীতিমালা ফাইলের সংরক্ষণ ব্যবস্থা অগোছালো।',
+                        'body' => 'প্রোডাক্ট অনুযায়ী/মোট MIS ও AIS প্রতিবেদনের সাথে সঞ্চয়স্থিতির পার্থক্য',
+                        'amount' => '২২,৪০০',
+                        'rating' => 'Medium (C)',
+                        'criteria' => 'MIS ও AIS প্রতিবেদনে সঞ্চয়স্থিতি মিল রাখতে হবে।',
+                        'observation' => 'প্রোডাক্টভিত্তিক/মোট সঞ্চয়স্থিতিতে MIS ও AIS-এর মধ্যে পার্থক্য পাওয়া গেছে।',
+                        'stats' => ['১০', '১০', '০৪'],
+                        'risk' => 'ভুল আর্থিক প্রতিবেদন ও সিদ্ধান্ত ঝুঁকি।',
+                        'root' => 'দুই সিস্টেমের নিয়মিত সমন্বয় না করা।',
+                        'reco' => 'মাসিক MIS–AIS রিকনসিলিয়েশন বাধ্যতামূলক করা।',
+                        'jobab' => 'হিসাবরক্ষক পার্থক্য সমন্বয় করবেন।',
+                        'status' => 'চলমান',
+                    ],
+                ],
+            ],
+            [
+                'theme' => 'অর্থ-হিসাব ও মানব সম্পদ',
+                'findings' => [
+                    [
+                        'section' => ['১.০', '১.০ অর্থ ও হিসাব সংক্রান্ত'],
+                        'serial' => '১.১',
+                        'indicator_code' => '৪০০০-২',
+                        'title' => 'শিরোনাম',
+                        'body' => 'প্রোডাক্ট অনুযায়ী/মোট MIS ও AIS প্রতিবেদনের সাথে ঋণস্থিতির পার্থক্য',
+                        'amount' => '৩৫,০০০',
+                        'rating' => 'Major (B)',
+                        'criteria' => 'MIS ও AIS প্রতিবেদনে ঋণস্থিতি মিল রাখতে হবে।',
+                        'observation' => 'ঋণস্থিতিতে MIS ও AIS-এর মধ্যে অসঙ্গতি পাওয়া গেছে।',
+                        'stats' => ['২৮', '২৮', '০২'],
+                        'risk' => 'ঋণ পোর্টফোলিও ভুল প্রতিবেদনের ঝুঁকি।',
+                        'root' => 'সিস্টেম সমন্বয় ও যাচাই দুর্বল।',
+                        'reco' => 'মাসিক ঋণস্থিতি রিকনসিলিয়েশন সম্পন্ন করা।',
+                        'jobab' => 'শাখা অসঙ্গতি নিরসন করবে।',
+                        'status' => 'সমাধানের পথে',
+                    ],
+                    [
+                        'section' => null,
+                        'serial' => '১.২',
+                        'indicator_code' => '৫০০০-১',
+                        'title' => 'শিরোনাম',
+                        'body' => 'অনুমোদন ব্যতীত কুক নিয়োগ',
                         'amount' => '৭,৮০০',
-                        'rating' => 'Satisfactory (E)',
-                        'criteria' => 'গুরুত্বপূর্ণ নথি নির্ধারিত ফাইলিং সিস্টেমে সংরক্ষণ করতে হবে।',
-                        'observation' => 'সামগ্রিকভাবে ফাইলিং গ্রহণযোগ্য; সূচিপত্র হালনাগাদ করা হয়েছে।',
+                        'rating' => 'Medium (C)',
+                        'criteria' => 'কুকসহ সকল নিয়োগ যথাযথ অনুমোদন সাপেক্ষে করতে হবে।',
+                        'observation' => 'অনুমোদন ছাড়া কুক নিয়োগের প্রমাণ পাওয়া গেছে।',
                         'stats' => ['২০', '২০', '০১'],
-                        'risk' => 'নথি খুঁজে পেতে বিলম্ব হতে পারে।',
-                        'root' => 'ফাইল ইনডেক্স মাঝে মাঝে আপডেট হয়।',
-                        'reco' => 'ত্রৈমাসিক ফাইল ইনডেক্স রিভিউ অব্যাহত রাখা।',
-                        'jobab' => 'শাখা বর্তমান অনুশীলন বজায় রাখবে।',
-                        'status' => 'সম্পন্ন',
+                        'risk' => 'HR নীতি লঙ্ঘন ও অননুমোদিত ব্যয়।',
+                        'root' => 'নিয়োগ অনুমোদন প্রক্রিয়া এড়িয়ে যাওয়া।',
+                        'reco' => 'অনুমোদন ছাড়া কোনো নিয়োগ না করা।',
+                        'jobab' => 'বিএম অনুমোদন প্রক্রিয়া সম্পন্ন করবেন।',
+                        'status' => 'চলমান',
+                    ],
+                    [
+                        'section' => ['২.০', '২.০ মানব সম্পদ সংক্রান্ত'],
+                        'serial' => '২.১',
+                        'indicator_code' => '৫০০০-৩',
+                        'title' => 'শিরোনাম',
+                        'body' => 'অভিযোগ বক্স স্থাপন না করা',
+                        'amount' => '০',
+                        'rating' => 'Minor (D)',
+                        'criteria' => 'শাখায় অভিযোগ বক্স স্থাপন ও ব্যবহার নিশ্চিত করতে হবে।',
+                        'observation' => 'শাখায় অভিযোগ বক্স স্থাপন করা হয়নি।',
+                        'stats' => ['১', '১', '১'],
+                        'risk' => 'অভিযোগ গ্রহণ ও সমাধান ব্যবস্থা দুর্বল।',
+                        'root' => 'কমপ্লায়েন্স চেকলিস্ট অনুসরণ না করা।',
+                        'reco' => 'অবিলম্বে অভিযোগ বক্স স্থাপন ও মাসিক খোলা।',
+                        'jobab' => 'শাখা অভিযোগ বক্স স্থাপন করবে।',
+                        'status' => 'চলমান',
                     ],
                 ],
             ],
         ];
+
+        // Shared Matrix heading across all demo reports for Summary consolidation.
+        $commonFinding = [
+            'section' => ['৩.০', '৩.০ অর্থ ও হিসাব সংক্রান্ত'],
+            'serial' => '৩.১',
+            'indicator_code' => '৪০০০-৩',
+            'title' => 'শিরোনাম',
+            'body' => 'AIS প্রতিবেদনে সুফলন প্রোডাক্টে ঋণাত্বক সঞ্চয়স্থিতি পার্থক্য',
+            'amount' => '১২,৫০০',
+            'rating' => 'Medium (C)',
+            'criteria' => 'AIS প্রতিবেদনে সঞ্চয়স্থিতি ঋণাত্মক থাকা যাবে না; পার্থক্য নিরসন করতে হবে।',
+            'observation' => 'সুফলন প্রোডাক্টে AIS-এ ঋণাত্মক সঞ্চয়স্থিতি দেখা গেছে।',
+            'stats' => ['১২০', '৩০', '০৪'],
+            'risk' => 'ভুল সঞ্চয় প্রতিবেদন ও সিস্টেম অসঙ্গতি।',
+            'root' => 'AIS ডেটা যাচাই ও কারেকশন না করা।',
+            'reco' => 'ঋণাত্মক সঞ্চয়স্থিতি অবিলম্বে সমন্বয় করা।',
+            'jobab' => 'হিসাবরক্ষক AIS সংশোধন সম্পন্ন করবেন।',
+            'status' => 'সমাধানের পথে',
+        ];
+
+        foreach ($blueprints as &$blueprint) {
+            $blueprint['findings'][] = $commonFinding;
+        }
+        unset($blueprint);
+
+        return $blueprints;
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, AuditIndicator>  $indicators
+     * @param  \Illuminate\Support\Collection<string, AuditIndicator>  $indicators
      * @param  array{theme:string,findings:list<array<string,mixed>>}  $blueprint
      * @return array<string, mixed>
      */
@@ -444,6 +635,7 @@ class SeptemberFullReportsSeeder extends Seeder
         $blocks = [];
         $tocRows = [];
         $financialFindings = [];
+        $usedIndicatorIds = [];
 
         foreach ($blueprint['findings'] as $fIndex => $finding) {
             if (! empty($finding['section'])) {
@@ -465,8 +657,19 @@ class SeptemberFullReportsSeeder extends Seeder
                 ];
             }
 
-            $indicator = $indicators->get(($seedIndex * 3 + $fIndex) % max(1, $indicators->count()));
-            // শিরোনাম must come from Finding Matrix indicator title (linked).
+            $indicatorCode = (string) ($finding['indicator_code'] ?? '');
+            $indicator = $indicators->get($indicatorCode);
+            if (! $indicator) {
+                throw new \RuntimeException("Finding Matrix indicator {$indicatorCode} is unavailable.");
+            }
+            if (in_array((int) $indicator->id, $usedIndicatorIds, true)) {
+                throw new \RuntimeException(
+                    "Finding Matrix indicator {$indicatorCode} is duplicated inside one report."
+                );
+            }
+            $usedIndicatorIds[] = (int) $indicator->id;
+
+            // Exact, prevalidated Matrix heading; never assign a random heading to unrelated evidence.
             $matrixTitle = trim((string) ($indicator?->title ?? ''));
             if ($matrixTitle === '') {
                 $matrixTitle = (string) ($finding['body'] ?? 'শিরোনাম');

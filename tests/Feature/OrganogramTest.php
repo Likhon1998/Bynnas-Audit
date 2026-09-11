@@ -6,12 +6,19 @@ use App\Models\Employee;
 use App\Models\Position;
 use App\Models\User;
 use Database\Seeders\OrganogramSeeder;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class OrganogramTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(RolePermissionSeeder::class);
+    }
 
     public function test_guests_cannot_view_the_organogram(): void
     {
@@ -22,6 +29,7 @@ class OrganogramTest extends TestCase
     {
         $this->seed(OrganogramSeeder::class);
         $user = User::factory()->create();
+        $user->givePermissionTo('organogram.view');
 
         $this->actingAs($user)
             ->get(route('organogram'))
@@ -34,7 +42,7 @@ class OrganogramTest extends TestCase
             ->assertSee('Deputy Director Audit')
             ->assertSee('Assistant Director Audit')
             ->assertSee('Senior Officer Audit')
-            ->assertSee('Position')
+            ->assertDontSee('Add position')
             ->assertSee('Officer Audit')
             ->assertSee('Audit Officer')
             ->assertSee('Mahmud Hasan');
@@ -44,6 +52,7 @@ class OrganogramTest extends TestCase
     {
         $this->seed(OrganogramSeeder::class);
         $user = User::factory()->create();
+        $user->assignRole('audit_manager');
         $position = Position::query()->where('slug', 'audit-officer')->firstOrFail();
 
         $this->actingAs($user)
@@ -64,6 +73,7 @@ class OrganogramTest extends TestCase
     {
         $this->seed(OrganogramSeeder::class);
         $user = User::factory()->create();
+        $user->assignRole('audit_manager');
 
         $this->actingAs($user)
             ->post(route('organogram.positions.store'), [
@@ -83,6 +93,7 @@ class OrganogramTest extends TestCase
     {
         $this->seed(OrganogramSeeder::class);
         $user = User::factory()->create();
+        $user->assignRole('audit_manager');
         $employee = Employee::query()->firstOrFail();
 
         $this->actingAs($user)

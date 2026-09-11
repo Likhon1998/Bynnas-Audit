@@ -7,6 +7,7 @@ use App\Models\Area;
 use App\Services\AnnualPlanGenerator;
 use App\Support\Divisions;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class AreaController extends Controller
@@ -15,15 +16,26 @@ class AreaController extends Controller
         private AnnualPlanGenerator $planGenerator,
     ) {}
 
-    public function index(): View
+    public function index(Request $request): View
     {
+        $division = trim((string) $request->input('division', ''));
+        if ($division !== '' && ! in_array($division, Divisions::OPTIONS, true)) {
+            $division = '';
+        }
+
         $areas = Area::query()
             ->withCount('shakhas')
+            ->when($division !== '', fn ($query) => $query->where('division', $division))
             ->orderBy('division')
             ->orderBy('name')
             ->get();
 
-        return view('areas.index', compact('areas'));
+        return view('areas.index', [
+            'areas' => $areas,
+            'groupedAreas' => $areas->groupBy('division'),
+            'divisions' => Divisions::OPTIONS,
+            'selectedDivision' => $division,
+        ]);
     }
 
     public function create(): View

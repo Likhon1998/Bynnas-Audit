@@ -47,8 +47,15 @@ class AuditFindingController extends Controller
             ];
         });
 
+        $flatRows = collect($underheadingGroups)->flatMap(function (array $group) {
+            return collect($group['rows'])->map(fn ($row) => array_merge($row, [
+                'category' => $group['category'],
+                'sub_category' => $group['sub_category'],
+            ]));
+        })->values();
+
         return view('audit-findings.summary', [
-            'underheadingGroups' => $underheadingGroups,
+            'flatRows' => $flatRows,
             'periodLabel' => $periodLabel,
             'month' => $month,
             'year' => $year,
@@ -56,7 +63,6 @@ class AuditFindingController extends Controller
             'yearOptions' => range(now()->year + 1, now()->year - 6),
             'exportUrl' => route('audit-findings.summary.export', ['month' => $month, 'year' => $year]),
             'exportPptUrl' => route('audit-findings.summary.export-ppt', ['month' => $month, 'year' => $year]),
-            'matrixUrl' => route('audit-findings.index', ['month' => $month, 'year' => $year]),
         ]);
     }
 
@@ -310,7 +316,7 @@ class AuditFindingController extends Controller
         $shakha = Shakha::query()->with('area')->find($shakhaId);
         if (! $shakha) {
             return redirect()
-                ->route('audit-findings.index')
+                ->route($request->user()?->can('findings.view_all') ? 'audit-findings.index' : 'dashboard')
                 ->with('status', 'Select a branch (or open Findings from an Audit Report) to enter data.');
         }
 

@@ -6,9 +6,11 @@
                 <p class="mt-0.5 text-[11px] text-slate-500">Master list — flags decide which Annual Audit tabs get schedules</p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
-                <a href="{{ route('annual-audit.index', ['tab' => 'project_audit']) }}" class="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[12px] font-medium text-slate-700 hover:bg-slate-50">
-                    Open Annual Audit
-                </a>
+                @can('annual_audit.manage')
+                    <a href="{{ route('annual-audit.index', ['tab' => 'project_audit']) }}" class="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[12px] font-medium text-slate-700 hover:bg-slate-50">
+                        Open Annual Audit
+                    </a>
+                @endcan
                 <a href="{{ route('projects.create') }}" class="inline-flex items-center gap-1 rounded-lg bg-navy-900 px-2.5 py-1.5 text-[12px] font-medium text-white hover:bg-navy-800">
                     <span class="text-[13px] leading-none">+</span>
                     Add Project
@@ -64,8 +66,10 @@
                                 </td>
                                 <td class="px-4 py-2.5 text-right">
                                     <a href="{{ route('projects.show', $project) }}" class="font-medium text-brand-600 hover:underline">Manage</a>
-                                    <span class="mx-1 text-slate-300">·</span>
-                                    <a href="{{ route('annual-audit.index', ['tab' => $project->preferredPlanTab(), 'project' => $project->id]) }}" class="font-medium text-slate-500 hover:underline">Plan</a>
+                                    @can('annual_audit.manage')
+                                        <span class="mx-1 text-slate-300">·</span>
+                                        <a href="{{ route('annual-audit.index', ['tab' => $project->preferredPlanTab(), 'project' => $project->id]) }}" class="font-medium text-slate-500 hover:underline">Plan</a>
+                                    @endcan
                                 </td>
                             </tr>
                         @empty

@@ -13,7 +13,7 @@ class OrganizationTest extends TestCase
 
     public function test_authenticated_users_can_view_areas_and_shakhas(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['is_superadmin' => true]);
 
         $this->actingAs($user)
             ->get(route('areas.index'))
@@ -28,7 +28,7 @@ class OrganizationTest extends TestCase
 
     public function test_authenticated_users_can_create_an_area_and_shakha(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['is_superadmin' => true]);
 
         $this->actingAs($user)
             ->post(route('areas.store'), [

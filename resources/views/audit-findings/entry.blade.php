@@ -148,9 +148,15 @@
     >
         <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
             <div>
-                <a href="{{ route('audit-findings.index', ['month' => $month, 'year' => $year]) }}" class="mb-1 inline-flex items-center gap-1 text-[11px] font-medium text-[#2b579a] hover:underline">
-                    ← Consolidated totals
-                </a>
+                @can('findings.view_all')
+                    <a href="{{ route('audit-findings.index', ['month' => $month, 'year' => $year]) }}" class="mb-1 inline-flex items-center gap-1 text-[11px] font-medium text-[#2b579a] hover:underline">
+                        ← Consolidated totals
+                    </a>
+                @else
+                    <a href="{{ route('dashboard') }}" class="mb-1 inline-flex items-center gap-1 text-[11px] font-medium text-[#2b579a] hover:underline">
+                        ← Dashboard
+                    </a>
+                @endcan
                 <h1 class="text-[16px] font-semibold text-navy-900">Enter findings</h1>
                 <p class="mt-0.5 text-[11px] text-slate-500">
                     {{ $shakha->name }}{{ $shakha->code ? ' ('.$shakha->code.')' : '' }}
@@ -160,7 +166,9 @@
                     · Leave blank = no cell
                 </p>
             </div>
-            <a href="{{ route('audits.index') }}" class="inline-flex h-8 items-center rounded-lg border border-slate-200 px-3 text-[12px] text-slate-600 hover:bg-slate-50">Audit Reports</a>
+            @canany(['audits.create', 'audits.manage'])
+                <a href="{{ route('audits.index') }}" class="inline-flex h-8 items-center rounded-lg border border-slate-200 px-3 text-[12px] text-slate-600 hover:bg-slate-50">Audit Reports</a>
+            @endcanany
         </div>
 
         @if (session('status'))

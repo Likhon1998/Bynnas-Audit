@@ -1,6 +1,8 @@
 <x-app-layout>
     @php
         $branchOptions = $shakhas->values()->map(function ($shakha, $index) use ($fyLabel) {
+            $risk = $shakha->riskCategory();
+
             return [
                 'id' => (string) $shakha->id,
                 'serial' => $index + 1,
@@ -12,6 +14,11 @@
                 'has' => $shakha->annualKpis->isNotEmpty(),
                 'opening' => optional($shakha->opening_date ?? $shakha->opened_at)->format('d M Y') ?: '',
                 'editUrl' => route('kpis.edit', ['shakha' => $shakha, 'fy' => $fyLabel]),
+                'risk' => $risk ?: 'Not assessed',
+                'risk_short' => \App\Support\ShakhaRiskTone::shortLabel($risk),
+                'risk_badge' => \App\Support\ShakhaRiskTone::badgeClasses($risk),
+                'risk_text' => \App\Support\ShakhaRiskTone::textClasses($risk),
+                'risk_soft' => \App\Support\ShakhaRiskTone::softBgClasses($risk),
             ];
         })->values();
         $areaNames = $shakhas->map(fn ($s) => $s->area?->name)->filter()->unique()->sort()->values();
@@ -74,7 +81,7 @@
     >
         <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
             <div>
-                <h1 class="text-[16px] font-semibold tracking-tight text-navy-900">Annual Shakha KPI</h1>
+                <h1 class="text-[16px] font-semibold tracking-tight text-navy-900">Annual Shakha Key Performance Indicator (KPI)</h1>
                 <p class="mt-0.5 text-[11px] text-slate-500">Enter once per financial year for each branch · export one consolidated Excel like your template</p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
@@ -154,7 +161,14 @@
                         >
                             <span class="mt-0.5 w-6 shrink-0 text-[11px] tabular-nums text-slate-400" x-text="b.serial"></span>
                             <span class="min-w-0 flex-1">
-                                <span class="block truncate text-[12px] font-semibold text-navy-900" x-text="b.name"></span>
+                                <span class="block truncate text-[12px] font-semibold" :class="b.risk_text || 'text-navy-900'" x-text="b.name"></span>
+                                <span class="mt-0.5 inline-flex items-center gap-1">
+                                    <span
+                                        class="inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-semibold"
+                                        :class="b.risk_badge"
+                                        x-text="b.risk_short"
+                                    ></span>
+                                </span>
                                 <span class="mt-0.5 block truncate text-[10px] text-slate-500">
                                     <span x-text="b.area || 'No area'"></span>
                                     <span x-show="b.code"> · <span x-text="b.code"></span></span>
@@ -220,7 +234,12 @@
                             >
                                 <td class="px-4 py-2.5 tabular-nums text-slate-400" x-text="b.serial"></td>
                                 <td class="px-4 py-2.5 text-slate-600" x-text="b.area || '—'"></td>
-                                <td class="px-4 py-2.5 font-medium text-navy-900" x-text="b.name"></td>
+                                <td class="px-4 py-2.5 font-medium" :class="(b.risk_text || 'text-navy-900') + ' ' + (b.risk_soft || '')">
+                                    <div class="flex flex-wrap items-center gap-1.5">
+                                        <span x-text="b.name"></span>
+                                        <span class="inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-semibold" :class="b.risk_badge" x-text="b.risk_short"></span>
+                                    </div>
+                                </td>
                                 <td class="px-4 py-2.5 text-slate-500" x-text="b.code || '—'"></td>
                                 <td class="px-4 py-2.5 text-slate-500" x-text="b.opening || '—'"></td>
                                 <td class="px-4 py-2.5 text-slate-500" x-text="b.focal || '—'"></td>
@@ -244,7 +263,9 @@
                 @if ($shakhas->isEmpty())
                     <p class="px-4 py-10 text-center text-[12px] text-slate-400">
                         No active shakhas.
-                        <a href="{{ route('shakhas.create') }}" class="font-medium text-brand-600 hover:underline">Add a shakha</a>
+                        @can('shakhas.manage')
+                            <a href="{{ route('shakhas.create') }}" class="font-medium text-brand-600 hover:underline">Add a shakha</a>
+                        @endcan
                     </p>
                 @endif
             </div>

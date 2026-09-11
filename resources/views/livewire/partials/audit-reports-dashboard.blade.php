@@ -9,10 +9,14 @@
         <div class="min-w-0">
             <h1 class="text-[14px] font-semibold tracking-tight text-navy-900">Audit Reports</h1>
             <p class="mt-0.5 text-[11px] text-slate-500">
-                Max {{ $maxConcurrentDrafts }} drafts · Auto-save · Continue from where you left off
+                Max {{ $maxConcurrentDrafts }} drafts · Joint visit auditors share one report · Auto-save
             </p>
         </div>
         <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
+            <a
+                href="{{ route('audits.send-history', ['month' => $listFilterMonth ?: now()->month, 'year' => $listFilterYear ?: now()->year]) }}"
+                class="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 font-semibold text-slate-700 hover:bg-slate-50"
+            >Send history</a>
             <span class="inline-flex items-center gap-1 rounded-md border border-sky-200 bg-sky-50 px-2 py-1 font-semibold text-sky-800">
                 Ongoing <span class="tabular-nums">{{ $ongoingCount }}</span>
             </span>
@@ -39,7 +43,7 @@
     <div class="border-b border-slate-100 px-3 py-2.5 sm:px-4 {{ $canStartNewReport ? '' : 'pointer-events-none opacity-55' }}">
         <div class="mb-1.5 flex items-baseline justify-between gap-2">
             <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Start new</p>
-            <p class="text-[10px] text-slate-400">Branch · month · year</p>
+            <p class="text-[10px] text-slate-400">Allocated branches · month · year</p>
         </div>
         <div class="grid gap-2 lg:grid-cols-[minmax(0,1fr)_118px_88px_auto] lg:items-end">
             <div class="relative min-w-0" @mousedown.outside="open = false">
@@ -88,11 +92,18 @@
                                 :class="highlight === idx ? 'bg-sky-50' : ''"
                             >
                                 <span class="min-w-0 flex-1">
-                                    <span class="block truncate text-[12px] font-semibold leading-tight text-navy-900" x-text="b.name"></span>
-                                    <span class="block truncate text-[10px] leading-tight text-slate-500">
-                                        <span x-text="b.code || '—'"></span>
-                                        <span x-show="b.area"> · </span>
-                                        <span x-text="b.area || ''"></span>
+                                    <span class="block truncate text-[12px] font-semibold leading-tight" :class="b.risk_text || 'text-navy-900'" x-text="b.name"></span>
+                                    <span class="mt-0.5 flex flex-wrap items-center gap-1">
+                                        <span class="truncate text-[10px] leading-tight text-slate-500">
+                                            <span x-text="b.code || '—'"></span>
+                                            <span x-show="b.area"> · </span>
+                                            <span x-text="b.area || ''"></span>
+                                        </span>
+                                        <span
+                                            class="inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-semibold"
+                                            :class="b.risk_badge || 'bg-slate-50 text-slate-500 ring-1 ring-slate-200'"
+                                            x-text="b.risk_short || 'N/A'"
+                                        ></span>
                                     </span>
                                 </span>
                                 <span
@@ -102,7 +113,13 @@
                                 ></span>
                             </button>
                         </template>
-                        <p x-show="filtered.length === 0" class="px-2.5 py-2 text-[11px] text-slate-500">No branch matched</p>
+                        <p x-show="filtered.length === 0" class="px-2.5 py-2 text-[11px] text-slate-500">
+                            @if (($shakhaCount ?? 0) === 0)
+                                No allocated shakha for this month
+                            @else
+                                No branch matched
+                            @endif
+                        </p>
                     </div>
                 </div>
                 @error('shakha_id')
@@ -112,7 +129,7 @@
 
             <div>
                 <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Month</label>
-                <select wire:model="report_month" class="block w-full rounded-md border-slate-200 py-1.5 text-[12px] leading-5" @disabled(! $canStartNewReport)>
+                <select wire:model.live="report_month" class="block w-full rounded-md border-slate-200 py-1.5 text-[12px] leading-5" @disabled(! $canStartNewReport)>
                     @for ($m = 1; $m <= 12; $m++)
                         <option value="{{ $m }}">{{ date('F', mktime(0, 0, 0, $m, 1)) }}</option>
                     @endfor
@@ -120,7 +137,7 @@
             </div>
             <div>
                 <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Year</label>
-                <select wire:model="report_year" class="block w-full rounded-md border-slate-200 py-1.5 text-[12px] leading-5" @disabled(! $canStartNewReport)>
+                <select wire:model.live="report_year" class="block w-full rounded-md border-slate-200 py-1.5 text-[12px] leading-5" @disabled(! $canStartNewReport)>
                     @for ($y = now()->year + 1; $y >= now()->year - 6; $y--)
                         <option value="{{ $y }}">{{ $y }}</option>
                     @endfor
@@ -215,12 +232,19 @@
                         $isDraft = $report->isDraft();
                     @endphp
                     <tr class="hover:bg-slate-50/80">
-                        <td class="px-3 py-2 align-middle sm:px-4">
-                            <p class="truncate text-[12px] font-semibold text-navy-900">
-                                {{ $report->shakha_display_name ?: ($report->shakha?->name ?? 'Branch') }}
-                            </p>
+                        <td class="px-3 py-2 align-middle sm:px-4 {{ $report->shakha?->riskCategory() ? \App\Support\ShakhaRiskTone::softBgClasses($report->shakha->riskCategory()) : '' }}">
+                            <x-shakha-name
+                                :name="$report->shakha_display_name ?: ($report->shakha?->name ?? 'Branch')"
+                                :category="$report->shakha?->riskCategory()"
+                                class="text-[12px]"
+                            />
                             @if ($report->memo_no)
                                 <p class="truncate text-[10px] text-slate-400">{{ $report->memo_no }}</p>
+                            @endif
+                            @if ($report->relationLoaded('collaborators') && $report->collaborators->isNotEmpty())
+                                <p class="mt-0.5 truncate text-[10px] font-medium text-violet-700">
+                                    Shared · {{ $report->collaboratorNamesLabel() }}
+                                </p>
                             @endif
                         </td>
                         <td class="whitespace-nowrap px-2 py-2 align-middle text-[12px] text-slate-600">
@@ -273,11 +297,17 @@
                                     href="{{ route('audits.checklist', $report) }}"
                                     class="inline-flex h-7 items-center rounded-md border border-slate-200 px-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
                                 >Checklist</a>
-                                <a
-                                    href="{{ route('audit-findings.entry', ['report' => $report->id]) }}"
-                                    class="inline-flex h-7 items-center rounded-md border border-slate-200 px-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
-                                >Findings</a>
-                                @if ($isDraft)
+                                @unless ($isDraft)
+                                    <button
+                                        type="button"
+                                        wire:click="openSendMailModal({{ $report->id }})"
+                                        class="inline-flex h-7 items-center gap-1 rounded-md border border-[#ea4335]/30 bg-[#ea4335] px-2 text-[11px] font-semibold text-white hover:bg-[#d33426]"
+                                    >
+                                        <svg class="h-3 w-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                                        Send by Gmail
+                                    </button>
+                                @endunless
+                                @if ($isDraft && (int) $report->user_id === (int) auth()->id())
                                     <button
                                         type="button"
                                         wire:click="deleteDraft({{ $report->id }})"
@@ -309,3 +339,80 @@
         </div>
     @endif
 </div>
+
+@if ($showSendMailModal)
+    <div class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 px-3 py-8" wire:click.self="closeSendMailModal">
+        <div class="w-full max-w-xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl" @keydown.escape.window="$wire.closeSendMailModal()">
+            <div class="flex items-center justify-between border-b border-slate-200 bg-[#f8fafc] px-4 py-3">
+                <div>
+                    <p class="text-[13px] font-semibold text-navy-900">Send by Gmail</p>
+                    <p class="text-[11px] text-slate-500">{{ $mailReportLabel }}</p>
+                </div>
+                <button type="button" wire:click="closeSendMailModal" class="rounded-md px-2 py-1 text-[12px] font-medium text-slate-500 hover:bg-slate-100">Close</button>
+            </div>
+
+            <div class="space-y-3 px-4 py-4">
+                @if ($mailError !== '')
+                    <div class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-800">{{ $mailError }}</div>
+                @endif
+
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <div>
+                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Sender name</label>
+                        <input type="text" wire:model="mailFromName" class="h-9 w-full rounded-md border-slate-200 text-[12px]" placeholder="Sender name">
+                        @error('mailFromName') <p class="mt-1 text-[10px] text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Sender email</label>
+                        <input type="email" wire:model="mailFromEmail" class="h-9 w-full rounded-md border-slate-200 text-[12px]" placeholder="sender@example.com">
+                        @error('mailFromEmail') <p class="mt-1 text-[10px] text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <div>
+                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">To (receiver)</label>
+                        <input type="email" wire:model="mailToEmail" class="h-9 w-full rounded-md border-slate-200 text-[12px]" placeholder="receiver@example.com">
+                        @error('mailToEmail') <p class="mt-1 text-[10px] text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">CC <span class="font-normal normal-case text-slate-400">(optional)</span></label>
+                        <input type="email" wire:model="mailCcEmail" class="h-9 w-full rounded-md border-slate-200 text-[12px]" placeholder="cc@example.com">
+                        @error('mailCcEmail') <p class="mt-1 text-[10px] text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+
+                <div>
+                    <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Subject</label>
+                    <input type="text" wire:model="mailSubject" class="h-9 w-full rounded-md border-slate-200 text-[12px]">
+                    @error('mailSubject') <p class="mt-1 text-[10px] text-rose-600">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
+                    <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Message</label>
+                    <textarea wire:model="mailBody" rows="8" class="w-full rounded-md border-slate-200 text-[12px] leading-relaxed" placeholder="Write your email…"></textarea>
+                    @error('mailBody') <p class="mt-1 text-[10px] text-rose-600">{{ $message }}</p> @enderror
+                </div>
+
+                <label class="inline-flex items-center gap-2 text-[12px] text-slate-700">
+                    <input type="checkbox" wire:model="mailAttachPdf" class="rounded border-slate-300 text-[#ea4335] focus:ring-[#ea4335]">
+                    Attach report PDF
+                </label>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 border-t border-slate-200 bg-slate-50/70 px-4 py-3">
+                <button type="button" wire:click="closeSendMailModal" class="inline-flex h-9 items-center rounded-md border border-slate-200 bg-white px-3 text-[12px] font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
+                <button
+                    type="button"
+                    wire:click="sendReportByMail"
+                    wire:loading.attr="disabled"
+                    wire:target="sendReportByMail"
+                    class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#ea4335] px-3 text-[12px] font-semibold text-white hover:bg-[#d33426] disabled:opacity-60"
+                >
+                    <span wire:loading.remove wire:target="sendReportByMail">Send</span>
+                    <span wire:loading wire:target="sendReportByMail">Sending…</span>
+                </button>
+            </div>
+        </div>
+    </div>
+@endif

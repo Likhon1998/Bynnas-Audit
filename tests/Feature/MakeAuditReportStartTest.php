@@ -95,6 +95,34 @@ class MakeAuditReportStartTest extends TestCase
         $this->assertSame(1, AuditReport::query()->where('shakha_id', $shakha->id)->count());
     }
 
+    public function test_mail_modal_prefills_sender_and_accepts_manual_email_addresses(): void
+    {
+        $user = $this->makeAuditUser();
+        $user->update(['name' => 'Audit User', 'mail_from_email' => 'auditor@gmail.com']);
+        $shakha = $this->makeShakha();
+        $report = AuditReport::query()->create([
+            'user_id' => $user->id,
+            'shakha_id' => $shakha->id,
+            'report_month' => 8,
+            'report_year' => 2026,
+            'status' => AuditReport::STATUS_COMPLETED,
+            'completed_at' => now(),
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(MakeAuditReport::class)
+            ->call('openSendMailModal', $report->id)
+            ->assertSet('mailFromName', 'Audit User')
+            ->assertSet('mailFromEmail', 'auditor@gmail.com')
+            ->assertSet('mailToEmail', '')
+            ->set('mailFromName', 'Custom Sender')
+            ->set('mailFromEmail', 'custom.sender@gmail.com')
+            ->set('mailToEmail', 'receiver@gmail.com')
+            ->assertSet('mailFromName', 'Custom Sender')
+            ->assertSet('mailFromEmail', 'custom.sender@gmail.com')
+            ->assertSet('mailToEmail', 'receiver@gmail.com');
+    }
+
     public function test_user_cannot_start_more_than_three_concurrent_drafts(): void
     {
         $user = $this->makeAuditUser();
