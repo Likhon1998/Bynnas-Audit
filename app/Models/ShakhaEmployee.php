@@ -4,10 +4,27 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
 
 class ShakhaEmployee extends Model
 {
+    public const STATUS_ACTIVE = 'active';
+
+    public const STATUS_INACTIVE = 'inactive';
+
+    public const STATUS_TRANSFERRED = 'transferred';
+
+    public const STATUS_FIRED = 'fired';
+
+    /** @var list<string> */
+    public const STATUSES = [
+        self::STATUS_ACTIVE,
+        self::STATUS_INACTIVE,
+        self::STATUS_TRANSFERRED,
+        self::STATUS_FIRED,
+    ];
+
     protected $fillable = [
         'shakha_id',
         'employee_code',
@@ -44,9 +61,35 @@ class ShakhaEmployee extends Model
         return $this->belongsTo(Shakha::class);
     }
 
+    public function transfers(): HasMany
+    {
+        return $this->hasMany(ShakhaEmployeeTransfer::class)->orderByDesc('transferred_at');
+    }
+
     public function isActive(): bool
     {
-        return $this->status === 'active';
+        return $this->status === self::STATUS_ACTIVE;
+    }
+
+    public function isFired(): bool
+    {
+        return $this->status === self::STATUS_FIRED;
+    }
+
+    public function isTransferred(): bool
+    {
+        return $this->status === self::STATUS_TRANSFERRED;
+    }
+
+    public function statusLabel(): string
+    {
+        return match ($this->status) {
+            self::STATUS_ACTIVE => 'Active (কর্মরত)',
+            self::STATUS_TRANSFERRED => 'Transferred (স্থানান্তরিত)',
+            self::STATUS_FIRED => 'Fired (চাকরিচ্যুত)',
+            self::STATUS_INACTIVE => 'Inactive (নিষ্ক্রিয়)',
+            default => (string) $this->status,
+        };
     }
 
     public function photoUrl(): ?string

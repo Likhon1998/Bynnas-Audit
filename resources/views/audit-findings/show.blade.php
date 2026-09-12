@@ -236,8 +236,8 @@
                             </tr>
                         </template>
                         <tr x-show="rows.length === 0">
-                            <td colspan="7" class="px-3 py-10 text-center text-[12px] text-slate-400">No branch findings for this indicator in the selected period.</td>
-                        </tr>
+                                <td colspan="7" class="px-3 py-10 text-center text-[12px] text-slate-400">No branch findings for this indicator in the selected period.</td>
+                            </tr>
                     </tbody>
                 </table>
             </div>

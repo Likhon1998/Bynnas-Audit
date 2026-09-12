@@ -31,7 +31,13 @@
                     @endif
                 </p>
             </div>
-            <details class="relative">
+            <div class="flex flex-wrap items-center gap-1.5">
+                @canany(['calendar.manage', 'monthly_visits.manage', 'monthly_visits.execute'])
+                    <a href="{{ route('calendar.index', ['month' => (int) ($fy->months()[$monthIndex]['month'] ?? now('Asia/Dhaka')->month), 'year' => (int) ($fy->months()[$monthIndex]['year'] ?? now('Asia/Dhaka')->year)]) }}" class="inline-flex h-8 items-center rounded-md border border-sky-200 bg-sky-50 px-2.5 text-[12px] font-medium text-sky-800 hover:bg-sky-100">
+                        Working Calendar
+                    </a>
+                @endcanany
+                <details class="relative">
                 <summary class="inline-flex h-8 cursor-pointer list-none items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 text-[12px] font-medium text-slate-700 hover:bg-slate-50 [&::-webkit-details-marker]:hidden">
                     Export
                     <svg class="h-3 w-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
@@ -44,6 +50,7 @@
                     <a href="{{ route('monthly-visits.report', ['fy' => $plan->fy_label, 'month' => $monthIndex, 'type' => 'schedule']) }}" class="block border-t border-slate-100 px-3 py-1.5 text-[12px] text-slate-700 hover:bg-slate-50">Reports</a>
                 </div>
             </details>
+            </div>
         </div>
 
         @if (session('status'))
@@ -57,6 +64,13 @@
                 Yearly plan is not generated yet — create it under Annual Audit first.
             </div>
         @endunless
+
+        <div class="mb-3">
+            @include('calendar.partials.source-banner', [
+                'weekendLabels' => $calendarPayload['weekend_labels'] ?? [],
+                'calendarManageUrl' => $calendarPayload['manage_url'] ?? route('calendar.index'),
+            ])
+        </div>
 
         {{-- Controls: period · search · actions --}}
         <div class="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-2">
@@ -332,6 +346,20 @@
                                         @endif
                                     </td>
                                     <td class="px-3 py-2 text-right whitespace-nowrap">
+                                        @php $work = $visitWorkLinks[$a->id] ?? null; @endphp
+                                        @if ($work && ($work['supports_audit_work'] ?? $work['is_shakha'] ?? false) && ($work['checklist_url'] ?? null))
+                                            <span class="mr-1 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold {{ ($work['checklist_ready'] ?? false) ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' : 'bg-amber-50 text-amber-800 ring-1 ring-amber-100' }}">
+                                                CL {{ $work['checklist_done'] }}/{{ $work['checklist_required'] }}
+                                            </span>
+                                            <a href="{{ $work['checklist_url'] }}" class="font-medium text-teal-700 hover:underline">Checklist</a>
+                                            <span class="text-slate-300">·</span>
+                                            @if ($work['checklist_ready'] ?? false)
+                                                <a href="{{ $work['report_url'] }}" class="font-medium text-emerald-700 hover:underline">Report</a>
+                                            @else
+                                                <a href="{{ $work['report_url'] }}" class="font-medium text-slate-400 hover:underline" title="Finish checklist evidence first">Report</a>
+                                            @endif
+                                            <span class="text-slate-300">·</span>
+                                        @endif
                                         @can('monthly_visits.manage')
                                             @if ($a?->is_locked && ! $a->canBeModifiedBy(auth()->user()))
                                                 <span class="text-[11px] text-amber-700" title="Locked by {{ $a->lockedBy?->name ?? 'admin' }}">Locked</span>
@@ -402,7 +430,11 @@
                     <div>
                         <p class="text-[14px] font-semibold text-navy-900" x-text="current ? (current.status === 'assigned' ? 'Edit allocation' : 'Allocate visit') : 'Allocate visit'"></p>
                         <p class="mt-0.5 text-[12px] text-slate-600" x-text="current ? (current.entity_label + ' · ' + (current.activity || current.category)) : ''"></p>
-                        <p class="mt-1 text-[10px] text-slate-500">Working days skip Fri–Sat &amp; holidays · one person cannot cover overlapping dates</p>
+                        <p class="mt-1 text-[10px] text-slate-500">
+                            Working days follow
+                            <a href="{{ route('calendar.index') }}" class="font-semibold text-sky-700 underline hover:text-sky-900">Working Calendar</a>
+                            (weekly offs + holidays + internal offs) · one person cannot cover overlapping dates
+                        </p>
                     </div>
                     <button type="button" @click="close()" class="rounded-md p-1.5 text-slate-400 hover:bg-slate-50 hover:text-slate-700">
                         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -432,16 +464,9 @@
                         <div class="grid min-h-0 flex-1 gap-0 overflow-y-auto lg:grid-cols-5">
                             <div class="space-y-3 border-b border-slate-100 p-4 lg:col-span-2 lg:border-b-0 lg:border-r">
                                 <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Visit window</p>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <div>
-                                        <label class="mb-1 block text-[11px] font-medium text-slate-600">Start</label>
-                                        <input type="date" name="start_date" required x-model="form.start_date" class="block w-full rounded-md border-slate-200 text-[13px]">
-                                    </div>
-                                    <div>
-                                        <label class="mb-1 block text-[11px] font-medium text-slate-600">End</label>
-                                        <input type="date" name="end_date" required x-model="form.end_date" class="block w-full rounded-md border-slate-200 text-[13px]">
-                                    </div>
-                                </div>
+                                <input type="hidden" name="start_date" required :value="form.start_date">
+                                <input type="hidden" name="end_date" required :value="form.end_date">
+                                @include('calendar.partials.working-range-picker')
 
                                 <div class="flex items-baseline justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
                                     <div>
@@ -455,7 +480,7 @@
                                     <input type="checkbox" name="count_off_days" value="1" x-model="form.count_off_days" class="mt-0.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
                                     <span>
                                         <span class="block text-[12px] font-medium text-slate-800">Count off days</span>
-                                        <span class="block text-[10px] text-slate-500">Include Fri/Sat &amp; holidays in duration</span>
+                                        <span class="block text-[10px] text-slate-500">Include weekly offs &amp; calendar holidays in duration</span>
                                     </span>
                                 </label>
                                 <label class="mt-2 flex cursor-pointer items-start gap-2 rounded-lg border border-amber-100 bg-amber-50/60 px-3 py-2">
@@ -468,10 +493,14 @@
                                 </label>
 
                                 <div x-show="rangeHolidays.length || rangeWeekends.length" class="rounded-md border border-slate-100 bg-slate-50 px-3 py-2">
-                                    <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Off days in range</p>
-                                    <ul class="mt-1 max-h-20 space-y-0.5 overflow-y-auto text-[11px] text-slate-600">
+                                    <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Off days in range (from Working Calendar)</p>
+                                    <ul class="mt-1 max-h-24 space-y-0.5 overflow-y-auto text-[11px] text-slate-600">
                                         <template x-for="h in rangeHolidays" :key="h.date + h.type">
-                                            <li><span class="tabular-nums" x-text="h.date"></span><span x-text="' · ' + h.name"></span></li>
+                                            <li>
+                                                <span class="tabular-nums" x-text="h.date"></span>
+                                                <span x-text="' · ' + h.name"></span>
+                                                <span class="text-slate-400" x-text="h.type_label ? (' · ' + h.type_label) : ''"></span>
+                                            </li>
                                         </template>
                                         <template x-for="d in rangeWeekends" :key="d">
                                             <li><span class="tabular-nums" x-text="d"></span> · Weekly off</li>
@@ -499,7 +528,7 @@
                                 <div class="mb-2 flex flex-wrap items-end justify-between gap-2">
                                     <div>
                                         <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Staff</p>
-                                        <p class="text-[10px] text-slate-500">Free days this month · select one or more</p>
+                                        <p class="text-[10px] text-slate-500">Free working days this month (Working Calendar) · select one or more</p>
                                     </div>
                                     <input type="search" x-model="staffQuery" placeholder="Search staff…" class="h-8 w-full max-w-[180px] rounded-md border-slate-200 py-0 text-[12px]">
                                 </div>
@@ -578,11 +607,11 @@
         @endcan
     </div>
 
+    @include('calendar.partials.working-range-picker-js')
     <script>
         function monthlyAllocate(cfg) {
-            const holidayMap = {};
-            (cfg.calendar?.holidays || []).forEach((h) => { holidayMap[h.date] = h; });
-            const weekendDays = cfg.calendar?.weekend_days || [5, 6];
+            const cal = window.WorkingCalendarUi.create(cfg.calendar || {});
+            const { holidayMap, weekendDays, offDayHint } = cal;
 
             return {
                 open: false,
@@ -593,6 +622,11 @@
                 visitorIds: [],
                 staffQuery: '',
                 listQuery: '',
+                pickerYear: new Date().getFullYear(),
+                pickerMonth: new Date().getMonth() + 1,
+                pickerOpen: null,
+                pickerStyle: 'top: 120px; left: 24px;',
+                pickerWeekdays: cal.weekdayLabels,
                 form: {
                     start_date: '',
                     end_date: '',
@@ -607,6 +641,80 @@
                 conflictWarning: cfg.conflictWarning || '',
                 init() {
                     if (cfg.openId) this.openAllocate(cfg.openId, true);
+                },
+                get pickerMonthLabel() {
+                    return cal.monthLabel(this.pickerYear, this.pickerMonth);
+                },
+                get pickerCells() {
+                    return cal.buildPickerCells(this.pickerYear, this.pickerMonth, this.form.start_date, this.form.end_date);
+                },
+                get rangeStartLabel() {
+                    return cal.formatLabel(this.form.start_date);
+                },
+                get rangeEndLabel() {
+                    return cal.formatLabel(this.form.end_date);
+                },
+                get pickerHint() {
+                    if (this.pickerOpen === 'start') return 'Choose start · emerald = working day, grey/colour = off';
+                    if (this.pickerOpen === 'end') return 'Choose end · emerald = working day, grey/colour = off';
+                    return '';
+                },
+                get pickerTitle() {
+                    return this.pickerOpen === 'end' ? 'Pick end date' : 'Pick start date';
+                },
+                openDatePicker(which) {
+                    const ymd = which === 'end' ? this.form.end_date : this.form.start_date;
+                    const synced = cal.syncMonthFrom(ymd);
+                    this.pickerYear = synced.year;
+                    this.pickerMonth = synced.month;
+                    this.pickerOpen = which;
+                    this.$nextTick(() => this.positionDatePicker());
+                },
+                positionDatePicker() {
+                    const btn = this.pickerOpen === 'end' ? this.$refs.endDateBtn : this.$refs.startDateBtn;
+                    if (!btn) return;
+                    const rect = btn.getBoundingClientRect();
+                    const width = 300;
+                    const left = Math.min(Math.max(8, rect.left), window.innerWidth - width - 8);
+                    let top = rect.bottom + 6;
+                    const approxHeight = 360;
+                    if (top + approxHeight > window.innerHeight - 8) {
+                        top = Math.max(8, rect.top - approxHeight - 6);
+                    }
+                    this.pickerStyle = `top:${top}px; left:${left}px;`;
+                },
+                closeDatePicker() {
+                    this.pickerOpen = null;
+                },
+                pickerPrev() {
+                    const next = cal.shiftMonth(this.pickerYear, this.pickerMonth, -1);
+                    this.pickerYear = next.year;
+                    this.pickerMonth = next.month;
+                },
+                pickerNext() {
+                    const next = cal.shiftMonth(this.pickerYear, this.pickerMonth, 1);
+                    this.pickerYear = next.year;
+                    this.pickerMonth = next.month;
+                },
+                pickerDayClass(cell) {
+                    return cal.pickerDayClass(cell);
+                },
+                pickerNumClass(cell) {
+                    return cal.pickerNumClass(cell);
+                },
+                pickWorkingDay(cell) {
+                    if (!this.pickerOpen) return;
+                    if (!cell.inMonth) {
+                        const d = cal.parseYmd(cell.date);
+                        if (d) {
+                            this.pickerYear = d.getFullYear();
+                            this.pickerMonth = d.getMonth() + 1;
+                        }
+                    }
+                    const result = cal.applySinglePick(this.pickerOpen, this.form.start_date, this.form.end_date, cell.date);
+                    this.form.start_date = result.start;
+                    this.form.end_date = result.end;
+                    this.pickerOpen = null;
                 },
                 rowMatch(haystack, query) {
                     const q = (query || '').toLowerCase().trim();
@@ -656,6 +764,10 @@
                         purpose: item.purpose || item.activity || '',
                         remarks: (useOld && cfg.oldRemarks) || item.remarks || '',
                     };
+                    const synced = cal.syncMonthFrom(this.form.start_date);
+                    this.pickerYear = synced.year;
+                    this.pickerMonth = synced.month;
+                    this.pickerOpen = null;
                     if (!useOld) {
                         this.hasConflict = false;
                         this.conflictWarning = '';
@@ -665,22 +777,16 @@
                 close() {
                     this.open = false;
                     this.current = null;
+                    this.pickerOpen = null;
                 },
                 parseYmd(s) {
-                    if (!s) return null;
-                    const [y, m, d] = s.split('-').map(Number);
-                    return new Date(y, m - 1, d);
+                    return cal.parseYmd(s);
                 },
                 fmt(date) {
-                    const y = date.getFullYear();
-                    const m = String(date.getMonth() + 1).padStart(2, '0');
-                    const d = String(date.getDate()).padStart(2, '0');
-                    return `${y}-${m}-${d}`;
+                    return cal.fmt(date);
                 },
                 isOffDay(date) {
-                    const key = this.fmt(date);
-                    if (holidayMap[key]) return true;
-                    return weekendDays.includes(date.getDay());
+                    return cal.isOffDay(date);
                 },
                 eachDay(startStr, endStr, fn) {
                     const start = this.parseYmd(startStr);
@@ -704,7 +810,7 @@
                     if (this.autoDays < 1) return 'No countable days in this range';
                     return this.form.count_off_days
                         ? 'Special: every calendar day counts'
-                        : 'Fri/Sat & holidays excluded';
+                        : offDayHint;
                 },
                 get rangeHolidays() {
                     const list = [];

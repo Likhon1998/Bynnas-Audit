@@ -696,7 +696,10 @@ class DashboardOpsService
             ? AuditIndicator::query()
                 ->where(function ($query) {
                     $query->where('indicator_code', 'like', 'রিপোর্ট-%')
-                        ->orWhere('category', 'আর্থিক নিরীক্ষা (রিপোর্ট)');
+                        ->orWhere('indicator_code', 'like', '৯০০০-%')
+                        ->orWhere('indicator_code', 'like', '9000-%')
+                        ->orWhere('category', 'আর্থিক নিরীক্ষা (রিপোর্ট)')
+                        ->orWhere('category', 'নিরীক্ষা প্রতিবেদন');
                 })
                 ->whereBetween('created_at', [$monthStart, $monthEnd])
                 ->count()

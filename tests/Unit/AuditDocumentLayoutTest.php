@@ -35,6 +35,8 @@ class AuditDocumentLayoutTest extends TestCase
     {
         $this->assertEqualsWithDelta(100.0, array_sum(AuditDocumentLayout::tocColumnWidths()), 0.01);
         $this->assertEqualsWithDelta(100.0, array_sum(AuditDocumentLayout::glanceColumnWidths()), 0.01);
+        $this->assertEqualsWithDelta(100.0, array_sum(AuditDocumentLayout::glanceColumnWidths(3)), 0.01);
+        $this->assertCount(6, AuditDocumentLayout::glanceColumnWidths(3));
         $this->assertEqualsWithDelta(100.0, array_sum(AuditDocumentLayout::findingColumnWidths()), 0.01);
     }
 

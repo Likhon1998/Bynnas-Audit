@@ -111,7 +111,10 @@ class AuditFindingController extends Controller
         $newIndicatorsThisMonth = AuditIndicator::query()
             ->where(function ($query) {
                 $query->where('indicator_code', 'like', 'রিপোর্ট-%')
-                    ->orWhere('category', 'আর্থিক নিরীক্ষা (রিপোর্ট)');
+                    ->orWhere('indicator_code', 'like', '৯০০০-%')
+                    ->orWhere('indicator_code', 'like', '9000-%')
+                    ->orWhere('category', 'আর্থিক নিরীক্ষা (রিপোর্ট)')
+                    ->orWhere('category', 'নিরীক্ষা প্রতিবেদন');
             })
             ->whereBetween('created_at', [$monthStart, $monthEnd])
             ->latest('created_at')
@@ -259,15 +262,14 @@ class AuditFindingController extends Controller
 
         $name = trim((string) ($data['responsible_staff_name'] ?? ''));
         $code = trim((string) ($data['employee_code'] ?? ''));
+        $employee = null;
 
         if ($code !== '') {
             $employee = ShakhaEmployee::query()
-                ->where('shakha_id', $finding->shakha_id)
-                ->where('status', 'active')
                 ->where('employee_code', $code)
                 ->first();
             if ($employee) {
-                $name = $employee->name;
+                $name = $employee->name.' ('.$employee->employee_code.')';
             }
         } elseif ($name !== '') {
             $employee = ShakhaEmployee::query()
@@ -279,18 +281,25 @@ class AuditFindingController extends Controller
                 })
                 ->first();
             if ($employee) {
-                $name = $employee->name;
+                $name = $employee->name.' ('.$employee->employee_code.')';
             }
         }
 
+        $staffIds = $employee
+            ? [(int) $employee->id]
+            : app(\App\Services\StaffFinancialOccurrenceService::class)
+                ->resolveIdsFromStaffName($name !== '' ? $name : null, (int) $finding->shakha_id);
+
         $finding->update([
             'responsible_staff_name' => $name !== '' ? $name : null,
+            'responsible_staff_ids' => $staffIds !== [] ? $staffIds : null,
         ]);
 
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'ok' => true,
                 'responsible_staff_name' => $finding->responsible_staff_name,
+                'responsible_staff_ids' => $finding->responsibleStaffIds(),
             ]);
         }
 

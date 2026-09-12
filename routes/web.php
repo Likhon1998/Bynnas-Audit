@@ -1,9 +1,11 @@
 <?php
 
+use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\AnnualAuditController;
 use App\Http\Controllers\AreaController;
 use App\Http\Controllers\AuditFindingController;
 use App\Http\Controllers\AuditReportController;
+use App\Http\Controllers\AuditReportReviewController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MapController;
 use App\Http\Controllers\MonthlyVisitController;
@@ -76,7 +78,30 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
         Route::get('/audits/send-history', [AuditReportController::class, 'sendHistory'])->name('audits.send-history');
         Route::get('/audits/{report}/checklist', [AuditReportController::class, 'checklist'])->name('audits.checklist');
         Route::get('/audits/{report}/checklist/{file}/download', [AuditReportController::class, 'downloadChecklistFile'])->name('audits.checklist.download');
+        Route::post('/audits/{report}/review/submit', [AuditReportReviewController::class, 'submit'])->name('audit-review.submit');
         Route::get('/checklists', fn () => view('checklists.index'))->name('checklists.index');
+    });
+
+    Route::middleware('permission:audits.review_assign')->group(function () {
+        Route::get('/audit-review/assignments', [AuditReportReviewController::class, 'assignments'])->name('audit-review.assignments');
+        Route::post('/audit-review/assignments', [AuditReportReviewController::class, 'saveAssignments'])->name('audit-review.assignments.save');
+    });
+    Route::middleware('permission:audits.review|audits.review_assign|audits.create|audits.manage')->group(function () {
+        Route::get('/audit-review', [AuditReportReviewController::class, 'index'])->name('audit-review.index');
+        Route::get('/audit-review/{report}', [AuditReportReviewController::class, 'show'])->whereNumber('report')->name('audit-review.show');
+        Route::get('/audit-review/{report}/document', [AuditReportReviewController::class, 'document'])->whereNumber('report')->name('audit-review.document');
+        Route::get('/audit-review/{report}/download', [AuditReportReviewController::class, 'downloadReviewPack'])->whereNumber('report')->name('audit-review.download');
+    });
+    Route::middleware('permission:audits.review')->group(function () {
+        Route::post('/audit-review/{report}/request-changes', [AuditReportReviewController::class, 'requestChanges'])->whereNumber('report')->name('audit-review.request-changes');
+        Route::post('/audit-review/{report}/approve', [AuditReportReviewController::class, 'approve'])->whereNumber('report')->name('audit-review.approve');
+        Route::post('/audit-review/{report}/done', [AuditReportReviewController::class, 'completeReview'])->whereNumber('report')->name('audit-review.done');
+        Route::post('/audit-review/{report}/send-to-maker', [AuditReportReviewController::class, 'sendToMaker'])->whereNumber('report')->name('audit-review.send-to-maker');
+        Route::post('/audit-review/{report}/reopen', [AuditReportReviewController::class, 'reopenReview'])->whereNumber('report')->name('audit-review.reopen');
+        Route::post('/audit-review/{report}/annotations', [AuditReportReviewController::class, 'storeAnnotation'])->whereNumber('report')->name('audit-review.annotations.store');
+        Route::patch('/audit-review/{report}/annotations/{annotation}', [AuditReportReviewController::class, 'updateAnnotation'])->whereNumber('report')->whereNumber('annotation')->name('audit-review.annotations.update');
+        Route::post('/audit-review/{report}/annotations/{annotation}/snapshot', [AuditReportReviewController::class, 'attachAnnotationSnapshot'])->whereNumber('report')->whereNumber('annotation')->name('audit-review.annotations.snapshot');
+        Route::delete('/audit-review/{report}/annotations/{annotation}', [AuditReportReviewController::class, 'destroyAnnotation'])->whereNumber('report')->whereNumber('annotation')->name('audit-review.annotations.destroy');
     });
 
     Route::middleware('permission:findings.view_all')->group(function () {
@@ -97,6 +122,7 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
         Route::get('/shakhas', [ShakhaController::class, 'index'])->name('shakhas.index');
         Route::get('/shakha-employees', [ShakhaEmployeeController::class, 'index'])->name('shakha-employees.index');
         Route::get('/shakhas/{shakha}/employees', [ShakhaEmployeeController::class, 'manage'])->name('shakha-employees.manage');
+        Route::get('/shakha-employees/{shakhaEmployee}/dossier', [ShakhaEmployeeController::class, 'dossier'])->name('shakha-employees.dossier');
     });
     Route::middleware('permission:shakhas.manage')->group(function () {
         Route::get('/shakhas/create', [ShakhaController::class, 'create'])->name('shakhas.create');
@@ -106,6 +132,8 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
         Route::post('/shakhas/{shakha}/employees', [ShakhaEmployeeController::class, 'store'])->name('shakha-employees.store');
         Route::get('/shakha-employees/{shakhaEmployee}/edit', [ShakhaEmployeeController::class, 'edit'])->name('shakha-employees.edit');
         Route::put('/shakha-employees/{shakhaEmployee}', [ShakhaEmployeeController::class, 'update'])->name('shakha-employees.update');
+        Route::post('/shakha-employees/{shakhaEmployee}/transfer', [ShakhaEmployeeController::class, 'transfer'])->name('shakha-employees.transfer');
+        Route::post('/shakha-employees/{shakhaEmployee}/fire', [ShakhaEmployeeController::class, 'fire'])->name('shakha-employees.fire');
         Route::delete('/shakha-employees/{shakhaEmployee}', [ShakhaEmployeeController::class, 'destroy'])->name('shakha-employees.destroy');
     });
     Route::middleware('permission:risk.manage')->group(function () {
@@ -146,6 +174,7 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
         Route::get('/monthly-visits/schedule/excel', [MonthlyVisitController::class, 'exportScheduleExcel'])->name('monthly-visits.schedule.excel');
         Route::get('/monthly-visits/assignments/{assignment}/execution', [MonthlyVisitController::class, 'executionForm'])->name('monthly-visits.execution');
         Route::post('/monthly-visits/assignments/{assignment}/execution', [MonthlyVisitController::class, 'updateExecution'])->name('monthly-visits.execution.store');
+        Route::get('/monthly-visits/assignments/{assignment}/start-work', [MonthlyVisitController::class, 'startWork'])->name('monthly-visits.start-work');
     });
     Route::middleware('permission:monthly_visits.manage')->group(function () {
         Route::post('/monthly-visits/generate', [MonthlyVisitController::class, 'generate'])->name('monthly-visits.generate');
@@ -157,6 +186,17 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
         Route::post('/monthly-visits/assignments/{assignment}/reschedule', [MonthlyVisitController::class, 'reschedule'])->name('monthly-visits.reschedule.store');
         Route::post('/monthly-visits/assignments/{assignment}/lock', [MonthlyVisitController::class, 'lock'])->name('monthly-visits.lock');
         Route::post('/monthly-visits/assignments/{assignment}/unlock', [MonthlyVisitController::class, 'unlock'])->name('monthly-visits.unlock');
+    });
+
+    Route::middleware('permission:calendar.manage|monthly_visits.manage|monthly_visits.execute')->group(function () {
+        Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar.index');
+    });
+    Route::middleware('permission:calendar.manage')->group(function () {
+        Route::post('/calendar/holidays', [CalendarController::class, 'store'])->name('calendar.store');
+        Route::put('/calendar/holidays/{holiday}', [CalendarController::class, 'update'])->name('calendar.update');
+        Route::patch('/calendar/holidays/{holiday}/toggle', [CalendarController::class, 'toggle'])->name('calendar.toggle');
+        Route::delete('/calendar/holidays/{holiday}', [CalendarController::class, 'destroy'])->name('calendar.destroy');
+        Route::put('/calendar/weekends', [CalendarController::class, 'updateWeekends'])->name('calendar.weekends');
     });
 
     Route::middleware('permission:projects.manage')->group(function () {

@@ -4,11 +4,13 @@ namespace App\Services;
 
 use App\Models\AuditReport;
 use App\Models\MonthlyWorkItem;
+use App\Models\ProjectLocation;
 use App\Models\Shakha;
 use App\Models\User;
 use App\Support\FinancialYear;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use InvalidArgumentException;
 
 class AuditReportCollaborationService
 {
@@ -18,6 +20,24 @@ class AuditReportCollaborationService
      * @return list<int>
      */
     public function visitorUserIdsForShakhaPeriod(int $shakhaId, int $month, int $year): array
+    {
+        return $this->visitorUserIdsForSchedulablePeriod(Shakha::class, $shakhaId, $month, $year);
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function visitorUserIdsForProjectLocationPeriod(int $locationId, int $month, int $year): array
+    {
+        return $this->visitorUserIdsForSchedulablePeriod(ProjectLocation::class, $locationId, $month, $year);
+    }
+
+    /**
+     * User IDs linked to employees assigned on this schedulable for the report month.
+     *
+     * @return list<int>
+     */
+    public function visitorUserIdsForSchedulablePeriod(string $schedulableType, int $schedulableId, int $month, int $year): array
     {
         $asOf = Carbon::create($year, $month, 15)->startOfDay();
         $fy = FinancialYear::current($asOf);
@@ -32,8 +52,8 @@ class AuditReportCollaborationService
         $employeeIds = MonthlyWorkItem::query()
             ->where('fy_label', $fy->label)
             ->where('month_index', (int) $monthMeta['index'])
-            ->where('schedulable_type', Shakha::class)
-            ->where('schedulable_id', $shakhaId)
+            ->where('schedulable_type', $schedulableType)
+            ->where('schedulable_id', $schedulableId)
             ->whereHas('assignment')
             ->with(['assignment.visitors:id'])
             ->get()
@@ -77,43 +97,109 @@ class AuditReportCollaborationService
      */
     public function findJoinableDraft(int $shakhaId, int $month, int $year, User $user): ?AuditReport
     {
-        $draft = AuditReport::query()
-            ->where('shakha_id', $shakhaId)
+        return $this->findJoinableDraftForSchedulable(Shakha::class, $shakhaId, $month, $year, $user);
+    }
+
+    public function findJoinableDraftForProjectLocation(int $locationId, int $month, int $year, User $user): ?AuditReport
+    {
+        return $this->findJoinableDraftForSchedulable(ProjectLocation::class, $locationId, $month, $year, $user);
+    }
+
+    public function findJoinableDraftForSchedulable(
+        string $schedulableType,
+        int $schedulableId,
+        int $month,
+        int $year,
+        User $user,
+    ): ?AuditReport {
+        $report = $this->findPeriodReportForSchedulable($schedulableType, $schedulableId, $month, $year);
+        if (! $report || ! $report->isDraft()) {
+            return null;
+        }
+
+        return $this->userMayOpenPeriodReport($report, $user, $schedulableType, $schedulableId, $month, $year)
+            ? $report
+            : null;
+    }
+
+    /**
+     * Any report already started for this entity + month/year (one report per period).
+     */
+    public function findPeriodReportForSchedulable(
+        string $schedulableType,
+        int $schedulableId,
+        int $month,
+        int $year,
+    ): ?AuditReport {
+        $query = AuditReport::query()
             ->where('report_month', $month)
             ->where('report_year', $year)
-            ->drafts()
-            ->with(['collaborators:id,name', 'user:id,name'])
-            ->latest('id')
+            ->with(['collaborators:id,name', 'user:id,name']);
+
+        if ($schedulableType === Shakha::class) {
+            $query->where('shakha_id', $schedulableId);
+        } elseif ($schedulableType === ProjectLocation::class) {
+            $query->where('project_location_id', $schedulableId);
+        } else {
+            throw new InvalidArgumentException('Unsupported schedulable type for period report lookup.');
+        }
+
+        // Prefer an active workflow report over a stray newer draft (duplicate-start bug).
+        return $query
+            ->orderByRaw("CASE status
+                WHEN 'changes_requested' THEN 0
+                WHEN 'in_review' THEN 1
+                WHEN 'completed' THEN 2
+                WHEN 'reviewed' THEN 3
+                ELSE 4 END")
+            ->orderByDesc('id')
             ->first();
+    }
 
-        if (! $draft) {
+    public function findReusablePeriodReport(
+        string $schedulableType,
+        int $schedulableId,
+        int $month,
+        int $year,
+        User $user,
+    ): ?AuditReport {
+        $report = $this->findPeriodReportForSchedulable($schedulableType, $schedulableId, $month, $year);
+        if (! $report) {
             return null;
         }
 
-        if ($draft->isAccessibleBy($user)) {
-            return $draft;
+        return $this->userMayOpenPeriodReport($report, $user, $schedulableType, $schedulableId, $month, $year)
+            ? $report
+            : null;
+    }
+
+    public function userMayOpenPeriodReport(
+        AuditReport $report,
+        User $user,
+        string $schedulableType,
+        int $schedulableId,
+        int $month,
+        int $year,
+    ): bool {
+        if ($report->isAccessibleBy($user)) {
+            return true;
         }
 
-        $teamIds = $this->visitorUserIdsForShakhaPeriod($shakhaId, $month, $year);
+        $teamIds = $this->visitorUserIdsForSchedulablePeriod($schedulableType, $schedulableId, $month, $year);
         if ($teamIds === []) {
-            return null;
+            return false;
         }
 
         $userId = (int) $user->id;
         if (! in_array($userId, $teamIds, true)) {
-            return null;
+            return false;
         }
 
-        $ownerId = (int) $draft->user_id;
-        $participantIds = $draft->collaborators->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $ownerId = (int) $report->user_id;
+        $participantIds = $report->collaborators->pluck('id')->map(fn ($id) => (int) $id)->all();
         $participantIds[] = $ownerId;
 
-        // Join only when the existing draft belongs to the same visit team.
-        if (count(array_intersect($participantIds, $teamIds)) === 0) {
-            return null;
-        }
-
-        return $draft;
+        return count(array_intersect($participantIds, $teamIds)) > 0;
     }
 
     /**

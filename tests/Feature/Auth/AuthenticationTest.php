@@ -66,6 +66,20 @@ class AuthenticationTest extends TestCase
         $response = $this->actingAs($user)->post('/logout');
 
         $this->assertGuest();
-        $response->assertRedirect('/');
+        $response->assertRedirect(route('login', absolute: false));
+    }
+
+    public function test_logout_with_stale_csrf_still_lands_on_login(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user);
+        $this->withMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class);
+
+        $response = $this->post('/logout', ['_token' => 'stale-invalid-token']);
+
+        $this->assertGuest();
+        $response->assertRedirect(route('login', absolute: false));
+        $response->assertSessionHas('status');
     }
 }

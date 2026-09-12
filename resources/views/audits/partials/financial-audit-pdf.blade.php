@@ -54,18 +54,18 @@
 
     @elseif ($type === 'finding')
         @php $anchor = MakeAuditReport::findingAnchorId($block['serial'] ?? ''); @endphp
-        @if ($anchor !== '')
-            <a id="{{ $anchor }}" name="{{ $anchor }}"></a>
-        @endif
-        <table class="doc-table finding-table" style="margin-bottom:2mm;">
-            <colgroup>
-                @foreach ($widths as $w)
-                    <col style="width:{{ $w }}%;">
-                @endforeach
-            </colgroup>
-            <tbody>
-                <tr>
-                    <td class="bold center">
+    @if ($anchor !== '')
+        <a id="{{ $anchor }}" name="{{ $anchor }}"></a>
+    @endif
+    <table class="doc-table finding-table" style="margin-bottom:2mm;">
+        <colgroup>
+            @foreach ($widths as $w)
+                <col style="width:{{ $w }}%;">
+            @endforeach
+        </colgroup>
+        <tbody>
+            <tr>
+                <td class="bold center">
                         @include('audits.partials.bn-num', ['value' => $block['serial'] ?? '', 'variant' => 'serial'])
                     </td>
                     <td class="bold center">{{ $block['title'] ?? 'শিরোনাম' }}</td>
@@ -74,17 +74,17 @@
                         @if (($block['amount'] ?? '') !== '')
                             <br><span class="bold">টাকার পরিমাণ:</span> {{ $block['amount'] }}
                         @endif
-                    </td>
-                    <td class="rating-cell" valign="middle">
-                        @if ($forDoc ?? false)
+                </td>
+                <td class="rating-cell" valign="middle">
+                    @if ($forDoc ?? false)
                             @include('audits.partials.rating-box-doc', ['rating' => $block['rating'] ?? ''])
-                        @else
+                    @else
                             @include('audits.partials.rating-box-pdf', ['rating' => $block['rating'] ?? ''])
-                        @endif
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+                    @endif
+                </td>
+            </tr>
+        </tbody>
+    </table>
 
     @elseif ($type === 'criteria')
         <p class="bold" style="margin:3mm 0 1mm;">{{ $block['label'] ?? 'প্রচলিত নিয়ম (Criteria):' }}</p>
@@ -97,7 +97,7 @@
         @if (($block['body'] ?? '') !== '')
             <p class="justify" style="margin:0 0 2mm;">{{ $block['body'] }}</p>
         @else
-            <p style="margin:0 0 2mm;border-bottom:1px dotted #111;line-height:1;">&nbsp;</p>
+<p style="margin:0 0 2mm;border-bottom:1px dotted #111;line-height:1;">&nbsp;</p>
         @endif
 
     @elseif (in_array($type, ['stats', 'vat', 'tax'], true))
@@ -113,32 +113,32 @@
         @if ($obsHeading !== '')
             <p class="bold obs-label">{{ $obsHeading }}</p>
         @endif
-        <table class="doc-table obs-table" style="margin-bottom:3mm;">
-            <colgroup>
-                <col style="width:25%;">
-                <col style="width:25%;">
-                <col style="width:25%;">
-                <col style="width:25%;">
-            </colgroup>
-            <thead>
-                <tr>
-                    <th>Total Population</th>
-                    <th>Sample Size(Checked)</th>
-                    <th>Instantans Found</th>
-                    <th>Persentange(%)</th>
-                </tr>
-            </thead>
-            <tbody>
+<table class="doc-table obs-table" style="margin-bottom:3mm;">
+    <colgroup>
+        <col style="width:25%;">
+        <col style="width:25%;">
+        <col style="width:25%;">
+        <col style="width:25%;">
+    </colgroup>
+    <thead>
+        <tr>
+            <th>Total Population</th>
+            <th>Sample Size(Checked)</th>
+            <th>Instantans Found</th>
+            <th>Persentange(%)</th>
+        </tr>
+    </thead>
+    <tbody>
                 @foreach ($obsRows as $row)
-                    <tr>
-                        <td class="center">{{ $row['total_population'] ?? '' }}</td>
-                        <td class="center">{{ $row['sample_size'] ?? '' }}</td>
-                        <td class="center">{{ $row['instances_found'] ?? '' }}</td>
-                        <td class="center">{{ $row['percentage'] ?? '' }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
+            <tr>
+                <td class="center">{{ $row['total_population'] ?? '' }}</td>
+                <td class="center">{{ $row['sample_size'] ?? '' }}</td>
+                <td class="center">{{ $row['instances_found'] ?? '' }}</td>
+                <td class="center">{{ $row['percentage'] ?? '' }}</td>
+            </tr>
+        @endforeach
+    </tbody>
+</table>
 
     @elseif ($type === 'custom_table')
         @include('audits.partials.custom-table-pdf', ['block' => $block])
@@ -266,7 +266,7 @@
             </p>
         </div>
         <table class="doc-table external-audit-table" style="margin-bottom:5mm;font-size:9.5pt;width:100%;border-collapse:collapse;table-layout:fixed;">
-            <colgroup>
+    <colgroup>
                 <col style="width:14%;">
                 <col style="width:11%;">
                 <col style="width:{{ $extraCount === 0 ? '38%' : '32%' }};">
@@ -275,15 +275,15 @@
                 @for ($ei = 0; $ei < $extraCount; $ei++)
                     <col style="width:8%;">
                 @endfor
-            </colgroup>
-            <thead>
-                <tr>
+    </colgroup>
+    <thead>
+        <tr>
                     @foreach ($headers as $header)
                         <th style="background:#f0e4d4;padding:3px 4px;vertical-align:middle;font-size:9pt;">{{ $header }}</th>
                     @endforeach
-                </tr>
-            </thead>
-            <tbody>
+        </tr>
+    </thead>
+    <tbody>
                 @foreach ($extRows as $row)
                     <tr>
                         @foreach ($coreFields as $field)
@@ -292,10 +292,10 @@
                         @for ($ei = 0; $ei < $extraCount; $ei++)
                             <td style="padding:3px 4px;vertical-align:top;font-size:9.5pt;">{{ $row['extra'][$ei] ?? '' }}</td>
                         @endfor
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
+            </tr>
+        @endforeach
+    </tbody>
+</table>
 
     @elseif ($type === 'audit_score')
         @php

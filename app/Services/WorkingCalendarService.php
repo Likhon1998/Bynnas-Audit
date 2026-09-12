@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\CalendarHoliday;
+use App\Models\CalendarSetting;
 use App\Models\Employee;
 use App\Models\MonthlyAssignment;
 use Carbon\Carbon;
@@ -16,12 +17,32 @@ class WorkingCalendarService
     /** @var list<array{date:string,name:string,type:string}>|null */
     protected ?array $holidayList = null;
 
+    /** @var list<int>|null */
+    protected ?array $weekendDaysCache = null;
+
     /**
      * @return list<int>
      */
     public function weekendDays(): array
     {
-        return array_values(array_map('intval', config('working_calendar.weekend_days', [5, 6])));
+        if ($this->weekendDaysCache !== null) {
+            return $this->weekendDaysCache;
+        }
+
+        try {
+            $this->weekendDaysCache = CalendarSetting::weekendDays();
+        } catch (\Throwable) {
+            $this->weekendDaysCache = array_values(array_map('intval', config('working_calendar.weekend_days', [5, 6])));
+        }
+
+        return $this->weekendDaysCache;
+    }
+
+    public function forgetCache(): void
+    {
+        $this->holidayLookup = null;
+        $this->holidayList = null;
+        $this->weekendDaysCache = null;
     }
 
     /**
@@ -65,7 +86,7 @@ class WorkingCalendarService
 
     /**
      * Count working days in [start, end] inclusive.
-     * Off days (Fri/Sat + national/govt holidays) are excluded unless $countOffDays.
+     * Off days (weekly offs + national/government/internal holidays) are excluded unless $countOffDays.
      */
     public function countWorkingDays(Carbon $start, Carbon $end, bool $countOffDays = false): int
     {
@@ -185,15 +206,38 @@ class WorkingCalendarService
     }
 
     /**
-     * Payload for Alpine calendar helpers in the allocate modal.
+     * Payload for Alpine/Blade calendar helpers (allocate, assign, reschedule, etc.).
      *
-     * @return array{weekend_days:list<int>,holidays:list<array{date:string,name:string,type:string}>}
+     * @return array{
+     *   weekend_days:list<int>,
+     *   weekend_labels:list<string>,
+     *   weekday_labels:list<string>,
+     *   holidays:list<array{date:string,name:string,type:string,type_label:string}>,
+     *   manage_url:string
+     * }
      */
     public function modalCalendarPayload(Carbon $from, Carbon $to): array
     {
+        $weekdayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        $weekendDays = $this->weekendDays();
+        // Pad so allocate / reschedule month pickers can navigate nearby months.
+        $rangeFrom = $from->copy()->subMonths(2)->startOfMonth();
+        $rangeTo = $to->copy()->addMonths(3)->endOfMonth();
+
         return [
-            'weekend_days' => $this->weekendDays(),
-            'holidays' => $this->holidaysBetween($from, $to),
+            'weekend_days' => $weekendDays,
+            'weekend_labels' => array_values(array_map(
+                fn (int $d) => $weekdayLabels[$d] ?? ('Day '.$d),
+                $weekendDays
+            )),
+            'weekday_labels' => $weekdayLabels,
+            'holidays' => collect($this->holidaysBetween($rangeFrom, $rangeTo))
+                ->map(fn (array $h) => array_merge($h, [
+                    'type_label' => CalendarHoliday::typeLabel((string) ($h['type'] ?? '')),
+                ]))
+                ->values()
+                ->all(),
+            'manage_url' => route('calendar.index'),
         ];
     }
 

@@ -166,7 +166,9 @@
                         'value' => $finding13_body ?? '',
                         'indicators' => $indicatorOptions ?? $financialIndicatorOptions ?? [],
                         'collection' => 'finding13',
-                        'wireKey' => 'p5-ind-13-'.md5((string) ($finding13_body ?? '')),
+                        'locked' => (int) ($finding13_indicator_id ?? 0) > 0,
+                        'code' => $finding13_indicator_code ?? null,
+                        'wireKey' => 'p5-ind-13-'.(int) ($finding13_indicator_id ?? 0).'-'.md5((string) ($finding13_body ?? '')),
                     ])
                     <div class="mt-1 flex flex-wrap items-center gap-2 text-[11px]">
                         <span class="font-semibold">টাকার পরিমাণ:</span>

@@ -4,14 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityType;
 use App\Models\AuditPlan;
+use App\Models\AuditReport;
 use App\Models\Employee;
 use App\Models\MonthlyAssignment;
 use App\Models\MonthlyWorkItem;
+use App\Models\Shakha;
 use App\Models\VisitExecution;
 use App\Services\AnnualPlanGenerator;
 use App\Services\MonthlyScheduleReportBuilder;
 use App\Services\MonthlyWorklistService;
 use App\Services\UserAccessService;
+use App\Services\VisitAuditWorkService;
 use App\Services\WorkingCalendarService;
 use App\Support\FinancialYear;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -30,6 +33,7 @@ class MonthlyVisitController extends Controller
         private WorkingCalendarService $calendar,
         private MonthlyScheduleReportBuilder $scheduleReport,
         private UserAccessService $access,
+        private VisitAuditWorkService $visitWork,
     ) {}
 
     public function index(Request $request): View
@@ -103,6 +107,9 @@ class MonthlyVisitController extends Controller
             ? collect()
             : $this->calendar->employeeAvailabilityForMonth($defaultStart, $monthEnd);
 
+        $assigned = $items->where('status', MonthlyWorkItem::STATUS_ASSIGNED)->values();
+        $visitWorkLinks = $this->buildVisitWorkLinks($assigned, $fy);
+
         return view('monthly-visits.index', [
             'plan' => $plan,
             'fy' => $fy,
@@ -111,7 +118,8 @@ class MonthlyVisitController extends Controller
             'availablePlans' => AuditPlan::query()->orderByDesc('start_date')->get(['id', 'fy_label', 'status']),
             'items' => $items,
             'unassigned' => $officerView ? collect() : $items->where('status', MonthlyWorkItem::STATUS_UNASSIGNED)->values(),
-            'assigned' => $items->where('status', MonthlyWorkItem::STATUS_ASSIGNED)->values(),
+            'assigned' => $assigned,
+            'visitWorkLinks' => $visitWorkLinks,
             'performance' => $performance,
             'employees' => $officerView ? collect() : Employee::query()->with('position')->orderBy('name')->get(),
             'employeeAvailability' => $employeeAvailability,
@@ -125,6 +133,157 @@ class MonthlyVisitController extends Controller
             'officerView' => $officerView,
             'employeeLinked' => (bool) $user?->employee_id,
         ]);
+    }
+
+    /**
+     * Start checklist-first visit work: ensure draft report, then open checklist or report.
+     */
+    public function startWork(Request $request, MonthlyAssignment $assignment): RedirectResponse
+    {
+        abort_unless($this->access->userCanAccessAssignment($request->user(), $assignment), 403);
+        abort_unless($request->user()?->can('audits.create') || $request->user()?->can('audits.manage'), 403);
+
+        $target = $request->string('target')->toString() ?: 'checklist';
+        if (! in_array($target, ['checklist', 'report'], true)) {
+            $target = 'checklist';
+        }
+
+        try {
+            $report = $this->visitWork->ensureDraftForAssignment($assignment, $request->user());
+        } catch (\InvalidArgumentException $e) {
+            return redirect()
+                ->route('monthly-visits.index', [
+                    'fy' => $assignment->workItem?->fy_label,
+                    'month' => $assignment->workItem?->month_index,
+                ])
+                ->withErrors(['visit_work' => $e->getMessage()]);
+        }
+
+        if ($target === 'checklist') {
+            return redirect()->route('audits.checklist', $report);
+        }
+
+        return redirect()->route('audits.index', ['report' => $report->id]);
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, MonthlyWorkItem>  $assigned
+     * @return array<int, array{checklist_url:?string,report_url:?string,checklist_ready:bool,checklist_done:int,checklist_required:int,supports_audit_work:bool,is_shakha:bool}>
+     */
+    protected function buildVisitWorkLinks($assigned, FinancialYear $fy): array
+    {
+        $links = [];
+        $assignmentIds = [];
+        $entityKeys = [];
+
+        foreach ($assigned as $item) {
+            $a = $item->assignment;
+            if (! $a) {
+                continue;
+            }
+
+            $supports = $item->schedulable instanceof Shakha
+                || $item->schedulable instanceof \App\Models\ProjectLocation;
+
+            if (! $supports) {
+                $links[(int) $a->id] = [
+                    'checklist_url' => null,
+                    'report_url' => null,
+                    'checklist_ready' => false,
+                    'checklist_done' => 0,
+                    'checklist_required' => 0,
+                    'supports_audit_work' => false,
+                    'is_shakha' => false,
+                ];
+
+                continue;
+            }
+
+            $assignmentIds[] = (int) $a->id;
+            try {
+                [$month, $year] = $this->visitWork->periodForWorkItem($item->fy_label, (int) $item->month_index);
+            } catch (\InvalidArgumentException) {
+                [$month, $year] = [(int) ($fy->months()[(int) $item->month_index]['month'] ?? 0), (int) ($fy->months()[(int) $item->month_index]['year'] ?? 0)];
+            }
+
+            $prefix = $item->schedulable instanceof Shakha ? 's' : 'p';
+            $entityKeys[$prefix.'-'.(int) $item->schedulable_id.'-'.$month.'-'.$year] = (int) $a->id;
+            $links[(int) $a->id] = [
+                'checklist_url' => route('monthly-visits.start-work', ['assignment' => $a, 'target' => 'checklist']),
+                'report_url' => route('monthly-visits.start-work', ['assignment' => $a, 'target' => 'report']),
+                'checklist_ready' => false,
+                'checklist_done' => 0,
+                'checklist_required' => 0,
+                'supports_audit_work' => true,
+                'is_shakha' => $item->schedulable instanceof Shakha,
+            ];
+        }
+
+        if ($assignmentIds === []) {
+            return $links;
+        }
+
+        $reports = AuditReport::query()
+            ->where(function ($q) use ($assignmentIds, $entityKeys) {
+                $q->whereIn('monthly_assignment_id', $assignmentIds);
+                foreach (array_keys($entityKeys) as $key) {
+                    [$kind, $sid, $m, $y] = explode('-', $key);
+                    $sid = (int) $sid;
+                    $m = (int) $m;
+                    $y = (int) $y;
+                    $q->orWhere(function ($inner) use ($kind, $sid, $m, $y) {
+                        if ($kind === 's') {
+                            $inner->where('shakha_id', $sid);
+                        } else {
+                            $inner->where('project_location_id', $sid);
+                        }
+                        $inner->where('report_month', $m)->where('report_year', $y);
+                    });
+                }
+            })
+            ->latest('id')
+            ->get();
+
+        $byAssignment = [];
+        $byPeriod = [];
+        foreach ($reports as $report) {
+            if ($report->monthly_assignment_id) {
+                $byAssignment[(int) $report->monthly_assignment_id] ??= $report;
+            }
+            if ($report->shakha_id) {
+                $periodKey = 's-'.(int) $report->shakha_id.'-'.(int) $report->report_month.'-'.(int) $report->report_year;
+                $byPeriod[$periodKey] ??= $report;
+            }
+            if ($report->project_location_id) {
+                $periodKey = 'p-'.(int) $report->project_location_id.'-'.(int) $report->report_month.'-'.(int) $report->report_year;
+                $byPeriod[$periodKey] ??= $report;
+            }
+        }
+
+        foreach ($links as $assignmentId => &$meta) {
+            if (! ($meta['supports_audit_work'] ?? false)) {
+                continue;
+            }
+            $report = $byAssignment[$assignmentId] ?? null;
+            if (! $report) {
+                foreach ($entityKeys as $periodKey => $aid) {
+                    if ($aid === $assignmentId && isset($byPeriod[$periodKey])) {
+                        $report = $byPeriod[$periodKey];
+                        break;
+                    }
+                }
+            }
+            if (! $report) {
+                continue;
+            }
+            $progress = $this->visitWork->checklistProgress($report);
+            $meta['checklist_ready'] = $progress['ready'];
+            $meta['checklist_done'] = $progress['done'];
+            $meta['checklist_required'] = $progress['required'];
+        }
+        unset($meta);
+
+        return $links;
     }
 
     /**
@@ -313,9 +472,18 @@ class MonthlyVisitController extends Controller
 
         $assignment->load(['workItem', 'employee', 'visitors', 'lockedBy']);
 
+        $start = Carbon::parse($assignment->start_date)->startOfMonth()->subMonth();
+        $end = Carbon::parse($assignment->end_date)->endOfMonth()->addMonth();
+
         return view('monthly-visits.reschedule', [
             'assignment' => $assignment,
             'employees' => Employee::query()->with('position')->orderBy('name')->get(),
+            'calendarPayload' => $this->calendar->modalCalendarPayload($start, $end),
+            'employeeAvailability' => $this->calendar->employeeAvailabilityForMonth(
+                Carbon::parse($assignment->start_date)->startOfMonth(),
+                Carbon::parse($assignment->end_date)->endOfMonth(),
+                (int) $assignment->id
+            ),
         ]);
     }
 

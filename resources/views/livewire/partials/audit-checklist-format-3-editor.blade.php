@@ -87,20 +87,20 @@
                     <tr wire:key="f3-item-{{ $qi }}">
                         <td class="border border-slate-300 px-1 py-1.5 text-center tabular-nums">{{ $qi + 1 }}</td>
                         <td class="border border-slate-300 px-2 py-1.5 text-left text-slate-800">{{ $question }}</td>
-                        <td class="border border-slate-300 px-1 py-1 text-center">
+                        <td class="border border-slate-300 px-1 py-1 text-center {{ ($payload['items'][$qi]['compliance'] ?? '') === 'yes' ? 'bg-emerald-100' : '' }}">
                             <input
                                 type="radio"
                                 wire:model.live="payload.items.{{ $qi }}.compliance"
                                 value="yes"
-                                class="border-slate-300 text-[#2b579a] focus:ring-[#2b579a]"
+                                class="h-4 w-4 border-emerald-400 text-emerald-600 focus:ring-emerald-500"
                             >
                         </td>
-                        <td class="border border-slate-300 px-1 py-1 text-center">
+                        <td class="border border-slate-300 px-1 py-1 text-center {{ ($payload['items'][$qi]['compliance'] ?? '') === 'no' ? 'bg-rose-100' : '' }}">
                             <input
                                 type="radio"
                                 wire:model.live="payload.items.{{ $qi }}.compliance"
                                 value="no"
-                                class="border-slate-300 text-[#2b579a] focus:ring-[#2b579a]"
+                                class="h-4 w-4 border-rose-400 text-rose-600 focus:ring-rose-500"
                             >
                         </td>
                         <td class="border border-slate-300 p-0.5">
@@ -116,12 +116,37 @@
     </div>
 
     <div class="border-t border-slate-200 px-4 py-3">
-        <label class="mb-1 block text-[12px] font-bold text-navy-900">সারসংক্ষেপঃ</label>
+        <div class="mb-1 flex items-center justify-between gap-2">
+            <label class="block text-[12px] font-bold text-navy-900">সারসংক্ষেপঃ</label>
+            @if ($aiSummaryReady ?? false)
+                <button
+                    type="button"
+                    wire:click="generateFormatSummary"
+                    wire:loading.attr="disabled"
+                    wire:target="generateFormatSummary"
+                    class="rounded border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-800 hover:bg-violet-100 disabled:opacity-60"
+                >
+                    <span wire:loading.remove wire:target="generateFormatSummary">AI লিখুন</span>
+                    <span wire:loading wire:target="generateFormatSummary">AI লিখছে…</span>
+                </button>
+            @endif
+        </div>
+        <p class="mb-2 text-[10px] text-slate-500">Unusual (না) marks are emphasized for the audit report. Edit after AI writes.</p>
         <textarea
             wire:model.live="summary"
             rows="4"
             class="w-full rounded-md border-slate-200 text-[12px] focus:border-[#2b579a] focus:ring-[#2b579a]"
-            placeholder="সারসংক্ষেপ লিখুন…"
+            placeholder="সারসংক্ষেপ লিখুন বা AI দিয়ে তৈরি করুন…"
         ></textarea>
+        @php
+            $seedKey = \App\Services\ChecklistReportInfluenceService::formatSummarySeedKey((string) ($formatModel->code ?? 'format-3'));
+            $alreadyAdded = in_array($seedKey, $addedSummaryKeys ?? [], true);
+        @endphp
+        @include('livewire.partials.audit-checklist-add-to-report', [
+            'alreadyAdded' => $alreadyAdded,
+            'aiReady' => $aiSummaryReady ?? false,
+            'wireWithoutAi' => 'addFormatSummaryToReport(false)',
+            'wireWithAi' => 'addFormatSummaryToReport(true)',
+        ])
     </div>
 </div>

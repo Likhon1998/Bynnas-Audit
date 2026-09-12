@@ -6,10 +6,13 @@ use App\Models\AuditChecklistFormat;
 use App\Models\AuditChecklistSubmission;
 use App\Models\AuditReport;
 use App\Models\AuditReportChecklistFile;
+use App\Services\ChecklistAiSummaryService;
+use App\Services\ChecklistReportInfluenceService;
 use App\Support\AuditChecklistCatalog;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use RuntimeException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AuditReportChecklist extends Component
@@ -123,7 +126,7 @@ class AuditReportChecklist extends Component
         $this->choosingHeadings = false;
         $this->syncPickedFromReport();
 
-        session()->flash('status', count($validIds).' heading(s) selected for this report.');
+        session()->flash('status', count($validIds).' checklist heading(s) selected for this visit. Save each as evidence when done.');
     }
 
     public function removeHeading(int $formatId): void
@@ -213,6 +216,7 @@ class AuditReportChecklist extends Component
         $this->audit_period = (string) $this->report->periodLabel();
         $this->summary = '';
         $this->payload = AuditChecklistCatalog::blankPayload($def);
+        $this->normalizeSectionSummaries($def);
         $this->viewMode = 'editor';
     }
 
@@ -230,6 +234,11 @@ class AuditReportChecklist extends Component
         $this->audit_period = (string) ($row->audit_period ?? '');
         $this->summary = (string) ($row->summary ?? '');
         $this->payload = is_array($row->payload) ? $row->payload : [];
+        $def = AuditChecklistCatalog::findByCode((string) ($row->format?->code ?? ''))
+            ?? AuditChecklistCatalog::findByNumber((int) ($row->format?->format_number ?? 0));
+        if ($def) {
+            $this->normalizeSectionSummaries($def);
+        }
         $this->viewMode = 'editor';
     }
 
@@ -341,6 +350,98 @@ class AuditReportChecklist extends Component
         $this->payload['sections'][$sectionKey] = array_values($rows);
     }
 
+    public function generateSectionSummary(string $sectionKey): void
+    {
+        $definition = $this->currentDefinition();
+        if (! $definition || ! isset($definition['sections'][$sectionKey])) {
+            session()->flash('error', 'Invalid checklist section.');
+
+            return;
+        }
+
+        $this->normalizeSectionSummaries($definition);
+
+        try {
+            $text = app(ChecklistAiSummaryService::class)->summarizeSection(
+                $definition,
+                $this->payload,
+                $sectionKey,
+                $this->shakha_name,
+                $this->audit_period,
+            );
+        } catch (RuntimeException $e) {
+            session()->flash('error', $e->getMessage());
+
+            return;
+        }
+
+        $this->payload['section_summaries'][$sectionKey] = $text;
+        session()->flash('status', 'AI সারসংক্ষেপ generated — review and edit before saving evidence.');
+    }
+
+    public function generateAllSectionSummaries(): void
+    {
+        $definition = $this->currentDefinition();
+        $keys = array_keys((array) ($definition['sections'] ?? []));
+        if ($definition === null || $keys === []) {
+            session()->flash('error', 'This format has no section summaries.');
+
+            return;
+        }
+
+        $this->normalizeSectionSummaries($definition);
+        $ai = app(ChecklistAiSummaryService::class);
+        $ok = 0;
+        $lastError = null;
+
+        foreach ($keys as $key) {
+            try {
+                $this->payload['section_summaries'][$key] = $ai->summarizeSection(
+                    $definition,
+                    $this->payload,
+                    (string) $key,
+                    $this->shakha_name,
+                    $this->audit_period,
+                );
+                $ok++;
+            } catch (RuntimeException $e) {
+                $lastError = $e->getMessage();
+            }
+        }
+
+        if ($ok > 0) {
+            session()->flash('status', "AI সারসংক্ষেপ generated for {$ok} head(s). Unusual (✗) points are emphasized for the report.");
+        } else {
+            session()->flash('error', $lastError ?: 'Could not generate সারসংক্ষেপ.');
+        }
+    }
+
+    public function generateFormatSummary(): void
+    {
+        $definition = $this->currentDefinition();
+        if (! $definition) {
+            session()->flash('error', 'Open a checklist format first.');
+
+            return;
+        }
+
+        try {
+            $text = app(ChecklistAiSummaryService::class)->summarizeFormat(
+                $definition,
+                $this->payload,
+                $this->shakha_name,
+                $this->audit_period,
+            );
+        } catch (RuntimeException $e) {
+            session()->flash('error', $e->getMessage());
+
+            return;
+        }
+
+        $this->summary = $text;
+        session()->flash('status', 'AI সারসংক্ষেপ generated — review and edit before saving evidence.');
+    }
+
     public function saveDraft(): void
     {
         $this->persist('draft');
@@ -350,8 +451,84 @@ class AuditReportChecklist extends Component
     public function saveEvidence(): void
     {
         $this->persist('evidence');
-        session()->flash('status', 'Saved as evidence for this report.');
+
+        $progress = app(\App\Services\VisitAuditWorkService::class)->checklistProgress($this->report);
+        $msg = 'Saved as evidence for this report. Use সারসংক্ষেপ → Add to report to place observations in findings (optional).';
+        if ($progress['needs_selection'] ?? false) {
+            $msg .= ' Select the checklist headings that apply to this visit.';
+        } elseif (($progress['required'] ?? 0) > 0) {
+            $msg .= ' Selected checklist progress: '.$progress['done'].'/'.$progress['required'].'.';
+        }
+
+        session()->flash('status', $msg);
         $this->backHome();
+    }
+
+    public function addSectionSummaryToReport(string $sectionKey, bool $withAi = false): void
+    {
+        $definition = $this->currentDefinition();
+        $format = AuditChecklistFormat::query()->find((int) $this->formatId);
+        if (! $definition || ! $format || ! isset($definition['sections'][$sectionKey])) {
+            session()->flash('error', 'Invalid checklist section.');
+
+            return;
+        }
+
+        $this->normalizeSectionSummaries($definition);
+        $text = trim((string) data_get($this->payload, 'section_summaries.'.$sectionKey, ''));
+        $label = (string) ($definition['sections'][$sectionKey]['label'] ?? $sectionKey);
+        $seedKey = ChecklistReportInfluenceService::sectionSummarySeedKey((string) $format->code, $sectionKey);
+
+        $this->addSummaryObservationToReport($format, $text, $seedKey, $label, $withAi);
+    }
+
+    public function addFormatSummaryToReport(bool $withAi = false): void
+    {
+        $format = AuditChecklistFormat::query()->find((int) $this->formatId);
+        if (! $format) {
+            session()->flash('error', 'Open a checklist format first.');
+
+            return;
+        }
+
+        $text = trim($this->summary);
+        $seedKey = ChecklistReportInfluenceService::formatSummarySeedKey((string) $format->code);
+        $this->addSummaryObservationToReport($format, $text, $seedKey, (string) $format->heading, $withAi);
+    }
+
+    protected function addSummaryObservationToReport(
+        AuditChecklistFormat $format,
+        string $text,
+        string $seedKey,
+        string $sourceLabel,
+        bool $withAi,
+    ): void {
+        $this->persist('draft');
+
+        if (! $this->report->checklistFormats()->where('audit_checklist_formats.id', $format->id)->exists()) {
+            $this->report->checklistFormats()->attach($format->id);
+            $this->report->unsetRelation('checklistFormats');
+            $this->syncPickedFromReport();
+        }
+
+        try {
+            app(ChecklistReportInfluenceService::class)->addSummaryToReport(
+                $this->report->fresh() ?? $this->report,
+                $format,
+                $text,
+                $seedKey,
+                $sourceLabel,
+                $withAi,
+            );
+        } catch (RuntimeException $e) {
+            session()->flash('error', $e->getMessage());
+
+            return;
+        }
+
+        $this->report->refresh();
+        $mode = $withAi ? 'AI সহ' : 'AI ছাড়া';
+        session()->flash('status', "পর্যবেক্ষণ রিপোর্টে যোগ হয়েছে ({$mode})। বিভাগ/শিরোনাম/প্রচলিত নিয়ম ও জবাব আপনি পূরণ করবেন।");
     }
 
     protected function persist(string $status): void
@@ -362,6 +539,17 @@ class AuditReportChecklist extends Component
             $this->report->checklistFormats()->attach($format->id);
             $this->report->unsetRelation('checklistFormats');
             $this->syncPickedFromReport();
+        }
+
+        $def = AuditChecklistCatalog::findByCode((string) $format->code)
+            ?? AuditChecklistCatalog::findByNumber((int) $format->format_number);
+        if ($def) {
+            $this->normalizeSectionSummaries($def);
+        }
+
+        $combinedSummary = $this->combinedSectionSummaryText($def);
+        if ($combinedSummary !== '') {
+            $this->summary = $combinedSummary;
         }
 
         $data = [
@@ -415,6 +603,53 @@ class AuditReportChecklist extends Component
     }
 
     /**
+     * @param  array<string, mixed>|null  $definition
+     */
+    protected function normalizeSectionSummaries(?array $definition): void
+    {
+        $keys = array_keys((array) ($definition['sections'] ?? []));
+        if ($keys === []) {
+            return;
+        }
+
+        if (! isset($this->payload['section_summaries']) || ! is_array($this->payload['section_summaries'])) {
+            $this->payload['section_summaries'] = [];
+        }
+
+        foreach ($keys as $key) {
+            if (! array_key_exists($key, $this->payload['section_summaries'])) {
+                $this->payload['section_summaries'][$key] = '';
+            } else {
+                $this->payload['section_summaries'][$key] = (string) $this->payload['section_summaries'][$key];
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $definition
+     */
+    protected function combinedSectionSummaryText(?array $definition): string
+    {
+        $sections = (array) ($definition['sections'] ?? []);
+        $summaries = (array) ($this->payload['section_summaries'] ?? []);
+        if ($sections === [] || $summaries === []) {
+            return trim($this->summary);
+        }
+
+        $parts = [];
+        foreach ($sections as $key => $section) {
+            $text = trim((string) ($summaries[$key] ?? ''));
+            if ($text === '') {
+                continue;
+            }
+            $label = (string) ($section['label'] ?? $key);
+            $parts[] = $label.":\n".$text;
+        }
+
+        return implode("\n\n", $parts);
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     protected function currentDefinition(): ?array
@@ -454,6 +689,9 @@ class AuditReportChecklist extends Component
             ->unique('audit_checklist_format_id')
             ->keyBy('audit_checklist_format_id');
 
+        $reportBlocks = (array) data_get($this->report->fresh()?->pages_data ?? $this->report->pages_data, 'page4.reportBlocks', []);
+        $addedSummaryKeys = app(ChecklistReportInfluenceService::class)->existingSeedKeys($reportBlocks);
+
         return view('livewire.audit-report-checklist', [
             'files' => $this->report->checklistFiles()->get(),
             'pickerFormats' => $pickerFormats,
@@ -461,6 +699,8 @@ class AuditReportChecklist extends Component
             'submissionsByFormat' => $submissionsByFormat,
             'definition' => $this->currentDefinition(),
             'formatModel' => $this->formatId ? AuditChecklistFormat::query()->find($this->formatId) : null,
+            'aiSummaryReady' => app(ChecklistAiSummaryService::class)->isConfigured(),
+            'addedSummaryKeys' => $addedSummaryKeys,
         ]);
     }
 }

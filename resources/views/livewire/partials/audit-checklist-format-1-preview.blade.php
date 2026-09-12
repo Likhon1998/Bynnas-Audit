@@ -83,17 +83,14 @@
         @foreach ($sections as $section)
             <div class="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
                 <p class="mb-2 text-[12px] font-bold text-navy-900">{{ $section['label'] }}</p>
-                <ol class="list-decimal space-y-1.5 pl-4 text-[11px] leading-snug text-slate-700">
+                <ol class="mb-3 list-decimal space-y-1.5 pl-4 text-[11px] leading-snug text-slate-700">
                     @foreach (($section['questions'] ?? []) as $q)
                         <li>{{ $q }}</li>
                     @endforeach
                 </ol>
+                <p class="mb-1 text-[11px] font-bold text-navy-900">সারসংক্ষেপ — {{ $section['label'] }}</p>
+                <div class="min-h-[72px] rounded-md border border-slate-200 bg-white px-2 py-1.5 text-[11px] text-slate-300">…………………………………………</div>
             </div>
         @endforeach
-    </div>
-
-    <div class="border-t border-slate-200 px-4 py-3">
-        <p class="mb-1 text-[12px] font-bold text-navy-900">সারসংক্ষেপ:</p>
-        <div class="min-h-[96px] rounded-md border border-slate-200 bg-white px-3 py-2 text-[12px] text-slate-300">…………………………………………</div>
     </div>
 </div>

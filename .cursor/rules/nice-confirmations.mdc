@@ -1,0 +1,35 @@
+---
+description: Use styled bynnasConfirm instead of native browser confirm()
+alwaysApply: true
+---
+
+# Nice confirmations
+
+Never use `window.confirm()`, `confirm()`, or browser alert dialogs for user confirmations in this app.
+
+Use the global styled modal instead:
+
+1. **Forms** — add data attributes:
+   ```html
+   <form
+     method="POST"
+     action="..."
+     data-bynnas-confirm="Short explanation of what happens."
+     data-bynnas-confirm-title="Short title?"
+     data-bynnas-confirm-ok="Confirm action"
+     data-bynnas-confirm-tone="emerald|sky|amber|rose"
+   >
+   ```
+
+2. **JS / Alpine** — await the helper:
+   ```js
+   const ok = await window.bynnasConfirm({
+     title: '…',
+     message: '…',
+     okLabel: '…',
+     tone: 'emerald', // or sky | amber | rose
+   });
+   if (ok) { /* proceed */ }
+   ```
+
+Component: `resources/views/components/nice-confirm.blade.php` (included in `layouts/app.blade.php`).

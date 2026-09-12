@@ -1340,7 +1340,7 @@ class MonthlyWorklistService
             return max(1, $start->diffInDays($end) + 1);
         }
 
-        // working (default) — BD weekend Fri/Sat + national/govt holidays excluded unless special request
+        // working (default) — weekly offs + national/government/internal holidays from Working Calendar
         return max(1, $this->calendar->countWorkingDays($start, $end, $countOffDays));
     }
 

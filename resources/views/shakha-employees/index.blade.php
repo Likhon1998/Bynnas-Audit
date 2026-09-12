@@ -195,6 +195,8 @@
                     <select name="status" class="h-9 w-full rounded-lg border-slate-200 bg-white text-[12px] shadow-sm focus:border-[#2b579a] focus:ring-[#2b579a]" onchange="this.form.submit()">
                         <option value="all" @selected($filters['status'] === 'all')>All</option>
                         <option value="active" @selected($filters['status'] === 'active')>Active</option>
+                        <option value="transferred" @selected($filters['status'] === 'transferred')>Transferred</option>
+                        <option value="fired" @selected($filters['status'] === 'fired')>Fired</option>
                         <option value="inactive" @selected($filters['status'] === 'inactive')>Inactive</option>
                     </select>
                 </div>
@@ -350,14 +352,29 @@
                                         <td class="px-3.5 py-2.5">
                                             @if ($employee->isActive())
                                                 <span class="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">Active</span>
+                                            @elseif ($employee->isFired())
+                                                <span class="inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-medium text-rose-700">Fired</span>
+                                            @elseif ($employee->isTransferred())
+                                                <span class="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-800">Transferred</span>
                                             @else
-                                                <span class="inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-medium text-rose-600">Inactive</span>
+                                                <span class="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">Inactive</span>
                                             @endif
                                         </td>
-                                        <td class="px-3.5 py-2.5 text-right">
-                                            <a href="{{ route('shakha-employees.manage', $employee->shakha) }}" class="text-[11px] font-semibold text-[#2b579a] hover:underline">Manage</a>
+                                        <td class="px-3.5 py-2.5 text-right whitespace-nowrap">
+                                            @php $count = (int) (($reportCounts[$employee->id] ?? 0)); @endphp
+                                            <a href="{{ route('shakha-employees.dossier', $employee) }}" class="text-[11px] font-semibold text-rose-700 hover:underline">
+                                                রিপোর্ট{{ $count > 0 ? ' ('.$count.')' : '' }}
+                                            </a>
+                                            <a href="{{ route('shakha-employees.manage', $employee->shakha) }}" class="ml-2 text-[11px] font-semibold text-[#2b579a] hover:underline">Manage</a>
                                             @if ($canManage)
                                                 <a href="{{ route('shakha-employees.edit', $employee) }}" class="ml-2 text-[11px] font-semibold text-slate-600 hover:underline">Edit</a>
+                                                <span class="ml-2 inline-block align-middle">
+                                                    @include('shakha-employees.partials.transfer-fire-actions', [
+                                                        'employee' => $employee,
+                                                        'transferTargets' => $transferTargets ?? collect(),
+                                                        'returnTo' => request()->fullUrl(),
+                                                    ])
+                                                </span>
                                             @endif
                                         </td>
                                     </tr>

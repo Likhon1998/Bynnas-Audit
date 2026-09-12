@@ -43,4 +43,10 @@ return [
         'history_limit' => (int) env('GEMINI_HISTORY_LIMIT', 20),
     ],
 
+    'openai' => [
+        'key' => env('OPENAI_API_KEY'),
+        'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
+        'timeout' => (int) env('OPENAI_TIMEOUT', 45),
+    ],
+
 ];

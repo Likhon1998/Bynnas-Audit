@@ -41,7 +41,9 @@
                             'value' => $finding['body'] ?? '',
                             'indicators' => $indicatorOptions ?? $financialIndicatorOptions ?? [],
                             'collection' => 'page12Findings',
-                            'wireKey' => 'p12-ind-'.$fIndex.'-'.md5((string) ($finding['body'] ?? '')),
+                            'locked' => (int) ($finding['indicator_id'] ?? 0) > 0,
+                            'code' => $finding['indicator_code'] ?? null,
+                            'wireKey' => 'p12-ind-'.$fIndex.'-'.(int) ($finding['indicator_id'] ?? 0).'-'.md5((string) ($finding['body'] ?? '')),
                         ])
                         <div class="mt-1 flex flex-wrap items-center gap-2 text-[11px]">
                             <span class="font-semibold">টাকার পরিমাণ:</span>

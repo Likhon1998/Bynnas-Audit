@@ -7,14 +7,18 @@ use App\Models\AuditIndicator;
 use App\Models\AuditReport;
 use App\Models\AuditReportSend;
 use App\Models\Shakha;
+use App\Models\ShakhaEmployee;
 use App\Services\AuditReportCollaborationService;
 use App\Services\AuditReportDocService;
 use App\Services\AuditReportPdfService;
 use App\Services\AuditSummaryService;
+use App\Services\ChecklistReportInfluenceService;
 use App\Services\UserAccessService;
+use App\Services\VisitAuditWorkService;
 use App\Support\AuditComplianceHeading;
 use App\Support\AuditCopyRecipients;
 use App\Support\AuditReportPaginator;
+use App\Support\AuditReportTextSearch;
 use App\Support\AuditScoreSheet;
 use App\Support\AuditTableHeaders;
 use App\Support\CustomTableSchema;
@@ -37,9 +41,55 @@ class MakeAuditReport extends Component
 
     public string $activeTab = 'cover';
 
+    /** Outline sidebar highlight — HTML id of the active section/finding (e.g. finding-4-1). */
+    public string $outlineActiveAnchor = 'audit-cover';
+
     public ?int $reportId = null;
 
+    /** When true, report is in_review or reviewed — UI is read-only. */
+    public bool $reviewReadOnly = false;
+
+    /** Maker must fix reviewer comments (status = changes_requested). Fully editable. */
+    public bool $reviewNeedsFix = false;
+
+    /** Show reviewer comments beside the editor while fixing. */
+    public bool $reviewCommentsOpen = true;
+
+    /** @var list<array{id:int,type:string,color:string,quote:?string,body:?string,author:?string,created:?string}> */
+    public array $reviewFixComments = [];
+
+    /** Latest return / send-back note from reviewer. */
+    public string $reviewFixSummary = '';
+
+    /** Checklist is optional; link/progress only (never locks findings). */
+    public bool $checklistReady = true;
+
+    public int $checklistDone = 0;
+
+    public int $checklistRequired = 5;
+
+    public string $checklistUrl = '';
+
+    /** In-report deep search (word/name occurrence). */
+    public bool $reportSearchOpen = false;
+
+    public string $reportSearchQ = '';
+
+    public bool $reportSearchWholeWord = false;
+
+    public int $reportSearchTotal = 0;
+
+    public int $reportSearchLocations = 0;
+
+    /** @var list<array{location:string,label:string,tab:string,anchor:string,count:int,snippet:string}> */
+    public array $reportSearchHits = [];
+
     public ?int $shakha_id = null;
+
+    public ?int $project_location_id = null;
+
+    /** Picker key: "shakha:12" or "location:5". */
+    public string $report_entity_key = '';
 
     public int $report_month;
 
@@ -416,6 +466,14 @@ class MakeAuditReport extends Component
         $this->ensurePage19Defaults();
         $this->ensurePage20Defaults();
         $this->ensurePage21Defaults();
+
+        $openId = (int) request()->integer('report');
+        if ($openId > 0) {
+            $this->resumeReport($openId);
+            if (request()->boolean('preview') || request()->string('mode')->toString() === 'review') {
+                $this->showPreview = true;
+            }
+        }
     }
 
     public function updatedLogoUpload(): void
@@ -473,19 +531,49 @@ class MakeAuditReport extends Component
             $this->shakha_id = null;
         } else {
             $this->shakha_id = (int) $value;
+            $this->project_location_id = null;
+            $this->report_entity_key = 'shakha:'.$this->shakha_id;
             $this->resetErrorBag('shakha_id');
+            $this->resetErrorBag('report_entity_key');
         }
     }
 
     public function selectShakha(int $id): void
     {
-        $this->shakha_id = $id;
-        $this->resetErrorBag('shakha_id');
+        $this->selectReportEntity('shakha:'.$id);
+    }
+
+    public function selectReportEntity(string $key): void
+    {
+        $key = trim($key);
+        if (preg_match('/^shakha:(\d+)$/', $key, $m)) {
+            $this->shakha_id = (int) $m[1];
+            $this->project_location_id = null;
+            $this->report_entity_key = $key;
+            $this->resetErrorBag('shakha_id');
+            $this->resetErrorBag('report_entity_key');
+
+            return;
+        }
+
+        if (preg_match('/^location:(\d+)$/', $key, $m)) {
+            $this->project_location_id = (int) $m[1];
+            $this->shakha_id = null;
+            $this->report_entity_key = $key;
+            $this->resetErrorBag('shakha_id');
+            $this->resetErrorBag('report_entity_key');
+
+            return;
+        }
+
+        $this->clearShakha();
     }
 
     public function clearShakha(): void
     {
         $this->shakha_id = null;
+        $this->project_location_id = null;
+        $this->report_entity_key = '';
     }
 
     public function clearReportListFilters(): void
@@ -526,6 +614,10 @@ class MakeAuditReport extends Component
                     ->orWhereHas('shakha', function ($s) use ($like) {
                         $s->where('name', 'like', $like)
                             ->orWhere('code', 'like', $like);
+                    })
+                    ->orWhereHas('projectLocation', function ($s) use ($like) {
+                        $s->where('name', 'like', $like)
+                            ->orWhereHas('project', fn ($p) => $p->where('name', 'like', $like));
                     });
             });
         }
@@ -533,20 +625,31 @@ class MakeAuditReport extends Component
         return $query;
     }
 
-    public function startReport($shakhaId = null): void
+    public function startReport($entityKey = null): void
     {
-        if ($shakhaId !== null && $shakhaId !== '') {
-            $this->shakha_id = (int) $shakhaId;
+        if ($entityKey !== null && $entityKey !== '') {
+            if (is_numeric($entityKey)) {
+                $this->selectReportEntity('shakha:'.(int) $entityKey);
+            } else {
+                $this->selectReportEntity((string) $entityKey);
+            }
         }
 
-        if (! $this->shakha_id) {
-            $this->addError('shakha_id', 'শাখা নির্বাচন করুন (ড্রপডাউন থেকে বেছে নিন)।');
+        $hasShakha = (int) ($this->shakha_id ?? 0) > 0;
+        $hasLocation = (int) ($this->project_location_id ?? 0) > 0;
+
+        if (! $hasShakha && ! $hasLocation) {
+            $this->addError('report_entity_key', 'শাখা বা প্রকল্প লোকেশন নির্বাচন করুন।');
+            $this->addError('shakha_id', 'শাখা বা প্রকল্প লোকেশন নির্বাচন করুন।');
 
             return;
         }
 
-        if (! app(UserAccessService::class)->canStartReportForShakha(
-            auth()->user(),
+        $access = app(UserAccessService::class);
+        $authUser = auth()->user();
+
+        if ($hasShakha && ! $access->canStartReportForShakha(
+            $authUser,
             (int) $this->shakha_id,
             (int) $this->report_month,
             (int) $this->report_year,
@@ -556,13 +659,33 @@ class MakeAuditReport extends Component
             return;
         }
 
-        $this->validate([
-            'shakha_id' => ['required', 'integer', 'exists:shakhas,id'],
+        if ($hasLocation && ! $access->canStartReportForProjectLocation(
+            $authUser,
+            (int) $this->project_location_id,
+            (int) $this->report_month,
+            (int) $this->report_year,
+        )) {
+            $this->addError('shakha_id', 'আপনি এই প্রকল্প লোকেশনে assign নন — রিপোর্ট শুরু করা যাবে না।');
+            $this->addError('report_entity_key', 'আপনি এই প্রকল্প লোকেশনে assign নন — রিপোর্ট শুরু করা যাবে না।');
+
+            return;
+        }
+
+        $rules = [
             'report_month' => ['required', 'integer', 'min:1', 'max:12'],
             'report_year' => ['required', 'integer', 'min:2000', 'max:2100'],
-        ], [
-            'shakha_id.required' => 'শাখা নির্বাচন করুন (ড্রপডাউন থেকে বেছে নিন)।',
+        ];
+        if ($hasShakha) {
+            $rules['shakha_id'] = ['required', 'integer', 'exists:shakhas,id'];
+        } else {
+            $rules['project_location_id'] = ['required', 'integer', 'exists:project_locations,id'];
+        }
+
+        $this->validate($rules, [
+            'shakha_id.required' => 'শাখা নির্বাচন করুন।',
             'shakha_id.exists' => 'নির্বাচিত শাখা পাওয়া যায়নি।',
+            'project_location_id.required' => 'প্রকল্প লোকেশন নির্বাচন করুন।',
+            'project_location_id.exists' => 'নির্বাচিত প্রকল্প লোকেশন পাওয়া যায়নি।',
             'report_month.required' => 'মাস নির্বাচন করুন।',
             'report_year.required' => 'বছর নির্বাচন করুন।',
         ]);
@@ -571,33 +694,59 @@ class MakeAuditReport extends Component
 
         $userId = (int) (auth()->id() ?? 0);
         $collaboration = app(AuditReportCollaborationService::class);
-        $authUser = auth()->user();
+        $schedulableType = $hasShakha ? Shakha::class : \App\Models\ProjectLocation::class;
+        $schedulableId = $hasShakha ? (int) $this->shakha_id : (int) $this->project_location_id;
 
-        // Same shakha + month: join the existing shared draft when on the visit team.
         if ($userId > 0 && $authUser) {
-            $joinable = $collaboration->findJoinableDraft(
-                (int) $this->shakha_id,
+            $existing = $collaboration->findPeriodReportForSchedulable(
+                $schedulableType,
+                $schedulableId,
                 (int) $this->report_month,
                 (int) $this->report_year,
-                $authUser
             );
 
-            if ($joinable) {
-                $teamIds = $collaboration->visitorUserIdsForShakhaPeriod(
-                    (int) $this->shakha_id,
+            if ($existing) {
+                if (! $collaboration->userMayOpenPeriodReport(
+                    $existing,
+                    $authUser,
+                    $schedulableType,
+                    $schedulableId,
                     (int) $this->report_month,
-                    (int) $this->report_year
-                );
-                $collaboration->syncCollaborators($joinable, $teamIds, $authUser);
-                $joinable->refresh()->load(['collaborators:id,name', 'user:id,name', 'shakha.area']);
+                    (int) $this->report_year,
+                )) {
+                    $this->addError(
+                        'shakha_id',
+                        'এই শাখা/লোকেশনের এই মাসের রিপোর্ট ইতিমধ্যে আছে। নতুন করে শুরু করা যাবে না — Dashboard থেকে Continue / Edit report ব্যবহার করুন।'
+                    );
+                    $this->addError(
+                        'report_entity_key',
+                        'এই শাখা/লোকেশনের এই মাসের রিপোর্ট ইতিমধ্যে আছে। নতুন করে শুরু করা যাবে না।'
+                    );
 
-                $this->hydrateFromReport($joinable);
-                $this->step = 'wizard';
-                $this->showPreview = false;
-                $this->loadPersistedUndoStack();
-                $this->resetErrorBag();
-                $this->autoSaveHint = 'Shared report opened — both auditors can edit this draft.';
-                session()->flash('status', 'একই শাখার যৌথ নিরীক্ষা — বিদ্যমান শেয়ারড রিপোর্ট খোলা হয়েছে।');
+                    return;
+                }
+
+                $reviews = app(\App\Services\AuditReportReviewService::class);
+                if ($reviews->isEditableByMaker($existing)) {
+                    $teamIds = $collaboration->visitorUserIdsForSchedulablePeriod(
+                        $schedulableType,
+                        $schedulableId,
+                        (int) $this->report_month,
+                        (int) $this->report_year
+                    );
+                    $collaboration->syncCollaborators($existing, $teamIds, $authUser);
+                }
+
+                $this->resumeReport((int) $existing->id);
+
+                $statusLabel = match (true) {
+                    $existing->isChangesRequested() => 'রিভিউ থেকে ফেরত আসা রিপোর্ট খোলা হয়েছে — Edit করে আবার পাঠান।',
+                    $existing->isInReview() => 'রিভিউতে থাকা রিপোর্ট খোলা হয়েছে (read-only)।',
+                    $existing->isReviewed() => 'নিশ্চিতকৃত রিপোর্ট খোলা হয়েছে (locked)।',
+                    $existing->isDraft() => 'একই অডিটের যৌথ নিরীক্ষা — বিদ্যমান শেয়ারড রিপোর্ট খোলা হয়েছে।',
+                    default => 'এই মাসের বিদ্যমান রিপোর্ট খোলা হয়েছে — নতুন করে শুরু হয়নি।',
+                };
+                session()->flash('status', $statusLabel);
 
                 return;
             }
@@ -619,12 +768,22 @@ class MakeAuditReport extends Component
             }
         }
 
-        $shakha = Shakha::query()->with('area')->findOrFail($this->shakha_id);
+        if ($hasShakha) {
+            $shakha = Shakha::query()->with('area')->findOrFail($this->shakha_id);
+            $this->shakha_display_name = trim($shakha->name.($shakha->code ? ' ('.$shakha->code.')' : ''));
+            $this->area_display_name = (string) ($shakha->area?->name ?? '');
+            $this->memo_no = 'অডিট/শাখা - '.($shakha->code ?: $shakha->id).'/'.$this->report_year;
+            $this->branch_opening_date = optional($shakha->opening_date ?? $shakha->opened_at)?->toDateString() ?: '';
+        } else {
+            $location = \App\Models\ProjectLocation::query()->with('project')->findOrFail($this->project_location_id);
+            $projectName = trim((string) ($location->project?->name ?? ''));
+            $place = trim((string) ($location->name ?? ''));
+            $this->shakha_display_name = trim($projectName.($projectName !== '' && $place !== '' ? ' — ' : '').$place) ?: 'Project';
+            $this->area_display_name = trim((string) ($location->division ?? ''));
+            $this->memo_no = 'অডিট/প্রকল্প - '.$location->id.'/'.$this->report_year;
+            $this->branch_opening_date = '';
+        }
 
-        $this->shakha_display_name = trim($shakha->name.($shakha->code ? ' ('.$shakha->code.')' : ''));
-        $this->area_display_name = (string) ($shakha->area?->name ?? '');
-        $this->memo_no = 'অডিট/শাখা - '.($shakha->code ?: $shakha->id).'/'.$this->report_year;
-        $this->branch_opening_date = optional($shakha->opening_date ?? $shakha->opened_at)?->toDateString() ?: '';
         $this->ensureTableHeadersDefaults();
         $this->ensurePage2Defaults();
         $this->ensureTocDefaults();
@@ -653,7 +812,8 @@ class MakeAuditReport extends Component
         try {
             $report = AuditReport::query()->create([
                 'user_id' => auth()->id(),
-                'shakha_id' => $this->shakha_id,
+                'shakha_id' => $hasShakha ? $this->shakha_id : null,
+                'project_location_id' => $hasLocation ? $this->project_location_id : null,
                 'report_month' => $this->report_month,
                 'report_year' => $this->report_year,
                 'status' => AuditReport::STATUS_DRAFT,
@@ -692,11 +852,17 @@ class MakeAuditReport extends Component
                 ],
             ]);
 
-            $teamIds = $collaboration->visitorUserIdsForShakhaPeriod(
-                (int) $this->shakha_id,
-                (int) $this->report_month,
-                (int) $this->report_year
-            );
+            $teamIds = $hasShakha
+                ? $collaboration->visitorUserIdsForShakhaPeriod(
+                    (int) $this->shakha_id,
+                    (int) $this->report_month,
+                    (int) $this->report_year
+                )
+                : $collaboration->visitorUserIdsForProjectLocationPeriod(
+                    (int) $this->project_location_id,
+                    (int) $this->report_month,
+                    (int) $this->report_year
+                );
             if ($teamIds !== []) {
                 $collaboration->syncCollaborators($report, $teamIds, $authUser);
                 $report->refresh();
@@ -711,6 +877,7 @@ class MakeAuditReport extends Component
         }
 
         $this->reportId = $report->id;
+        $this->refreshChecklistGate($report);
         $this->step = 'wizard';
         $this->activeTab = 'cover';
         $this->clearPersistedUndoStack();
@@ -722,18 +889,164 @@ class MakeAuditReport extends Component
         $this->sign_auditor_designation = $this->auditor_designation;
         $this->resetErrorBag();
     }
-
     public function resumeReport(int $reportId): void
     {
-        $report = AuditReport::query()
-            ->when(auth()->id(), fn ($q) => $q->accessibleBy((int) auth()->id()))
-            ->findOrFail($reportId);
+        $user = auth()->user();
+        $report = AuditReport::query()->findOrFail($reportId);
+        $reviews = app(\App\Services\AuditReportReviewService::class);
+        abort_unless(
+            $report->isAccessibleBy($user)
+                || $reviews->canReview($user, $report)
+                || ($user?->can('audits.manage') ?? false),
+            403
+        );
+
+        // Drop old auto-seeded চি.N checklist rows if any remain in stored draft.
+        app(ChecklistReportInfluenceService::class)->purgeLegacyAutoSeededFindings($report);
+        $report->refresh();
+
+        // Restore পর্যবেক্ষণ source meta stripped by older normalize passes.
+        $pages = (array) $report->pages_data;
+        $page4 = (array) ($pages['page4'] ?? []);
+        $blocks = array_values((array) ($page4['reportBlocks'] ?? []));
+        $restored = app(ChecklistReportInfluenceService::class)->restoreObservationSourceMeta($blocks);
+        if ($restored !== $blocks) {
+            $page4['reportBlocks'] = $restored;
+            $pages['page4'] = $page4;
+            if ($reviews->isEditableByMaker($report)) {
+                $report->forceFill(['pages_data' => $pages, 'last_saved_at' => now()])->save();
+                $report->refresh();
+            }
+        }
 
         $this->hydrateFromReport($report);
+        $this->reviewReadOnly = ! $reviews->isEditableByMaker($report);
+        $this->reviewNeedsFix = $report->isChangesRequested() && ! $this->reviewReadOnly;
+        $this->loadReviewFixComments($report);
+        $this->refreshChecklistGate($report);
         $this->step = 'wizard';
         $this->showPreview = false;
         $this->loadPersistedUndoStack();
         $this->resetErrorBag();
+        // Heal matrix cells for drafts that already had indicator + amount but never synced.
+        if (! $this->reviewReadOnly) {
+            $this->syncReportToFindingsMatrix();
+        }
+    }
+
+    protected function loadReviewFixComments(AuditReport $report): void
+    {
+        $this->reviewFixComments = [];
+        $this->reviewFixSummary = '';
+        $this->reviewCommentsOpen = true;
+
+        if (! $report->isChangesRequested()) {
+            return;
+        }
+
+        $report->loadMissing([
+            'reviewAnnotations.user:id,name',
+            'reviewEvents.actor:id,name',
+        ]);
+
+        $latestReturn = $report->reviewEvents
+            ->firstWhere('action', \App\Models\AuditReportReviewEvent::ACTION_RETURNED);
+        if ($latestReturn) {
+            $this->reviewFixSummary = trim((string) $latestReturn->body);
+        }
+
+        $this->reviewFixComments = $report->reviewAnnotations
+            ->sortBy('id')
+            ->values()
+            ->map(fn (\App\Models\AuditReportReviewAnnotation $a) => [
+                'id' => (int) $a->id,
+                'type' => (string) ($a->type ?: 'text'),
+                'color' => (string) ($a->color ?: 'yellow'),
+                'quote' => $a->quote ? (string) $a->quote : null,
+                'body' => $a->body ? (string) $a->body : null,
+                'author' => $a->user?->name,
+                'created' => $a->created_at?->timezone('Asia/Dhaka')->format('d M, h:i A'),
+                'snapshot_url' => $a->snapshotUrl(),
+                'rect_x' => $a->rect_x,
+                'rect_y' => $a->rect_y,
+                'rect_w' => $a->rect_w,
+                'rect_h' => $a->rect_h,
+            ])
+            ->all();
+    }
+
+    public function toggleReviewComments(): void
+    {
+        $this->reviewCommentsOpen = ! $this->reviewCommentsOpen;
+    }
+
+    public function refreshReviewFixComments(): void
+    {
+        if (! $this->reportId) {
+            return;
+        }
+
+        $report = AuditReport::query()->with([
+            'reviewAnnotations.user:id,name',
+            'reviewEvents.actor:id,name',
+        ])->find($this->reportId);
+
+        if (! $report || ! $report->isChangesRequested()) {
+            return;
+        }
+
+        $this->loadReviewFixComments($report);
+    }
+
+    public function focusReviewComment(int $id): void
+    {
+        $comment = collect($this->reviewFixComments)->firstWhere('id', $id);
+        if (! $comment) {
+            return;
+        }
+
+        $quote = trim((string) ($comment['quote'] ?? ''));
+        if ($quote !== '') {
+            $this->reportSearchOpen = true;
+            $this->reportSearchQ = mb_substr($quote, 0, 80);
+            $this->reportSearchWholeWord = false;
+            $this->runReportSearch();
+        }
+    }
+
+    /**
+     * Checklist is optional — tracks progress only; never locks report content.
+     */
+    protected function refreshChecklistGate(?AuditReport $report = null): void
+    {
+        if (! $report && $this->reportId) {
+            $report = AuditReport::query()->find($this->reportId);
+        }
+
+        if (! $report) {
+            $this->checklistReady = true;
+            $this->checklistDone = 0;
+            $this->checklistRequired = 0;
+            $this->checklistUrl = '';
+
+            return;
+        }
+
+        $progress = app(VisitAuditWorkService::class)->checklistProgress($report);
+        // Always allow findings; "ready" here only means optional selected evidence is complete.
+        $this->checklistReady = true;
+        $this->checklistDone = $progress['done'];
+        $this->checklistRequired = $progress['required'];
+        $this->checklistUrl = route('audits.checklist', $report);
+    }
+
+    public function goToChecklist(): mixed
+    {
+        if ($this->checklistUrl !== '') {
+            return $this->redirect($this->checklistUrl, navigate: true);
+        }
+
+        return null;
     }
 
     public function updatedActiveTab(): void
@@ -747,12 +1060,29 @@ class MakeAuditReport extends Component
         }
     }
 
+    protected function isContentTab(string $tab): bool
+    {
+        return in_array($tab, [
+            'page4', 'page5', 'page6', 'page7', 'page8', 'page9', 'page10',
+            'page11', 'page12', 'page13', 'page14', 'page15', 'page16',
+            'page17', 'page18', 'page19', 'page20', 'page21',
+        ], true);
+    }
+
+    /**
+     * Checklist never blocks report editing or completion.
+     */
+    protected function assertChecklistReadyForContent(): bool
+    {
+        return true;
+    }
+
     /**
      * Silent DB persist — used by poll + tab changes. Always stores the draft.
      */
     public function autoSaveDraft(): void
     {
-        if (! $this->reportId || $this->step !== 'wizard') {
+        if (! $this->reportId || $this->step !== 'wizard' || $this->reviewReadOnly) {
             return;
         }
 
@@ -1145,7 +1475,23 @@ class MakeAuditReport extends Component
 
     public function completeReport(): void
     {
-        if (! $this->reportId) {
+        if (! $this->reportId || $this->reviewReadOnly) {
+            return;
+        }
+
+        if (! $this->assertChecklistReadyForContent()) {
+            session()->flash('status', 'Complete your selected checklist formats (Save as evidence) before finishing the report.');
+
+            return;
+        }
+
+        $existing = AuditReport::query()->find($this->reportId);
+        if ($existing && in_array($existing->status, [
+            AuditReport::STATUS_IN_REVIEW,
+            AuditReport::STATUS_REVIEWED,
+        ], true)) {
+            session()->flash('status', 'This report is locked for review.');
+
             return;
         }
 
@@ -1167,7 +1513,7 @@ class MakeAuditReport extends Component
         if ($synced > 0) {
             $msg .= ' Findings Matrix-এ '.$synced.'টি indicator (শাখা × মাস) আপডেট হয়েছে।';
         } else {
-            $msg .= ' Matrix আপডেট করতে শিরোনামে Indicator বেছে নিন ও Report Rating Box পূরণ করুন।';
+            $msg .= ' Matrix আপডেট করতে শিরোনামে Indicator Save করুন এবং টাকার পরিমাণ দিন (Rating Box optional)।';
         }
         session()->flash('status', $msg);
         $this->backToSelect(saveFirst: false);
@@ -1193,7 +1539,12 @@ class MakeAuditReport extends Component
         $userId = (int) (auth()->id() ?? 0);
         $report = AuditReport::query()
             ->accessibleBy($userId)
-            ->completed()
+            ->whereIn('status', [
+                AuditReport::STATUS_COMPLETED,
+                AuditReport::STATUS_IN_REVIEW,
+                AuditReport::STATUS_CHANGES_REQUESTED,
+                AuditReport::STATUS_REVIEWED,
+            ])
             ->with('shakha')
             ->findOrFail($reportId);
 
@@ -1381,7 +1732,8 @@ class MakeAuditReport extends Component
         $this->comments_received_date = $this->normalizeDateInput($this->comments_received_date) ?? $this->comments_received_date;
 
         $this->validate([
-            'shakha_id' => ['required', 'exists:shakhas,id'],
+            'shakha_id' => ['nullable', 'integer', 'exists:shakhas,id', 'required_without:project_location_id'],
+            'project_location_id' => ['nullable', 'integer', 'exists:project_locations,id', 'required_without:shakha_id'],
             'auditor_name' => ['required', 'string', 'max:255'],
             'memo_no' => ['required', 'string', 'max:255'],
             'report_date' => ['required', 'date'],
@@ -1412,19 +1764,27 @@ class MakeAuditReport extends Component
         $this->ensureTocDefaults();
         $this->persistDraft(markTab: 'page2', flash: true, flashMessage: 'পৃষ্ঠা ২ সংরক্ষণ হয়েছে।');
         $this->activeTab = 'page3';
+        $this->outlineActiveAnchor = 'audit-page3';
     }
 
     public function savePage3(): void
     {
         $this->ensureTocDefaults();
         $this->ensureSignatureDefaults();
-        $this->persistDraft(markTab: 'page3', flash: true, flashMessage: 'পৃষ্ঠা ৩ (সূচিপত্র + শ্রেণীবিন্যাস + স্বাক্ষর) সংরক্ষণ হয়েছে।');
+        $this->persistDraft(markTab: 'page3', flash: true, flashMessage: 'পৃষ্ঠা ৩ (শ্রেণীবিন্যাস + স্বাক্ষর) সংরক্ষণ হয়েছে।');
         $this->activeTab = 'page4';
+        $this->outlineActiveAnchor = 'audit-page4';
         $this->ensureFinancialAuditDefaults();
     }
 
     public function savePage4(): void
     {
+        if (! $this->assertChecklistReadyForContent()) {
+            session()->flash('status', 'Finish checklist evidence before saving findings.');
+
+            return;
+        }
+
         $this->ensureFinancialAuditDefaults();
         $this->syncAllFinancialFindingsToToc();
         $this->relinkStatsBlocksToFindings();
@@ -1607,6 +1967,15 @@ class MakeAuditReport extends Component
         $this->syncLegacyFinancialFromReportSections();
         $this->syncLegacyUtilityFromBlocks();
         $this->rebuildTocFromReportBlocks();
+
+        // Amount / rating edits must persist + push to Findings Matrix (Save indicator alone used to leave amount at 0.00).
+        if (
+            $this->reportId
+            && is_string($key)
+            && preg_match('/^\d+\.(amount|rating|indicator_id)$/', $key)
+        ) {
+            $this->autoSaveDraft();
+        }
     }
 
     protected function recalculateReportBlockStatsPercentage(int $blockIndex, int $rowIndex): void
@@ -1745,15 +2114,19 @@ class MakeAuditReport extends Component
 
     /**
      * Insert a block at any absolute index (0 = top of page body).
-     * $type: section|finding|criteria|observation|stats|custom_table|compliance_table|risk|root_cause|recommendation|jobab_table|followup_pack|finding_format_pack
+     * $type: section|finding|criteria|observation|stats|custom_table|compliance_table|risk|root_cause|recommendation|jobab_table|followup_pack|finding_format_pack|finding_item_pack
      */
     public function insertBlockAt(int $index, string $type = 'finding'): void
     {
+        if (! $this->assertChecklistReadyForContent()) {
+            return;
+        }
+
         $this->ensureReportBlocksDefaults();
         $allowed = [
             'section', 'finding', 'criteria', 'observation', 'stats', 'custom_table',
             'compliance_table', 'it_checklist', 'external_audit', 'audit_score', 'risk', 'root_cause', 'recommendation', 'jobab_table', 'followup_pack',
-            'finding_format_pack', 'text_box',
+            'finding_format_pack', 'finding_item_pack', 'text_box',
         ];
         $type = in_array($type, $allowed, true) ? $type : 'finding';
         $index = max(0, min($index, count($this->reportBlocks)));
@@ -1767,6 +2140,28 @@ class MakeAuditReport extends Component
                     'serial' => $sectionSerial,
                     'title' => $sectionSerial.' নতুন বিভাগ',
                 ],
+                [
+                    'type' => 'finding',
+                    ...$findingRow,
+                ],
+                $this->blankCriteriaBlock(''),
+                $this->blankObservationBlock('পর্যবেক্ষণ (Observation) :', ''),
+                $this->blankStatsBlock('Report Rating Box:', null, [
+                    'linked_indicator_id' => $findingRow['indicator_id'] ?? null,
+                    'linked_indicator_code' => $findingRow['indicator_code'] ?? null,
+                    'linked_finding_serial' => $findingRow['serial'] ?? null,
+                    'linked_finding_title' => $findingRow['title'] ?? null,
+                ]),
+                $this->blankRiskBox(),
+                $this->blankRootCauseBox(),
+                $this->blankRecommendationBox(),
+                $this->blankJobabBlock(),
+            ];
+            array_splice($this->reportBlocks, $index, 0, $pack);
+        } elseif ($type === 'finding_item_pack') {
+            // Same flow as Finding format pack, but without বিভাগ — starts at শিরোনাম.
+            $findingRow = $this->blankFindingRow($this->nextFindingSerialNearIndex($index));
+            $pack = [
                 [
                     'type' => 'finding',
                     ...$findingRow,
@@ -2362,6 +2757,7 @@ class MakeAuditReport extends Component
 
     /**
      * Explicitly set which Findings Matrix indicator a Report Rating Box belongs to.
+     * Pick-only: must be an existing matrix indicator (no create-new).
      */
     public function applyStatsBlockIndicator(int $blockIndex, ?int $indicatorId, string $title): void
     {
@@ -2371,17 +2767,44 @@ class MakeAuditReport extends Component
         }
 
         $title = trim($title);
-        if ($title === '') {
+        $indicatorId = (int) ($indicatorId ?? 0);
+
+        $indicator = null;
+        if ($indicatorId > 0) {
+            $indicator = AuditIndicator::query()->active()->find($indicatorId);
+        }
+        if (! $indicator && $title !== '') {
+            $indicator = AuditIndicator::query()
+                ->active()
+                ->whereRaw('LOWER(TRIM(title)) = ?', [mb_strtolower($title)])
+                ->first();
+        }
+
+        if (! $indicator) {
+            $this->autoSaveHint = 'Rating Box: Findings Matrix থেকে একটি indicator বেছে নিন';
+
             return;
         }
 
-        $indicator = $this->resolveOrCreateIndicator($indicatorId, $title, 'নিরীক্ষা প্রতিবেদন');
-        $ctx = $this->findingContextBeforeIndex($blockIndex);
+        $serial = '';
+        foreach ($this->reportBlocks as $block) {
+            if (($block['type'] ?? '') !== 'finding') {
+                continue;
+            }
+            if ((int) ($block['indicator_id'] ?? 0) === (int) $indicator->id) {
+                $serial = (string) ($block['serial'] ?? '');
+                break;
+            }
+        }
+        if ($serial === '') {
+            $ctx = $this->findingContextBeforeIndex($blockIndex);
+            $serial = (string) ($ctx['linked_finding_serial'] ?? '');
+        }
 
         $this->reportBlocks[$blockIndex]['linked_indicator_id'] = $indicator->id;
         $this->reportBlocks[$blockIndex]['linked_indicator_code'] = $indicator->indicator_code;
         $this->reportBlocks[$blockIndex]['linked_finding_title'] = $indicator->title;
-        $this->reportBlocks[$blockIndex]['linked_finding_serial'] = $ctx['linked_finding_serial'] ?? '';
+        $this->reportBlocks[$blockIndex]['linked_finding_serial'] = $serial;
         $this->reportBlocks[$blockIndex]['link_manual'] = true;
 
         if ($this->reportId) {
@@ -2457,6 +2880,8 @@ class MakeAuditReport extends Component
             }
         }
 
+        $this->normalizeEmptySectionTitles();
+
         if ($serialMap === []) {
             return [];
         }
@@ -2486,22 +2911,23 @@ class MakeAuditReport extends Component
 
     /**
      * Replace a leading serial in a title (or any leading N.N) with $newSerial.
+     * Empty titles stay empty so checklist বিভাগ remain user-fillable and visible in outline.
      */
     protected function retitleWithSerial(string $title, string $oldSerial, string $newSerial): string
     {
         $title = trim($title);
         if ($title === '') {
-            return $newSerial;
+            return '';
         }
         if ($oldSerial !== '' && str_starts_with($title, $oldSerial)) {
             $rest = trim(mb_substr($title, mb_strlen($oldSerial)));
 
-            return $rest !== '' ? $newSerial.' '.$rest : $newSerial;
+            return $rest !== '' ? $newSerial.' '.$rest : '';
         }
         $stripped = preg_replace('/^[০-৯0-9]+[\.٫.][০-৯0-9]+\s*/u', '', $title) ?? $title;
         $stripped = trim($stripped);
 
-        return $stripped !== '' ? $newSerial.' '.$stripped : $newSerial;
+        return $stripped !== '' ? $newSerial.' '.$stripped : '';
     }
 
     /**
@@ -2649,15 +3075,213 @@ class MakeAuditReport extends Component
     /**
      * Text-only observation (পর্যবেক্ষণ লিখুন).
      *
-     * @return array{type:string,label:string,body:string}
+     * matrix_people is optional — only added when auditor opens “অভিযুক্ত আছে?”.
+     *
+     * @param  list<array{id:?int,code?:string,name?:string}>|null  $matrixPeople
+     * @return array{type:string,label:string,body:string,matrix_people?:list<array{id:?int,code:string,name:string}>}
      */
-    protected function blankObservationBlock(string $label = 'পর্যবেক্ষণ (Observation) :', string $body = ''): array
+    protected function blankObservationBlock(string $label = 'পর্যবেক্ষণ (Observation) :', string $body = '', ?array $matrixPeople = null): array
     {
-        return [
+        $block = [
             'type' => 'observation',
             'label' => $label,
             'body' => $body,
         ];
+
+        // Only attach people slots when explicitly provided (restore / already chosen).
+        if ($matrixPeople !== null && $this->isPorjobekkhonLabel($label)) {
+            $normalized = $this->normalizeMatrixPeople($matrixPeople);
+            $hasAny = collect($normalized)->contains(fn ($p) => trim((string) ($p['name'] ?? '')) !== '' || trim((string) ($p['code'] ?? '')) !== '');
+            if ($hasAny) {
+                $block['matrix_people'] = $normalized;
+            }
+        }
+
+        return $block;
+    }
+
+    /**
+     * @return array{id:?int,code:string,name:string}
+     */
+    protected function blankMatrixPerson(): array
+    {
+        return ['id' => null, 'code' => '', 'name' => ''];
+    }
+
+    /**
+     * @param  list<array{id:?int,code?:string,name?:string}>|null  $people
+     * @return list<array{id:?int,code:string,name:string}>
+     */
+    protected function normalizeMatrixPeople(?array $people, bool $keepEmptySlots = false): array
+    {
+        $normalized = [];
+        foreach (array_values((array) $people) as $person) {
+            if (! is_array($person)) {
+                continue;
+            }
+            $id = isset($person['id']) ? (int) $person['id'] : 0;
+            $code = trim((string) ($person['code'] ?? ''));
+            $name = trim((string) ($person['name'] ?? ''));
+            if ($id < 1 && $code === '' && $name === '') {
+                if ($keepEmptySlots) {
+                    $normalized[] = $this->blankMatrixPerson();
+                }
+
+                continue;
+            }
+            $normalized[] = [
+                'id' => $id > 0 ? $id : null,
+                'code' => $code,
+                'name' => $name,
+            ];
+        }
+
+        return $normalized !== [] ? $normalized : [$this->blankMatrixPerson()];
+    }
+
+    protected function isPorjobekkhonLabel(string $label): bool
+    {
+        $label = mb_strtolower(trim($label));
+
+        return str_contains($label, 'পর্যবেক্ষণ') || str_contains($label, 'observation');
+    }
+
+    public function openObservationPeople(int $blockIndex): void
+    {
+        $this->ensureReportBlocksDefaults();
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'observation') {
+            return;
+        }
+        if (! $this->isPorjobekkhonLabel((string) ($this->reportBlocks[$blockIndex]['label'] ?? ''))) {
+            return;
+        }
+
+        $blocks = $this->reportBlocks;
+        $people = array_values((array) ($blocks[$blockIndex]['matrix_people'] ?? []));
+        if ($people === []) {
+            $people = [$this->blankMatrixPerson()];
+        }
+        $blocks[$blockIndex]['matrix_people'] = $people;
+        $blocks[$blockIndex]['show_matrix_people'] = true;
+        $this->reportBlocks = array_values($blocks);
+    }
+
+    public function hideObservationPeople(int $blockIndex): void
+    {
+        $this->ensureReportBlocksDefaults();
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'observation') {
+            return;
+        }
+
+        $blocks = $this->reportBlocks;
+        $blocks[$blockIndex]['show_matrix_people'] = false;
+
+        $people = array_values((array) ($blocks[$blockIndex]['matrix_people'] ?? []));
+        $hasAny = collect($people)->contains(fn ($p) => is_array($p) && (
+            trim((string) ($p['name'] ?? '')) !== '' || trim((string) ($p['code'] ?? '')) !== ''
+        ));
+        if (! $hasAny) {
+            unset($blocks[$blockIndex]['matrix_people']);
+        }
+        $this->reportBlocks = array_values($blocks);
+    }
+
+    public function clearObservationPeople(int $blockIndex): void
+    {
+        $this->ensureReportBlocksDefaults();
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'observation') {
+            return;
+        }
+
+        $blocks = $this->reportBlocks;
+        unset($blocks[$blockIndex]['matrix_people'], $blocks[$blockIndex]['show_matrix_people']);
+        $this->reportBlocks = array_values($blocks);
+
+        if ($this->reportId) {
+            $this->autoSaveDraft();
+        }
+    }
+
+    public function addObservationPerson(int $blockIndex): void
+    {
+        $this->ensureReportBlocksDefaults();
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'observation') {
+            return;
+        }
+        if (! $this->isPorjobekkhonLabel((string) ($this->reportBlocks[$blockIndex]['label'] ?? ''))) {
+            return;
+        }
+
+        $blocks = $this->reportBlocks;
+        $people = array_values((array) ($blocks[$blockIndex]['matrix_people'] ?? []));
+        if ($people === []) {
+            $people = [$this->blankMatrixPerson()];
+        }
+        $people[] = $this->blankMatrixPerson();
+        $blocks[$blockIndex]['matrix_people'] = $people;
+        $blocks[$blockIndex]['show_matrix_people'] = true;
+        $this->reportBlocks = array_values($blocks);
+
+        if ($this->reportId) {
+            $this->autoSaveDraft();
+        }
+    }
+
+    public function removeObservationPerson(int $blockIndex, int $personIndex): void
+    {
+        $this->ensureReportBlocksDefaults();
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'observation') {
+            return;
+        }
+
+        $blocks = $this->reportBlocks;
+        $people = array_values((array) ($blocks[$blockIndex]['matrix_people'] ?? []));
+        if (! isset($people[$personIndex]) || count($people) <= 1) {
+            $blocks[$blockIndex]['matrix_people'] = [$this->blankMatrixPerson()];
+            $blocks[$blockIndex]['show_matrix_people'] = true;
+            $this->reportBlocks = array_values($blocks);
+
+            return;
+        }
+
+        unset($people[$personIndex]);
+        $blocks[$blockIndex]['matrix_people'] = array_values($people);
+        $blocks[$blockIndex]['show_matrix_people'] = true;
+        $this->reportBlocks = array_values($blocks);
+
+        if ($this->reportId) {
+            $this->autoSaveDraft();
+        }
+    }
+
+    public function applyObservationPerson(int $blockIndex, int $personIndex, ?int $id, string $code, string $name): void
+    {
+        $this->ensureReportBlocksDefaults();
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'observation') {
+            return;
+        }
+
+        $blocks = $this->reportBlocks;
+        $people = array_values((array) ($blocks[$blockIndex]['matrix_people'] ?? []));
+        if ($people === []) {
+            $people = [$this->blankMatrixPerson()];
+        }
+        while (count($people) <= $personIndex) {
+            $people[] = $this->blankMatrixPerson();
+        }
+
+        $people[$personIndex] = [
+            'id' => $id && $id > 0 ? $id : null,
+            'code' => trim($code),
+            'name' => trim($name),
+        ];
+        $blocks[$blockIndex]['matrix_people'] = $people;
+        $blocks[$blockIndex]['show_matrix_people'] = true;
+        $this->reportBlocks = array_values($blocks);
+
+        if ($this->reportId) {
+            $this->autoSaveDraft();
+        }
     }
 
     /** @return array{type:string,label:string,body:string} */
@@ -4073,8 +4697,8 @@ class MakeAuditReport extends Component
         $this->ensureReportBlocksDefaults();
         $items = [
             ['kind' => 'fixed', 'label' => 'Cover Page', 'tab' => 'cover', 'anchor' => 'audit-cover', 'depth' => 0],
-            ['kind' => 'fixed', 'label' => 'এক নজরে', 'tab' => 'page2', 'anchor' => 'audit-page2', 'depth' => 0],
-            ['kind' => 'fixed', 'label' => 'সূচিপত্র ও শ্রেণীবিন্যাস', 'tab' => 'page3', 'anchor' => 'audit-page3', 'depth' => 0],
+            ['kind' => 'fixed', 'label' => 'এক নজরে + সূচিপত্র', 'tab' => 'page2', 'anchor' => 'audit-page2', 'depth' => 0],
+            ['kind' => 'fixed', 'label' => 'শ্রেণীবিন্যাস', 'tab' => 'page3', 'anchor' => 'audit-page3', 'depth' => 0],
             ['kind' => 'fixed', 'label' => 'আর্থিক নিরীক্ষা', 'tab' => 'page4', 'anchor' => 'audit-page4', 'depth' => 0],
         ];
 
@@ -4083,8 +4707,15 @@ class MakeAuditReport extends Component
             if ($type === 'section') {
                 $serial = trim((string) ($block['serial'] ?? ''));
                 $title = trim((string) ($block['title'] ?? ''));
-                $label = $title !== '' ? $title : ($serial !== '' ? $serial : 'বিভাগ');
-                // Skip sections that only repeat the fixed page label ("আর্থিক নিরীক্ষা").
+                // Title that is empty OR only the serial (after renumber) still shows as বিভাগ.
+                $titleWithoutSerial = $title;
+                if ($serial !== '' && str_starts_with($title, $serial)) {
+                    $titleWithoutSerial = trim(mb_substr($title, mb_strlen($serial)));
+                }
+                $label = $titleWithoutSerial !== ''
+                    ? ($title !== '' ? $title : $serial.' '.$titleWithoutSerial)
+                    : ($serial !== '' ? $serial.' নতুন বিভাগ' : 'বিভাগ');
+                // Skip only the redundant page-4 mirror of "আর্থিক নিরীক্ষা".
                 if ($this->outlineSectionDuplicatesPageLabel($serial, $title)) {
                     continue;
                 }
@@ -4162,18 +4793,105 @@ class MakeAuditReport extends Component
     }
 
     /**
-     * True when a section title is just the page-4 label again (with/without serial / English).
+     * Clear section titles that are only a serial (e.g. "৩.০") so outline shows "৩.০ নতুন বিভাগ"
+     * and the editor title field stays blank for the auditor.
+     */
+    protected function normalizeEmptySectionTitles(): void
+    {
+        foreach ($this->reportBlocks as $i => $block) {
+            if (($block['type'] ?? '') !== 'section') {
+                continue;
+            }
+            $serial = trim((string) ($block['serial'] ?? ''));
+            $title = trim((string) ($block['title'] ?? ''));
+            if ($serial !== '' && ($title === '' || $title === $serial)) {
+                $this->reportBlocks[$i]['title'] = '';
+            }
+        }
+    }
+
+    /**
+     * Keep checklist origin fields when normalizing block shapes.
+     *
+     * @param  array<string, mixed>  $source
+     * @param  array<string, mixed>  $normalized
+     * @return array<string, mixed>
+     */
+    protected function preserveChecklistMeta(array $source, array $normalized): array
+    {
+        foreach ([
+            'from_checklist',
+            'checklist_pack',
+            'checklist_seed_key',
+            'checklist_format_code',
+            'checklist_source_label',
+            'checklist_source_detail',
+            'source',
+        ] as $key) {
+            if (array_key_exists($key, $source)) {
+                $normalized[$key] = $source[$key];
+            }
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * True only for the redundant page-4 section that repeats "আর্থিক নিরীক্ষা".
+     * Empty / serial-only বিভাগ titles (checklist packs) must remain visible.
      */
     protected function outlineSectionDuplicatesPageLabel(string $serial, string $title): bool
     {
-        $text = $title !== '' ? $title : $serial;
-        if ($serial !== '') {
-            $text = preg_replace('/^'.preg_quote($serial, '/').'\s*/u', '', $text) ?? $text;
+        $text = trim($title);
+        if ($serial !== '' && str_starts_with($text, $serial)) {
+            $text = trim(mb_substr($text, mb_strlen($serial)));
         }
         $text = preg_replace('/\s*\([^)]*Financial Audit[^)]*\)\s*/iu', '', $text) ?? $text;
         $text = trim($text, " \t\n\r\0\x0B:.-–—");
 
-        return $text === '' || $text === 'আর্থিক নিরীক্ষা';
+        return $text === 'আর্থিক নিরীক্ষা';
+    }
+
+    public function goToSearchHit(string $tab, string $anchor = ''): void
+    {
+        $this->navigateToSearchTarget($tab, $anchor, trim($this->reportSearchQ));
+    }
+
+    public function goToSearchHitByIndex(int $index): void
+    {
+        $hit = $this->reportSearchHits[$index] ?? null;
+        if (! is_array($hit)) {
+            return;
+        }
+
+        $tab = (string) ($hit['tab'] ?? 'cover');
+        $anchor = (string) ($hit['anchor'] ?? '');
+        $this->navigateToSearchTarget($tab, $anchor, trim($this->reportSearchQ));
+    }
+
+    protected function navigateToSearchTarget(string $tab, string $anchor, string $query = ''): void
+    {
+        $this->reportSearchOpen = false;
+
+        if (! in_array($tab, ['cover', 'page2', 'page3', 'page4'], true)) {
+            $tab = 'cover';
+        }
+
+        $target = $anchor !== ''
+            ? $anchor
+            : $this->defaultOutlineAnchorForTab($tab);
+
+        $this->activeTab = $tab;
+        $this->outlineActiveAnchor = $target;
+
+        // Prefer direct browser CustomEvent — works even if Livewire event bubbling differs by version.
+        $payload = json_encode([
+            'tab' => $tab,
+            'anchor' => $target,
+            'query' => $query,
+        ], JSON_UNESCAPED_UNICODE);
+        $this->js('window.dispatchEvent(new CustomEvent("audit-goto-place", { detail: '.$payload.' }))');
+        $this->dispatch('audit-goto-place', tab: $tab, anchor: $target, query: $query);
     }
 
     public function goToOutlineItem(string $tab, string $anchor = ''): void
@@ -4181,11 +4899,249 @@ class MakeAuditReport extends Component
         if (! in_array($tab, ['cover', 'page2', 'page3', 'page4'], true)) {
             return;
         }
+
+        $target = $anchor !== ''
+            ? $anchor
+            : $this->defaultOutlineAnchorForTab($tab);
+
         $this->activeTab = $tab;
-        if ($anchor !== '') {
-            $safe = json_encode($anchor, JSON_UNESCAPED_UNICODE);
-            $this->js('setTimeout(() => { const el = document.getElementById('.$safe.'); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 160)');
+        $this->outlineActiveAnchor = $target;
+
+        $payload = json_encode([
+            'tab' => $tab,
+            'anchor' => $target,
+            'query' => '',
+        ], JSON_UNESCAPED_UNICODE);
+        $this->js('window.dispatchEvent(new CustomEvent("audit-goto-place", { detail: '.$payload.' }))');
+        $this->dispatch('audit-goto-place', tab: $tab, anchor: $target, query: '');
+    }
+
+    public function setOutlineActiveAnchor(string $anchor): void
+    {
+        $anchor = trim($anchor);
+        if ($anchor === '' || $this->outlineActiveAnchor === $anchor) {
+            return;
         }
+        $this->outlineActiveAnchor = $anchor;
+    }
+
+    protected function defaultOutlineAnchorForTab(string $tab): string
+    {
+        return match ($tab) {
+            'cover' => 'audit-cover',
+            'page2' => 'audit-page2',
+            'page3' => 'audit-page3',
+            'page4' => 'audit-page4',
+            default => '',
+        };
+    }
+
+    public function openReportSearch(): void
+    {
+        $this->reportSearchOpen = true;
+        if (trim($this->reportSearchQ) !== '') {
+            $this->runReportSearch();
+        }
+    }
+
+    public function closeReportSearch(): void
+    {
+        $this->reportSearchOpen = false;
+    }
+
+    public function updatedReportSearchQ(): void
+    {
+        if (! $this->reportSearchOpen) {
+            return;
+        }
+        $this->runReportSearch();
+    }
+
+    public function updatedReportSearchWholeWord(): void
+    {
+        if ($this->reportSearchOpen) {
+            $this->runReportSearch();
+        }
+    }
+
+    public function runReportSearch(): void
+    {
+        $result = AuditReportTextSearch::search(
+            $this->reportSearchQ,
+            $this->buildReportSearchCorpus(),
+            $this->reportSearchWholeWord,
+        );
+        $this->reportSearchTotal = $result['total'];
+        $this->reportSearchLocations = $result['locations'];
+        $this->reportSearchHits = $result['hits'];
+    }
+
+    /**
+     * @return list<array{text:string,location:string,label:string,tab:string,anchor:string}>
+     */
+    protected function buildReportSearchCorpus(): array
+    {
+        $corpus = [];
+
+        $add = function (string $text, string $location, string $label, string $tab, string $anchor = '') use (&$corpus): void {
+            $text = trim($text);
+            if ($text === '') {
+                return;
+            }
+            $corpus[] = compact('text', 'location', 'label', 'tab', 'anchor');
+        };
+
+        $add($this->memo_no, 'cover', 'Cover · Memo', 'cover', 'audit-cover');
+        $add($this->shakha_display_name, 'cover', 'Cover · শাখা', 'cover', 'audit-cover');
+        $add($this->area_display_name, 'cover', 'Cover · এলাকা', 'cover', 'audit-cover');
+        $add($this->audit_period_label, 'cover', 'Cover · Audit period', 'cover', 'audit-cover');
+        $add($this->auditor_name, 'cover', 'Cover · Auditor', 'cover', 'audit-cover');
+        $add($this->auditor_designation, 'cover', 'Cover · Designation', 'cover', 'audit-cover');
+        $add($this->control_rating, 'cover', 'Cover · Control rating', 'cover', 'audit-cover');
+        foreach ($this->copyRecipients as $i => $recip) {
+            $add((string) $recip, 'cover', 'Cover · অনুলিপি #'.($i + 1), 'cover', 'audit-cover');
+        }
+
+        $add((string) ($this->glance_as_of ?? ''), 'page2', 'এক নজরে · as of', 'page2', 'audit-page2');
+        $add((string) ($this->branch_opening_date ?? ''), 'page2', 'এক নজরে · opening', 'page2', 'audit-page2');
+        $add((string) ($this->staff_info_as_of ?? ''), 'page2', 'এক নজরে · staff as of', 'page2', 'audit-page2');
+        foreach (($this->glanceRows ?? []) as $ri => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $pairs = array_values((array) ($row['pairs'] ?? []));
+            if ($pairs === []) {
+                $pairs = [
+                    ['label' => $row['left_label'] ?? '', 'value' => $row['left_value'] ?? ''],
+                    ['label' => $row['right_label'] ?? '', 'value' => $row['right_value'] ?? ''],
+                ];
+            }
+            foreach ($pairs as $pair) {
+                $add((string) ($pair['label'] ?? ''), 'page2', 'এক নজরে · row '.($ri + 1), 'page2', 'audit-page2');
+                $add((string) ($pair['value'] ?? ''), 'page2', 'এক নজরে · row '.($ri + 1), 'page2', 'audit-page2');
+            }
+        }
+        foreach (($this->staffRows ?? []) as $ri => $row) {
+            foreach (array_values((array) ($row['cells'] ?? (is_array($row) ? $row : []))) as $cell) {
+                $add((string) $cell, 'page2', 'Staff · row '.($ri + 1), 'page2', 'audit-page2');
+            }
+        }
+
+        foreach ($this->tocRows as $ri => $row) {
+            if (! is_array($row) || ($row['type'] ?? 'item') !== 'item') {
+                continue;
+            }
+            $serial = trim((string) ($row['serial'] ?? ''));
+            $add(
+                trim(($serial !== '' ? $serial.' ' : '').(string) ($row['finding'] ?? '')),
+                'toc',
+                'সূচিপত্র · '.($serial !== '' ? $serial : '#'.($ri + 1)),
+                'page3',
+                'audit-page3'
+            );
+            $add((string) ($row['amount'] ?? ''), 'toc', 'সূচিপত্র amount · '.$serial, 'page3', 'audit-page3');
+        }
+
+        foreach ([
+            'sign_auditor_name' => 'স্বাক্ষর · Auditor',
+            'sign_auditor_designation' => 'স্বাক্ষর · Designation',
+            'sign_bm_name' => 'স্বাক্ষর · BM',
+            'sign_abm_name' => 'স্বাক্ষর · ABM',
+        ] as $prop => $label) {
+            $add((string) ($this->{$prop} ?? ''), 'page3', $label, 'page3', 'audit-page3');
+        }
+
+        $this->ensureReportBlocksDefaults();
+        foreach ($this->reportBlocks as $i => $block) {
+            if (! is_array($block)) {
+                continue;
+            }
+            $type = (string) ($block['type'] ?? '');
+            $anchor = 'audit-block-'.$i;
+            $serial = trim((string) ($block['serial'] ?? ''));
+
+            if ($type === 'section') {
+                $title = trim((string) ($block['title'] ?? ''));
+                $add($serial.' '.$title, 'page4', 'বিভাগ '.($serial !== '' ? $serial : '#'.($i + 1)), 'page4', $anchor);
+            } elseif ($type === 'finding') {
+                $title = trim((string) ($block['title'] ?? ''));
+                $body = trim((string) ($block['body'] ?? ''));
+                $label = 'Finding '.($serial !== '' ? $serial : '#'.($i + 1));
+                $add($title, 'page4', $label.' · শিরোনাম', 'page4', $anchor);
+                $add($body, 'page4', $label.' · body', 'page4', $anchor);
+                $add((string) ($block['amount'] ?? ''), 'page4', $label.' · amount', 'page4', $anchor);
+                $add((string) ($block['rating'] ?? ''), 'page4', $label.' · rating', 'page4', $anchor);
+            } elseif ($type === 'criteria') {
+                $add((string) ($block['label'] ?? ''), 'page4', 'Criteria · label', 'page4', $anchor);
+                $add((string) ($block['body'] ?? ''), 'page4', 'প্রচলিত নিয়ম', 'page4', $anchor);
+            } elseif ($type === 'observation') {
+                $lab = trim((string) ($block['label'] ?? 'Observation'));
+                $add($lab, 'page4', $lab.' · label', 'page4', $anchor);
+                $add((string) ($block['body'] ?? ''), 'page4', $lab, 'page4', $anchor);
+            } elseif (in_array($type, ['stats', 'vat', 'tax'], true)) {
+                $add((string) ($block['heading'] ?? ''), 'page4', 'Rating box · heading', 'page4', $anchor);
+                foreach ((array) ($block['rows'] ?? []) as $ri => $row) {
+                    if (! is_array($row)) {
+                        continue;
+                    }
+                    foreach ($row as $cell) {
+                        if (is_scalar($cell)) {
+                            $add((string) $cell, 'page4', 'Rating box · row '.($ri + 1), 'page4', $anchor);
+                        }
+                    }
+                }
+            } elseif ($type === 'custom_table') {
+                $add((string) ($block['title'] ?? ''), 'page4', 'Custom table · title', 'page4', $anchor);
+                foreach ((array) ($block['rows'] ?? []) as $ri => $row) {
+                    foreach (array_values((array) ($row['cells'] ?? [])) as $cell) {
+                        $add((string) $cell, 'page4', 'Custom table · row '.($ri + 1), 'page4', $anchor);
+                    }
+                }
+            } elseif ($type === 'jobab_table') {
+                foreach ((array) ($block['rows'] ?? []) as $ri => $row) {
+                    foreach (array_values((array) ($row['cells'] ?? [])) as $cell) {
+                        $add((string) $cell, 'page4', 'জবাব · row '.($ri + 1), 'page4', $anchor);
+                    }
+                }
+            } elseif ($type === 'compliance_table') {
+                $add((string) ($block['title'] ?? ''), 'page4', 'Compliance · title', 'page4', $anchor);
+                foreach ((array) ($block['rows'] ?? []) as $ri => $row) {
+                    if (! is_array($row)) {
+                        continue;
+                    }
+                    foreach (['findings', 'management_reply', 'current_status', 'prev_para_no', 'current_para_no'] as $k) {
+                        $add((string) ($row[$k] ?? ''), 'page4', 'Compliance · row '.($ri + 1), 'page4', $anchor);
+                    }
+                }
+            } elseif ($type === 'it_checklist') {
+                $add((string) ($block['title'] ?? ''), 'page4', 'IT checklist · title', 'page4', $anchor);
+                foreach ((array) ($block['rows'] ?? []) as $ri => $row) {
+                    if (! is_array($row)) {
+                        continue;
+                    }
+                    foreach (['description', 'compliance', 'action_owner', 'management_comments', 'recommendation'] as $k) {
+                        $add((string) ($row[$k] ?? ''), 'page4', 'IT · row '.($ri + 1), 'page4', $anchor);
+                    }
+                }
+            } elseif ($type === 'external_audit') {
+                $add((string) ($block['title'] ?? ''), 'page4', 'External audit · title', 'page4', $anchor);
+                foreach ((array) ($block['rows'] ?? []) as $ri => $row) {
+                    if (! is_array($row)) {
+                        continue;
+                    }
+                    foreach (['area_of_observation', 'external_observation', 'compliance'] as $k) {
+                        $add((string) ($row[$k] ?? ''), 'page4', 'External · row '.($ri + 1), 'page4', $anchor);
+                    }
+                }
+            } elseif ($type === 'audit_score') {
+                $add((string) ($block['branch_name_code'] ?? ''), 'page4', 'Audit score · branch', 'page4', $anchor);
+                foreach ((array) ($block['rows'] ?? []) as $ri => $row) {
+                    $add((string) ($row['title'] ?? ''), 'page4', 'Audit score · row '.($ri + 1), 'page4', $anchor);
+                }
+            }
+        }
+
+        return $corpus;
     }
 
     public function addVatObservationRow(): void
@@ -4222,12 +5178,13 @@ class MakeAuditReport extends Component
 
     public function addGlanceRow(): void
     {
-        $this->glanceRows[] = [
-            'left_label' => '',
-            'left_value' => '',
-            'right_label' => '',
-            'right_value' => '',
-        ];
+        $this->ensurePage2Defaults();
+        $this->normalizeGlanceRowsStructure();
+        $pairs = [];
+        for ($i = 0; $i < $this->glancePairCount(); $i++) {
+            $pairs[] = ['label' => '', 'value' => ''];
+        }
+        $this->glanceRows[] = $this->glanceRowFromPairs($pairs);
     }
 
     public function removeGlanceRow(int $index): void
@@ -4238,6 +5195,123 @@ class MakeAuditReport extends Component
 
         unset($this->glanceRows[$index]);
         $this->glanceRows = array_values($this->glanceRows);
+    }
+
+    public function addGlanceColumn(): void
+    {
+        $this->ensurePage2Defaults();
+        $this->normalizeGlanceRowsStructure();
+        if ($this->glancePairCount() >= 4) {
+            $this->autoSaveHint = 'Glance table: সর্বোচ্চ ৪ জোড়া কলাম';
+
+            return;
+        }
+
+        foreach ($this->glanceRows as $i => $row) {
+            $pairs = array_values((array) ($row['pairs'] ?? []));
+            $pairs[] = ['label' => '', 'value' => ''];
+            $this->glanceRows[$i] = $this->glanceRowFromPairs($pairs);
+        }
+    }
+
+    public function removeGlanceColumn(): void
+    {
+        $this->ensurePage2Defaults();
+        $this->normalizeGlanceRowsStructure();
+        if ($this->glancePairCount() <= 1) {
+            return;
+        }
+
+        foreach ($this->glanceRows as $i => $row) {
+            $pairs = array_values((array) ($row['pairs'] ?? []));
+            array_pop($pairs);
+            $this->glanceRows[$i] = $this->glanceRowFromPairs($pairs);
+        }
+    }
+
+    protected function glancePairCount(): int
+    {
+        $max = 1;
+        foreach ($this->glanceRows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            if (isset($row['pairs']) && is_array($row['pairs']) && $row['pairs'] !== []) {
+                $max = max($max, count($row['pairs']));
+            } else {
+                $max = max($max, 2);
+            }
+        }
+
+        return max(1, min(4, $max));
+    }
+
+    /**
+     * @param  list<array{label?:string,value?:string}>  $pairs
+     * @return array{pairs:list<array{label:string,value:string}>,left_label:string,left_value:string,right_label:string,right_value:string}
+     */
+    protected function glanceRowFromPairs(array $pairs): array
+    {
+        $normalized = [];
+        foreach (array_values($pairs) as $pair) {
+            $normalized[] = [
+                'label' => (string) ($pair['label'] ?? ''),
+                'value' => (string) ($pair['value'] ?? ''),
+            ];
+        }
+        if ($normalized === []) {
+            $normalized[] = ['label' => '', 'value' => ''];
+        }
+
+        return [
+            'pairs' => $normalized,
+            'left_label' => $normalized[0]['label'] ?? '',
+            'left_value' => $normalized[0]['value'] ?? '',
+            'right_label' => $normalized[1]['label'] ?? '',
+            'right_value' => $normalized[1]['value'] ?? '',
+        ];
+    }
+
+    protected function normalizeGlanceRowsStructure(): void
+    {
+        if ($this->glanceRows === []) {
+            return;
+        }
+
+        $pairCount = $this->glancePairCount();
+        $normalized = [];
+        foreach ($this->glanceRows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            if (isset($row['pairs']) && is_array($row['pairs']) && $row['pairs'] !== []) {
+                $pairs = array_values(array_map(
+                    fn ($p) => [
+                        'label' => (string) (($p['label'] ?? '')),
+                        'value' => (string) (($p['value'] ?? '')),
+                    ],
+                    $row['pairs']
+                ));
+            } else {
+                $pairs = [
+                    [
+                        'label' => (string) ($row['left_label'] ?? ''),
+                        'value' => (string) ($row['left_value'] ?? ''),
+                    ],
+                    [
+                        'label' => (string) ($row['right_label'] ?? ''),
+                        'value' => (string) ($row['right_value'] ?? ''),
+                    ],
+                ];
+            }
+            while (count($pairs) < $pairCount) {
+                $pairs[] = ['label' => '', 'value' => ''];
+            }
+            $pairs = array_slice($pairs, 0, $pairCount);
+            $normalized[] = $this->glanceRowFromPairs($pairs);
+        }
+
+        $this->glanceRows = $normalized;
     }
 
     public function addStaffRow(): void
@@ -4395,6 +5469,24 @@ class MakeAuditReport extends Component
         );
     }
 
+    /**
+     * Build the same PDF payload the maker downloads — for reviewers / external callers.
+     *
+     * @return array<string, mixed>
+     */
+    public static function viewDataFor(AuditReport $report): array
+    {
+        $maker = new static;
+        $maker->hydrateFromReport($report);
+
+        return $maker->reportViewData();
+    }
+
+    public static function pdfBinaryFor(AuditReport $report): string
+    {
+        return app(AuditReportPdfService::class)->output(static::viewDataFor($report));
+    }
+
     public function downloadDoc(): StreamedResponse
     {
         $data = $this->reportViewData();
@@ -4549,6 +5641,11 @@ class MakeAuditReport extends Component
 
         $this->step = 'select';
         $this->reportId = null;
+        $this->reviewReadOnly = false;
+        $this->reviewNeedsFix = false;
+        $this->reviewCommentsOpen = true;
+        $this->reviewFixComments = [];
+        $this->reviewFixSummary = '';
         $this->activeTab = 'cover';
         $this->showPreview = false;
         $this->logoUpload = null;
@@ -4564,6 +5661,17 @@ class MakeAuditReport extends Component
 
         $report = AuditReport::query()->findOrFail($this->reportId);
         abort_unless($report->isAccessibleBy(auth()->user()), 403);
+
+        $reviews = app(\App\Services\AuditReportReviewService::class);
+        if (! $reviews->isEditableByMaker($report)) {
+            $this->reviewReadOnly = true;
+            if ($flash) {
+                session()->flash('status', 'This report is locked (in review or already reviewed).');
+            }
+
+            return;
+        }
+
         $pages = (array) $report->pages_data;
         $meta = (array) ($pages['meta'] ?? []);
         $tabsDone = (array) ($meta['tabs_done'] ?? [
@@ -4620,10 +5728,18 @@ class MakeAuditReport extends Component
             'current_tab' => $this->activeTab,
             'progress_pct' => $progress,
             'last_saved_at' => now(),
-            'status' => $report->status === AuditReport::STATUS_COMPLETED
-                ? AuditReport::STATUS_COMPLETED
+            'status' => in_array($report->status, [
+                AuditReport::STATUS_COMPLETED,
+                AuditReport::STATUS_CHANGES_REQUESTED,
+                AuditReport::STATUS_IN_REVIEW,
+                AuditReport::STATUS_REVIEWED,
+            ], true)
+                ? $report->status
                 : AuditReport::STATUS_DRAFT,
         ]);
+
+        // Keep Findings Matrix in sync whenever the draft is saved (indicator + amount, even without Rating Box).
+        $this->syncReportToFindingsMatrix();
 
         if ($flash) {
             session()->flash('status', $flashMessage !== '' ? $flashMessage : 'সংরক্ষণ হয়েছে।');
@@ -4664,7 +5780,11 @@ class MakeAuditReport extends Component
         $meta = (array) ($pages['meta'] ?? []);
 
         $this->reportId = $report->id;
-        $this->shakha_id = (int) $report->shakha_id;
+        $this->shakha_id = $report->shakha_id ? (int) $report->shakha_id : null;
+        $this->project_location_id = $report->project_location_id ? (int) $report->project_location_id : null;
+        $this->report_entity_key = $this->shakha_id
+            ? 'shakha:'.$this->shakha_id
+            : ($this->project_location_id ? 'location:'.$this->project_location_id : '');
         $this->report_month = (int) ($report->report_month ?: now()->month);
         $this->report_year = (int) ($report->report_year ?: now()->year);
         $this->memo_no = (string) ($report->memo_no ?? '');
@@ -4703,7 +5823,9 @@ class MakeAuditReport extends Component
         $this->financial_section_title = (string) ($page4['financial_section_title'] ?? $this->financial_section_title);
         $this->financialFindings = array_values((array) ($page4['financialFindings'] ?? []));
         $this->reportSections = array_values((array) ($page4['reportSections'] ?? []));
-        $this->reportBlocks = array_values((array) ($page4['reportBlocks'] ?? []));
+        $this->reportBlocks = app(ChecklistReportInfluenceService::class)
+            ->stripLegacyAutoSeededFindings(array_values((array) ($page4['reportBlocks'] ?? [])));
+        $this->normalizeEmptySectionTitles();
         // Keep every custom_table fully normalized (merges/widths) so it stays editable after resume
         foreach ($this->reportBlocks as $i => $block) {
             if (($block['type'] ?? '') === 'custom_table') {
@@ -4818,8 +5940,11 @@ class MakeAuditReport extends Component
                 ? 'page4'
                 : 'cover';
         }
+        $this->outlineActiveAnchor = $this->defaultOutlineAnchorForTab($this->activeTab);
 
-        $this->lastAutoSavedAt = optional($report->last_saved_at)?->timezone('Asia/Dhaka')->format('h:i A');
+        $this->lastAutoSavedAt = $report->last_saved_at
+            ? $report->last_saved_at->timezone('Asia/Dhaka')->format('h:i A')
+            : '';
         $this->autoSaveHint = $this->lastAutoSavedAt ? 'Last saved '.$this->lastAutoSavedAt : '';
     }
 
@@ -4944,12 +6069,12 @@ class MakeAuditReport extends Component
                 ['সঞ্চয় ও ঋণস্থিতির হার', 'মোট কর্মী সংখ্যা'],
             ];
 
-            $this->glanceRows = collect($pairs)->map(fn ($pair) => [
-                'left_label' => $pair[0],
-                'left_value' => '',
-                'right_label' => $pair[1],
-                'right_value' => '',
-            ])->all();
+            $this->glanceRows = collect($pairs)->map(fn ($pair) => $this->glanceRowFromPairs([
+                ['label' => $pair[0], 'value' => ''],
+                ['label' => $pair[1], 'value' => ''],
+            ]))->all();
+        } else {
+            $this->normalizeGlanceRowsStructure();
         }
 
         if ($this->staffColumns === []) {
@@ -5050,6 +6175,8 @@ class MakeAuditReport extends Component
 
     protected function page2Payload(): array
     {
+        $this->normalizeGlanceRowsStructure();
+
         return [
             'glance_as_of' => $this->glance_as_of,
             'branch_opening_date' => $this->branch_opening_date,
@@ -5122,16 +6249,30 @@ class MakeAuditReport extends Component
                         ? $this->financial_criteria
                         : $this->blankCriteriaBlock()['body'];
                 }
-                $migrated[] = [
+                $migrated[] = $this->preserveChecklistMeta($block, [
                     'type' => 'criteria',
                     'label' => (string) ($block['label'] ?? 'প্রচলিত নিয়ম (Criteria):'),
                     'body' => $body,
-                ];
+                ]);
             } elseif ($type === 'observation') {
-                $migrated[] = $this->blankObservationBlock(
+                $obs = $this->preserveChecklistMeta($block, $this->blankObservationBlock(
                     (string) ($block['label'] ?? 'পর্যবেক্ষণ (Observation) :'),
-                    (string) ($block['body'] ?? '')
-                );
+                    (string) ($block['body'] ?? ''),
+                    isset($block['matrix_people']) && is_array($block['matrix_people'])
+                        ? $block['matrix_people']
+                        : null
+                ));
+                // Keep optional অভিযুক্ত panel state across normalize / re-render.
+                if (! empty($block['show_matrix_people'])) {
+                    $obs['show_matrix_people'] = true;
+                    $obs['matrix_people'] = $this->normalizeMatrixPeople(
+                        isset($block['matrix_people']) && is_array($block['matrix_people'])
+                            ? $block['matrix_people']
+                            : null,
+                        keepEmptySlots: true
+                    );
+                }
+                $migrated[] = $obs;
                 // Legacy combined (text + table in one block) → split
                 if (array_key_exists('rows', $block)) {
                     $heading = (string) ($block['heading'] ?? '');
@@ -5142,10 +6283,10 @@ class MakeAuditReport extends Component
                     );
                 }
             } elseif ($type === 'stats') {
-                $migrated[] = $this->blankStatsBlock(
+                $migrated[] = $this->preserveChecklistMeta($block, $this->blankStatsBlock(
                     (string) ($block['heading'] ?? 'Report Rating Box:'),
                     array_values((array) ($block['rows'] ?? []))
-                );
+                ));
             } elseif ($type === 'vat') {
                 if (trim((string) ($block['label'] ?? '')) !== '' || array_key_exists('body', $block)) {
                     $migrated[] = $this->blankObservationBlock(
@@ -5173,16 +6314,17 @@ class MakeAuditReport extends Component
             } elseif ($type === 'audit_score') {
                 $migrated[] = $this->normalizeAuditScoreBlock(is_array($block) ? $block : []);
             } elseif ($type === 'jobab_table') {
-                $migrated[] = $this->normalizeJobabBlock(is_array($block) ? $block : []);
+                $migrated[] = $this->preserveChecklistMeta($block, $this->normalizeJobabBlock(is_array($block) ? $block : []));
             } elseif ($type === 'text_box') {
-                $migrated[] = $this->blankObservationBlock(
+                $migrated[] = $this->preserveChecklistMeta($block, $this->blankObservationBlock(
                     (string) ($block['label'] ?? 'নতুন বক্স:'),
                     (string) ($block['body'] ?? '')
-                );
+                ));
             }
         }
 
-        $blocks = $migrated;
+        $blocks = app(ChecklistReportInfluenceService::class)
+            ->restoreObservationSourceMeta($migrated);
 
         // Do not force-recreate section/finding — user may delete the first/only ones.
         $hasCriteria = false;
@@ -6070,11 +7212,7 @@ class MakeAuditReport extends Component
 
     protected function makeUniqueIndicatorCode(): string
     {
-        do {
-            $code = 'রিপোর্ট-'.now('Asia/Dhaka')->format('ymdHis').'-'.Str::lower(Str::random(4));
-        } while (AuditIndicator::query()->where('indicator_code', $code)->exists());
-
-        return $code;
+        return \App\Support\AuditIndicatorCodes::nextCustomReportCode();
     }
 
     protected function mapRiskToFindingRating(string $risk): string
@@ -6207,6 +7345,8 @@ class MakeAuditReport extends Component
             }
         }
         $this->reportBlocks = array_values($blocks);
+        $this->reportBlocks = app(ChecklistReportInfluenceService::class)
+            ->stripLegacyAutoSeededFindings($this->reportBlocks);
 
         return [
             'financial_section_title' => $this->financial_section_title,
@@ -10170,13 +11310,25 @@ class MakeAuditReport extends Component
 
     protected function selectedShakhaLabel(): string
     {
-        if (! $this->shakha_id) {
-            return '';
+        if ($this->shakha_id) {
+            $shakha = Shakha::query()->with('area')->find($this->shakha_id);
+
+            return $shakha ? $this->formatShakhaLabel($shakha) : '';
         }
 
-        $shakha = Shakha::query()->with('area')->find($this->shakha_id);
+        if ($this->project_location_id) {
+            $location = \App\Models\ProjectLocation::query()->with('project')->find($this->project_location_id);
+            if (! $location) {
+                return '';
+            }
+            $project = trim((string) ($location->project?->name ?? ''));
+            $place = trim((string) ($location->name ?? ''));
 
-        return $shakha ? $this->formatShakhaLabel($shakha) : '';
+            return trim($project.($project !== '' && $place !== '' ? ' — ' : '').$place)
+                .($location->division ? ' — '.$location->division : '');
+        }
+
+        return '';
     }
 
     protected function formatShakhaLabel(Shakha $shakha): string
@@ -10193,7 +11345,7 @@ class MakeAuditReport extends Component
                 return 0;
             }
 
-            return $a->diffInDays($b) + 1;
+            return max(0, app(\App\Services\WorkingCalendarService::class)->countWorkingDays($a, $b, false));
         } catch (\Throwable) {
             return 0;
         }
@@ -10271,6 +11423,7 @@ class MakeAuditReport extends Component
 
         $shakhas = collect();
         $branchOptions = collect();
+        $nonShakhaVisitLabels = [];
         $ongoingReports = collect();
         $completedReports = collect();
         $ongoingCount = 0;
@@ -10279,41 +11432,91 @@ class MakeAuditReport extends Component
 
         // Dashboard lists only on select step — keep wizard updates light.
         if (! $isWizard) {
-            $shakhas = app(UserAccessService::class)->reportableShakhas(
+            $access = app(UserAccessService::class);
+            $shakhas = $access->reportableShakhas(
+                auth()->user(),
+                (int) $this->report_month,
+                (int) $this->report_year,
+            );
+            $locations = $access->reportableProjectLocations(
+                auth()->user(),
+                (int) $this->report_month,
+                (int) $this->report_year,
+            );
+            $nonShakhaVisitLabels = $access->visitAssignedUnsupportedLabels(
                 auth()->user(),
                 (int) $this->report_month,
                 (int) $this->report_year,
             );
 
-            // Drop a stale pick if month/year changed and this branch is no longer allocated.
+            // Drop a stale pick if month/year changed and this entity is no longer allocated.
             if ($this->shakha_id && ! $shakhas->contains('id', (int) $this->shakha_id)) {
                 $this->shakha_id = null;
+                if ($this->project_location_id === null) {
+                    $this->report_entity_key = '';
+                }
+            }
+            if ($this->project_location_id && ! $locations->contains('id', (int) $this->project_location_id)) {
+                $this->project_location_id = null;
+                if ($this->shakha_id === null) {
+                    $this->report_entity_key = '';
+                }
             }
 
-        $branchOptions = $shakhas->values()->map(function ($shakha, $index) {
-            $risk = $shakha->riskCategory();
+            $shakhaOptions = $shakhas->values()->map(function ($shakha, $index) {
+                $risk = $shakha->riskCategory();
 
-            return [
-                'id' => (string) $shakha->id,
-                'serial' => $index + 1,
-                'name' => $shakha->name,
-                'code' => (string) ($shakha->code ?: ''),
-                'area' => (string) ($shakha->area?->name ?: ''),
-                'division' => (string) ($shakha->area?->division ?: ''),
-                'focal' => (string) ($shakha->focal_person_name ?: ''),
-                'active' => $shakha->isActive(),
-                'opening' => optional($shakha->opening_date ?? $shakha->opened_at)->format('d M Y') ?: '',
-                'risk' => $risk ?: 'Not assessed',
-                'risk_key' => \App\Support\ShakhaRiskTone::key($risk),
-                'risk_short' => \App\Support\ShakhaRiskTone::shortLabel($risk),
-                'risk_badge' => \App\Support\ShakhaRiskTone::badgeClasses($risk),
-                'risk_text' => \App\Support\ShakhaRiskTone::textClasses($risk),
-            ];
-        })->values();
+                return [
+                    'id' => 'shakha:'.$shakha->id,
+                    'serial' => $index + 1,
+                    'name' => $shakha->name,
+                    'code' => (string) ($shakha->code ?: ''),
+                    'area' => (string) ($shakha->area?->name ?: ''),
+                    'division' => (string) ($shakha->area?->division ?: ''),
+                    'focal' => (string) ($shakha->focal_person_name ?: ''),
+                    'active' => $shakha->isActive(),
+                    'opening' => optional($shakha->opening_date ?? $shakha->opened_at)->format('d M Y') ?: '',
+                    'kind' => 'shakha',
+                    'kind_label' => 'Shakha',
+                    'risk' => $risk ?: 'Not assessed',
+                    'risk_key' => \App\Support\ShakhaRiskTone::key($risk),
+                    'risk_short' => \App\Support\ShakhaRiskTone::shortLabel($risk),
+                    'risk_badge' => \App\Support\ShakhaRiskTone::badgeClasses($risk),
+                    'risk_text' => \App\Support\ShakhaRiskTone::textClasses($risk),
+                ];
+            });
+
+            $locationOptions = $locations->values()->map(function ($location, $index) use ($shakhaOptions) {
+                $project = trim((string) ($location->project?->name ?? ''));
+                $place = trim((string) ($location->name ?? ''));
+                $name = trim($project.($project !== '' && $place !== '' ? ' — ' : '').$place) ?: 'Project';
+
+                return [
+                    'id' => 'location:'.$location->id,
+                    'serial' => $shakhaOptions->count() + $index + 1,
+                    'name' => $name,
+                    'code' => 'Project',
+                    'area' => (string) ($location->division ?: ''),
+                    'division' => (string) ($location->division ?: ''),
+                    'focal' => '',
+                    'active' => $location->isActive(),
+                    'opening' => '',
+                    'kind' => 'location',
+                    'kind_label' => 'Project',
+                    'risk' => 'Project audit',
+                    'risk_key' => 'na',
+                    'risk_short' => 'Project',
+                    'risk_badge' => 'bg-violet-50 text-violet-700 ring-1 ring-violet-200',
+                    'risk_text' => 'text-violet-800',
+                ];
+            });
+
+            $branchOptions = $shakhaOptions->concat($locationOptions)->values();
+            $shakhas = $shakhas; // keep count base for empty-state: use branchOptions count below
 
             $userId = (int) (auth()->id() ?? 0);
             if ($userId > 0) {
-                $status = in_array($this->listFilterStatus, ['all', 'draft', 'completed'], true)
+                $status = in_array($this->listFilterStatus, ['all', 'draft', 'completed', 'in_review', 'changes_requested', 'reviewed'], true)
                     ? $this->listFilterStatus
                     : 'all';
 
@@ -10322,7 +11525,7 @@ class MakeAuditReport extends Component
                     $ongoingQuery = AuditReport::query()
                         ->accessibleBy($userId)
                         ->drafts()
-                        ->with(['shakha.area', 'shakha.latestRiskAssessment', 'collaborators:id,name', 'user:id,name']);
+                        ->with(['shakha.area', 'shakha.latestRiskAssessment', 'projectLocation.project', 'collaborators:id,name', 'user:id,name', 'reviewer:id,name']);
                     $this->applyReportListFilters($ongoingQuery);
                     $ongoingReports = $ongoingQuery
                         ->latest('last_saved_at')
@@ -10331,17 +11534,27 @@ class MakeAuditReport extends Component
                 }
 
                 $completedReports = collect();
-                if ($status === 'all' || $status === 'completed') {
+                $doneStatuses = [
+                    AuditReport::STATUS_COMPLETED,
+                    AuditReport::STATUS_IN_REVIEW,
+                    AuditReport::STATUS_CHANGES_REQUESTED,
+                    AuditReport::STATUS_REVIEWED,
+                ];
+                if ($status === 'all' || $status === 'completed' || in_array($status, $doneStatuses, true)) {
                     $completedQuery = AuditReport::query()
                         ->accessibleBy($userId)
-                        ->completed()
-                        ->with(['shakha.area', 'shakha.latestRiskAssessment', 'collaborators:id,name', 'user:id,name']);
+                        ->when(
+                            $status === 'all' || $status === 'completed',
+                            fn ($q) => $q->whereIn('status', $doneStatuses),
+                            fn ($q) => $q->where('status', $status)
+                        )
+                        ->with(['shakha.area', 'shakha.latestRiskAssessment', 'projectLocation.project', 'collaborators:id,name', 'user:id,name', 'reviewer:id,name']);
                     $this->applyReportListFilters($completedQuery);
                     // When filtering by month/search, show all matches; otherwise keep a short recent list.
                     $filtered = ($this->listFilterMonth >= 1 && $this->listFilterMonth <= 12)
                         || ($this->listFilterYear >= 2000)
                         || trim($this->listFilterQ) !== ''
-                        || $status === 'completed';
+                        || $status !== 'all';
                     $completedReports = $completedQuery
                         ->latest('completed_at')
                         ->when(! $filtered, fn ($q) => $q->limit(8))
@@ -10350,8 +11563,44 @@ class MakeAuditReport extends Component
                 }
 
                 $ongoingCount = AuditReport::query()->accessibleBy($userId)->drafts()->count();
-                $completedCount = AuditReport::query()->accessibleBy($userId)->completed()->count();
+                $completedCount = AuditReport::query()->accessibleBy($userId)->whereIn('status', $doneStatuses)->count();
                 $pendingSlots = max(0, AuditReport::MAX_CONCURRENT_DRAFTS - $ongoingCount);
+            }
+        }
+
+        $reviewMetaByOwner = [];
+        $reviewSuperadmin = null;
+        if (! $isWizard) {
+            $ownerIds = $ongoingReports->concat($completedReports)
+                ->pluck('user_id')
+                ->map(fn ($id) => (int) $id)
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+            if ($ownerIds !== []) {
+                $reviewMetaByOwner = \App\Models\AuditReviewerAssignment::query()
+                    ->with(['reviewer:id,name,email'])
+                    ->whereIn('auditor_user_id', $ownerIds)
+                    ->get()
+                    ->mapWithKeys(function ($row) {
+                        return [
+                            (int) $row->auditor_user_id => [
+                                'reviewer_id' => (int) $row->reviewer_user_id,
+                                'reviewer_name' => (string) ($row->reviewer?->name ?: 'Reviewer'),
+                                'reviewer_email' => (string) ($row->reviewer?->email ?: ''),
+                            ],
+                        ];
+                    })
+                    ->all();
+            }
+            $super = app(\App\Services\AuditReportReviewService::class)->primarySuperadmin();
+            if ($super) {
+                $reviewSuperadmin = [
+                    'id' => (int) $super->id,
+                    'name' => (string) $super->name,
+                    'email' => (string) ($super->email ?: ''),
+                ];
             }
         }
 
@@ -10367,6 +11616,7 @@ class MakeAuditReport extends Component
         $document = $this->showPreview ? $this->stampedDocument() : ['sheets' => []];
 
         $financialIndicatorOptions = [];
+        $shakhaStaffOptions = [];
         if ($isWizard && ($this->activeTab === 'page4' || $this->showPreview || $this->customTableEditorIndex !== null)) {
             $financialIndicatorOptions = AuditIndicator::query()
                 ->active()
@@ -10382,12 +11632,36 @@ class MakeAuditReport extends Component
                 ])
                 ->values()
                 ->all();
+
+            $staffShakhaId = (int) ($this->shakha_id ?? 0);
+            if ($staffShakhaId > 0) {
+                $shakhaStaffOptions = ShakhaEmployee::query()
+                    ->where('shakha_id', $staffShakhaId)
+                    ->where('status', 'active')
+                    ->orderBy('sort_order')
+                    ->orderBy('name')
+                    ->get(['id', 'employee_code', 'name', 'designation'])
+                    ->map(fn (ShakhaEmployee $emp) => [
+                        'id' => (int) $emp->id,
+                        'code' => (string) ($emp->employee_code ?: ''),
+                        'name' => (string) ($emp->name ?: ''),
+                        'designation' => (string) ($emp->designation ?: ''),
+                    ])
+                    ->values()
+                    ->all();
+            }
         }
 
         return view('livewire.make-audit-report', [
             'branchOptions' => $branchOptions,
-            'shakhaCount' => $shakhas->count(),
+            'shakhaCount' => $branchOptions->count(),
+            'nonShakhaVisitLabels' => $nonShakhaVisitLabels,
             'selectedShakhaLabel' => $this->selectedShakhaLabel(),
+            'selectedEntityKey' => $this->report_entity_key !== ''
+                ? $this->report_entity_key
+                : ($this->shakha_id
+                    ? 'shakha:'.$this->shakha_id
+                    : ($this->project_location_id ? 'location:'.$this->project_location_id : '')),
             'ratingColor' => AuditReport::ratingColor($this->control_rating),
             ...$this->coverAuditScoreData(),
             'monthLabel' => Carbon::create(null, $this->report_month, 1)->format('F'),
@@ -10397,7 +11671,7 @@ class MakeAuditReport extends Component
             'tabs' => [
                 ['id' => 'cover', 'num' => 1, 'label' => 'Cover Page', 'ready' => true],
                 ['id' => 'page2', 'num' => 2, 'label' => 'এক নজরে + সূচিপত্র', 'ready' => true],
-                ['id' => 'page3', 'num' => 3, 'label' => 'সূচিপত্র + শ্রেণীবিন্যাস', 'ready' => true],
+                ['id' => 'page3', 'num' => 3, 'label' => 'শ্রেণীবিন্যাস', 'ready' => true],
                 ['id' => 'page4', 'num' => 4, 'label' => 'আর্থিক নিরীক্ষা', 'ready' => true],
             ],
             'outlineNav' => $isWizard ? $this->outlineNavItems() : [],
@@ -10410,6 +11684,7 @@ class MakeAuditReport extends Component
             'taxObservationRows' => $this->taxObservationRows,
             'financialIndicatorOptions' => $financialIndicatorOptions,
             'indicatorOptions' => $financialIndicatorOptions,
+            'shakhaStaffOptions' => $shakhaStaffOptions,
             'ongoingReports' => $ongoingReports,
             'completedReports' => $completedReports,
             'ongoingCount' => $ongoingCount,
@@ -10421,6 +11696,8 @@ class MakeAuditReport extends Component
             'listFilterYear' => $this->listFilterYear,
             'listFilterQ' => $this->listFilterQ,
             'listFilterStatus' => $this->listFilterStatus,
+            'reviewMetaByOwner' => $reviewMetaByOwner,
+            'reviewSuperadmin' => $reviewSuperadmin,
             'customTableEditorIndex' => $this->customTableEditorIndex,
             'customTableSizeCols' => $this->customTableSizeCols,
             'customTableSizeRows' => $this->customTableSizeRows,

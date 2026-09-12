@@ -8,6 +8,10 @@
             </p>
         </div>
 
+        <div class="mb-3 max-w-xl">
+            @include('calendar.partials.source-banner')
+        </div>
+
         @if (session('conflict_warning'))
             <div class="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-900">
                 <p class="font-semibold">{{ session('conflict_warning') }}</p>
@@ -63,8 +67,8 @@
                     <div>
                         <label class="mb-1 block text-[11px] font-medium text-slate-600">Duration mode</label>
                         <select name="duration_mode" class="block w-full rounded-lg border-slate-200 text-[13px]">
-                            <option value="calendar" @selected(old('duration_mode', 'calendar') === 'calendar')>Calendar days</option>
-                            <option value="working" @selected(old('duration_mode') === 'working')>Working days</option>
+                            <option value="working" @selected(old('duration_mode', 'working') === 'working')>Working days (Working Calendar)</option>
+                            <option value="calendar" @selected(old('duration_mode') === 'calendar')>Calendar days</option>
                             <option value="manual" @selected(old('duration_mode') === 'manual')>Manual days</option>
                         </select>
                     </div>

@@ -191,6 +191,108 @@ class ReportableShakhaAllocationTest extends TestCase
             ->assertDontSee('Not Hers Branch');
     }
 
+    public function test_project_location_visit_appears_in_report_picker_and_can_start(): void
+    {
+        $position = Position::query()->create([
+            'serial' => 7,
+            'title' => 'Audit Officer',
+            'slug' => 'ao-project-alloc',
+            'color' => '#667085',
+        ]);
+        $employee = Employee::query()->create([
+            'position_id' => $position->id,
+            'name' => 'Project Officer',
+            'email' => 'project.officer@bynnasaudit.com',
+            'sort_order' => 1,
+        ]);
+        $officer = User::factory()->create([
+            'name' => 'Project Officer',
+            'email' => 'project.officer@bynnasaudit.com',
+            'employee_id' => $employee->id,
+            'is_active' => true,
+            'email_verified_at' => now(),
+        ]);
+        $officer->assignRole('audit_officer');
+
+        $project = \App\Models\Project::query()->create([
+            'name' => 'DSK-Hospital Dhaka',
+            'status' => 'active',
+        ]);
+        $location = \App\Models\ProjectLocation::query()->create([
+            'project_id' => $project->id,
+            'name' => 'Shyamoli, Dhaka',
+            'division' => 'Dhaka',
+            'status' => 'active',
+        ]);
+
+        $today = now('Asia/Dhaka');
+        $month = (int) $today->month;
+        $year = (int) $today->year;
+        $date = $today->toDateString();
+
+        $fyStartYear = $month >= 7 ? $year : $year - 1;
+        $fyLabel = $fyStartYear.'-'.($fyStartYear + 1);
+        $monthIndex = ($month + 5) % 12;
+
+        $activity = ActivityType::query()->create([
+            'name' => 'Project Visit',
+            'slug' => 'project-visit-'.uniqid(),
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+        $plan = AuditPlan::query()->firstOrCreate(
+            ['fy_label' => $fyLabel],
+            [
+                'name' => $fyLabel,
+                'start_date' => $fyStartYear.'-07-01',
+                'end_date' => ($fyStartYear + 1).'-06-30',
+                'status' => 'active',
+                'generated_at' => now(),
+            ]
+        );
+        $item = MonthlyWorkItem::query()->create([
+            'audit_plan_id' => $plan->id,
+            'fy_label' => $fyLabel,
+            'month_index' => $monthIndex,
+            'category' => 'project_visit',
+            'activity_type_id' => $activity->id,
+            'schedulable_type' => \App\Models\ProjectLocation::class,
+            'schedulable_id' => $location->id,
+            'source' => MonthlyWorkItem::SOURCE_YEARLY,
+            'status' => MonthlyWorkItem::STATUS_UNASSIGNED,
+            'entity_label' => 'DSK-Hospital Dhaka — Shyamoli, Dhaka',
+        ]);
+
+        app(MonthlyWorklistService::class)->assign($item, [
+            'employee_ids' => [$employee->id],
+            'start_date' => $date,
+            'end_date' => $date,
+            'visit_date' => $date,
+            'lock_schedule' => false,
+        ], $officer->id);
+
+        $access = app(UserAccessService::class);
+        $this->assertSame([], $access->reportableShakhaIds($officer, $month, $year));
+        $this->assertSame([(int) $location->id], $access->reportableProjectLocationIds($officer, $month, $year));
+        $this->assertTrue($access->canStartReportForProjectLocation($officer, (int) $location->id, $month, $year));
+
+        Livewire::actingAs($officer)
+            ->test(MakeAuditReport::class)
+            ->set('report_month', $month)
+            ->set('report_year', $year)
+            ->assertDontSee('No allocated shakha or project visit for this month')
+            ->call('selectReportEntity', 'location:'.$location->id)
+            ->call('startReport')
+            ->assertSet('step', 'wizard')
+            ->assertSet('project_location_id', (int) $location->id)
+            ->assertSet('shakha_id', null);
+
+        $report = \App\Models\AuditReport::query()->where('project_location_id', $location->id)->first();
+        $this->assertNotNull($report);
+        $this->assertNull($report->shakha_id);
+        $this->assertStringContainsString('DSK-Hospital', (string) $report->shakha_display_name);
+    }
+
     protected function allocateVisit(Shakha $shakha, Employee $employee, string $date, int $actorId): void
     {
         $fyStartYear = (int) now('Asia/Dhaka')->month >= 7

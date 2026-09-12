@@ -1006,17 +1006,45 @@ class AuditReportDocxBuilder
     protected function addGlanceTable($section, array $rows): void
     {
         $table = $section->addTable($this->gridTable);
-        $widths = Doc::glanceColumnWidths();
         $dash = '………………';
 
+        $pairCount = 2;
         foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            if (isset($row['pairs']) && is_array($row['pairs']) && $row['pairs'] !== []) {
+                $pairCount = max($pairCount, count($row['pairs']));
+            }
+        }
+        $pairCount = max(1, min(4, $pairCount));
+        $widths = Doc::glanceColumnWidths($pairCount);
+
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $pairs = array_values((array) ($row['pairs'] ?? []));
+            if ($pairs === []) {
+                $pairs = [
+                    ['label' => $row['left_label'] ?? '', 'value' => $row['left_value'] ?? ''],
+                    ['label' => $row['right_label'] ?? '', 'value' => $row['right_value'] ?? ''],
+                ];
+            }
+            while (count($pairs) < $pairCount) {
+                $pairs[] = ['label' => '', 'value' => ''];
+            }
+            $pairs = array_slice($pairs, 0, $pairCount);
+
             $table->addRow();
-            $table->addCell($this->pct($widths[0]))->addText($row['left_label'] ?? '—', $this->fontSmall);
-            $table->addCell($this->pct($widths[1]), ['valign' => 'center'])
-                ->addText($row['left_value'] !== '' ? $row['left_value'] : $dash, ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
-            $table->addCell($this->pct($widths[2]))->addText($row['right_label'] ?? '—', $this->fontSmall);
-            $table->addCell($this->pct($widths[3]), ['valign' => 'center'])
-                ->addText($row['right_value'] !== '' ? $row['right_value'] : $dash, ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+            $col = 0;
+            foreach ($pairs as $pair) {
+                $label = trim((string) ($pair['label'] ?? ''));
+                $value = trim((string) ($pair['value'] ?? ''));
+                $table->addCell($this->pct($widths[$col++] ?? 25))->addText($label !== '' ? $label : '—', $this->fontSmall);
+                $table->addCell($this->pct($widths[$col++] ?? 25), ['valign' => 'center'])
+                    ->addText($value !== '' ? $value : $dash, ['name' => self::FONT, 'size' => 9.5, 'bold' => true], ['alignment' => Jc::CENTER]);
+            }
         }
     }
 

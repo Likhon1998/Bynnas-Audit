@@ -133,4 +133,136 @@ class AuditReportMatrixSyncTest extends TestCase
         $this->assertSame(15, $rows[0]['irregularity_count']);
         $this->assertSame('First indicator', $rows[0]['observation']);
     }
+
+    public function test_finding_with_amount_and_no_rating_box_still_syncs_to_matrix(): void
+    {
+        $area = Area::query()->create(['name' => 'Metro', 'division' => 'Dhaka']);
+        $shakha = Shakha::query()->create([
+            'area_id' => $area->id,
+            'name' => 'Branch Amount Only',
+            'code' => 'AMT-1',
+            'status' => 'active',
+        ]);
+        $indicator = AuditIndicator::query()->create([
+            'category' => 'নিরীক্ষা প্রতিবেদন',
+            'sub_category' => null,
+            'indicator_code' => 'রিপোর্ট-260911185432-afug',
+            'title' => 'Kormi kortik financial irregularities songghotito kora.',
+            'risk_rating' => null,
+            'is_active' => true,
+        ]);
+        $user = User::factory()->create(['email_verified_at' => now()]);
+
+        $report = AuditReport::query()->create([
+            'user_id' => $user->id,
+            'shakha_id' => $shakha->id,
+            'report_month' => 9,
+            'report_year' => 2026,
+            'status' => AuditReport::STATUS_DRAFT,
+            'pages_data' => [
+                'page4' => [
+                    'reportBlocks' => [
+                        [
+                            'type' => 'finding',
+                            'serial' => '৬.১',
+                            'title' => 'শিরোনাম',
+                            'body' => $indicator->title,
+                            'rating' => '',
+                            'amount' => '1000',
+                            'indicator_id' => $indicator->id,
+                            'indicator_code' => $indicator->indicator_code,
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $touched = app(AuditSummaryService::class)->syncFromReport($report);
+        $this->assertSame(1, $touched);
+
+        $cell = AuditFinding::query()
+            ->where('shakha_id', $shakha->id)
+            ->where('audit_indicator_id', $indicator->id)
+            ->where('audit_month', 9)
+            ->where('audit_year', 2026)
+            ->first();
+
+        $this->assertNotNull($cell);
+        $this->assertSame(1000.0, (float) $cell->amount);
+
+        $totals = app(AuditSummaryService::class)->getOrganizationTotals(9, 2026);
+        $row = $totals->firstWhere('indicator_id', $indicator->id);
+        $this->assertNotNull($row);
+        $this->assertSame(1000.0, (float) $row->total_amount);
+    }
+
+    public function test_observation_matrix_people_sync_to_responsible_staff_by_indicator(): void
+    {
+        $service = app(AuditSummaryService::class);
+
+        $rows = $service->extractMatrixRowsFromBlocks([
+            [
+                'type' => 'finding',
+                'indicator_id' => 55,
+                'body' => 'Indicator title only',
+                'amount' => '500',
+            ],
+            [
+                'type' => 'observation',
+                'label' => 'পর্যবেক্ষণ (Observation) :',
+                'body' => 'Branch did not deduct VAT on contractor bills.',
+                'matrix_people' => [
+                    ['id' => 1, 'code' => 'E-01', 'name' => 'Karim Mia'],
+                    ['id' => null, 'code' => '', 'name' => 'Free Typed Person'],
+                    ['id' => 2, 'code' => 'E-02', 'name' => ''],
+                ],
+            ],
+            [
+                'type' => 'stats',
+                'linked_indicator_id' => 55,
+                'rows' => [[
+                    'sample_size' => '10',
+                    'instances_found' => '2',
+                ]],
+            ],
+        ]);
+
+        $this->assertCount(1, $rows);
+        $this->assertSame(55, $rows[0]['indicator_id']);
+        $this->assertSame(500.0, (float) $rows[0]['amount']);
+        $this->assertSame(10, $rows[0]['sample_size_checked']);
+        $this->assertSame(2, $rows[0]['irregularity_count']);
+        $this->assertSame('Branch did not deduct VAT on contractor bills.', $rows[0]['observation']);
+        $this->assertSame('Karim Mia (E-01), Free Typed Person, E-02', $rows[0]['responsible_staff_name']);
+        $this->assertSame([1, 2], $rows[0]['responsible_staff_ids']);
+    }
+
+    public function test_multiple_name_boxes_join_without_appearing_as_finding_title(): void
+    {
+        $service = app(AuditSummaryService::class);
+
+        $rows = $service->extractMatrixRowsFromBlocks([
+            [
+                'type' => 'finding',
+                'indicator_id' => 77,
+                'body' => 'শিরোনাম title',
+                'amount' => '1000',
+            ],
+            [
+                'type' => 'observation',
+                'label' => 'Observation',
+                'body' => 'Detailed পর্যবেক্ষণ text already in report.',
+                'matrix_people' => [
+                    ['id' => 9, 'code' => 'A1', 'name' => 'Person A'],
+                    ['id' => 10, 'code' => 'B2', 'name' => 'Person B'],
+                ],
+            ],
+        ]);
+
+        $this->assertCount(1, $rows);
+        $this->assertSame('Detailed পর্যবেক্ষণ text already in report.', $rows[0]['observation']);
+        $this->assertSame('Person A (A1), Person B (B2)', $rows[0]['responsible_staff_name']);
+        $this->assertSame([9, 10], $rows[0]['responsible_staff_ids']);
+        $this->assertNotSame('শিরোনাম title', $rows[0]['observation']);
+    }
 }

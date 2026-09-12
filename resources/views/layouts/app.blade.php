@@ -76,6 +76,8 @@
             </div>
         </div>
 
+        <x-nice-confirm />
+
         @stack('scripts')
         @livewireScripts
     </body>

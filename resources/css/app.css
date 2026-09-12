@@ -6,6 +6,14 @@
     display: none !important;
 }
 
+/* Report paragraph boxes grow with content (JS also sets height; this helps modern browsers). */
+textarea.audit-autogrow {
+    overflow-y: hidden;
+    resize: none;
+    min-height: 3rem;
+    field-sizing: content;
+}
+
 /*
  * Bangla digits (০–৯): Hind Siliguri — professional, clear ১.
  * Avoid Noto Sans Bengali as primary: its ১ glyph looks thin/awkward on screen.

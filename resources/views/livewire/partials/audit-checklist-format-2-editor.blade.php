@@ -58,12 +58,10 @@
                         </td>
                         @for ($c = 0; $c < $checkCount; $c++)
                             <td class="border border-slate-300 p-0.5 text-center">
-                                <select wire:model.live="payload.rows.{{ $ri }}.checks.{{ $c }}" class="h-8 w-full border-0 bg-transparent p-0 text-center text-[11px] focus:ring-1 focus:ring-[#2b579a]">
-                                    <option value=""></option>
-                                    <option value="✓">✓</option>
-                                    <option value="✗">✗</option>
-                                    <option value="N/A">N/A</option>
-                                </select>
+                                @include('livewire.partials.audit-checklist-mark-select', [
+                                    'wireModel' => 'payload.rows.'.$ri.'.checks.'.$c,
+                                    'markValue' => data_get($payload, "rows.{$ri}.checks.{$c}", ''),
+                                ])
                             </td>
                         @endfor
                         <td class="border border-slate-300 p-0.5">
@@ -88,12 +86,37 @@
     </div>
 
     <div class="border-t border-slate-200 px-4 py-3">
-        <label class="mb-1 block text-[12px] font-bold text-navy-900">সারসংক্ষেপ:</label>
+        <div class="mb-1 flex items-center justify-between gap-2">
+            <label class="block text-[12px] font-bold text-navy-900">সারসংক্ষেপ:</label>
+            @if ($aiSummaryReady ?? false)
+                <button
+                    type="button"
+                    wire:click="generateFormatSummary"
+                    wire:loading.attr="disabled"
+                    wire:target="generateFormatSummary"
+                    class="rounded border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-800 hover:bg-violet-100 disabled:opacity-60"
+                >
+                    <span wire:loading.remove wire:target="generateFormatSummary">AI লিখুন</span>
+                    <span wire:loading wire:target="generateFormatSummary">AI লিখছে…</span>
+                </button>
+            @endif
+        </div>
+        <p class="mb-2 text-[10px] text-slate-500">Unusual (✗ / না) marks are emphasized for the audit report. Edit after AI writes.</p>
         <textarea
             wire:model.live="summary"
             rows="4"
             class="w-full rounded-md border-slate-200 text-[12px] focus:border-[#2b579a] focus:ring-[#2b579a]"
-            placeholder="সারসংক্ষেপ লিখুন…"
+            placeholder="সারসংক্ষেপ লিখুন বা AI দিয়ে তৈরি করুন…"
         ></textarea>
+        @php
+            $seedKey = \App\Services\ChecklistReportInfluenceService::formatSummarySeedKey((string) ($formatModel->code ?? 'format-2'));
+            $alreadyAdded = in_array($seedKey, $addedSummaryKeys ?? [], true);
+        @endphp
+        @include('livewire.partials.audit-checklist-add-to-report', [
+            'alreadyAdded' => $alreadyAdded,
+            'aiReady' => $aiSummaryReady ?? false,
+            'wireWithoutAi' => 'addFormatSummaryToReport(false)',
+            'wireWithAi' => 'addFormatSummaryToReport(true)',
+        ])
     </div>
 </div>

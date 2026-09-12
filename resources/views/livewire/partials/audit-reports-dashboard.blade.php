@@ -13,10 +13,12 @@
             </p>
         </div>
         <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
+            {{-- Hidden for now: Send by Gmail / send history
             <a
                 href="{{ route('audits.send-history', ['month' => $listFilterMonth ?: now()->month, 'year' => $listFilterYear ?: now()->year]) }}"
                 class="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 font-semibold text-slate-700 hover:bg-slate-50"
             >Send history</a>
+            --}}
             <span class="inline-flex items-center gap-1 rounded-md border border-sky-200 bg-sky-50 px-2 py-1 font-semibold text-sky-800">
                 Ongoing <span class="tabular-nums">{{ $ongoingCount }}</span>
             </span>
@@ -43,11 +45,11 @@
     <div class="border-b border-slate-100 px-3 py-2.5 sm:px-4 {{ $canStartNewReport ? '' : 'pointer-events-none opacity-55' }}">
         <div class="mb-1.5 flex items-baseline justify-between gap-2">
             <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Start new</p>
-            <p class="text-[10px] text-slate-400">Allocated branches · month · year</p>
+            <p class="text-[10px] text-slate-400">Allocated shakha & project visits · month · year</p>
         </div>
         <div class="grid gap-2 lg:grid-cols-[minmax(0,1fr)_118px_88px_auto] lg:items-end">
             <div class="relative min-w-0" @mousedown.outside="open = false">
-                <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Branch</label>
+                <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Branch / Project</label>
                 <div class="relative">
                     <svg class="pointer-events-none absolute left-2.5 top-1/2 z-[1] h-3.5 w-3.5 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"/></svg>
                     <input
@@ -104,6 +106,11 @@
                                             :class="b.risk_badge || 'bg-slate-50 text-slate-500 ring-1 ring-slate-200'"
                                             x-text="b.risk_short || 'N/A'"
                                         ></span>
+                                        <span
+                                            x-show="b.kind_label"
+                                            class="inline-flex rounded-full bg-slate-50 px-1.5 py-0.5 text-[9px] font-semibold text-slate-500 ring-1 ring-slate-200"
+                                            x-text="b.kind_label"
+                                        ></span>
                                     </span>
                                 </span>
                                 <span
@@ -115,7 +122,11 @@
                         </template>
                         <p x-show="filtered.length === 0" class="px-2.5 py-2 text-[11px] text-slate-500">
                             @if (($shakhaCount ?? 0) === 0)
-                                No allocated shakha for this month
+                                @if (! empty($nonShakhaVisitLabels ?? []))
+                                    No reportable visit for this month ({{ implode(', ', $nonShakhaVisitLabels) }}).
+                                @else
+                                    No allocated shakha or project visit for this month
+                                @endif
                             @else
                                 No branch matched
                             @endif
@@ -234,10 +245,13 @@
                     <tr class="hover:bg-slate-50/80">
                         <td class="px-3 py-2 align-middle sm:px-4 {{ $report->shakha?->riskCategory() ? \App\Support\ShakhaRiskTone::softBgClasses($report->shakha->riskCategory()) : '' }}">
                             <x-shakha-name
-                                :name="$report->shakha_display_name ?: ($report->shakha?->name ?? 'Branch')"
+                                :name="$report->entityDisplayName()"
                                 :category="$report->shakha?->riskCategory()"
                                 class="text-[12px]"
                             />
+                            @if ($report->isProjectLocationReport())
+                                <p class="truncate text-[10px] font-medium text-violet-700">Project audit</p>
+                            @endif
                             @if ($report->memo_no)
                                 <p class="truncate text-[10px] text-slate-400">{{ $report->memo_no }}</p>
                             @endif
@@ -253,8 +267,14 @@
                         <td class="px-2 py-2 align-middle">
                             @if ($isDraft)
                                 <span class="inline-flex rounded bg-sky-50 px-1.5 py-0.5 text-[10px] font-semibold text-sky-800">Ongoing</span>
+                            @elseif ($report->isInReview())
+                                <span class="inline-flex rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">In review</span>
+                            @elseif ($report->isChangesRequested())
+                                <span class="inline-flex rounded bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700">Changes requested</span>
+                            @elseif ($report->isReviewed())
+                                <span class="inline-flex rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800">Reviewed</span>
                             @else
-                                <span class="inline-flex rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800">Done</span>
+                                <span class="inline-flex rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-700">Completed</span>
                             @endif
                         </td>
                         <td class="hidden px-2 py-2 align-middle md:table-cell">
@@ -280,24 +300,230 @@
                         </td>
                         <td class="px-3 py-2 align-middle text-right sm:px-4">
                             <div class="inline-flex flex-wrap items-center justify-end gap-1">
-                                @if ($isDraft)
+                                @php
+                                    $clProgress = $report->checklistProgress();
+                                @endphp
+                                @if ($isDraft && ! $clProgress['ready'])
+                                    <a
+                                        href="{{ route('audits.checklist', $report) }}"
+                                        class="inline-flex h-7 items-center rounded-md border border-amber-300 bg-amber-50 px-2.5 text-[11px] font-semibold text-amber-900 hover:bg-amber-100"
+                                    >Checklist {{ $clProgress['done'] }}/{{ $clProgress['required'] }}</a>
+                                    <button
+                                        type="button"
+                                        wire:click="resumeReport({{ $report->id }})"
+                                        class="inline-flex h-7 items-center rounded-md border border-slate-200 bg-white px-2.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-50"
+                                        title="Open report"
+                                    >Report</button>
+                                @elseif ($isDraft)
                                     <button
                                         type="button"
                                         wire:click="resumeReport({{ $report->id }})"
                                         class="inline-flex h-7 items-center rounded-md bg-[#2b579a] px-2.5 text-[11px] font-semibold text-white hover:bg-[#204072]"
                                     >Continue</button>
+                                    <a
+                                        href="{{ route('audits.checklist', $report) }}"
+                                        class="inline-flex h-7 items-center rounded-md border border-teal-200 bg-teal-50 px-2 text-[11px] font-medium text-teal-800 hover:bg-teal-100"
+                                    >Checklist</a>
                                 @else
+                                    @if ($report->isChangesRequested())
+                                        <a
+                                            href="{{ route('audits.index', ['report' => $report->id]) }}"
+                                            class="inline-flex h-7 items-center rounded-md bg-[#2b579a] px-2.5 text-[11px] font-semibold text-white hover:bg-[#204072]"
+                                        >Edit report</a>
+                                        <a
+                                            href="{{ route('audit-review.show', $report) }}"
+                                            class="inline-flex h-7 items-center rounded-md border border-rose-200 bg-rose-50 px-2.5 text-[11px] font-semibold text-rose-800 hover:bg-rose-100"
+                                        >Comments</a>
+                                    @else
                                     <button
                                         type="button"
                                         wire:click="resumeReport({{ $report->id }})"
                                         class="inline-flex h-7 items-center rounded-md border border-slate-200 bg-white px-2.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
                                     >Open</button>
+                                    <a
+                                        href="{{ route('audits.checklist', $report) }}"
+                                        class="inline-flex h-7 items-center rounded-md border border-slate-200 px-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
+                                    >Checklist</a>
+                                    @endif
                                 @endif
-                                <a
-                                    href="{{ route('audits.checklist', $report) }}"
-                                    class="inline-flex h-7 items-center rounded-md border border-slate-200 px-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
-                                >Checklist</a>
                                 @unless ($isDraft)
+                                    @if ($report->isCompleted() || $report->isChangesRequested())
+                                        @php
+                                            $ownerMeta = ($reviewMetaByOwner ?? [])[(int) $report->user_id] ?? null;
+                                            $assignedName = $ownerMeta['reviewer_name'] ?? null;
+                                            $superName = ($reviewSuperadmin['name'] ?? null) ?: 'Super Admin';
+                                            $defaultDest = $assignedName ? 'assigned' : 'superadmin';
+                                        @endphp
+                                        <div
+                                            x-data="{
+                                                open: false,
+                                                dest: @js($defaultDest),
+                                                cc: false,
+                                                panelStyle: '',
+                                                get submitLabel() {
+                                                    if (this.dest === 'superadmin') {
+                                                        return 'Send to Super Admin';
+                                                    }
+                                                    return @js($assignedName ? 'Send to '.$assignedName : 'Send for review');
+                                                },
+                                                toggle() {
+                                                    if (this.open) {
+                                                        this.open = false;
+                                                        return;
+                                                    }
+                                                    this.open = true;
+                                                    this.$nextTick(() => {
+                                                        this.place();
+                                                        requestAnimationFrame(() => this.place());
+                                                    });
+                                                },
+                                                place() {
+                                                    const btn = this.$refs.trigger;
+                                                    if (! btn) return;
+                                                    const r = btn.getBoundingClientRect();
+                                                    const pw = Math.min(320, window.innerWidth - 16);
+                                                    // Always open directly under the button (normal dropdown).
+                                                    const top = r.bottom + 8;
+                                                    let left = r.right - pw;
+                                                    if (left < 12) left = 12;
+                                                    if (left + pw > window.innerWidth - 12) {
+                                                        left = window.innerWidth - pw - 12;
+                                                    }
+                                                    const maxH = Math.max(200, Math.min(420, window.innerHeight - top - 16));
+                                                    this.panelStyle = 'position:fixed;top:' + top + 'px;left:' + left + 'px;width:' + pw + 'px;z-index:80;max-height:' + maxH + 'px;transform-origin:top right;';
+                                                }
+                                            }"
+                                            x-on:resize.window="open && place()"
+                                            x-on:scroll.window.throttle.50ms="open && place()"
+                                            class="relative inline-block text-left"
+                                        >
+                                            <button
+                                                type="button"
+                                                x-ref="trigger"
+                                                @click="toggle()"
+                                                class="inline-flex h-7 items-center gap-1 rounded-md border border-violet-200 bg-violet-50 px-2 text-[11px] font-semibold text-violet-900 transition hover:bg-violet-100"
+                                                :class="open ? 'ring-2 ring-violet-200' : ''"
+                                            >
+                                                <span>Send for review</span>
+                                                <svg
+                                                    class="h-3 w-3 opacity-70 transition-transform duration-200 ease-out"
+                                                    :class="open ? 'rotate-180' : ''"
+                                                    viewBox="0 0 20 20"
+                                                    fill="currentColor"
+                                                    aria-hidden="true"
+                                                ><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
+                                            </button>
+                                            <template x-teleport="body">
+                                                <div class="contents">
+                                                    <div
+                                                        x-show="open"
+                                                        x-cloak
+                                                        x-transition:enter="transition ease-out duration-200"
+                                                        x-transition:enter-start="opacity-0"
+                                                        x-transition:enter-end="opacity-100"
+                                                        x-transition:leave="transition ease-in duration-150"
+                                                        x-transition:leave-start="opacity-100"
+                                                        x-transition:leave-end="opacity-0"
+                                                        class="fixed inset-0 z-[70] bg-slate-900/20"
+                                                        @click="open = false"
+                                                        @keydown.escape.window="open = false"
+                                                    ></div>
+                                                    <div
+                                                        x-ref="panel"
+                                                        x-show="open"
+                                                        x-cloak
+                                                        x-transition:enter="transition ease-out duration-200"
+                                                        x-transition:enter-start="opacity-0 -translate-y-1 scale-[0.98]"
+                                                        x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                                                        x-transition:leave="transition ease-in duration-150"
+                                                        x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                                                        x-transition:leave-end="opacity-0 -translate-y-1 scale-[0.98]"
+                                                        :style="panelStyle"
+                                                        class="origin-top-right overflow-y-auto rounded-xl border border-slate-200 bg-white text-left shadow-2xl will-change-transform"
+                                                        @click.stop
+                                                    >
+                                                        <div class="border-b border-slate-100 bg-slate-50/80 px-3 py-2">
+                                                            <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Send to</p>
+                                                            <p class="mt-0.5 text-[11px] text-slate-600">Choose who should review this report</p>
+                                                        </div>
+                                                        <form method="POST" action="{{ route('audit-review.submit', $report) }}" class="space-y-3 p-3">
+                                                            @csrf
+                                                            <div class="space-y-1.5">
+                                                                @if ($assignedName)
+                                                                    <label
+                                                                        class="flex cursor-pointer items-start gap-2.5 rounded-lg border px-2.5 py-2 transition"
+                                                                        :class="dest === 'assigned' ? 'border-violet-300 bg-violet-50/70' : 'border-slate-200 hover:bg-slate-50'"
+                                                                    >
+                                                                        <input type="radio" name="destination" value="assigned" class="mt-0.5 border-slate-300 text-violet-700 focus:ring-violet-500" x-model="dest">
+                                                                        <span class="min-w-0">
+                                                                            <span class="block text-[12px] font-semibold text-navy-900">{{ $assignedName }}</span>
+                                                                            <span class="mt-0.5 block text-[10px] text-slate-500">Your assigned reviewer</span>
+                                                                        </span>
+                                                                    </label>
+                                                                @else
+                                                                    <div class="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-[11px] text-amber-900">
+                                                                        No assigned reviewer yet. You can still send to Super Admin.
+                                                                    </div>
+                                                                @endif
+
+                                                                @if (! empty($reviewSuperadmin))
+                                                                    <label
+                                                                        class="flex cursor-pointer items-start gap-2.5 rounded-lg border px-2.5 py-2 transition"
+                                                                        :class="dest === 'superadmin' ? 'border-sky-300 bg-sky-50/70' : 'border-slate-200 hover:bg-slate-50'"
+                                                                    >
+                                                                        <input type="radio" name="destination" value="superadmin" class="mt-0.5 border-slate-300 text-sky-700 focus:ring-sky-500" x-model="dest">
+                                                                        <span class="min-w-0">
+                                                                            <span class="block text-[12px] font-semibold text-navy-900">Super Admin</span>
+                                                                            <span class="mt-0.5 block truncate text-[10px] text-slate-500">{{ $superName }} · always available</span>
+                                                                        </span>
+                                                                    </label>
+                                                                @endif
+                                                            </div>
+
+                                                            <label
+                                                                x-show="dest === 'assigned'"
+                                                                x-cloak
+                                                                x-transition:enter="transition ease-out duration-150"
+                                                                x-transition:enter-start="opacity-0 -translate-y-1"
+                                                                x-transition:enter-end="opacity-100 translate-y-0"
+                                                                x-transition:leave="transition ease-in duration-100"
+                                                                x-transition:leave-start="opacity-100"
+                                                                x-transition:leave-end="opacity-0"
+                                                                class="flex items-center gap-2 rounded-md bg-slate-50 px-2 py-1.5 text-[11px] text-slate-700"
+                                                            >
+                                                                <input type="checkbox" name="cc_superadmin" value="1" class="rounded border-slate-300 text-violet-700 focus:ring-violet-500" x-model="cc">
+                                                                Also notify Super Admin
+                                                            </label>
+
+                                                            <div>
+                                                                <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Note</label>
+                                                                <textarea name="note" rows="2" class="w-full rounded-md border-slate-200 text-[11px] shadow-sm focus:border-[#2b579a] focus:ring-[#2b579a]" placeholder="Optional message to the reviewer"></textarea>
+                                                            </div>
+
+                                                            <button
+                                                                type="submit"
+                                                                class="inline-flex h-8 w-full items-center justify-center rounded-md bg-[#2b579a] text-[11px] font-semibold text-white transition hover:bg-[#204072]"
+                                                                x-text="submitLabel"
+                                                            >Send for review</button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    @endif
+                                    @if ($report->isInReview() || $report->isChangesRequested() || $report->isReviewed())
+                                        <a
+                                            href="{{ route('audit-review.show', $report) }}"
+                                            class="inline-flex h-7 items-center rounded-md border border-amber-200 bg-amber-50 px-2 text-[11px] font-semibold text-amber-900 hover:bg-amber-100"
+                                        >Review status</a>
+                                    @endif
+                                    @if ($report->isInReview() && $report->reviewer)
+                                        <span class="inline-flex h-7 max-w-[9rem] items-center truncate rounded-md border border-slate-200 bg-white px-2 text-[10px] font-medium text-slate-600" title="Reviewer: {{ $report->reviewer->name }}">
+                                            → {{ $report->reviewer->name }}
+                                        </span>
+                                    @endif
+                                    {{-- Hidden for now: Send by Gmail
+                                    @if ($report->isReviewed() || $report->isCompleted() || $report->isInReview() || $report->isChangesRequested())
                                     <button
                                         type="button"
                                         wire:click="openSendMailModal({{ $report->id }})"
@@ -306,6 +532,8 @@
                                         <svg class="h-3 w-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg>
                                         Send by Gmail
                                     </button>
+                                    @endif
+                                    --}}
                                 @endunless
                                 @if ($isDraft && (int) $report->user_id === (int) auth()->id())
                                     <button
@@ -332,7 +560,7 @@
     </div>
 
     @if ($allReports->isNotEmpty())
-        <div class="border-t border-slate-100 bg-slate-50/50 px-3 py-1.5 text-[10px] text-slate-500 sm:px-4">
+        <div class="border-t border-slate-100 bg-slate-50/50 px-3 py-3 text-[10px] text-slate-500 sm:px-4">
             Showing {{ $allReports->count() }}
             · {{ $ongoingReports->count() }} ongoing
             · {{ $completedReports->count() }} done
@@ -340,6 +568,7 @@
     @endif
 </div>
 
+{{-- Hidden for now: Send by Gmail modal
 @if ($showSendMailModal)
     <div class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 px-3 py-8" wire:click.self="closeSendMailModal">
         <div class="w-full max-w-xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl" @keydown.escape.window="$wire.closeSendMailModal()">
@@ -416,3 +645,4 @@
         </div>
     </div>
 @endif
+--}}

@@ -6,6 +6,7 @@ use App\Models\AuditFinding;
 use App\Models\AuditIndicator;
 use App\Models\AuditReport;
 use App\Models\Shakha;
+use App\Models\ShakhaEmployee;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -185,13 +186,20 @@ class AuditSummaryService
             'irregularity_count' => $data['irregularity_count'] ?? null,
             'observation' => $data['observation'] ?? null,
             'responsible_staff_name' => $data['responsible_staff_name'] ?? null,
+            'responsible_staff_ids' => $this->normalizeStaffIds($data['responsible_staff_ids'] ?? null),
         ];
+
+        if ($payload['responsible_staff_ids'] === [] && filled($payload['responsible_staff_name'])) {
+            $payload['responsible_staff_ids'] = app(StaffFinancialOccurrenceService::class)
+                ->resolveIdsFromStaffName((string) $payload['responsible_staff_name'], $shakhaId);
+        }
 
         $isEmpty = blank($payload['amount'])
             && blank($payload['sample_size_checked'])
             && blank($payload['irregularity_count'])
             && blank($payload['observation'])
-            && blank($payload['responsible_staff_name']);
+            && blank($payload['responsible_staff_name'])
+            && $payload['responsible_staff_ids'] === [];
 
         $keys = [
             'shakha_id' => $shakhaId,
@@ -326,7 +334,10 @@ class AuditSummaryService
         $newIndicatorsCount = AuditIndicator::query()
             ->where(function ($query) {
                 $query->where('indicator_code', 'like', 'রিপোর্ট-%')
-                    ->orWhere('category', 'আর্থিক নিরীক্ষা (রিপোর্ট)');
+                    ->orWhere('indicator_code', 'like', '৯০০০-%')
+                    ->orWhere('indicator_code', 'like', '9000-%')
+                    ->orWhere('category', 'আর্থিক নিরীক্ষা (রিপোর্ট)')
+                    ->orWhere('category', 'নিরীক্ষা প্রতিবেদন');
             })
             ->whereBetween('created_at', [$monthStart, $monthEnd])
             ->count();
@@ -511,6 +522,7 @@ class AuditSummaryService
      *     percentage_fmt:string,
      *     branch_count:int,
      *     branches:string,
+     *     branch_rows:list<array{shakha_id:int,label:string,accused_kormi:string,accused_people:list<array{id:?int,label:string,report_count:int,dossier_url:?string}>}>,
      *     url:string
      *   }>
      * }>
@@ -526,8 +538,28 @@ class AuditSummaryService
             ->where('audit_year', $year)
             ->get();
 
-        /** @var array<int, array{indicator:?AuditIndicator, amount:float, samples:int, irregularities:int, branches:array<string,string>}> $byIndicator */
+        /** @var array<int, array{indicator:?AuditIndicator, amount:float, samples:int, irregularities:int, branches:array<int, array{shakha_id:int, label:string, accused_kormi:string, accused_people:list<array{id:?int,label:string,report_count:int,dossier_url:?string}>}>}> $byIndicator */
         $byIndicator = [];
+
+        $occurrence = app(StaffFinancialOccurrenceService::class);
+        $allStaffIds = [];
+        foreach ($findings as $finding) {
+            $ids = $finding->responsibleStaffIds();
+            if ($ids === [] && filled($finding->responsible_staff_name)) {
+                $ids = $occurrence->resolveIdsFromStaffName(
+                    (string) $finding->responsible_staff_name,
+                    (int) $finding->shakha_id
+                );
+            }
+            foreach ($ids as $id) {
+                $allStaffIds[] = $id;
+            }
+        }
+        $lifetimeCounts = $occurrence->lifetimeVisitCounts($allStaffIds);
+        $employeesById = ShakhaEmployee::query()
+            ->whereIn('id', array_values(array_unique($allStaffIds)))
+            ->get(['id', 'employee_code', 'name'])
+            ->keyBy('id');
 
         foreach ($findings as $finding) {
             $indicatorId = (int) $finding->audit_indicator_id;
@@ -549,18 +581,43 @@ class AuditSummaryService
             $byIndicator[$indicatorId]['samples'] += (int) ($finding->sample_size_checked ?? 0);
             $byIndicator[$indicatorId]['irregularities'] += (int) ($finding->irregularity_count ?? 0);
 
+            $staffIds = $finding->responsibleStaffIds();
+            if ($staffIds === [] && filled($finding->responsible_staff_name)) {
+                $staffIds = $occurrence->resolveIdsFromStaffName(
+                    (string) $finding->responsible_staff_name,
+                    (int) $finding->shakha_id
+                );
+            }
+
             $hasSignal = (float) ($finding->amount ?? 0) > 0
                 || (int) ($finding->sample_size_checked ?? 0) > 0
                 || (int) ($finding->irregularity_count ?? 0) > 0
                 || filled($finding->observation)
-                || filled($finding->responsible_staff_name);
+                || filled($finding->responsible_staff_name)
+                || $staffIds !== [];
 
             if ($hasSignal && $finding->shakha) {
+                $shakhaId = (int) $finding->shakha_id;
                 $label = trim((string) $finding->shakha->name);
                 if ($finding->shakha->code) {
                     $label .= ' ('.$finding->shakha->code.')';
                 }
-                $byIndicator[$indicatorId]['branches'][(int) $finding->shakha_id] = $label !== '' ? $label : 'Branch #'.$finding->shakha_id;
+                $accused = $this->formatAccusedKormiForDisplay(
+                    (int) $finding->shakha_id,
+                    trim((string) ($finding->responsible_staff_name ?? ''))
+                );
+                $accusedPeople = $this->buildAccusedPeopleForSummary(
+                    $accused,
+                    $staffIds,
+                    $employeesById,
+                    $lifetimeCounts
+                );
+                $byIndicator[$indicatorId]['branches'][$shakhaId] = [
+                    'shakha_id' => $shakhaId,
+                    'label' => $label !== '' ? $label : 'Branch #'.$shakhaId,
+                    'accused_kormi' => $accused,
+                    'accused_people' => $accusedPeople,
+                ];
             }
         }
 
@@ -577,10 +634,11 @@ class AuditSummaryService
             $amount = (float) $bag['amount'];
             $samples = (int) $bag['samples'];
             $irregs = (int) $bag['irregularities'];
-            $branches = array_values($bag['branches']);
-            sort($branches, SORT_NATURAL | SORT_FLAG_CASE);
+            $branchRows = array_values($bag['branches']);
+            usort($branchRows, fn ($a, $b) => strnatcasecmp((string) $a['label'], (string) $b['label']));
+            $branchLabels = array_map(fn ($b) => (string) $b['label'], $branchRows);
 
-            if ($amount <= 0 && $samples <= 0 && $irregs <= 0 && $branches === []) {
+            if ($amount <= 0 && $samples <= 0 && $irregs <= 0 && $branchRows === []) {
                 continue;
             }
 
@@ -609,8 +667,9 @@ class AuditSummaryService
                 'irregularities' => $irregs,
                 'percentage' => $percentage,
                 'percentage_fmt' => $percentage === null ? '—' : number_format($percentage, 2).'%',
-                'branch_count' => count($branches),
-                'branches' => implode(', ', $branches),
+                'branch_count' => count($branchRows),
+                'branches' => implode(', ', $branchLabels),
+                'branch_rows' => $branchRows,
                 'url' => route('audit-findings.show', [
                     'indicator' => $indicator->id,
                     'month' => $month,
@@ -674,6 +733,7 @@ class AuditSummaryService
                     'irregularity_count' => $row['irregularity_count'],
                     'observation' => $row['observation'],
                     'responsible_staff_name' => $row['responsible_staff_name'] ?? null,
+                    'responsible_staff_ids' => $row['responsible_staff_ids'] ?? [],
                 ]
             );
             $touched++;
@@ -698,9 +758,11 @@ class AuditSummaryService
         /** @var array<int, array{indicator_id:int, amount:?float, sample_size_checked:?int, irregularity_count:?int, observation:?string, responsible_staff_name:?string}> $byIndicator */
         $byIndicator = [];
 
-        /** @var list<array{indicator_id:int, amount:?float, observation:?string}> $pendingFindings */
+        /** @var list<array{indicator_id:int, amount:?float, observation:?string, responsible_staff_name:?string}> $pendingFindings */
         $pendingFindings = [];
+        /** @var array<int, array{indicator_id:int, amount:?float, observation:?string, responsible_staff_name:?string}> $lastFindingById */
         $lastFindingById = [];
+        $lastFindingIndicatorId = 0;
 
         foreach ($blocks as $block) {
             if (! is_array($block)) {
@@ -716,15 +778,77 @@ class AuditSummaryService
                 }
 
                 $amount = \App\Support\BanglaNumerals::toFloat($block['amount'] ?? null);
+                // Finding body is usually the শিরোনাম; পর্যবেক্ষণ body + matrix_people override later.
                 $body = trim((string) ($block['body'] ?? ''));
                 $observation = $body !== '' ? $body : null;
                 $meta = [
                     'indicator_id' => $indicatorId,
                     'amount' => $amount,
                     'observation' => $observation,
+                    'responsible_staff_name' => null,
+                    'responsible_staff_ids' => [],
                 ];
                 $pendingFindings[] = $meta;
                 $lastFindingById[$indicatorId] = $meta;
+                $lastFindingIndicatorId = $indicatorId;
+
+                continue;
+            }
+
+            if ($type === 'observation') {
+                $label = mb_strtolower(trim((string) ($block['label'] ?? '')));
+                $isPorjobekkhon = str_contains($label, 'পর্যবেক্ষণ') || str_contains($label, 'observation');
+                if (! $isPorjobekkhon || $lastFindingIndicatorId < 1) {
+                    continue;
+                }
+
+                $obsBody = trim((string) ($block['body'] ?? ''));
+                $staffName = $this->formatMatrixPeopleNames($block['matrix_people'] ?? null);
+                $staffIds = $this->extractMatrixPeopleIds($block['matrix_people'] ?? null);
+                if ($obsBody === '' && $staffName === null && $staffIds === []) {
+                    continue;
+                }
+
+                $base = $lastFindingById[$lastFindingIndicatorId] ?? [
+                    'indicator_id' => $lastFindingIndicatorId,
+                    'amount' => null,
+                    'observation' => null,
+                    'responsible_staff_name' => null,
+                    'responsible_staff_ids' => [],
+                ];
+                $updated = [
+                    'indicator_id' => $lastFindingIndicatorId,
+                    'amount' => $base['amount'] ?? null,
+                    'observation' => $obsBody !== '' ? $obsBody : ($base['observation'] ?? null),
+                    'responsible_staff_name' => $staffName ?? ($base['responsible_staff_name'] ?? null),
+                    'responsible_staff_ids' => $staffIds !== []
+                        ? $staffIds
+                        : ($base['responsible_staff_ids'] ?? []),
+                ];
+                $lastFindingById[$lastFindingIndicatorId] = $updated;
+
+                foreach ($pendingFindings as $i => $pending) {
+                    if ((int) ($pending['indicator_id'] ?? 0) === $lastFindingIndicatorId) {
+                        $pendingFindings[$i] = array_merge($pending, [
+                            'observation' => $updated['observation'],
+                            'responsible_staff_name' => $updated['responsible_staff_name'],
+                            'responsible_staff_ids' => $updated['responsible_staff_ids'],
+                        ]);
+                    }
+                }
+
+                $byIndicator[$lastFindingIndicatorId] = $this->mergeMatrixRow(
+                    $byIndicator[$lastFindingIndicatorId] ?? null,
+                    [
+                        'indicator_id' => $lastFindingIndicatorId,
+                        'amount' => $updated['amount'],
+                        'sample_size_checked' => null,
+                        'irregularity_count' => null,
+                        'observation' => $updated['observation'],
+                        'responsible_staff_name' => $updated['responsible_staff_name'],
+                        'responsible_staff_ids' => $updated['responsible_staff_ids'],
+                    ]
+                );
 
                 continue;
             }
@@ -769,6 +893,8 @@ class AuditSummaryService
                     'indicator_id' => $indicatorId,
                     'amount' => null,
                     'observation' => null,
+                    'responsible_staff_name' => null,
+                    'responsible_staff_ids' => [],
                 ];
             } elseif ($pendingFindings !== []) {
                 $findingMeta = array_shift($pendingFindings);
@@ -787,27 +913,52 @@ class AuditSummaryService
                     'sample_size_checked' => $hasSample ? $sampleSum : null,
                     'irregularity_count' => $hasIrregular ? $irregularSum : null,
                     'observation' => $findingMeta['observation'] ?? null,
-                    'responsible_staff_name' => null,
+                    'responsible_staff_name' => $findingMeta['responsible_staff_name'] ?? null,
+                    'responsible_staff_ids' => $findingMeta['responsible_staff_ids'] ?? [],
                 ]
             );
         }
 
-        // Findings that have an amount but no rating box still enter the matrix.
+        // Findings that have matrix-worthy data but no rating box still enter the matrix.
         foreach ($pendingFindings as $findingMeta) {
             $indicatorId = (int) $findingMeta['indicator_id'];
-            if ($indicatorId < 1 || ($findingMeta['amount'] ?? null) === null) {
+            if ($indicatorId < 1) {
                 continue;
             }
+            $hasAmount = ($findingMeta['amount'] ?? null) !== null;
+            $hasStaff = filled($findingMeta['responsible_staff_name'] ?? null)
+                || (($findingMeta['responsible_staff_ids'] ?? []) !== []);
+
             if (isset($byIndicator[$indicatorId])) {
+                $byIndicator[$indicatorId] = $this->mergeMatrixRow(
+                    $byIndicator[$indicatorId],
+                    [
+                        'indicator_id' => $indicatorId,
+                        'amount' => $findingMeta['amount'] ?? null,
+                        'sample_size_checked' => null,
+                        'irregularity_count' => null,
+                        'observation' => $findingMeta['observation'] ?? null,
+                        'responsible_staff_name' => $findingMeta['responsible_staff_name'] ?? null,
+                        'responsible_staff_ids' => $findingMeta['responsible_staff_ids'] ?? [],
+                    ]
+                );
+
                 continue;
             }
+
+            // Do not create a matrix cell from শিরোনাম text alone — need amount and/or staff names.
+            if (! $hasAmount && ! $hasStaff) {
+                continue;
+            }
+
             $byIndicator[$indicatorId] = [
                 'indicator_id' => $indicatorId,
                 'amount' => $findingMeta['amount'],
                 'sample_size_checked' => null,
                 'irregularity_count' => null,
                 'observation' => $findingMeta['observation'],
-                'responsible_staff_name' => null,
+                'responsible_staff_name' => $findingMeta['responsible_staff_name'] ?? null,
+                'responsible_staff_ids' => $findingMeta['responsible_staff_ids'] ?? [],
             ];
         }
 
@@ -815,23 +966,231 @@ class AuditSummaryService
     }
 
     /**
-     * @param  array{indicator_id:int, amount:?float, sample_size_checked:?int, irregularity_count:?int, observation:?string, responsible_staff_name:?string}|null  $existing
-     * @param  array{indicator_id:int, amount:?float, sample_size_checked:?int, irregularity_count:?int, observation:?string, responsible_staff_name:?string}  $incoming
-     * @return array{indicator_id:int, amount:?float, sample_size_checked:?int, irregularity_count:?int, observation:?string, responsible_staff_name:?string}
+     * Format অভিযুক্ত কর্মী as "Name (EmployeeID)" so duplicate names stay distinguishable.
+     *
+     * @param  list<array{id?:?int,code?:string,name?:string}>|mixed  $people
+     */
+    protected function formatMatrixPeopleNames(mixed $people): ?string
+    {
+        if (! is_array($people)) {
+            return null;
+        }
+
+        $labels = [];
+        foreach (array_values($people) as $person) {
+            if (! is_array($person)) {
+                continue;
+            }
+            $name = trim((string) ($person['name'] ?? ''));
+            $code = trim((string) ($person['code'] ?? ''));
+            if ($name === '' && $code === '') {
+                continue;
+            }
+            if ($name !== '' && $code !== '') {
+                $labels[] = $name.' ('.$code.')';
+            } else {
+                $labels[] = $name !== '' ? $name : $code;
+            }
+        }
+
+        $labels = array_values(array_unique($labels));
+
+        return $labels !== [] ? implode(', ', $labels) : null;
+    }
+
+    /**
+     * @param  list<array{id?:?int,code?:string,name?:string}>|mixed  $people
+     * @return list<int>
+     */
+    protected function extractMatrixPeopleIds(mixed $people): array
+    {
+        if (! is_array($people)) {
+            return [];
+        }
+
+        $ids = [];
+        foreach (array_values($people) as $person) {
+            if (! is_array($person)) {
+                continue;
+            }
+            $id = (int) ($person['id'] ?? 0);
+            if ($id > 0) {
+                $ids[] = $id;
+                continue;
+            }
+            $code = trim((string) ($person['code'] ?? ''));
+            if ($code === '') {
+                continue;
+            }
+            $employeeId = (int) (ShakhaEmployee::query()->where('employee_code', $code)->value('id') ?? 0);
+            if ($employeeId > 0) {
+                $ids[] = $employeeId;
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    /**
+     * @return list<int>
+     */
+    protected function normalizeStaffIds(mixed $ids): array
+    {
+        if (! is_array($ids)) {
+            return [];
+        }
+
+        return array_values(array_unique(array_filter(
+            array_map('intval', $ids),
+            fn (int $id) => $id > 0
+        )));
+    }
+
+    /**
+     * @param  list<int>  $staffIds
+     * @param  \Illuminate\Support\Collection<int, ShakhaEmployee>  $employeesById
+     * @param  array<int, int>  $lifetimeCounts
+     * @return list<array{id:?int,label:string,report_count:int,dossier_url:?string}>
+     */
+    protected function buildAccusedPeopleForSummary(
+        string $accusedLabel,
+        array $staffIds,
+        $employeesById,
+        array $lifetimeCounts
+    ): array {
+        $people = [];
+
+        if ($staffIds !== []) {
+            foreach ($staffIds as $id) {
+                $emp = $employeesById->get($id);
+                if (! $emp) {
+                    continue;
+                }
+                $name = trim((string) $emp->name);
+                $code = trim((string) $emp->employee_code);
+                $label = ($name !== '' && $code !== '')
+                    ? $name.' ('.$code.')'
+                    : ($name !== '' ? $name : $code);
+                $people[] = [
+                    'id' => (int) $emp->id,
+                    'label' => $label,
+                    'report_count' => (int) ($lifetimeCounts[(int) $emp->id] ?? 0),
+                    'dossier_url' => route('shakha-employees.dossier', $emp),
+                ];
+            }
+
+            return $people;
+        }
+
+        $parts = preg_split('/\s*,\s*/u', trim($accusedLabel)) ?: [];
+        foreach ($parts as $part) {
+            $part = trim((string) $part);
+            if ($part === '') {
+                continue;
+            }
+            $people[] = [
+                'id' => null,
+                'label' => $part,
+                'report_count' => 0,
+                'dossier_url' => null,
+            ];
+        }
+
+        return $people;
+    }
+
+    /**
+     * Ensure each accused person shows as "Name (EmployeeID)" in summary tables.
+     * Enriches plain names from the shakha roster when IDs were not stored yet.
+     */
+    protected function formatAccusedKormiForDisplay(int $shakhaId, string $raw): string
+    {
+        $raw = trim($raw);
+        if ($raw === '' || $shakhaId < 1) {
+            return $raw;
+        }
+
+        $parts = preg_split('/\s*,\s*/u', $raw) ?: [];
+        $parts = array_values(array_filter(array_map('trim', $parts), fn ($p) => $p !== ''));
+        if ($parts === []) {
+            return '';
+        }
+
+        // Already look like "Name (CODE)" — keep as-is.
+        $needsLookup = false;
+        foreach ($parts as $part) {
+            if (! preg_match('/^.+\s+\([^)]+\)$/u', $part)) {
+                $needsLookup = true;
+                break;
+            }
+        }
+        if (! $needsLookup) {
+            return implode(', ', $parts);
+        }
+
+        $employees = ShakhaEmployee::query()
+            ->where('shakha_id', $shakhaId)
+            ->get(['employee_code', 'name']);
+
+        $byName = [];
+        foreach ($employees as $emp) {
+            $nameKey = mb_strtolower(trim((string) $emp->name));
+            if ($nameKey === '') {
+                continue;
+            }
+            $byName[$nameKey][] = trim((string) ($emp->employee_code ?: ''));
+        }
+
+        $out = [];
+        foreach ($parts as $part) {
+            if (preg_match('/^.+\s+\([^)]+\)$/u', $part)) {
+                $out[] = $part;
+                continue;
+            }
+            $nameKey = mb_strtolower($part);
+            $codes = array_values(array_filter($byName[$nameKey] ?? []));
+            if (count($codes) === 1) {
+                $out[] = $part.' ('.$codes[0].')';
+            } elseif (count($codes) > 1) {
+                // Same name on multiple IDs — list all so auditor can tell them apart.
+                $out[] = $part.' ('.implode(' / ', $codes).')';
+            } else {
+                $out[] = $part;
+            }
+        }
+
+        return implode(', ', $out);
+    }
+
+    /**
+     * @param  array{indicator_id:int, amount:?float, sample_size_checked:?int, irregularity_count:?int, observation:?string, responsible_staff_name:?string, responsible_staff_ids?:list<int>}|null  $existing
+     * @param  array{indicator_id:int, amount:?float, sample_size_checked:?int, irregularity_count:?int, observation:?string, responsible_staff_name:?string, responsible_staff_ids?:list<int>}  $incoming
+     * @return array{indicator_id:int, amount:?float, sample_size_checked:?int, irregularity_count:?int, observation:?string, responsible_staff_name:?string, responsible_staff_ids:list<int>}
      */
     protected function mergeMatrixRow(?array $existing, array $incoming): array
     {
         if ($existing === null) {
+            $incoming['responsible_staff_ids'] = $this->normalizeStaffIds($incoming['responsible_staff_ids'] ?? []);
+
             return $incoming;
         }
+
+        $incomingIds = $this->normalizeStaffIds($incoming['responsible_staff_ids'] ?? []);
+        $existingIds = $this->normalizeStaffIds($existing['responsible_staff_ids'] ?? []);
 
         return [
             'indicator_id' => $incoming['indicator_id'],
             'amount' => $incoming['amount'] ?? $existing['amount'],
             'sample_size_checked' => $incoming['sample_size_checked'] ?? $existing['sample_size_checked'],
             'irregularity_count' => $incoming['irregularity_count'] ?? $existing['irregularity_count'],
-            'observation' => $incoming['observation'] ?? $existing['observation'],
-            'responsible_staff_name' => $incoming['responsible_staff_name'] ?? $existing['responsible_staff_name'],
+            // Prefer non-empty incoming so পর্যবেক্ষণ body/staff overwrite finding শিরোনাম fallback.
+            'observation' => filled($incoming['observation'] ?? null)
+                ? $incoming['observation']
+                : ($existing['observation'] ?? null),
+            'responsible_staff_name' => filled($incoming['responsible_staff_name'] ?? null)
+                ? $incoming['responsible_staff_name']
+                : ($existing['responsible_staff_name'] ?? null),
+            'responsible_staff_ids' => $incomingIds !== [] ? $incomingIds : $existingIds,
         ];
     }
 }

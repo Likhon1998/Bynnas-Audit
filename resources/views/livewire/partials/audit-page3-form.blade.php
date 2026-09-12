@@ -1,7 +1,7 @@
 <div class="border-b border-slate-200 bg-slate-100 px-3 py-5 lg:px-6">
     <div class="mb-2 flex items-center justify-between gap-2">
-        <p class="text-[12px] font-semibold text-slate-800">৩. সূচিপত্র (ধারাবাহিকতা) + শ্রেণীবিন্যাস + স্বাক্ষর</p>
-        <span class="text-[11px] text-slate-500">সূচিপত্র PDF-এ এক নজরের সাথে একসাথে · এখানে শ্রেণীবিন্যাস ও স্বাক্ষর</span>
+        <p class="text-[12px] font-semibold text-slate-800">৩. শ্রেণীবিন্যাস + স্বাক্ষর</p>
+        <span class="text-[11px] text-slate-500">সূচিপত্র এক নজরের সাথে · এখানে শ্রেণীবিন্যাস ও স্বাক্ষর</span>
     </div>
 
     <div class="mx-auto max-w-[960px] rounded-sm bg-white p-6 shadow-lg">

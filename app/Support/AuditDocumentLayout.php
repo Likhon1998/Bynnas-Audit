@@ -54,10 +54,27 @@ class AuditDocumentLayout
         );
     }
 
-    /** @return list<float> Label | Value | Label | Value (percent, sums to 100). */
-    public static function glanceColumnWidths(): array
+    /** @return list<float> Label/Value pairs as percent widths (sums to 100). */
+    public static function glanceColumnWidths(int $pairCount = 2): array
     {
-        return [30.0, 20.0, 30.0, 20.0];
+        $pairCount = max(1, min(4, $pairCount));
+        $widths = [];
+        $labelShare = 0.58;
+        $valueShare = 0.42;
+        $pairPct = 100.0 / $pairCount;
+
+        for ($i = 0; $i < $pairCount; $i++) {
+            $widths[] = round($pairPct * $labelShare, 2);
+            $widths[] = round($pairPct * $valueShare, 2);
+        }
+
+        // Fix rounding drift so total is exactly 100.
+        $sum = array_sum($widths);
+        if ($widths !== [] && abs($sum - 100.0) > 0.001) {
+            $widths[count($widths) - 1] = round($widths[count($widths) - 1] + (100.0 - $sum), 2);
+        }
+
+        return $widths;
     }
 
     /**

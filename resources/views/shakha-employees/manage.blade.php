@@ -51,9 +51,7 @@
                                 <th class="px-3.5 py-2.5">Designation</th>
                                 <th class="px-3.5 py-2.5">Joined shakha</th>
                                 <th class="px-3.5 py-2.5">Status</th>
-                                @if ($canManage)
-                                    <th class="px-3.5 py-2.5"></th>
-                                @endif
+                                <th class="px-3.5 py-2.5"></th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -78,24 +76,46 @@
                                     <td class="px-3.5 py-2.5">
                                         @if ($row->isActive())
                                             <span class="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">Active</span>
+                                        @elseif ($row->isFired())
+                                            <span class="inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-medium text-rose-700">Fired</span>
+                                        @elseif ($row->isTransferred())
+                                            <span class="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-800">Transferred</span>
                                         @else
-                                            <span class="inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-medium text-rose-600">Inactive</span>
+                                            <span class="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">Inactive</span>
                                         @endif
                                     </td>
                                     @if ($canManage)
-                                        <td class="px-3.5 py-2.5 text-right">
+                                        <td class="px-3.5 py-2.5 text-right whitespace-nowrap">
+                                            @php $count = (int) (($reportCounts[$row->id] ?? 0)); @endphp
+                                            <a href="{{ route('shakha-employees.dossier', $row) }}" class="mr-2 text-[11px] font-semibold text-rose-700 hover:underline">
+                                                রিপোর্ট{{ $count > 0 ? ' ('.$count.')' : '' }}
+                                            </a>
                                             <a href="{{ route('shakha-employees.edit', $row) }}" class="text-[11px] font-semibold text-[#2b579a] hover:underline">Edit</a>
+                                            <span class="ml-2 inline-block align-middle">
+                                                @include('shakha-employees.partials.transfer-fire-actions', [
+                                                    'employee' => $row,
+                                                    'transferTargets' => $transferTargets ?? collect(),
+                                                    'returnTo' => request()->fullUrl(),
+                                                ])
+                                            </span>
                                             <form method="POST" action="{{ route('shakha-employees.destroy', $row) }}" class="ml-2 inline" onsubmit="return confirm('Remove this employee from the roster?')">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="text-[11px] font-semibold text-rose-600 hover:underline">Remove</button>
                                             </form>
                                         </td>
+                                    @else
+                                        <td class="px-3.5 py-2.5 text-right whitespace-nowrap">
+                                            @php $count = (int) (($reportCounts[$row->id] ?? 0)); @endphp
+                                            <a href="{{ route('shakha-employees.dossier', $row) }}" class="text-[11px] font-semibold text-rose-700 hover:underline">
+                                                রিপোর্ট{{ $count > 0 ? ' ('.$count.')' : '' }}
+                                            </a>
+                                        </td>
                                     @endif
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="{{ $canManage ? 7 : 6 }}" class="px-3.5 py-10 text-center text-[12px] text-slate-400">
+                                    <td colspan="7" class="px-3.5 py-10 text-center text-[12px] text-slate-400">
                                         No employees on this shakha yet.
                                     </td>
                                 </tr>
@@ -106,6 +126,7 @@
             </div>
 
             @if ($canManage)
+                <div class="space-y-4">
                 <div
                     class="rounded-xl border border-slate-100 bg-white shadow-card"
                     x-data="{
@@ -185,8 +206,10 @@
                             <div>
                                 <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Status</label>
                                 <select name="status" class="h-8 w-full rounded-lg border-slate-200 text-[12px]">
-                                    <option value="active" @selected(old('status', $formEmployee?->status ?? 'active') === 'active')>Active</option>
-                                    <option value="inactive" @selected(old('status', $formEmployee?->status ?? 'active') === 'inactive')>Inactive</option>
+                                    <option value="active" @selected(old('status', $formEmployee?->status ?? 'active') === 'active')>Active (কর্মরত)</option>
+                                    <option value="transferred" @selected(old('status', $formEmployee?->status ?? 'active') === 'transferred')>Transferred (স্থানান্তরিত)</option>
+                                    <option value="fired" @selected(old('status', $formEmployee?->status ?? 'active') === 'fired')>Fired (চাকরিচ্যুত)</option>
+                                    <option value="inactive" @selected(old('status', $formEmployee?->status ?? 'active') === 'inactive')>Inactive (নিষ্ক্রিয়)</option>
                                 </select>
                             </div>
                         </div>
@@ -222,6 +245,7 @@
                             @endif
                         </div>
                     </form>
+                </div>
                 </div>
             @else
                 <div class="rounded-xl border border-slate-100 bg-slate-50 px-3.5 py-4 text-[12px] text-slate-500">

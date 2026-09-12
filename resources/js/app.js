@@ -153,3 +153,58 @@ import './bootstrap';
         });
     });
 })();
+
+/** Auto-expand report textareas (observation / criteria / etc.) to fit full paragraph. */
+(() => {
+    const grow = (el) => {
+        if (!(el instanceof HTMLTextAreaElement) || !el.classList.contains('audit-autogrow')) {
+            return;
+        }
+        el.style.overflowY = 'hidden';
+        el.style.resize = 'none';
+        el.style.height = 'auto';
+        el.style.height = `${Math.max(el.scrollHeight, 48)}px`;
+    };
+
+    const growAll = (root = document) => {
+        root.querySelectorAll?.('textarea.audit-autogrow')?.forEach(grow);
+    };
+
+    document.addEventListener('input', (e) => {
+        const t = e.target;
+        if (t instanceof HTMLTextAreaElement && t.classList.contains('audit-autogrow')) {
+            grow(t);
+        }
+    }, true);
+
+    document.addEventListener('focusin', (e) => {
+        const t = e.target;
+        if (t instanceof HTMLTextAreaElement && t.classList.contains('audit-autogrow')) {
+            grow(t);
+        }
+    }, true);
+
+    const schedule = () => {
+        requestAnimationFrame(() => growAll());
+    };
+
+    document.addEventListener('DOMContentLoaded', schedule);
+    document.addEventListener('livewire:navigated', schedule);
+    document.addEventListener('livewire:init', () => {
+        schedule();
+        Livewire.hook('morph.updated', ({ el }) => {
+            if (el instanceof HTMLTextAreaElement) {
+                grow(el);
+            } else if (el?.querySelectorAll) {
+                growAll(el);
+            }
+        });
+        Livewire.hook('commit', ({ succeed }) => {
+            succeed(() => schedule());
+        });
+    });
+
+    // Catch late Livewire/Alpine paints after checklist insert.
+    setTimeout(schedule, 100);
+    setTimeout(schedule, 500);
+})();

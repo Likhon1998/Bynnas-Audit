@@ -4,9 +4,12 @@ namespace Tests\Feature;
 
 use App\Livewire\MakeAuditReport;
 use App\Models\Area;
+use App\Models\AuditChecklistFormat;
+use App\Models\AuditChecklistSubmission;
 use App\Models\AuditReport;
 use App\Models\Shakha;
 use App\Models\User;
+use App\Services\VisitAuditWorkService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -194,9 +197,14 @@ class MakeAuditReportStartTest extends TestCase
         $user = $this->makeAuditUser();
         $shakha = $this->makeShakha();
 
-        Livewire::actingAs($user)
+        $component = Livewire::actingAs($user)
             ->test(MakeAuditReport::class)
-            ->call('startReport', $shakha->id)
+            ->call('startReport', $shakha->id);
+
+        $this->markChecklistEvidenceComplete((int) $component->get('reportId'), $user->id);
+
+        $component
+            ->call('resumeReport', (int) $component->get('reportId'))
             ->call('completeReport')
             ->assertSet('step', 'select');
 
@@ -213,9 +221,14 @@ class MakeAuditReportStartTest extends TestCase
         $user = $this->makeAuditUser();
         $shakha = $this->makeShakha();
 
-        Livewire::actingAs($user)
+        $component = Livewire::actingAs($user)
             ->test(MakeAuditReport::class)
-            ->call('startReport', $shakha->id)
+            ->call('startReport', $shakha->id);
+
+        $this->markChecklistEvidenceComplete((int) $component->get('reportId'), $user->id);
+
+        $component
+            ->call('resumeReport', (int) $component->get('reportId'))
             ->set('activeTab', 'page4')
             ->call('saveCurrentTab')
             ->assertHasNoErrors()
@@ -308,5 +321,98 @@ class MakeAuditReportStartTest extends TestCase
 
         $component->call('refreshUndoWindow');
         $this->assertSame([], $component->get('undoStack'));
+    }
+
+    private function markChecklistEvidenceComplete(int $reportId, int $userId): void
+    {
+        $visitWork = app(VisitAuditWorkService::class);
+        $visitWork->ensureFormatsExist();
+
+        $report = AuditReport::query()->findOrFail($reportId);
+        // Pick a subset (3 formats) — auditors choose which apply to the visit.
+        $formats = AuditChecklistFormat::query()
+            ->whereIn('code', ['format-1', 'format-2', 'format-3'])
+            ->orderBy('format_number')
+            ->get();
+
+        $report->checklistFormats()->sync($formats->pluck('id')->all());
+
+        foreach ($formats as $format) {
+            AuditChecklistSubmission::query()->updateOrCreate(
+                [
+                    'audit_report_id' => $reportId,
+                    'audit_checklist_format_id' => $format->id,
+                ],
+                [
+                    'user_id' => $userId,
+                    'heading' => $format->heading,
+                    'payload' => ['rows' => []],
+                    'status' => 'evidence',
+                    'saved_at' => now(),
+                ]
+            );
+        }
+    }
+
+    public function test_start_reopens_existing_changes_requested_instead_of_new_draft(): void
+    {
+        $user = $this->makeAuditUser();
+        $shakha = $this->makeShakha('DSK Hospital', 'DSK-H');
+
+        $existing = AuditReport::query()->create([
+            'user_id' => $user->id,
+            'shakha_id' => $shakha->id,
+            'report_month' => 9,
+            'report_year' => 2026,
+            'status' => AuditReport::STATUS_CHANGES_REQUESTED,
+            'current_tab' => 'cover',
+            'progress_pct' => 40,
+            'last_saved_at' => now(),
+            'shakha_display_name' => 'DSK Hospital',
+            'pages_data' => ['meta' => ['active_tab' => 'cover'], 'cover' => []],
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(MakeAuditReport::class)
+            ->set('report_month', 9)
+            ->set('report_year', 2026)
+            ->call('startReport', $shakha->id)
+            ->assertHasNoErrors()
+            ->assertSet('step', 'wizard')
+            ->assertSet('reportId', $existing->id)
+            ->assertSet('reviewNeedsFix', true);
+
+        $this->assertSame(1, AuditReport::query()->where('shakha_id', $shakha->id)->count());
+        $this->assertSame(0, AuditReport::query()->where('shakha_id', $shakha->id)->drafts()->count());
+    }
+
+    public function test_start_reopens_existing_in_review_instead_of_new_draft(): void
+    {
+        $user = $this->makeAuditUser();
+        $shakha = $this->makeShakha('Locked Branch', 'LCK-1');
+
+        $existing = AuditReport::query()->create([
+            'user_id' => $user->id,
+            'shakha_id' => $shakha->id,
+            'report_month' => 9,
+            'report_year' => 2026,
+            'status' => AuditReport::STATUS_IN_REVIEW,
+            'current_tab' => 'cover',
+            'progress_pct' => 100,
+            'last_saved_at' => now(),
+            'shakha_display_name' => 'Locked Branch',
+            'pages_data' => ['meta' => ['active_tab' => 'cover'], 'cover' => []],
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(MakeAuditReport::class)
+            ->set('report_month', 9)
+            ->set('report_year', 2026)
+            ->call('startReport', $shakha->id)
+            ->assertHasNoErrors()
+            ->assertSet('reportId', $existing->id)
+            ->assertSet('reviewReadOnly', true);
+
+        $this->assertSame(1, AuditReport::query()->where('shakha_id', $shakha->id)->count());
     }
 }

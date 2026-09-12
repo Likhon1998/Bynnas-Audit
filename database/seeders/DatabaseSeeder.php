@@ -41,6 +41,8 @@ class DatabaseSeeder extends Seeder
         // Heavy sample reports — local/demo/production only (not PHPUnit).
         if (! app()->environment('testing')) {
             $this->call(SeptemberFullReportsSeeder::class);
+            // 10 কর্মী per shakha (idempotent) — also safe: php artisan db:seed --class=ShakhaEmployeeRosterSeeder
+            $this->call(ShakhaEmployeeRosterSeeder::class);
         }
     }
 }

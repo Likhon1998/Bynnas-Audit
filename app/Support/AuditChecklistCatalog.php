@@ -319,7 +319,15 @@ class AuditChecklistCatalog
             $sections[$key] = $rows;
         }
 
-        return ['sections' => $sections];
+        $sectionSummaries = [];
+        foreach (array_keys($definition['sections'] ?? []) as $key) {
+            $sectionSummaries[$key] = '';
+        }
+
+        return [
+            'sections' => $sections,
+            'section_summaries' => $sectionSummaries,
+        ];
     }
 
     /**

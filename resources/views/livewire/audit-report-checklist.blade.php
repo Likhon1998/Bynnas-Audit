@@ -21,6 +21,11 @@
                 </p>
             </div>
 
+            <div class="flex shrink-0 flex-wrap items-center gap-1.5">
+                <a
+                    href="{{ route('audits.index', ['report' => $report->id]) }}"
+                    class="inline-flex h-8 items-center rounded-md border border-[#2b579a]/25 bg-white px-3 text-[12px] font-semibold text-[#2b579a] hover:bg-sky-50"
+                >Open report</a>
             @if ($files->isEmpty())
                 <label
                     class="inline-flex h-8 cursor-pointer items-center rounded-md bg-[#2b579a] px-3 text-[12px] font-semibold text-white hover:bg-[#204072]"
@@ -56,6 +61,7 @@
                     </div>
                 </div>
             @endif
+            </div>
         </div>
 
         @error('upload')
@@ -64,6 +70,9 @@
 
         @if (session('status'))
             <div class="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-800">{{ session('status') }}</div>
+        @endif
+        @if (session('error'))
+            <div class="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] text-rose-800">{{ session('error') }}</div>
         @endif
 
         {{-- Choose headings --}}
@@ -94,7 +103,7 @@
                         <button type="button" wire:click="saveHeadingSelection" class="inline-flex h-8 items-center rounded-md bg-emerald-600 px-3 text-[12px] font-semibold text-white hover:bg-emerald-700">Save selection</button>
                         <button type="button" wire:click="closeHeadingPicker" class="inline-flex h-8 items-center rounded-md border border-slate-200 bg-white px-3 text-[12px] font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
                     </div>
-                    <p class="mt-1.5 text-[10px] text-slate-500">Tick the headings you work on for this shakha report</p>
+                    <p class="mt-1.5 text-[10px] text-slate-500">Tick only the checklists you need for this shakha (e.g. 3 of 5). Report unlocks when those are saved as evidence.</p>
                 </div>
                 <div class="max-h-72 divide-y divide-slate-100 overflow-y-auto">
                     @forelse ($pickerFormats as $format)
@@ -177,16 +186,38 @@
             </div>
             <button type="button" wire:click="saveDraft" class="inline-flex h-8 items-center rounded-md border border-slate-200 bg-white px-3 text-[12px] font-semibold text-slate-700 hover:bg-slate-50">Save draft</button>
             <button type="button" wire:click="saveEvidence" class="inline-flex h-8 items-center rounded-md bg-emerald-600 px-3 text-[12px] font-semibold text-white hover:bg-emerald-700">Save as evidence</button>
+            <a
+                href="{{ route('audits.index', ['report' => $report->id]) }}"
+                class="inline-flex h-8 items-center rounded-md border border-[#2b579a]/20 bg-[#2b579a] px-3 text-[12px] font-semibold text-white hover:bg-[#204072]"
+            >Open report</a>
         </div>
 
         @if (session('status'))
             <div class="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-800">{{ session('status') }}</div>
+        @endif
+        @if (session('error'))
+            <div class="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] text-rose-800">{{ session('error') }}</div>
         @endif
 
         @include('livewire.partials.audit-checklist-format-editor', [
             'formatModel' => $formatModel,
             'definition' => $definition,
             'payload' => $payload,
+            'aiSummaryReady' => $aiSummaryReady ?? false,
+            'addedSummaryKeys' => $addedSummaryKeys ?? [],
         ])
     @endif
 </div>
+
+<style>
+    .checklist-mark-select {
+        -webkit-appearance: none !important;
+        -moz-appearance: none !important;
+        appearance: none !important;
+        background-image: none !important;
+        text-align-last: center;
+    }
+    .checklist-mark-select::-ms-expand {
+        display: none;
+    }
+</style>

@@ -49,7 +49,8 @@ Route::middleware('auth')->group(function () {
     Route::post('confirm-password', [ConfirmablePasswordController::class, 'store']);
 
     Route::put('password', [PasswordController::class, 'update'])->name('password.update');
-
-    Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
-        ->name('logout');
 });
+
+// Logout stays outside auth middleware so an expired session can still clear cleanly.
+Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
+    ->name('logout');

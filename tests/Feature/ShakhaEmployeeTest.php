@@ -131,13 +131,20 @@ class ShakhaEmployeeTest extends TestCase
         ]);
     }
 
-    public function test_employee_code_must_be_unique_within_shakha(): void
+    public function test_employee_code_must_be_unique_globally(): void
     {
         $admin = User::query()->where('email', 'admin@bynnasaudit.com')->firstOrFail();
         [, $shakha] = $this->makeBranch();
+        $otherArea = Area::query()->create(['name' => 'Other Area', 'division' => 'Dhaka', 'status' => 'active']);
+        $other = Shakha::query()->create([
+            'area_id' => $otherArea->id,
+            'name' => 'Other Shakha',
+            'code' => 'OTH-1',
+            'status' => 'active',
+        ]);
 
         ShakhaEmployee::query()->create([
-            'shakha_id' => $shakha->id,
+            'shakha_id' => $other->id,
             'employee_code' => 'DUP-1',
             'name' => 'First',
             'designation' => 'Officer',
@@ -250,6 +257,86 @@ class ShakhaEmployeeTest extends TestCase
             ->get(route('shakha-employees.manage', $shakha))
             ->assertOk()
             ->assertSee('Photo Person');
+    }
+
+    public function test_manager_can_transfer_employee_to_another_shakha(): void
+    {
+        $admin = User::query()->where('email', 'admin@bynnasaudit.com')->firstOrFail();
+        [, $from] = $this->makeBranch();
+        $toArea = Area::query()->create(['name' => 'South Area', 'division' => 'Dhaka', 'status' => 'active']);
+        $to = Shakha::query()->create([
+            'area_id' => $toArea->id,
+            'name' => 'Dhanmondi Shakha',
+            'code' => 'DHN-1',
+            'status' => 'active',
+        ]);
+
+        $employee = ShakhaEmployee::query()->create([
+            'shakha_id' => $from->id,
+            'employee_code' => 'TR-01',
+            'name' => 'Transfer Person',
+            'designation' => 'FO',
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('shakha-employees.transfer', $employee), [
+                'target_shakha_id' => $to->id,
+                'joined_shakha_at' => '2026-09-12',
+                'note' => 'HQ order 12',
+            ])
+            ->assertRedirect(route('shakha-employees.manage', $to));
+
+        $employee->refresh();
+        $this->assertSame($to->id, (int) $employee->shakha_id);
+        $this->assertSame('TR-01', $employee->employee_code);
+        $this->assertSame('active', $employee->status);
+        $this->assertStringContainsString('Transferred from', (string) $employee->notes);
+        $this->assertStringContainsString('HQ order 12', (string) $employee->notes);
+        $this->assertDatabaseHas('shakha_employee_transfers', [
+            'shakha_employee_id' => $employee->id,
+            'from_shakha_id' => $from->id,
+            'to_shakha_id' => $to->id,
+            'note' => 'HQ order 12',
+        ]);
+    }
+
+    public function test_manager_can_fire_employee(): void
+    {
+        $admin = User::query()->where('email', 'admin@bynnasaudit.com')->firstOrFail();
+        [, $shakha] = $this->makeBranch();
+
+        $employee = ShakhaEmployee::query()->create([
+            'shakha_id' => $shakha->id,
+            'employee_code' => 'FR-01',
+            'name' => 'Fired Person',
+            'designation' => 'Clerk',
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('shakha-employees.fire', $employee), [
+                'note' => 'Policy breach',
+            ])
+            ->assertRedirect(route('shakha-employees.manage', $shakha));
+
+        $employee->refresh();
+        $this->assertSame('fired', $employee->status);
+        $this->assertStringContainsString('Fired', (string) $employee->notes);
+        $this->assertStringContainsString('Policy breach', (string) $employee->notes);
+    }
+
+    public function test_roster_seeder_adds_ten_employees_per_shakha(): void
+    {
+        [, $shakha] = $this->makeBranch();
+        $this->seed(\Database\Seeders\ShakhaEmployeeRosterSeeder::class);
+
+        $this->assertSame(10, ShakhaEmployee::query()->where('shakha_id', $shakha->id)->count());
+        $this->assertDatabaseHas('shakha_employees', [
+            'shakha_id' => $shakha->id,
+            'employee_code' => 'KRM-'.str_pad((string) $shakha->id, 4, '0', STR_PAD_LEFT).'-01',
+            'status' => 'active',
+        ]);
     }
 
     /**

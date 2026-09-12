@@ -14,6 +14,21 @@ class AuditReport extends Model
 
     public const STATUS_COMPLETED = 'completed';
 
+    public const STATUS_IN_REVIEW = 'in_review';
+
+    public const STATUS_CHANGES_REQUESTED = 'changes_requested';
+
+    public const STATUS_REVIEWED = 'reviewed';
+
+    /** @var list<string> */
+    public const STATUSES = [
+        self::STATUS_DRAFT,
+        self::STATUS_COMPLETED,
+        self::STATUS_IN_REVIEW,
+        self::STATUS_CHANGES_REQUESTED,
+        self::STATUS_REVIEWED,
+    ];
+
     /** Max concurrent drafts a user may keep open at once. */
     public const MAX_CONCURRENT_DRAFTS = 3;
 
@@ -30,8 +45,14 @@ class AuditReport extends Model
             'pages_data' => 'array',
             'working_days' => 'integer',
             'progress_pct' => 'integer',
+            'review_round' => 'integer',
+            'review_cc_superadmin' => 'boolean',
             'last_saved_at' => 'datetime',
             'completed_at' => 'datetime',
+            'submitted_for_review_at' => 'datetime',
+            'reviewed_at' => 'datetime',
+            'review_ready_at' => 'datetime',
+            'review_sent_to_maker_at' => 'datetime',
         ];
     }
 
@@ -40,9 +61,63 @@ class AuditReport extends Model
         return $this->belongsTo(Shakha::class);
     }
 
+    public function projectLocation(): BelongsTo
+    {
+        return $this->belongsTo(ProjectLocation::class);
+    }
+
+    public function isShakhaReport(): bool
+    {
+        return (int) ($this->shakha_id ?? 0) > 0;
+    }
+
+    public function isProjectLocationReport(): bool
+    {
+        return (int) ($this->project_location_id ?? 0) > 0;
+    }
+
+    public function entityDisplayName(): string
+    {
+        $stored = trim((string) ($this->shakha_display_name ?? ''));
+        if ($stored !== '') {
+            return $stored;
+        }
+
+        if ($this->isShakhaReport()) {
+            return (string) ($this->shakha?->name ?? 'Branch');
+        }
+
+        if ($this->isProjectLocationReport()) {
+            $this->loadMissing('projectLocation.project');
+            $project = trim((string) ($this->projectLocation?->project?->name ?? ''));
+            $place = trim((string) ($this->projectLocation?->name ?? ''));
+
+            return trim($project.($project !== '' && $place !== '' ? ' — ' : '').$place) ?: 'Project';
+        }
+
+        return 'Audit entity';
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewer_user_id');
+    }
+
+    public function reviewEvents(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(AuditReportReviewEvent::class, 'audit_report_id')
+            ->orderByDesc('id');
+    }
+
+    public function reviewAnnotations(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(AuditReportReviewAnnotation::class, 'audit_report_id')
+            ->orderBy('id');
     }
 
     public function collaborators(): BelongsToMany
@@ -63,6 +138,29 @@ class AuditReport extends Model
         return $this->hasMany(AuditChecklistSubmission::class, 'audit_report_id')
             ->orderByDesc('saved_at')
             ->orderByDesc('id');
+    }
+
+    public function monthlyAssignment(): BelongsTo
+    {
+        return $this->belongsTo(MonthlyAssignment::class);
+    }
+
+    /**
+     * True when selected visit checklists are all saved as evidence.
+     */
+    public function checklistReady(): bool
+    {
+        return app(\App\Services\VisitAuditWorkService::class)
+            ->checklistProgress($this)['ready'];
+    }
+
+    /**
+     * @return array{ready:bool,required:int,done:int,missing:list<string>,done_codes:list<string>,needs_selection?:bool}
+     */
+    public function checklistProgress(): array
+    {
+        return app(\App\Services\VisitAuditWorkService::class)
+            ->checklistProgress($this);
     }
 
     public function checklistFormats(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
@@ -160,6 +258,60 @@ class AuditReport extends Model
     public function isCompleted(): bool
     {
         return $this->status === self::STATUS_COMPLETED;
+    }
+
+    public function isInReview(): bool
+    {
+        return $this->status === self::STATUS_IN_REVIEW;
+    }
+
+    public function isChangesRequested(): bool
+    {
+        return $this->status === self::STATUS_CHANGES_REQUESTED;
+    }
+
+    public function isReviewed(): bool
+    {
+        return $this->status === self::STATUS_REVIEWED;
+    }
+
+    public function isReviewReady(): bool
+    {
+        return $this->review_ready_at !== null;
+    }
+
+    public function isReviewSentToMaker(): bool
+    {
+        return $this->review_sent_to_maker_at !== null;
+    }
+
+    /** Done enough for email / non-draft dashboard treatment. */
+    public function isFinishedLike(): bool
+    {
+        return in_array($this->status, [
+            self::STATUS_COMPLETED,
+            self::STATUS_IN_REVIEW,
+            self::STATUS_CHANGES_REQUESTED,
+            self::STATUS_REVIEWED,
+        ], true);
+    }
+
+    public function statusLabel(): string
+    {
+        if ($this->status === self::STATUS_IN_REVIEW && $this->isReviewReady() && ! $this->isReviewSentToMaker()) {
+            return 'Review ready';
+        }
+
+        return match ($this->status) {
+            self::STATUS_DRAFT => 'Draft',
+            self::STATUS_COMPLETED => 'Completed',
+            self::STATUS_IN_REVIEW => 'In review',
+            self::STATUS_CHANGES_REQUESTED => $this->review_sent_to_maker_at
+                ? 'Fix & resubmit'
+                : 'Changes requested',
+            self::STATUS_REVIEWED => 'Confirmed',
+            default => (string) $this->status,
+        };
     }
 
     public function periodLabel(): string

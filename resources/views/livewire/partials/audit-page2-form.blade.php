@@ -7,7 +7,7 @@
 
 <div class="border-b border-slate-200 bg-slate-100 px-3 py-5 lg:px-6">
     <div class="mb-2 flex items-center justify-between gap-2">
-        <p class="text-[12px] font-semibold text-slate-800">২. এক নজরে শাখার তথ্য</p>
+        <p class="text-[12px] font-semibold text-slate-800">২. এক নজরে + সূচিপত্র</p>
         <span class="text-[11px] text-slate-500">Row/Column যোগ-বাদ করতে পারবেন · Preview এও দেখাবে</span>
     </div>
 
@@ -26,34 +26,62 @@
             <span>ইং</span>
         </p>
 
-        <div class="mb-2 flex items-center justify-between">
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Glance table</p>
+        <div class="mb-2 flex flex-wrap items-center gap-2">
+            @php
+                $glancePairCount = 1;
+                foreach (($glanceRows ?? []) as $gRow) {
+                    if (! is_array($gRow)) {
+                        continue;
+                    }
+                    if (isset($gRow['pairs']) && is_array($gRow['pairs']) && $gRow['pairs'] !== []) {
+                        $glancePairCount = max($glancePairCount, count($gRow['pairs']));
+                    } else {
+                        $glancePairCount = max($glancePairCount, 2);
+                    }
+                }
+                $glancePairCount = max(1, min(4, $glancePairCount));
+            @endphp
+            <p class="mr-auto text-[11px] font-semibold uppercase tracking-wide text-slate-500">Glance table</p>
             <button type="button" wire:click="addGlanceRow" class="h-7 rounded border border-slate-300 px-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50">+ Row</button>
+            <button type="button" wire:click="addGlanceColumn" class="h-7 rounded border border-slate-300 px-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50" @disabled($glancePairCount >= 4)>+ Column</button>
+            <button
+                type="button"
+                wire:click="removeGlanceColumn"
+                class="h-7 rounded border border-slate-300 px-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                @disabled($glancePairCount <= 1)
+            >− Column</button>
         </div>
 
-        <table class="mb-3 w-full border-collapse text-[12px]">
-            <tbody>
-                @foreach ($glanceRows as $idx => $row)
-                    <tr>
-                        <td class="w-[24%] border border-slate-800 px-1 py-1">
-                            <input type="text" wire:model.live="glanceRows.{{ $idx }}.left_label" class="h-7 w-full border-0 bg-sky-50 px-1 text-[12px] focus:ring-1 focus:ring-sky-400" placeholder="Label">
-                        </td>
-                        <td class="w-[20%] border border-slate-800 px-1 py-1">
-                            <input type="text" wire:model.live="glanceRows.{{ $idx }}.left_value" class="h-7 w-full border-0 bg-sky-50 px-1 text-[12px] focus:ring-1 focus:ring-sky-400" placeholder="Value">
-                        </td>
-                        <td class="w-[24%] border border-slate-800 px-1 py-1">
-                            <input type="text" wire:model.live="glanceRows.{{ $idx }}.right_label" class="h-7 w-full border-0 bg-sky-50 px-1 text-[12px] focus:ring-1 focus:ring-sky-400" placeholder="Label">
-                        </td>
-                        <td class="w-[20%] border border-slate-800 px-1 py-1">
-                            <input type="text" wire:model.live="glanceRows.{{ $idx }}.right_value" class="h-7 w-full border-0 bg-sky-50 px-1 text-[12px] focus:ring-1 focus:ring-sky-400" placeholder="Value">
-                        </td>
-                        <td class="w-[12%] border border-slate-800 px-1 py-1 text-center">
-                            <button type="button" wire:click="removeGlanceRow({{ $idx }})" class="text-[11px] text-rose-600 hover:underline" @disabled(count($glanceRows) <= 1)>Remove</button>
-                        </td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
+        <div class="mb-3 overflow-x-auto">
+            <table class="w-full min-w-[640px] border-collapse text-[12px]">
+                <tbody>
+                    @foreach ($glanceRows as $idx => $row)
+                        @php
+                            $pairs = array_values((array) ($row['pairs'] ?? []));
+                            if ($pairs === []) {
+                                $pairs = [
+                                    ['label' => $row['left_label'] ?? '', 'value' => $row['left_value'] ?? ''],
+                                    ['label' => $row['right_label'] ?? '', 'value' => $row['right_value'] ?? ''],
+                                ];
+                            }
+                        @endphp
+                        <tr>
+                            @foreach ($pairs as $pIdx => $pair)
+                                <td class="border border-slate-800 px-1 py-1" style="min-width:7rem;">
+                                    <input type="text" wire:model.live="glanceRows.{{ $idx }}.pairs.{{ $pIdx }}.label" class="h-7 w-full border-0 bg-sky-50 px-1 text-[12px] focus:ring-1 focus:ring-sky-400" placeholder="Label">
+                                </td>
+                                <td class="border border-slate-800 px-1 py-1" style="min-width:5.5rem;">
+                                    <input type="text" wire:model.live="glanceRows.{{ $idx }}.pairs.{{ $pIdx }}.value" class="h-7 w-full border-0 bg-sky-50 px-1 text-[12px] focus:ring-1 focus:ring-sky-400" placeholder="Value">
+                                </td>
+                            @endforeach
+                            <td class="w-[12%] border border-slate-800 px-1 py-1 text-center">
+                                <button type="button" wire:click="removeGlanceRow({{ $idx }})" class="text-[11px] text-rose-600 hover:underline" @disabled(count($glanceRows) <= 1)>Remove</button>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
 
         <p class="mb-2 flex flex-wrap items-center gap-2 text-[13px]">
             <span class="font-semibold">শাখার কর্মীর তথ্য :</span>

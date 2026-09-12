@@ -17,7 +17,24 @@ class AuditFinding extends Model
             'amount' => 'decimal:2',
             'sample_size_checked' => 'integer',
             'irregularity_count' => 'integer',
+            'responsible_staff_ids' => 'array',
         ];
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function responsibleStaffIds(): array
+    {
+        $raw = $this->responsible_staff_ids;
+        if (! is_array($raw)) {
+            return [];
+        }
+
+        return array_values(array_unique(array_filter(
+            array_map('intval', $raw),
+            fn (int $id) => $id > 0
+        )));
     }
 
     public function shakha(): BelongsTo

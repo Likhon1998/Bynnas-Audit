@@ -9,6 +9,10 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
+/**
+ * Production chatbot (super-admin) — Gemini only.
+ * Do not use OpenAI here; checklist / report helpers use OpenAiTextService separately.
+ */
 class GeminiChatService
 {
     public function __construct(private readonly SuperAdminChatContextService $contexts) {}
@@ -165,6 +169,36 @@ PROMPT;
         }
 
         return $answer;
+    }
+
+    /**
+     * Plain text completion for non-chat features (e.g. checklist summaries).
+     *
+     * @param  array{temperature?:float,maxOutputTokens?:int}  $config
+     */
+    public function complete(string $systemInstruction, string $userPrompt, array $config = []): string
+    {
+        $this->ensureConfigured();
+
+        $answer = trim($this->generate([
+            'systemInstruction' => ['parts' => [['text' => $systemInstruction]]],
+            'contents' => [['role' => 'user', 'parts' => [['text' => $userPrompt]]]],
+            'generationConfig' => [
+                'temperature' => (float) ($config['temperature'] ?? 0.2),
+                'maxOutputTokens' => (int) ($config['maxOutputTokens'] ?? 900),
+            ],
+        ]));
+
+        if ($answer === '') {
+            throw new RuntimeException('Gemini returned an empty response.');
+        }
+
+        return $answer;
+    }
+
+    public function isConfigured(): bool
+    {
+        return trim((string) config('services.gemini.key')) !== '';
     }
 
     /** @param array<string,mixed> $payload */

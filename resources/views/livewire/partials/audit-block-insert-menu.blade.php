@@ -75,6 +75,13 @@
                 <span class="mt-0.5 block text-[9px] font-medium opacity-80">বিভাগ → শিরোনাম → নিয়ম → পর্যবেক্ষণ → Rating + Risk</span>
             </span>
         </button>
+        <button type="button" @click="pick('finding_item_pack')" class="mx-1 mb-px flex w-[calc(100%-0.5rem)] items-center gap-1.5 rounded px-2 py-1.5 text-left text-[11px] font-semibold" style="background:#f0fdf4;color:#166534;">
+            <span class="flex h-4 w-4 shrink-0 items-center justify-center rounded text-[9px] font-bold text-white" style="background:#16a34a;">◆</span>
+            <span class="min-w-0 leading-tight">
+                Finding item pack
+                <span class="mt-0.5 block text-[9px] font-medium opacity-80">শিরোনাম → নিয়ম → পর্যবেক্ষণ → Rating + Risk</span>
+            </span>
+        </button>
 
         <div class="mx-2 my-0.5 border-t border-slate-100"></div>
 

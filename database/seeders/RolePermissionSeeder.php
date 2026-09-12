@@ -31,11 +31,14 @@ class RolePermissionSeeder extends Seeder
             'areas.manage',
             'audits.manage',
             'audits.create',
+            'audits.review',
+            'audits.review_assign',
             'findings.view_all',
             'findings.enter',
             'dashboard.ops',
             'dashboard.officer',
             'map.view',
+            'calendar.manage',
         ];
 
         foreach ($permissions as $permission) {
@@ -64,10 +67,13 @@ class RolePermissionSeeder extends Seeder
             'areas.manage',
             'audits.manage',
             'audits.create',
+            'audits.review',
+            'audits.review_assign',
             'findings.view_all',
             'findings.enter',
             'dashboard.ops',
             'map.view',
+            'calendar.manage',
         ];
 
         $director->syncPermissions($leadership);
@@ -80,6 +86,7 @@ class RolePermissionSeeder extends Seeder
             'risk.manage',
             'shakhas.view_all',
             'audits.create',
+            'audits.review',
             'findings.view_all',
             'findings.enter',
             'dashboard.officer',

@@ -46,8 +46,9 @@
         <div class="sidebar-section-rule mb-1.5 hidden h-px bg-white/10 lg:mx-1" :class="sidebarCollapsed ? 'lg:block' : 'lg:hidden'"></div>
         <nav class="space-y-0.5">
             <x-sidebar-link :href="route('dashboard')" :active="request()->routeIs('dashboard')" title="Dashboard">
-                <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('dashboard') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 5a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm8 1a1 1 0 011-1h6a1 1 0 011 1v3a1 1 0 01-1 1h-6a1 1 0 01-1-1v-3z" />
+                <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('dashboard') ? 'text-sky-100' : 'text-sky-400' }}" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M4 4.75A.75.75 0 014.75 4h6.5a.75.75 0 01.75.75v6.5a.75.75 0 01-.75.75h-6.5A.75.75 0 014 11.25v-6.5zM14 4.75a.75.75 0 01.75-.75h4.5a.75.75 0 01.75.75v3.5a.75.75 0 01-.75.75h-4.5a.75.75 0 01-.75-.75v-3.5zM4 14.75A.75.75 0 014.75 14h4.5a.75.75 0 01.75.75v4.5a.75.75 0 01-.75.75h-4.5a.75.75 0 01-.75-.75v-4.5z"/>
+                    <path class="{{ request()->routeIs('dashboard') ? 'text-amber-300' : 'text-amber-400' }}" fill="currentColor" d="M12 13.75a.75.75 0 01.75-.75h6.5a.75.75 0 01.75.75v5.5a.75.75 0 01-.75.75h-6.5a.75.75 0 01-.75-.75v-5.5z"/>
                 </svg>
                 <span class="sidebar-link-label truncate">Dashboard</span>
             </x-sidebar-link>
@@ -55,8 +56,9 @@
             @if (config('features.map'))
                 @can('map.view')
                     <x-sidebar-link :href="route('map.index')" :active="request()->routeIs('map.*')" title="Map">
-                        <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('map.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                        <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('map.*') ? 'text-emerald-100' : 'text-emerald-400' }}" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9.4 4.2l5.2-1.73a1 1 0 01.9.12l4.9 3.43a1 1 0 01.4.8v11.3a1 1 0 01-1.3.95l-4.9-1.63a1 1 0 00-.62 0l-5.2 1.73a1 1 0 01-.9-.12L3.98 15.6a1 1 0 01-.4-.8V3.5a1 1 0 011.3-.95l4.52 1.5a1 1 0 00.6.15z"/>
+                            <path class="{{ request()->routeIs('map.*') ? 'text-amber-300' : 'text-amber-400' }}" fill="currentColor" d="M10 7.5v11l4-1.3V6.2l-4 1.3z"/>
                         </svg>
                         <span class="sidebar-link-label truncate">Map</span>
                     </x-sidebar-link>
@@ -65,8 +67,9 @@
 
             @canany(['organogram.view', 'organogram.manage'])
                 <x-sidebar-link :href="route('organogram')" :active="request()->routeIs('organogram')" title="Organogram">
-                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('organogram') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 20v-2a3 3 0 00-3-3H7a3 3 0 00-3 3v2m16-11a3 3 0 11-6 0 3 3 0 016 0zM9 9a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('organogram') ? 'text-violet-100' : 'text-violet-400' }}" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 3.5a3 3 0 110 6 3 3 0 010-6zM5.5 14a2.5 2.5 0 115 0 2.5 2.5 0 01-5 0zM13.5 14a2.5 2.5 0 115 0 2.5 2.5 0 01-5 0z"/>
+                        <path class="{{ request()->routeIs('organogram') ? 'text-amber-300' : 'text-amber-400' }}" fill="currentColor" d="M8.2 19.5c.4-1.7 1.8-3 3.8-3s3.4 1.3 3.8 3H8.2zM3.8 20.2c.3-1.3 1.3-2.3 2.7-2.6-.2.5-.3 1-.3 1.6v1H3.8zM17.5 17.6c1.4.3 2.4 1.3 2.7 2.6H17.8c0-.6-.1-1.1-.3-1.6z"/>
                     </svg>
                     <span class="sidebar-link-label truncate">Organogram</span>
                 </x-sidebar-link>
@@ -74,8 +77,9 @@
 
             @can('annual_audit.manage')
                 <x-sidebar-link :href="route('annual-audit.index')" :active="request()->routeIs('annual-audit.*')" title="Annual Audit Plan">
-                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('annual-audit.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M4 11h16M5 5h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z" />
+                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('annual-audit.*') ? 'text-indigo-100' : 'text-indigo-400' }}" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M7 3a1 1 0 011 1v1h8V4a1 1 0 112 0v1h1.5A2.5 2.5 0 0122 7.5v11A2.5 2.5 0 0119.5 21h-15A2.5 2.5 0 012 18.5v-11A2.5 2.5 0 014.5 5H6V4a1 1 0 011-1zm12.5 6h-15v9.5a.5.5 0 00.5.5h14a.5.5 0 00.5-.5V9z"/>
+                        <path class="{{ request()->routeIs('annual-audit.*') ? 'text-amber-300' : 'text-amber-400' }}" fill="currentColor" d="M7 12h10v1.5H7V12zm0 3.5h6V17H7v-1.5z"/>
                     </svg>
                     <span class="sidebar-link-label truncate">Annual Audit Plan</span>
                 </x-sidebar-link>
@@ -83,17 +87,29 @@
 
             @canany(['monthly_visits.manage', 'monthly_visits.execute'])
                 <x-sidebar-link :href="route('monthly-visits.index')" :active="request()->routeIs('monthly-visits.*')" title="Monthly Visits">
-                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('monthly-visits.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M5 11h14M5 15h8M5 5h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z" />
+                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('monthly-visits.*') ? 'text-cyan-100' : 'text-cyan-400' }}" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M7 3a1 1 0 011 1v1h8V4a1 1 0 112 0v1h1.5A2.5 2.5 0 0122 7.5v11A2.5 2.5 0 0119.5 21h-15A2.5 2.5 0 012 18.5v-11A2.5 2.5 0 014.5 5H6V4a1 1 0 011-1zm12.5 6h-15v9.5a.5.5 0 00.5.5h14a.5.5 0 00.5-.5V9z"/>
+                        <path class="{{ request()->routeIs('monthly-visits.*') ? 'text-rose-200' : 'text-rose-400' }}" fill="currentColor" d="M7 12.5h2.5v2.5H7v-2.5zm4 0h2.5v2.5H11v-2.5zm4 0H17.5v2.5H15v-2.5z"/>
                     </svg>
                     <span class="sidebar-link-label truncate">Monthly Visits</span>
                 </x-sidebar-link>
             @endcanany
 
+            @canany(['calendar.manage', 'monthly_visits.manage', 'monthly_visits.execute'])
+                <x-sidebar-link :href="route('calendar.index')" :active="request()->routeIs('calendar.*')" title="Working Calendar">
+                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('calendar.*') ? 'text-amber-200' : 'text-teal-500' }}" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M7 3a1 1 0 011 1v1h8V4a1 1 0 112 0v1h1.5A2.5 2.5 0 0122 7.5v11A2.5 2.5 0 0119.5 21h-15A2.5 2.5 0 012 18.5v-11A2.5 2.5 0 014.5 5H6V4a1 1 0 011-1zm12.5 6h-15v9.5a.5.5 0 00.5.5h14a.5.5 0 00.5-.5V9z"/>
+                        <path class="{{ request()->routeIs('calendar.*') ? 'text-white' : 'text-amber-500' }}" fill="currentColor" d="M7 12.5h3v3H7v-3zm5.5 0h3v3h-3v-3z"/>
+                    </svg>
+                    <span class="sidebar-link-label truncate">Working Calendar</span>
+                </x-sidebar-link>
+            @endcanany
+
             @can('projects.manage')
                 <x-sidebar-link :href="route('projects.index')" :active="request()->routeIs('projects.*')" title="Projects">
-                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('projects.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('projects.*') ? 'text-amber-100' : 'text-amber-400' }}" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3.75 7A1.75 1.75 0 015.5 5.25h4.1l1.4 1.5h7.5A1.75 1.75 0 0120.25 8.5v9.75A1.75 1.75 0 0118.5 20H5.5A1.75 1.75 0 013.75 18.25V7z"/>
+                        <path class="{{ request()->routeIs('projects.*') ? 'text-teal-200' : 'text-teal-400' }}" fill="currentColor" d="M4.5 10.5h15V18a.75.75 0 01-.75.75H5.25A.75.75 0 014.5 18v-7.5z"/>
                     </svg>
                     <span class="sidebar-link-label truncate">Projects</span>
                 </x-sidebar-link>
@@ -101,8 +117,9 @@
 
             @can('kpis.manage')
                 <x-sidebar-link :href="route('kpis.index')" :active="request()->routeIs('kpis.*')" title="Key Performance Indicator (KPI)">
-                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('kpis.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2a2 2 0 012-2h2a2 2 0 012 2v2m-6 0h6M7 7h.01M12 7h.01M17 7h.01M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" />
+                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('kpis.*') ? 'text-fuchsia-100' : 'text-fuchsia-400' }}" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M5 3.75A1.75 1.75 0 016.75 2h10.5A1.75 1.75 0 0119 3.75v16.5A1.75 1.75 0 0117.25 22H6.75A1.75 1.75 0 015 20.25V3.75z"/>
+                        <path class="{{ request()->routeIs('kpis.*') ? 'text-sky-200' : 'text-sky-400' }}" fill="currentColor" d="M8 7h1.5v1.5H8V7zm3.25 0H14v1.5h-2.75V7zM8 11h8v1.5H8V11zm0 3.5h5V16H8v-1.5z"/>
                     </svg>
                     <span class="sidebar-link-label truncate">Key Performance Indicator (KPI)</span>
                 </x-sidebar-link>
@@ -110,15 +127,39 @@
 
             @canany(['audits.create', 'audits.manage'])
                 <x-sidebar-link :href="route('audits.index')" :active="request()->routeIs('audits.*')" title="Audit Reports">
-                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('audits.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('audits.*') ? 'text-blue-100' : 'text-blue-400' }}" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M7 2.75A1.75 1.75 0 018.75 1h5.69c.46 0 .9.18 1.23.51l4.82 4.82c.33.33.51.77.51 1.23v11.69A1.75 1.75 0 0119.25 21H8.75A1.75 1.75 0 017 19.25V2.75z"/>
+                        <path class="{{ request()->routeIs('audits.*') ? 'text-emerald-200' : 'text-emerald-400' }}" fill="currentColor" d="M9.5 11h7v1.4h-7V11zm0 3.2h5v1.4h-5v-1.4z"/>
                     </svg>
                     <span class="sidebar-link-label truncate">Audit Reports</span>
                 </x-sidebar-link>
+            @endcanany
 
+            @canany(['audits.review', 'audits.review_assign', 'audits.create', 'audits.manage'])
+                @php
+                    $reviewActionTotal = 0;
+                    try {
+                        $reviewActionTotal = (int) (app(\App\Services\AuditReportReviewService::class)->actionCounts(auth()->user())['total'] ?? 0);
+                    } catch (\Throwable $e) {
+                        $reviewActionTotal = 0;
+                    }
+                @endphp
+                <x-sidebar-link :href="route('audit-review.index')" :active="request()->routeIs('audit-review.*')" title="Review Panel">
+                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('audit-review.*') ? 'text-amber-100' : 'text-amber-400' }}" viewBox="0 0 24 24" fill="currentColor">
+                        <path fill="currentColor" d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/>
+                    </svg>
+                    <span class="sidebar-link-label truncate">Review Panel</span>
+                    @if ($reviewActionTotal > 0)
+                        <span class="sidebar-link-label ml-auto inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">{{ $reviewActionTotal > 99 ? '99+' : $reviewActionTotal }}</span>
+                    @endif
+                </x-sidebar-link>
+            @endcanany
+
+            @canany(['audits.create', 'audits.manage'])
                 <x-sidebar-link :href="route('checklists.index')" :active="request()->routeIs('checklists.*')" title="Checklists">
-                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('checklists.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('checklists.*') ? 'text-lime-100' : 'text-lime-400' }}" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M8.5 3.5A1.5 1.5 0 0110 2h4a1.5 1.5 0 011.5 1.5V5H18a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h2.5V3.5zM10 5h4V4h-4v1z"/>
+                        <path class="{{ request()->routeIs('checklists.*') ? 'text-emerald-200' : 'text-emerald-500' }}" fill="currentColor" d="M10.2 12.1l1.4 1.4 3.4-3.5 1.1 1.1-4.5 4.6-2.5-2.5 1.1-1.1z"/>
                     </svg>
                     <span class="sidebar-link-label truncate">Checklists</span>
                 </x-sidebar-link>
@@ -130,8 +171,9 @@
                     :active="request()->routeIs('audit-findings.*') && ! request()->routeIs('audit-findings.entry*')"
                     title="Findings Matrix"
                 >
-                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('audit-findings.*') && ! request()->routeIs('audit-findings.entry*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h10M4 14h16M4 18h10" />
+                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('audit-findings.*') && ! request()->routeIs('audit-findings.entry*') ? 'text-rose-100' : 'text-rose-400' }}" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M4 5.5A1.5 1.5 0 015.5 4h13A1.5 1.5 0 0120 5.5v1A1.5 1.5 0 0118.5 8h-13A1.5 1.5 0 014 6.5v-1zM4 11.5A1.5 1.5 0 015.5 10H14a1.5 1.5 0 011.5 1.5v1A1.5 1.5 0 0114 14H5.5A1.5 1.5 0 014 12.5v-1z"/>
+                        <path class="{{ request()->routeIs('audit-findings.*') && ! request()->routeIs('audit-findings.entry*') ? 'text-amber-300' : 'text-amber-400' }}" fill="currentColor" d="M4 17.5A1.5 1.5 0 015.5 16h13a1.5 1.5 0 011.5 1.5v1a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 18.5v-1z"/>
                     </svg>
                     <span class="sidebar-link-label truncate">Findings Matrix</span>
                 </x-sidebar-link>
@@ -141,8 +183,9 @@
                     :active="request()->routeIs('audit-findings.entry*')"
                     title="Enter Findings"
                 >
-                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('audit-findings.entry*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h10M4 14h16M4 18h10" />
+                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('audit-findings.entry*') ? 'text-rose-100' : 'text-rose-400' }}" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M4 5.5A1.5 1.5 0 015.5 4h13A1.5 1.5 0 0120 5.5v1A1.5 1.5 0 0118.5 8h-13A1.5 1.5 0 014 6.5v-1zM4 11.5A1.5 1.5 0 015.5 10H14a1.5 1.5 0 011.5 1.5v1A1.5 1.5 0 0114 14H5.5A1.5 1.5 0 014 12.5v-1z"/>
+                        <path class="{{ request()->routeIs('audit-findings.entry*') ? 'text-amber-300' : 'text-amber-400' }}" fill="currentColor" d="M4 17.5A1.5 1.5 0 015.5 16h13a1.5 1.5 0 011.5 1.5v1a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 18.5v-1z"/>
                     </svg>
                     <span class="sidebar-link-label truncate">Enter Findings</span>
                 </x-sidebar-link>
@@ -157,8 +200,9 @@
                             class="group relative flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] tracking-tight transition"
                             :class="shakhaOpen ? 'bg-white/[0.06] text-white' : 'text-slate-300 hover:bg-white/[0.04] hover:text-white'"
                         >
-                            <svg class="h-3.5 w-3.5 shrink-0 text-slate-400 group-hover:text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+                            <svg class="h-3.5 w-3.5 shrink-0 {{ (request()->routeIs('shakhas.*') || request()->routeIs('areas.*') || request()->routeIs('shakha-employees.*')) ? 'text-orange-200' : 'text-orange-400' }}" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M4 10.25h16v9.5A1.25 1.25 0 0118.75 21H5.25A1.25 1.25 0 014 19.75v-9.5z"/>
+                                <path class="{{ (request()->routeIs('shakhas.*') || request()->routeIs('areas.*') || request()->routeIs('shakha-employees.*')) ? 'text-sky-200' : 'text-sky-400' }}" fill="currentColor" d="M3.5 8.5L12 3.75 20.5 8.5H3.5zM8 13.5h1.5V17H8v-3.5zm3.25 0h1.5V17h-1.5v-3.5zm3.25 0H16V17h-1.5v-3.5z"/>
                             </svg>
                             <span class="sidebar-link-label min-w-0 flex-1 truncate text-left">Shakha</span>
                             <svg class="sidebar-chevron h-3 w-3 shrink-0 text-slate-500 transition" :class="shakhaOpen ? 'rotate-180 text-slate-300' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -192,23 +236,25 @@
         <nav class="space-y-0.5">
             @if(auth()->user()?->can('users.manage') || auth()->user()?->isSuperAdmin())
                 <x-sidebar-link :href="route('users.index')" :active="request()->routeIs('users.*')" title="Users & Access">
-                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('users.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('users.*') ? 'text-violet-100' : 'text-violet-400' }}" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M9 4.5a3.5 3.5 0 110 7 3.5 3.5 0 010-7zM15.5 8a2.5 2.5 0 110 5 2.5 2.5 0 010-5z"/>
+                        <path class="{{ request()->routeIs('users.*') ? 'text-cyan-200' : 'text-cyan-400' }}" fill="currentColor" d="M3.5 19.5c.6-2.8 2.9-4.7 5.5-4.7s4.9 1.9 5.5 4.7H3.5zM15 15.2c1.9.3 3.4 1.7 3.9 3.5h-3.2c-.1-.6-.3-1.1-.7-1.6-.4-.5-.9-.9-1.5-1.1.5-.3 1-.5 1.5-.8z"/>
                     </svg>
                     <span class="sidebar-link-label truncate">Users & Access</span>
                 </x-sidebar-link>
                 <x-sidebar-link :href="route('roles.index')" :active="request()->routeIs('roles.*')" title="Roles">
-                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('roles.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('roles.*') ? 'text-amber-100' : 'text-amber-400' }}" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M14.5 3.5a5 5 0 014.1 7.8l-6.3 6.3H9v2.5H6.5V22H3.5v-3.2l6.9-6.9A5 5 0 0114.5 3.5z"/>
+                        <path class="{{ request()->routeIs('roles.*') ? 'text-violet-200' : 'text-violet-400' }}" fill="currentColor" d="M16.2 6.2a1.6 1.6 0 11-2.26 2.26A1.6 1.6 0 0116.2 6.2z"/>
                     </svg>
                     <span class="sidebar-link-label truncate">Roles</span>
                 </x-sidebar-link>
             @endif
 
             <x-sidebar-link :href="route('profile.edit')" :active="request()->routeIs('profile.*')" title="Profile">
-                <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('profile.*') ? 'text-white' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('profile.*') ? 'text-sky-100' : 'text-sky-400' }}" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 8.5a3.5 3.5 0 100 7 3.5 3.5 0 000-7z"/>
+                    <path class="{{ request()->routeIs('profile.*') ? 'text-amber-300' : 'text-amber-400' }}" fill="currentColor" d="M12 2.5c.6 0 1.1.1 1.6.4l.9-1.5 1.7 1-.4 1.7c.5.4.9.9 1.2 1.4l1.7-.3.9 1.7-1.4 1c.1.5.1 1.1 0 1.6l1.4 1-.9 1.7-1.7-.3c-.3.5-.7 1-1.2 1.4l.4 1.7-1.7 1-.9-1.5c-.5.3-1 .4-1.6.4s-1.1-.1-1.6-.4l-.9 1.5-1.7-1 .4-1.7c-.5-.4-.9-.9-1.2-1.4l-1.7.3-.9-1.7 1.4-1c-.1-.5-.1-1.1 0-1.6l-1.4-1 .9-1.7 1.7.3c.3-.5.7-1 1.2-1.4l-.4-1.7 1.7-1 .9 1.5c.5-.3 1-.4 1.6-.4zm0 4a5.5 5.5 0 110 11 5.5 5.5 0 010-11z"/>
                 </svg>
                 <span class="sidebar-link-label truncate">Profile</span>
             </x-sidebar-link>
@@ -247,7 +293,17 @@
                 class="block w-full rounded-md px-2 py-1 text-left text-[11px] text-slate-300 hover:bg-white/[0.05] hover:text-white"
                 x-text="darkMode ? 'Light theme' : 'Dark theme'"
             ></button>
-            <form method="POST" action="{{ route('logout') }}">
+            <form
+                method="POST"
+                action="{{ route('logout') }}"
+                @submit="
+                    const meta = document.querySelector('meta[name=csrf-token]');
+                    const input = $el.querySelector('input[name=_token]');
+                    if (meta && input && meta.content) {
+                        input.value = meta.content;
+                    }
+                "
+            >
                 @csrf
                 <button type="submit" class="block w-full rounded-md px-2 py-1 text-left text-[11px] text-slate-300 hover:bg-white/[0.05] hover:text-white">Log Out</button>
             </form>

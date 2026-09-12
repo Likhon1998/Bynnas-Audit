@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\MonthlyAssignment;
 use App\Models\MonthlyWorkItem;
+use App\Models\ProjectLocation;
 use App\Models\Shakha;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -171,6 +172,88 @@ class UserAccessService
         return in_array($shakhaId, $ids, true);
     }
 
+    /**
+     * @return list<int>|null  null = all project locations (superadmin)
+     */
+    public function reportableProjectLocationIds(?User $user, ?int $month = null, ?int $year = null): ?array
+    {
+        if (! $user) {
+            return [];
+        }
+
+        if ($this->canBrowseAllShakhasForReports($user)) {
+            return null;
+        }
+
+        if (! $user->employee_id || ! Schema::hasTable('monthly_assignments')) {
+            return [];
+        }
+
+        return $this->visitAssignedProjectLocationIds(
+            (int) $user->employee_id,
+            $month,
+            $year,
+        );
+    }
+
+    public function canStartReportForProjectLocation(
+        ?User $user,
+        int $locationId,
+        ?int $month = null,
+        ?int $year = null,
+    ): bool {
+        $ids = $this->reportableProjectLocationIds($user, $month, $year);
+        if ($ids === null) {
+            return true;
+        }
+
+        return in_array($locationId, $ids, true);
+    }
+
+    /**
+     * Project locations available in the Audit Reports entity picker.
+     *
+     * @return Collection<int, ProjectLocation>
+     */
+    public function reportableProjectLocations(?User $user, ?int $month = null, ?int $year = null): Collection
+    {
+        $query = ProjectLocation::query()->with('project')->orderBy('name');
+
+        $ids = $this->reportableProjectLocationIds($user, $month, $year);
+        if ($ids === null) {
+            // Superadmin: only locations that appear on the month's visit plan keep the picker usable.
+            if ($month !== null && $year !== null && Schema::hasTable('monthly_assignments')) {
+                $plannedIds = MonthlyAssignment::query()
+                    ->whereNotNull('start_date')
+                    ->whereNotNull('end_date')
+                    ->whereDate('start_date', '<=', date('Y-m-t', strtotime(sprintf('%04d-%02d-01', $year, $month))))
+                    ->whereDate('end_date', '>=', sprintf('%04d-%02d-01', $year, $month))
+                    ->whereHas('workItem', fn ($q) => $q->where('schedulable_type', ProjectLocation::class))
+                    ->with('workItem:id,schedulable_id,schedulable_type')
+                    ->get()
+                    ->map(fn (MonthlyAssignment $a) => (int) ($a->workItem?->schedulable_id ?? 0))
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                if ($plannedIds === []) {
+                    return collect();
+                }
+
+                return $query->whereIn('id', $plannedIds)->get();
+            }
+
+            return $query->limit(200)->get();
+        }
+
+        if ($ids === []) {
+            return collect();
+        }
+
+        return $query->whereIn('id', $ids)->get();
+    }
+
     public function employeeIsOnAssignment(int $employeeId, MonthlyAssignment $assignment): bool
     {
         if ((int) $assignment->employee_id === $employeeId) {
@@ -232,6 +315,49 @@ class UserAccessService
     }
 
     /**
+     * Labels for visit types that still cannot open an audit report (not shakha / project location).
+     *
+     * @return list<string>
+     */
+    public function visitAssignedUnsupportedLabels(?User $user, ?int $month = null, ?int $year = null): array
+    {
+        if (! $user?->employee_id || ! Schema::hasTable('monthly_assignments')) {
+            return [];
+        }
+
+        $query = $this->visitAssignmentsQuery((int) $user->employee_id, $month, $year)
+            ->whereHas('workItem', function ($q) {
+                $q->whereNotIn('schedulable_type', [Shakha::class, ProjectLocation::class]);
+            });
+
+        return $query
+            ->with(['workItem'])
+            ->get()
+            ->map(function (MonthlyAssignment $a) {
+                $item = $a->workItem;
+                if (! $item) {
+                    return '';
+                }
+
+                return trim((string) ($item->entity_label ?: 'Other visit'));
+            })
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @deprecated Use visitAssignedUnsupportedLabels — project locations are reportable.
+     *
+     * @return list<string>
+     */
+    public function visitAssignedNonShakhaLabels(?User $user, ?int $month = null, ?int $year = null): array
+    {
+        return $this->visitAssignedUnsupportedLabels($user, $month, $year);
+    }
+
+    /**
      * Shakha IDs from monthly visits where this employee is allocated.
      * When month/year are set, only visits overlapping that calendar month count.
      *
@@ -239,13 +365,50 @@ class UserAccessService
      */
     protected function visitAssignedShakhaIds(int $employeeId, ?int $month = null, ?int $year = null): array
     {
+        return $this->visitAssignedSchedulableIds($employeeId, Shakha::class, $month, $year);
+    }
+
+    /**
+     * @return list<int>
+     */
+    protected function visitAssignedProjectLocationIds(int $employeeId, ?int $month = null, ?int $year = null): array
+    {
+        return $this->visitAssignedSchedulableIds($employeeId, ProjectLocation::class, $month, $year);
+    }
+
+    /**
+     * @return list<int>
+     */
+    protected function visitAssignedSchedulableIds(
+        int $employeeId,
+        string $schedulableType,
+        ?int $month = null,
+        ?int $year = null,
+    ): array {
+        $assignments = $this->visitAssignmentsQuery($employeeId, $month, $year)
+            ->whereHas('workItem', function ($q) use ($schedulableType) {
+                $q->where('schedulable_type', $schedulableType);
+            })
+            ->with('workItem:id,schedulable_id,schedulable_type')
+            ->get();
+
+        return $assignments
+            ->map(fn (MonthlyAssignment $a) => (int) ($a->workItem?->schedulable_id ?? 0))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Builder<\App\Models\MonthlyAssignment>
+     */
+    protected function visitAssignmentsQuery(int $employeeId, ?int $month = null, ?int $year = null)
+    {
         $query = MonthlyAssignment::query()
             ->where(function ($q) use ($employeeId) {
                 $q->where('employee_id', $employeeId)
                     ->orWhereHas('visitors', fn ($v) => $v->where('employees.id', $employeeId));
-            })
-            ->whereHas('workItem', function ($q) {
-                $q->where('schedulable_type', Shakha::class);
             })
             ->whereNotNull('start_date')
             ->whereNotNull('end_date');
@@ -258,15 +421,6 @@ class UserAccessService
                 ->whereDate('end_date', '>=', $monthStart);
         }
 
-        $assignments = $query
-            ->with('workItem:id,schedulable_id,schedulable_type')
-            ->get();
-
-        return $assignments
-            ->map(fn (MonthlyAssignment $a) => (int) ($a->workItem?->schedulable_id ?? 0))
-            ->filter()
-            ->unique()
-            ->values()
-            ->all();
+        return $query;
     }
 }

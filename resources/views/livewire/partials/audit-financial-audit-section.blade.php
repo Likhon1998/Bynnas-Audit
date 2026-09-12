@@ -34,6 +34,7 @@
 
 @foreach ($blocks as $bIndex => $block)
     @php $type = $block['type'] ?? ''; @endphp
+    <a id="audit-block-{{ $bIndex }}" class="relative top-0 block scroll-mt-6"></a>
 
     @if ($editable)
         @include('livewire.partials.audit-block-insert-menu', ['insertIndex' => $bIndex])
@@ -75,7 +76,7 @@
         @if ($anchor !== '')
             <a id="{{ $anchor }}" name="{{ $anchor }}"></a>
         @endif
-        <table class="{{ $tableClass }} mb-[2mm]">
+        <table class="{{ $tableClass }} mb-[2mm]" @if ($anchor !== '') data-outline-id="{{ $anchor }}" @endif>
             <tbody>
                 <tr>
                     <td style="width:9%;" class="align-top text-center font-bold finding-serial-cell">
@@ -99,11 +100,13 @@
                                 'value' => $block['body'] ?? '',
                                 'indicators' => $indicatorOptions ?? $financialIndicatorOptions ?? [],
                                 'collection' => 'reportBlocks',
-                                'wireKey' => 'blk-ind-'.$bIndex.'-'.md5((string) ($block['body'] ?? '')),
+                                'locked' => (int) ($block['indicator_id'] ?? 0) > 0,
+                                'code' => $block['indicator_code'] ?? null,
+                                'wireKey' => 'blk-ind-'.$bIndex.'-'.(int) ($block['indicator_id'] ?? 0).'-'.md5((string) ($block['body'] ?? '')),
                             ])
                             <div class="mt-1 flex flex-wrap items-center gap-2 text-[11px]">
                                 <span class="font-semibold">টাকার পরিমাণ:</span>
-                                <input type="text" wire:model.live="reportBlocks.{{ $bIndex }}.amount" class="inline-input min-w-[100px]">
+                                <input type="text" wire:model.blur="reportBlocks.{{ $bIndex }}.amount" class="inline-input min-w-[100px]" placeholder="0">
                             </div>
                         @else
                             <p class="m-0 whitespace-pre-wrap text-justify leading-[1.45]">{{ $block['body'] ?? '' }}</p>
@@ -151,8 +154,8 @@
                 </div>
                 <textarea
                     wire:model.live="reportBlocks.{{ $bIndex }}.body"
-                    rows="4"
-                    class="w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[11px] leading-relaxed"
+                    rows="2"
+                    class="audit-autogrow w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[11px] leading-relaxed"
                     placeholder="প্রচলিত নিয়ম লিখুন…"
                 ></textarea>
             @else
@@ -162,6 +165,18 @@
         </div>
 
     @elseif ($type === 'observation')
+        @php
+            $obsSourceDetail = trim((string) ($block['checklist_source_detail'] ?? ''));
+            $obsSourceLabel = trim((string) ($block['checklist_source_label'] ?? ''));
+            if ($obsSourceDetail === '' && $obsSourceLabel !== '') {
+                $obsSourceDetail = 'সূত্র: চেকলিস্ট — '.$obsSourceLabel;
+            }
+            $hasObsSource = $obsSourceDetail !== '' || ! empty($block['from_checklist']) || ! empty($block['checklist_pack']);
+            if ($hasObsSource && $obsSourceDetail === '') {
+                $code = trim((string) ($block['checklist_format_code'] ?? ''));
+                $obsSourceDetail = 'সূত্র: চেকলিস্ট'.($code !== '' ? ' — '.$code : '').($obsSourceLabel !== '' ? ' · '.$obsSourceLabel : '');
+            }
+        @endphp
         <div class="mt-[3mm]">
             @if ($editable)
                 <div class="mb-1 flex flex-wrap items-center gap-2">
@@ -171,16 +186,51 @@
                         class="min-w-[200px] flex-1 rounded border border-slate-200 bg-sky-50/40 px-2 py-1 text-[12px] font-bold"
                         placeholder="পর্যবেক্ষণ (Observation) :"
                     >
+                    @if ($hasObsSource && $obsSourceDetail !== '')
+                        <div class="relative" x-data="{ open: false }" @keydown.escape.window="open = false">
+                            <button
+                                type="button"
+                                @click="open = !open"
+                                class="inline-flex h-7 w-7 items-center justify-center rounded-full border border-sky-400 bg-sky-100 text-[12px] font-bold text-sky-900 hover:bg-sky-200"
+                                title="{{ $obsSourceDetail }}"
+                                aria-label="Checklist source"
+                            >i</button>
+                            <div
+                                x-show="open"
+                                x-cloak
+                                @click.outside="open = false"
+                                class="absolute right-0 z-30 mt-1 w-72 rounded-md border border-sky-200 bg-white p-2.5 text-[11px] leading-snug text-slate-700 shadow-lg"
+                            >
+                                <p class="mb-0.5 text-[10px] font-bold uppercase tracking-wide text-sky-800">পর্যবেক্ষণের উৎস</p>
+                                <p>{{ $obsSourceDetail }}</p>
+                            </div>
+                        </div>
+                    @endif
                     <button type="button" wire:click="moveBlock({{ $bIndex }}, 'up')" class="text-[11px] text-slate-600 hover:underline">↑</button>
                     <button type="button" wire:click="moveBlock({{ $bIndex }}, 'down')" class="text-[11px] text-slate-600 hover:underline">↓</button>
                     <button type="button" wire:click="removeBlock({{ $bIndex }})" class="text-[11px] text-rose-600 hover:underline">মুছুন</button>
                 </div>
                 <textarea
                     wire:model.live="reportBlocks.{{ $bIndex }}.body"
-                    rows="3"
-                    class="w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[11px] leading-relaxed"
+                    rows="2"
+                    class="audit-autogrow w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[11px] leading-relaxed"
                     placeholder="পর্যবেক্ষণ লিখুন…"
                 ></textarea>
+                @php
+                    $obsLabelLc = mb_strtolower(trim((string) ($block['label'] ?? '')));
+                    $isPorjobekkhon = str_contains($obsLabelLc, 'পর্যবেক্ষণ') || str_contains($obsLabelLc, 'observation');
+                @endphp
+                @if ($isPorjobekkhon)
+                    @include('livewire.partials.audit-observation-matrix-people', [
+                        'blockIndex' => $bIndex,
+                        'people' => $block['matrix_people'] ?? [],
+                        'opened' => (bool) ($block['show_matrix_people'] ?? false),
+                        'staffOptions' => $shakhaStaffOptions ?? [],
+                    ])
+                @endif
+                @if ($obsSourceDetail !== '')
+                    <p class="mt-1 text-[10px] text-sky-800/90">{{ $obsSourceDetail }}</p>
+                @endif
             @else
                 @if (($block['label'] ?? '') !== '')
                     <p class="mb-[1mm] font-bold">{{ $block['label'] }}</p>
@@ -189,6 +239,9 @@
                     <p class="m-0 whitespace-pre-wrap text-justify leading-[1.45]">{{ $block['body'] }}</p>
                 @else
                     <p class="m-0 border-b border-dotted border-black">&nbsp;</p>
+                @endif
+                @if ($obsSourceDetail !== '')
+                    <p class="mt-[1mm] text-[10px] text-slate-500">{{ $obsSourceDetail }}</p>
                 @endif
             @endif
         </div>
@@ -253,6 +306,9 @@
                         'value' => $hasMatrixLink ? $linkedTitle : '',
                         'indicators' => $indicatorOptions ?? $financialIndicatorOptions ?? [],
                         'collection' => 'statsBlocks',
+                        'locked' => $hasMatrixLink,
+                        'code' => $linkedCode !== '' ? $linkedCode : null,
+                        'allowCreate' => false,
                         'wireKey' => 'stats-ind-'.$bIndex.'-'.(int) $linkedIndicatorId,
                     ])
                 </div>

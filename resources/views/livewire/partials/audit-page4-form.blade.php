@@ -4,6 +4,18 @@
         <span class="text-[11px] text-slate-500">পৃষ্ঠা ৪ · + → কমপ্লায়েন্স / আইটি চেকলিস্ট / টেবিল</span>
     </div>
 
+    @if (! empty($checklistUrl))
+        <div class="mx-auto mb-3 max-w-[960px] rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-[12px] text-slate-700">
+            <p>
+                <span class="font-semibold">Checklist optional:</span>
+                Use checklist only if you want — unusual marks can seed findings into this report.
+                @if (($checklistRequired ?? 0) > 0)
+                    Progress {{ $checklistDone ?? 0 }}/{{ $checklistRequired }}.
+                @endif
+            </p>
+            <a href="{{ $checklistUrl }}" class="mt-1.5 inline-flex h-7 items-center rounded-md border border-teal-200 bg-white px-2.5 text-[11px] font-semibold text-teal-800 hover:bg-teal-50">Open checklist</a>
+        </div>
+    @endif
     <div class="mx-auto max-w-[960px] rounded-sm bg-white p-6 shadow-lg">
         @include('livewire.partials.audit-financial-audit-section', [
             'editable' => true,
@@ -18,6 +30,7 @@
             'findingRatings' => $findingRatings,
             'financialIndicatorOptions' => $financialIndicatorOptions ?? [],
             'indicatorOptions' => $indicatorOptions ?? $financialIndicatorOptions ?? [],
+            'shakhaStaffOptions' => $shakhaStaffOptions ?? [],
             'customTableEditorIndex' => $customTableEditorIndex ?? null,
             'customTableSizeCols' => $customTableSizeCols ?? 4,
             'customTableSizeRows' => $customTableSizeRows ?? 5,
