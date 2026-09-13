@@ -70,6 +70,10 @@ fi
 echo "==> migrate (no wipe)"
 php artisan migrate --force
 
+echo "==> sync roles/permissions (no data wipe)"
+php artisan db:seed --class=RolePermissionSeeder --force || true
+php artisan permission:cache-reset 2>/dev/null || true
+
 echo "==> storage link + permissions"
 php artisan storage:link || true
 # Web server needs traverse (+x) on dirs and read on files (rsync can break this).

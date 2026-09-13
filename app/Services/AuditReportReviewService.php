@@ -74,9 +74,7 @@ class AuditReportReviewService
      */
     public function isReviewAdmin(User $user): bool
     {
-        return $user->hasRole('superadmin')
-            || $user->isSuperAdmin()
-            || $user->can('audits.review_assign');
+        return $user->canAssignReviewers();
     }
 
     /**

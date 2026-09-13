@@ -144,8 +144,8 @@
                         $reviewActionTotal = 0;
                     }
                 @endphp
-                <x-sidebar-link :href="route('audit-review.index')" :active="request()->routeIs('audit-review.*')" title="Review Panel">
-                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('audit-review.*') ? 'text-amber-100' : 'text-amber-400' }}" viewBox="0 0 24 24" fill="currentColor">
+                <x-sidebar-link :href="route('audit-review.index')" :active="request()->routeIs('audit-review.index') || request()->routeIs('audit-review.show')" title="Review Panel">
+                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('audit-review.index') || request()->routeIs('audit-review.show') ? 'text-amber-100' : 'text-amber-400' }}" viewBox="0 0 24 24" fill="currentColor">
                         <path fill="currentColor" d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/>
                     </svg>
                     <span class="sidebar-link-label truncate">Review Panel</span>
@@ -153,7 +153,31 @@
                         <span class="sidebar-link-label ml-auto inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">{{ $reviewActionTotal > 99 ? '99+' : $reviewActionTotal }}</span>
                     @endif
                 </x-sidebar-link>
+            @else
+                @if (auth()->user()?->canAssignReviewers())
+                    <x-sidebar-link :href="route('audit-review.index')" :active="request()->routeIs('audit-review.index') || request()->routeIs('audit-review.show')" title="Review Panel">
+                        <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('audit-review.index') || request()->routeIs('audit-review.show') ? 'text-amber-100' : 'text-amber-400' }}" viewBox="0 0 24 24" fill="currentColor">
+                            <path fill="currentColor" d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/>
+                        </svg>
+                        <span class="sidebar-link-label truncate">Review Panel</span>
+                    </x-sidebar-link>
+                @endif
             @endcanany
+
+            @if (auth()->user()?->canAssignReviewers())
+                <x-sidebar-link :href="route('audit-review.assignments')" :active="request()->routeIs('audit-review.assignments*')" title="Assign reviewers">
+                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('audit-review.assignments*') ? 'text-sky-100' : 'text-sky-400' }}" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 12a4 4 0 100-8 4 4 0 000 8zm-7 8a7 7 0 0114 0v1H5v-1zm13.5-7.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM16 20v-1a5.9 5.9 0 012.5-4.8A5 5 0 0121 19v1h-5z"/>
+                    </svg>
+                    <span class="sidebar-link-label truncate">Assign reviewers</span>
+                </x-sidebar-link>
+                <x-sidebar-link :href="route('audit-review.log')" :active="request()->routeIs('audit-review.log*')" title="Auditors log">
+                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('audit-review.log*') ? 'text-violet-100' : 'text-violet-400' }}" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M5 3h14a1 1 0 011 1v16l-3-2-3 2-3-2-3 2-3-2V4a1 1 0 011-1zm3 5h8v1.5H8V8zm0 3.5h8V13H8v-1.5zm0 3.5h5V17H8v-2z"/>
+                    </svg>
+                    <span class="sidebar-link-label truncate">Auditors log</span>
+                </x-sidebar-link>
+            @endif
 
             @canany(['audits.create', 'audits.manage'])
                 <x-sidebar-link :href="route('checklists.index')" :active="request()->routeIs('checklists.*')" title="Checklists">

@@ -26,10 +26,17 @@ class AuditReportReviewTest extends TestCase
     public function test_admin_can_save_reviewer_assignment_map(): void
     {
         $admin = User::query()->where('email', 'admin@bynnasaudit.com')->firstOrFail();
+        $this->assertTrue($admin->canAssignReviewers());
+
         $auditor = User::factory()->create(['email_verified_at' => now()]);
         $auditor->assignRole('audit_officer');
         $reviewer = User::factory()->create(['email_verified_at' => now()]);
         $reviewer->assignRole('senior_officer');
+
+        $this->actingAs($admin)
+            ->get(route('audit-review.assignments'))
+            ->assertOk()
+            ->assertSee('Reviewer assignments');
 
         $this->actingAs($admin)
             ->post(route('audit-review.assignments.save'), [

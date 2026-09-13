@@ -88,7 +88,7 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
         Route::get('/checklists', fn () => view('checklists.index'))->name('checklists.index');
     });
 
-    Route::middleware('permission:audits.review_assign')->group(function () {
+    Route::middleware('assign.reviewers')->group(function () {
         Route::get('/audit-review/assignments', [AuditReportReviewController::class, 'assignments'])->name('audit-review.assignments');
         Route::post('/audit-review/assignments', [AuditReportReviewController::class, 'saveAssignments'])->name('audit-review.assignments.save');
         Route::get('/audit-review/log', [AuditReportReviewController::class, 'log'])->name('audit-review.log');

@@ -26,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
             'active' => \App\Http\Middleware\EnsureUserIsActive::class,
             'superadmin' => \App\Http\Middleware\EnsureUserIsSuperAdmin::class,
+            'assign.reviewers' => \App\Http\Middleware\EnsureCanAssignReviewers::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

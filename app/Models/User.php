@@ -110,6 +110,23 @@ class User extends Authenticatable
     }
 
     /**
+     * Map Auditor → Reviewer and open Auditors log.
+     * Superadmin always can; others need audits.review_assign.
+     */
+    public function canAssignReviewers(): bool
+    {
+        if ($this->isSuperAdmin() || $this->hasRole('superadmin')) {
+            return true;
+        }
+
+        try {
+            return $this->hasPermissionTo('audits.review_assign');
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
      * Email used as sender when this user emails audit reports.
      */
     public function mailSenderAddress(): string

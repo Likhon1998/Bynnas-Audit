@@ -6,10 +6,10 @@
                 <p class="mt-0.5 text-[12px] text-slate-500">What you need to do · inbox · returned · reviewed</p>
             </div>
             <div class="flex flex-wrap gap-1.5">
-                @can('audits.review_assign')
+                @if (auth()->user()?->canAssignReviewers())
                     <a href="{{ route('audit-review.log') }}" class="inline-flex h-9 items-center rounded-md border border-sky-200 bg-sky-50 px-3 text-[12px] font-semibold text-sky-900 hover:bg-sky-100">Auditors log</a>
                     <a href="{{ route('audit-review.assignments') }}" class="inline-flex h-9 items-center rounded-md border border-slate-200 bg-white px-3 text-[12px] font-semibold text-slate-700 hover:bg-slate-50">Assign reviewers</a>
-                @endcan
+                @endif
                 <a href="{{ route('audits.index') }}" class="inline-flex h-9 items-center rounded-md border border-slate-200 bg-white px-3 text-[12px] font-medium text-slate-600 hover:bg-slate-50">Audit Reports</a>
             </div>
         </div>
