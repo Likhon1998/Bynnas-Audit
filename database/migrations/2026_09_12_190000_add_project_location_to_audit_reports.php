@@ -69,14 +69,31 @@ return new class extends Migration
 
     private function dropForeignKeyIfExists(string $table, string $column): void
     {
+        $driver = Schema::getConnection()->getDriverName();
+        if (! in_array($driver, ['mysql', 'mariadb'], true)) {
+            try {
+                Schema::table($table, function (Blueprint $blueprint) use ($column) {
+                    $blueprint->dropForeign([$column]);
+                });
+            } catch (\Throwable) {
+                // SQLite / missing FK — ignore.
+            }
+
+            return;
+        }
+
         $name = $this->foreignKeyName($table, $column);
         if (! $name) {
             return;
         }
 
-        Schema::table($table, function (Blueprint $blueprint) use ($name) {
-            $blueprint->dropForeign($name);
-        });
+        try {
+            Schema::table($table, function (Blueprint $blueprint) use ($name) {
+                $blueprint->dropForeign($name);
+            });
+        } catch (\Throwable) {
+            // Already gone.
+        }
     }
 
     private function foreignKeyExists(string $table, string $column): bool
@@ -86,6 +103,11 @@ return new class extends Migration
 
     private function foreignKeyName(string $table, string $column): ?string
     {
+        $driver = Schema::getConnection()->getDriverName();
+        if (! in_array($driver, ['mysql', 'mariadb'], true)) {
+            return null;
+        }
+
         $database = DB::getDatabaseName();
 
         $row = DB::selectOne(

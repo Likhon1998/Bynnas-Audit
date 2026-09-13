@@ -84,6 +84,22 @@ return new class extends Migration
 
     private function indexExists(string $table, string $indexName): bool
     {
+        $driver = Schema::getConnection()->getDriverName();
+        if ($driver === 'sqlite') {
+            $rows = DB::select("PRAGMA index_list('{$table}')");
+            foreach ($rows as $row) {
+                if (($row->name ?? null) === $indexName) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        if (! in_array($driver, ['mysql', 'mariadb'], true)) {
+            return false;
+        }
+
         $database = DB::getDatabaseName();
         $row = DB::selectOne(
             'SELECT 1 as ok
