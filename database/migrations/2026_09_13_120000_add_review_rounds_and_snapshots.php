@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -40,9 +41,21 @@ return new class extends Migration
                 $table->json('change_summary')->nullable();
                 $table->timestamps();
 
-                $table->unique(['audit_report_id', 'review_round']);
-                $table->index(['audit_report_id', 'is_resubmit']);
+                // Short names — MySQL identifier limit is 64 chars.
+                $table->unique(['audit_report_id', 'review_round'], 'arrs_report_round_uq');
+                $table->index(['audit_report_id', 'is_resubmit'], 'arrs_report_resubmit_idx');
             });
+        } else {
+            if (! $this->indexExists('audit_report_review_snapshots', 'arrs_report_round_uq')) {
+                Schema::table('audit_report_review_snapshots', function (Blueprint $table) {
+                    $table->unique(['audit_report_id', 'review_round'], 'arrs_report_round_uq');
+                });
+            }
+            if (! $this->indexExists('audit_report_review_snapshots', 'arrs_report_resubmit_idx')) {
+                Schema::table('audit_report_review_snapshots', function (Blueprint $table) {
+                    $table->index(['audit_report_id', 'is_resubmit'], 'arrs_report_resubmit_idx');
+                });
+            }
         }
     }
 
@@ -67,5 +80,21 @@ return new class extends Migration
                 $table->dropColumn('review_round');
             }
         });
+    }
+
+    private function indexExists(string $table, string $indexName): bool
+    {
+        $database = DB::getDatabaseName();
+        $row = DB::selectOne(
+            'SELECT 1 as ok
+             FROM information_schema.STATISTICS
+             WHERE TABLE_SCHEMA = ?
+               AND TABLE_NAME = ?
+               AND INDEX_NAME = ?
+             LIMIT 1',
+            [$database, $table, $indexName]
+        );
+
+        return (bool) $row;
     }
 };
