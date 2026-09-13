@@ -65,6 +65,7 @@ return [
     |
     */
 
+    // Always Bangladesh Standard Time (UTC+6). Do not change without updating AppTime::ZONE.
     'timezone' => env('APP_TIMEZONE', 'Asia/Dhaka'),
 
     /*

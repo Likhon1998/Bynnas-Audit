@@ -21,9 +21,11 @@ class RolePermissionSeeder extends Seeder
             'organogram.view',
             'organogram.manage',
             'annual_audit.manage',
+            'annual_audit.view',
             'monthly_visits.manage',
             'monthly_visits.execute',
             'projects.manage',
+            'projects.view',
             'kpis.manage',
             'risk.manage',
             'shakhas.manage',
@@ -35,10 +37,14 @@ class RolePermissionSeeder extends Seeder
             'audits.review_assign',
             'findings.view_all',
             'findings.enter',
+            'findings.summary.view',
+            'findings.summary.export_ppt',
+            'findings.summary.edit',
             'dashboard.ops',
             'dashboard.officer',
             'map.view',
             'calendar.manage',
+            'calendar.view',
         ];
 
         foreach ($permissions as $permission) {
@@ -49,6 +55,7 @@ class RolePermissionSeeder extends Seeder
         $director = Role::findOrCreate('director_audit');
         $manager = Role::findOrCreate('audit_manager');
         $senior = Role::findOrCreate('senior_officer');
+        $officerReviewer = Role::findOrCreate('auditor_reviewer');
         $officer = Role::findOrCreate('audit_officer');
 
         $superadmin->syncPermissions(Permission::all());
@@ -57,9 +64,11 @@ class RolePermissionSeeder extends Seeder
             'organogram.view',
             'organogram.manage',
             'annual_audit.manage',
+            'annual_audit.view',
             'monthly_visits.manage',
             'monthly_visits.execute',
             'projects.manage',
+            'projects.view',
             'kpis.manage',
             'risk.manage',
             'shakhas.manage',
@@ -71,9 +80,13 @@ class RolePermissionSeeder extends Seeder
             'audits.review_assign',
             'findings.view_all',
             'findings.enter',
+            'findings.summary.view',
+            'findings.summary.export_ppt',
+            'findings.summary.edit',
             'dashboard.ops',
             'map.view',
             'calendar.manage',
+            'calendar.view',
         ];
 
         $director->syncPermissions($leadership);
@@ -81,7 +94,10 @@ class RolePermissionSeeder extends Seeder
 
         $senior->syncPermissions([
             'organogram.view',
+            'annual_audit.view',
             'monthly_visits.execute',
+            'calendar.view',
+            'projects.view',
             'kpis.manage',
             'risk.manage',
             'shakhas.view_all',
@@ -89,17 +105,24 @@ class RolePermissionSeeder extends Seeder
             'audits.review',
             'findings.view_all',
             'findings.enter',
+            'findings.summary.view',
+            'findings.summary.export_ppt',
+            'findings.summary.edit',
             'dashboard.officer',
             'map.view',
         ]);
 
-        $officer->syncPermissions([
+        $officerPerms = [
             'audits.create',
             'findings.enter',
             'monthly_visits.execute',
+            'calendar.view',
             'dashboard.officer',
             'map.view',
-        ]);
+        ];
+
+        $officer->syncPermissions($officerPerms);
+        $officerReviewer->syncPermissions(array_merge($officerPerms, ['audits.review']));
 
         $admin = User::query()->updateOrCreate(
             ['email' => 'admin@bynnasaudit.com'],

@@ -6,6 +6,7 @@ use App\Models\Employee;
 use App\Models\Position;
 use App\Models\Shakha;
 use App\Models\User;
+use App\Services\AuditorAccessSyncService;
 use App\Support\RoleAccess;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -53,7 +54,6 @@ class UserManagementController extends Controller
         return view('users.form', array_merge($this->formData(), [
             'prefillEmployeeId' => $prefillEmployeeId,
             'suggestedRole' => $suggestedRole,
-            'selectedPermissions' => RoleAccess::permissionNamesForRole($suggestedRole),
         ]));
     }
 
@@ -88,7 +88,7 @@ class UserManagementController extends Controller
                 'email_verified_at' => now(),
             ]);
 
-            $this->syncUserAccess($user, $data['role'], $data['permissions'] ?? []);
+            $this->syncUserAccess($user, $data['role']);
             $user->assignedShakhas()->sync($data['shakha_ids'] ?? []);
 
             return $user;
@@ -96,7 +96,7 @@ class UserManagementController extends Controller
 
         return redirect()
             ->route('users.index')
-            ->with('status', 'Access granted to '.$user->name.' ('.RoleAccess::label($data['role']).').');
+            ->with('status', 'Access granted to '.$user->name.' (role: '.RoleAccess::label($data['role']).').');
     }
 
     public function edit(User $user): View
@@ -112,7 +112,6 @@ class UserManagementController extends Controller
             'user' => $user,
             'prefillEmployeeId' => null,
             'suggestedRole' => $profile,
-            'selectedPermissions' => $user->grantedPermissionNames() ?: RoleAccess::permissionNamesForRole($profile),
         ]));
     }
 
@@ -136,13 +135,13 @@ class UserManagementController extends Controller
             }
 
             $user->save();
-            $this->syncUserAccess($user, $data['role'], $data['permissions'] ?? []);
+            $this->syncUserAccess($user, $data['role']);
             $user->assignedShakhas()->sync($data['shakha_ids'] ?? []);
         });
 
         return redirect()
             ->route('users.index')
-            ->with('status', 'Access updated for '.$user->name.'.');
+            ->with('status', 'Access updated for '.$user->name.' (role: '.RoleAccess::label($data['role']).').');
     }
 
     public function destroy(User $user): RedirectResponse
@@ -214,20 +213,34 @@ class UserManagementController extends Controller
     }
 
     /**
-     * Apply role preset and exact selected permissions.
-     *
-     * @param  list<string>  $permissions
+     * Apply the standard Audit Officer package to every auditor login.
      */
-    protected function syncUserAccess(User $user, string $profile, array $permissions): void
+    public function syncAuditors(AuditorAccessSyncService $sync): RedirectResponse
     {
-        $permissions = collect($permissions)
-            ->map(fn ($p) => (string) $p)
-            ->filter(fn ($p) => in_array($p, RoleAccess::allPermissionNames(), true))
-            ->unique()
-            ->values()
-            ->all();
+        $result = $sync->syncAll();
 
-        if ($profile === 'superadmin') {
+        $msg = 'Assigned correct auditor roles to '.$result['synced'].' login(s).';
+        if ($result['with_review'] > 0) {
+            $msg .= ' '.$result['with_review'].' got Auditor + Reviewer (mapped as reviewers).';
+        }
+
+        return redirect()
+            ->route('users.index')
+            ->with('status', $msg);
+    }
+
+    /**
+     * Apply a single role. Access comes only from that role’s permissions.
+     */
+    protected function syncUserAccess(User $user, string $roleName): void
+    {
+        if (! in_array($roleName, RoleAccess::assignableRoleNames(), true)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'role' => 'Select a valid role.',
+            ]);
+        }
+
+        if ($roleName === 'superadmin') {
             $user->forceFill([
                 'is_superadmin' => true,
                 'access_profile' => 'superadmin',
@@ -241,33 +254,12 @@ class UserManagementController extends Controller
 
         $user->forceFill([
             'is_superadmin' => false,
-            'access_profile' => $profile,
+            'access_profile' => $roleName,
         ])->save();
 
-        $defaults = RoleAccess::permissionNamesForRole($profile);
-        sort($defaults);
-        $selected = $permissions;
-        sort($selected);
-
-        if ($selected === [] && $defaults !== []) {
-            $selected = $defaults;
-            sort($selected);
-        }
-
-        if ($defaults === $selected && RoleAccess::isSystemRole($profile)) {
-            $user->syncRoles([$profile]);
-            $user->syncPermissions([]);
-            $this->deletePersonalAccessRole($user->id);
-
-            return;
-        }
-
-        // Customized package: personal role holds the exact selected access.
-        $personalName = RoleAccess::personalAccessRoleName((int) $user->id);
-        $personal = Role::findOrCreate($personalName, 'web');
-        $personal->syncPermissions($selected);
-        $user->syncRoles([$personalName]);
+        $user->syncRoles([$roleName]);
         $user->syncPermissions([]);
+        $this->deletePersonalAccessRole($user->id);
     }
 
     protected function deletePersonalAccessRole(int $userId): void
@@ -284,14 +276,13 @@ class UserManagementController extends Controller
         return [
             'roles' => RoleAccess::assignableRoleNames(),
             'roleCatalog' => RoleAccess::catalogWithCustom(),
-            'permissionGroups' => RoleAccess::permissionGroups(),
             'rolePermissionMap' => RoleAccess::rolePermissionMap(),
+            'permissionMenuMap' => RoleAccess::permissionMenuMap(),
             'employees' => Employee::query()->with(['position', 'user'])->orderBy('name')->get(),
             'positions' => Position::query()->orderBy('serial')->get(),
             'shakhas' => Shakha::query()->with(['area:id,name,division', 'latestRiskAssessment'])->orderBy('name')->get(['id', 'name', 'code', 'area_id']),
             'user' => null,
             'suggestedRole' => 'audit_officer',
-            'selectedPermissions' => [],
         ];
     }
 
@@ -302,13 +293,11 @@ class UserManagementController extends Controller
     {
         $roleNames = RoleAccess::assignableRoleNames();
         $creatingEmployee = ! $user && $request->boolean('create_employee');
-        $permissionNames = RoleAccess::allPermissionNames();
 
         $request->merge([
             'is_active' => $request->boolean('is_active'),
             'create_employee' => $creatingEmployee,
             'employee_id' => $creatingEmployee ? null : ($request->input('employee_id') ?: null),
-            'permissions' => array_values(array_unique(array_map('strval', (array) $request->input('permissions', [])))),
         ]);
 
         $emailRules = [
@@ -332,8 +321,6 @@ class UserManagementController extends Controller
                 Password::defaults(),
             ],
             'role' => ['required', Rule::in($roleNames)],
-            'permissions' => ['nullable', 'array'],
-            'permissions.*' => ['string', Rule::in($permissionNames)],
             'employee_id' => [
                 'nullable',
                 'integer',
@@ -353,20 +340,11 @@ class UserManagementController extends Controller
         ], [
             'position_id.required' => 'Select an organogram position when creating a new employee.',
             'employee_id.prohibited' => 'Clear the employee link when creating a new employee.',
-            'permissions.*.in' => 'One of the selected access items is invalid.',
         ]);
 
         $data['mail_from_email'] = isset($data['mail_from_email'])
             ? (trim((string) $data['mail_from_email']) ?: null)
             : null;
-
-        $data['permissions'] = array_values(array_unique(array_map('strval', $data['permissions'] ?? [])));
-
-        if ($data['role'] === 'superadmin') {
-            $data['permissions'] = $permissionNames;
-        } elseif ($data['permissions'] === []) {
-            $data['permissions'] = RoleAccess::permissionNamesForRole($data['role']);
-        }
 
         if (! empty($data['employee_id'])) {
             $taken = User::query()

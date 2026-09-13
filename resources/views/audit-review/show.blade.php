@@ -23,6 +23,7 @@
                     Maker: {{ $report->user?->name ?: '—' }}
                     · Reviewer: {{ $report->reviewer?->name ?: '—' }}
                     · <span class="font-semibold text-slate-700">{{ $report->statusLabel() }}</span>
+                    · <span class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold {{ ($reviewContext['is_resubmit'] ?? false) ? 'bg-amber-50 text-amber-800' : 'bg-violet-50 text-violet-800' }}">{{ $reviewContext['round_label'] ?? $report->currentReviewRoundLabel() }}</span>
                     @if ($report->review_cc_superadmin)
                         · CC Superadmin
                     @endif
@@ -40,9 +41,84 @@
             <div class="mb-3 rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-[12px] text-rose-700">{{ $errors->first() }}</div>
         @endif
 
+        @if (! empty($reviewContext['is_resubmit']))
+            <div class="mb-3 space-y-2 rounded-xl border border-amber-200 bg-amber-50/80 px-3.5 py-3 shadow-sm">
+                <div class="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                        <p class="text-[13px] font-semibold text-amber-950">{{ $reviewContext['round_label'] }} — compare asks vs fixes</p>
+                        <p class="mt-0.5 text-[12px] text-amber-900/80">This is not the 1st review. Use the lists below to see what you asked for and what the maker says they changed.</p>
+                    </div>
+                </div>
+                @if (! empty($reviewContext['maker_note']))
+                    <div class="rounded-lg border border-amber-200 bg-white px-3 py-2">
+                        <p class="text-[10px] font-semibold uppercase tracking-wide text-amber-700">Maker resubmit note</p>
+                        <p class="mt-1 text-[12px] font-medium text-slate-900">{{ $reviewContext['maker_note'] }}</p>
+                    </div>
+                @endif
+                @if (! empty($reviewContext['change_summary']))
+                    <div class="rounded-lg border border-amber-200 bg-white px-3 py-2">
+                        <p class="text-[10px] font-semibold uppercase tracking-wide text-amber-700">What changed in the report</p>
+                        <ul class="mt-1 list-disc space-y-0.5 pl-4 text-[12px] text-slate-800">
+                            @foreach ($reviewContext['change_summary'] as $line)
+                                <li>{{ $line }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+                <div class="grid gap-2 lg:grid-cols-2">
+                    <div class="rounded-lg border border-rose-200 bg-white px-3 py-2">
+                        <p class="text-[10px] font-semibold uppercase tracking-wide text-rose-700">Earlier asks (previous round)</p>
+                        @forelse ($reviewContext['prior_asks'] as $ask)
+                            <div class="mt-1.5 border-t border-slate-100 pt-1.5 first:mt-1 first:border-0 first:pt-0">
+                                <p class="text-[11px] font-medium text-slate-900">{{ $ask['body'] ?: ($ask['quote'] ?: 'Mark') }}</p>
+                                <p class="text-[10px] text-slate-400">Round {{ $ask['review_round'] ?? '?' }} · {{ $ask['author'] ?? 'Reviewer' }}@if (! empty($ask['addressed'])) · <span class="font-semibold text-emerald-700">Maker marked done</span>@endif</p>
+                            </div>
+                        @empty
+                            <p class="mt-1 text-[11px] text-slate-500">No earlier marks stored for a prior round.</p>
+                        @endforelse
+                    </div>
+                    <div class="rounded-lg border border-emerald-200 bg-white px-3 py-2">
+                        <p class="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">Maker marked done</p>
+                        @forelse ($reviewContext['addressed_asks'] as $ask)
+                            <div class="mt-1.5 border-t border-slate-100 pt-1.5 first:mt-1 first:border-0 first:pt-0">
+                                <p class="text-[11px] font-medium text-slate-900 line-through decoration-emerald-600/50">{{ $ask['body'] ?: ($ask['quote'] ?: 'Mark') }}</p>
+                            </div>
+                        @empty
+                            <p class="mt-1 text-[11px] text-slate-500">Maker did not tick any marks as done.</p>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+        @elseif (($reviewContext['round'] ?? 1) === 1)
+            <div class="mb-3 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-[12px] text-violet-900">
+                <span class="font-semibold">1st review</span> — mark issues on the document. After Review done: Send to maker (they fix &amp; come back as re-review) or Confirm (final).
+            </div>
+        @endif
+
+        @if (! empty($reviewContext['timeline']))
+            <details class="mb-3 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 shadow-sm">
+                <summary class="cursor-pointer text-[12px] font-semibold text-navy-900">Review timeline ({{ count($reviewContext['timeline']) }})</summary>
+                <ol class="mt-2 space-y-1.5 border-t border-slate-100 pt-2">
+                    @foreach ($reviewContext['timeline'] as $ev)
+                        <li class="text-[11px] text-slate-700">
+                            <span class="font-semibold {{ ($ev['round'] ?? 1) >= 2 ? 'text-amber-800' : 'text-violet-800' }}">{{ $ev['label'] }}</span>
+                            <span class="text-slate-400">· {{ $ev['round_label'] }} · {{ $ev['actor'] }} · {{ $ev['at'] }}</span>
+                            @if (! empty($ev['body']))
+                                <p class="mt-0.5 whitespace-pre-line text-slate-600">{{ $ev['body'] }}</p>
+                            @endif
+                        </li>
+                    @endforeach
+                </ol>
+            </details>
+        @endif
+
         @if ($report->isReviewed())
-            <div class="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-900">
-                Confirmed and locked on {{ $report->reviewed_at?->timezone('Asia/Dhaka')->format('d M Y') }}.
+            <div class="mb-3 rounded-lg border {{ $report->review_perfect ? 'border-teal-200 bg-teal-50 text-teal-950' : 'border-emerald-200 bg-emerald-50 text-emerald-900' }} px-3 py-2 text-[12px]">
+                @if ($report->review_perfect)
+                    Totally fixed · 100% perfect — locked on {{ bd_date($report->reviewed_at) }}.
+                @else
+                    Confirmed and locked on {{ bd_date($report->reviewed_at) }}.
+                @endif
             </div>
         @endif
 
@@ -318,11 +394,39 @@
                                         class="inline-flex h-9 w-full items-center justify-center rounded-md bg-emerald-700 px-3 text-[12px] font-semibold text-white hover:bg-emerald-800"
                                     >Review done</button>
                                 </form>
-                                <p class="text-[10px] text-emerald-800">Then use <span class="font-semibold">Send to maker</span> on the Reviewed tab.</p>
+                                <form
+                                    method="POST"
+                                    action="{{ route('audit-review.totally-fixed', $report) }}"
+                                    data-bynnas-confirm="This marks the report as Totally fixed · 100% perfect and locks it. No send-back to the maker."
+                                    data-bynnas-confirm-title="Grant as totally fixed?"
+                                    data-bynnas-confirm-ok="Totally fixed"
+                                    data-bynnas-confirm-tone="emerald"
+                                >
+                                    @csrf
+                                    <button
+                                        type="submit"
+                                        class="inline-flex h-9 w-full items-center justify-center rounded-md bg-teal-600 px-3 text-[12px] font-semibold text-white hover:bg-teal-700"
+                                    >Totally fixed · 100%</button>
+                                </form>
+                                <p class="text-[10px] text-emerald-800">Need fixes? Use <span class="font-semibold">Review done</span> then Send to maker. Perfect as-is? Use <span class="font-semibold">Totally fixed</span>.</p>
                             @endif
 
                             @if ($canAct && $reviewReady)
-                                <p class="rounded-md bg-sky-50 px-2 py-1.5 text-[11px] text-sky-900">Ready — Send to maker for fixes, or Confirm on the Reviewed tab.</p>
+                                <p class="rounded-md bg-sky-50 px-2 py-1.5 text-[11px] text-sky-900">Ready — Send to maker for fixes, Confirm, or Totally fixed on the Reviewed tab.</p>
+                                <form
+                                    method="POST"
+                                    action="{{ route('audit-review.totally-fixed', $report) }}"
+                                    data-bynnas-confirm="This marks the report as Totally fixed · 100% perfect and locks it."
+                                    data-bynnas-confirm-title="Grant as totally fixed?"
+                                    data-bynnas-confirm-ok="Totally fixed"
+                                    data-bynnas-confirm-tone="emerald"
+                                >
+                                    @csrf
+                                    <button
+                                        type="submit"
+                                        class="inline-flex h-9 w-full items-center justify-center rounded-md bg-teal-600 px-3 text-[12px] font-semibold text-white hover:bg-teal-700"
+                                    >Totally fixed · 100%</button>
+                                </form>
                             @endif
                         </div>
                     @endif
@@ -347,6 +451,21 @@
                 tool: 'area',
                 activeId: null,
                 editingId: null,
+                csrfToken() {
+                    return window.bynnasCsrf?.token?.()
+                        || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                        || this.csrf
+                        || '';
+                },
+                async csrfHeaders() {
+                    if (window.bynnasCsrf?.refresh) {
+                        await window.bynnasCsrf.refresh({ force: false });
+                    }
+                    return {
+                        'X-CSRF-TOKEN': this.csrfToken(),
+                        'X-Requested-With': 'XMLHttpRequest',
+                    };
+                },
                 editDrafts: {},
                 dirtyIds: {},
                 savingIds: {},
@@ -437,8 +556,7 @@
                             headers: {
                                 'Content-Type': 'application/json',
                                 'Accept': 'application/json',
-                                'X-CSRF-TOKEN': this.csrf,
-                                'X-Requested-With': 'XMLHttpRequest',
+                                ...(await this.csrfHeaders()),
                             },
                             body: JSON.stringify({
                                 body: draft.body,
@@ -815,8 +933,7 @@
                                 headers: {
                                     'Content-Type': 'application/json',
                                     'Accept': 'application/json',
-                                    'X-CSRF-TOKEN': this.csrf,
-                                    'X-Requested-With': 'XMLHttpRequest',
+                                    ...(await this.csrfHeaders()),
                                 },
                                 body: JSON.stringify({ snapshot: dataUrl }),
                             });
@@ -876,8 +993,7 @@
                             headers: {
                                 'Content-Type': 'application/json',
                                 'Accept': 'application/json',
-                                'X-CSRF-TOKEN': this.csrf,
-                                'X-Requested-With': 'XMLHttpRequest',
+                                ...(await this.csrfHeaders()),
                             },
                             body: JSON.stringify(payload),
                         });
@@ -918,8 +1034,7 @@
                             method: 'DELETE',
                             headers: {
                                 'Accept': 'application/json',
-                                'X-CSRF-TOKEN': this.csrf,
-                                'X-Requested-With': 'XMLHttpRequest',
+                                ...(await this.csrfHeaders()),
                             },
                         });
                         if (!res.ok) throw new Error('Delete failed');

@@ -161,7 +161,7 @@ class UserAccessManagementTest extends TestCase
             ->assertDontSee('Active projects');
     }
 
-    public function test_superadmin_can_grant_custom_selected_permissions(): void
+    public function test_superadmin_assigns_role_only_not_personal_permissions(): void
     {
         $admin = User::query()->where('email', 'admin@bynnasaudit.com')->firstOrFail();
 
@@ -169,33 +169,61 @@ class UserAccessManagementTest extends TestCase
             ->get(route('users.create'))
             ->assertOk()
             ->assertSee('Grant access')
-            ->assertSee('Select access')
-            ->assertSee('Extra shakha access');
+            ->assertSee('Assign one role')
+            ->assertSee('Manage roles')
+            ->assertSee('Extra shakha access')
+            ->assertDontSee('Select access');
 
         $this->actingAs($admin)->post(route('users.store'), [
-            'name' => 'Custom Access Officer',
-            'email' => 'custom.access@example.com',
+            'name' => 'Role Only Officer',
+            'email' => 'role.only@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
             'role' => 'audit_officer',
             'permissions' => [
-                'audits.create',
-                'findings.enter',
-                'monthly_visits.execute',
-                'dashboard.officer',
-                'map.view',
-                'findings.view_all', // extra beyond officer preset
+                'findings.view_all', // ignored — role-based only
             ],
             'is_active' => '1',
         ])->assertRedirect(route('users.index'));
 
-        $user = User::query()->where('email', 'custom.access@example.com')->firstOrFail();
+        $user = User::query()->where('email', 'role.only@example.com')->firstOrFail();
         $this->assertSame('audit_officer', $user->access_profile);
-        $this->assertSame('Audit Officer', $user->roleLabel());
-        $this->assertTrue($user->can('findings.view_all'));
+        $this->assertTrue($user->hasRole('audit_officer'));
+        $this->assertSame('Audit Officer (Auditor)', $user->roleLabel());
+        $this->assertTrue($user->can('audits.create'));
+        $this->assertFalse($user->can('findings.view_all'));
+        $this->assertFalse($user->hasRole(\App\Support\RoleAccess::personalAccessRoleName((int) $user->id)));
+    }
+
+    public function test_custom_role_permissions_apply_when_assigned(): void
+    {
+        $admin = User::query()->where('email', 'admin@bynnasaudit.com')->firstOrFail();
+
+        $this->actingAs($admin)->post(route('roles.store'), [
+            'label' => 'Branch Reviewer',
+            'name' => 'branch_reviewer',
+            'permissions' => [
+                'audits.create',
+                'audits.review',
+                'dashboard.officer',
+                'map.view',
+            ],
+        ])->assertRedirect(route('roles.index'));
+
+        $this->actingAs($admin)->post(route('users.store'), [
+            'name' => 'Branch Reviewer User',
+            'email' => 'branch.reviewer@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+            'role' => 'branch_reviewer',
+            'is_active' => '1',
+        ])->assertRedirect(route('users.index'));
+
+        $user = User::query()->where('email', 'branch.reviewer@example.com')->firstOrFail();
+        $this->assertTrue($user->hasRole('branch_reviewer'));
+        $this->assertTrue($user->can('audits.review'));
         $this->assertTrue($user->can('audits.create'));
         $this->assertFalse($user->can('users.manage'));
-        $this->assertTrue($user->hasRole(\App\Support\RoleAccess::personalAccessRoleName((int) $user->id)));
     }
 
     public function test_manager_sees_ops_dashboard_and_not_users_menu_route(): void
@@ -217,5 +245,60 @@ class UserAccessManagementTest extends TestCase
         $this->actingAs($manager)
             ->get(route('users.index'))
             ->assertForbidden();
+    }
+
+    public function test_superadmin_can_sync_correct_auditor_access_package(): void
+    {
+        $admin = User::query()->where('email', 'admin@bynnasaudit.com')->firstOrFail();
+
+        $auditor = User::factory()->create([
+            'email' => 'sync.auditor@example.com',
+            'is_active' => true,
+            'access_profile' => 'audit_officer',
+        ]);
+        $personal = \Spatie\Permission\Models\Role::findOrCreate(
+            \App\Support\RoleAccess::personalAccessRoleName((int) $auditor->id),
+            'web'
+        );
+        $personal->syncPermissions([
+            'audits.create',
+            'findings.enter',
+            'monthly_visits.execute',
+            'dashboard.officer',
+            'map.view',
+            'findings.view_all',
+            'users.manage',
+        ]);
+        $auditor->syncRoles([$personal->name]);
+
+        $reviewerAuditor = User::factory()->create([
+            'email' => 'sync.reviewer.auditor@example.com',
+            'is_active' => true,
+            'access_profile' => 'audit_officer',
+        ]);
+        $reviewerAuditor->assignRole('audit_officer');
+        \App\Models\AuditReviewerAssignment::query()->create([
+            'auditor_user_id' => $auditor->id,
+            'reviewer_user_id' => $reviewerAuditor->id,
+            'assigned_by' => $admin->id,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('users.sync-auditors'))
+            ->assertRedirect(route('users.index'));
+
+        $auditor->refresh();
+        $reviewerAuditor->refresh();
+
+        $this->assertTrue($auditor->hasRole('audit_officer'));
+        $this->assertTrue($auditor->can('audits.create'));
+        $this->assertTrue($auditor->can('findings.enter'));
+        $this->assertFalse($auditor->can('findings.view_all'));
+        $this->assertFalse($auditor->can('users.manage'));
+
+        $this->assertTrue($reviewerAuditor->hasRole('auditor_reviewer'));
+        $this->assertTrue($reviewerAuditor->can('audits.create'));
+        $this->assertTrue($reviewerAuditor->can('audits.review'));
+        $this->assertFalse($reviewerAuditor->can('audits.review_assign'));
     }
 }

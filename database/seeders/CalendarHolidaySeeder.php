@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\CalendarHoliday;
+use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 
 class CalendarHolidaySeeder extends Seeder
@@ -10,7 +11,7 @@ class CalendarHolidaySeeder extends Seeder
     public function run(): void
     {
         // Representative BD national / government offs spanning FY 2026-2027 (Jul–Jun).
-        // Admin can add/adjust later; seed ensures working-day logic works out of the box.
+        // Safe to re-run (idempotent on holiday_date + type).
         $rows = [
             // 2026
             ['2026-02-21', 'Shaheed Day', 'national'],
@@ -38,10 +39,29 @@ class CalendarHolidaySeeder extends Seeder
         ];
 
         foreach ($rows as [$date, $name, $type]) {
-            CalendarHoliday::query()->updateOrCreate(
-                ['holiday_date' => $date, 'type' => $type],
-                ['name' => $name, 'is_active' => true]
-            );
+            $day = Carbon::parse($date)->toDateString();
+
+            // whereDate avoids SQLite unique clashes from date-cast updateOrCreate lookups.
+            $holiday = CalendarHoliday::query()
+                ->whereDate('holiday_date', $day)
+                ->where('type', $type)
+                ->first();
+
+            if ($holiday) {
+                $holiday->fill([
+                    'name' => $name,
+                    'is_active' => true,
+                ])->save();
+
+                continue;
+            }
+
+            CalendarHoliday::query()->create([
+                'holiday_date' => $day,
+                'type' => $type,
+                'name' => $name,
+                'is_active' => true,
+            ]);
         }
     }
 }

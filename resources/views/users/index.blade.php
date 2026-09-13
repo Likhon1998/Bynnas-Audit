@@ -3,9 +3,22 @@
         <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div>
                 <h1 class="text-[16px] font-semibold tracking-tight text-navy-900">Users &amp; Access</h1>
-                <p class="mt-0.5 text-[12px] text-slate-500">Grant access to people · choose role &amp; permissions · optional extra branches</p>
+                <p class="mt-0.5 text-[12px] text-slate-500">Assign a role to each login · create roles &amp; permissions separately · optional extra branches</p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
+                <form
+                    method="POST"
+                    action="{{ route('users.sync-auditors') }}"
+                    data-bynnas-confirm="Assign every auditor the Audit Officer role. Mapped reviewers get Auditor + Reviewer."
+                    data-bynnas-confirm-title="Apply correct auditor roles?"
+                    data-bynnas-confirm-ok="Assign roles"
+                    data-bynnas-confirm-tone="sky"
+                >
+                    @csrf
+                    <button type="submit" class="inline-flex h-8 items-center rounded-lg border border-sky-200 bg-sky-50 px-3 text-[12px] font-semibold text-sky-900 hover:bg-sky-100">
+                        Fix auditor access
+                    </button>
+                </form>
                 <a href="{{ route('roles.index') }}" class="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-3 text-[12px] font-semibold text-slate-700 hover:bg-slate-50">
                     Manage roles
                 </a>
@@ -23,6 +36,18 @@
         @enderror
 
         {{-- Role cheat sheet --}}
+        <div class="mb-4 rounded-xl border border-sky-100 bg-sky-50/40 px-3.5 py-3">
+            <p class="text-[11px] font-bold uppercase tracking-wide text-sky-800">How access works</p>
+            <div class="mt-2 grid gap-2 sm:grid-cols-2">
+                @foreach (\App\Support\RoleAccess::accessModelGuide() as $tip)
+                    <div class="rounded-lg border border-sky-100 bg-white/80 px-2.5 py-2">
+                        <p class="text-[12px] font-semibold text-navy-900">{{ $tip['title'] }}</p>
+                        <p class="mt-0.5 text-[11px] leading-relaxed text-slate-600">{{ $tip['body'] }}</p>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+
         <div class="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             @foreach ($roleCatalog as $key => $role)
                 <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
@@ -33,6 +58,12 @@
                         @endunless
                     </div>
                     <p class="text-[10px] text-slate-500">{{ $role['summary'] }}</p>
+                    @if (! empty($role['menus']))
+                        <p class="mt-1.5 text-[10px] leading-relaxed text-slate-500">
+                            <span class="font-semibold text-slate-600">Opens:</span>
+                            {{ implode(' · ', array_slice($role['menus'], 0, 8)) }}{{ count($role['menus']) > 8 ? ' · …' : '' }}
+                        </p>
+                    @endif
                     <p class="mt-1.5 text-[10px] leading-relaxed text-slate-400">{{ $role['notes'] }}</p>
                 </div>
             @endforeach

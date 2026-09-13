@@ -146,12 +146,12 @@
                                     @if ($status === 'evidence')
                                         <span class="font-semibold text-emerald-700">Evidence saved</span>
                                         @if ($sub?->saved_at)
-                                            · {{ $sub->saved_at->timezone('Asia/Dhaka')->format('d M Y, h:i A') }}
+                                            · {{ bd_datetime($sub->saved_at) }}
                                         @endif
                                     @elseif ($status === 'draft')
                                         <span class="font-semibold text-amber-700">Draft</span>
                                         @if ($sub?->saved_at)
-                                            · {{ $sub->saved_at->timezone('Asia/Dhaka')->format('d M Y, h:i A') }}
+                                            · {{ bd_datetime($sub->saved_at) }}
                                         @endif
                                     @else
                                         Not filled yet

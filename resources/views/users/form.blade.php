@@ -6,16 +6,12 @@
         if (! in_array($selectedRole, $roles, true)) {
             $selectedRole = $suggestedRole ?? 'audit_officer';
         }
-        $selectedPermissions = collect(old('permissions', $selectedPermissions ?? []))
-            ->map(fn ($p) => (string) $p)
-            ->unique()
-            ->values()
-            ->all();
         $selectedShakhas = collect(old('shakha_ids', $user?->assignedShakhas?->pluck('id')->all() ?? []))->map(fn ($id) => (int) $id)->all();
         $defaultEmployeeId = (int) old('employee_id', $user?->employee_id ?: ($prefillEmployeeId ?? 0));
         $createEmployee = (bool) old('create_employee', false);
         $prefillEmployee = $employees->firstWhere('id', $defaultEmployeeId);
         $rolePermissionMap = $rolePermissionMap ?? [];
+        $permissionMenuMap = $permissionMenuMap ?? \App\Support\RoleAccess::permissionMenuMap();
     @endphp
 
     <div class="px-4 py-4 lg:px-6">
@@ -25,7 +21,7 @@
                 {{ $editing ? 'Edit access' : 'Grant access' }}
             </h1>
             <p class="mt-0.5 text-[12px] text-slate-500">
-                Choose the person → select what they can do → optionally add extra branches
+                Choose the person → assign one role → optionally add extra branches
             </p>
         </div>
 
@@ -40,9 +36,9 @@
             x-data="grantAccess({
                 createEmployee: {{ $createEmployee && ! $editing ? 'true' : 'false' }},
                 role: @js($selectedRole),
-                permissions: @js($selectedPermissions),
                 rolePermissionMap: @js($rolePermissionMap),
-                roleMenus: @js(collect($roleCatalog)->mapWithKeys(fn ($r, $k) => [$k => $r['menus']])),
+                permissionMenuMap: @js($permissionMenuMap),
+                roleCatalog: @js($roleCatalog),
             })"
         >
             @csrf
@@ -140,67 +136,40 @@
                 </div>
             </section>
 
-            {{-- 2. Access --}}
+            {{-- 2. Role --}}
             <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                 <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-2.5">
-                    <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">2 · What they can do</p>
-                    <p class="text-[12px] font-semibold text-navy-900">Role preset + selected access</p>
+                    <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">2 · Role</p>
+                    <p class="text-[12px] font-semibold text-navy-900">Assign one role (access comes from the role)</p>
                 </div>
                 <div class="space-y-4 p-4">
+                    <div class="rounded-lg border border-sky-100 bg-sky-50/50 px-3 py-2.5 text-[11px] leading-relaxed text-sky-950">
+                        Access is <strong>role-based</strong>. Define permissions on
+                        <a href="{{ route('roles.index') }}" class="font-semibold text-[#2b579a] hover:underline">Manage roles</a>,
+                        then assign that role here. Do not tick permissions per person.
+                    </div>
+
                     <div>
-                        <label class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Access profile (preset)</label>
-                        <select name="role" x-model="role" @change="applyPreset()" class="h-9 w-full rounded-lg border-slate-200 text-[13px]" required>
+                        <label class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Role</label>
+                        <select name="role" x-model="role" class="h-9 w-full rounded-lg border-slate-200 text-[13px]" required>
                             @foreach ($roles as $role)
                                 <option value="{{ $role }}">{{ $roleCatalog[$role]['label'] ?? \App\Support\RoleAccess::label($role) }}</option>
                             @endforeach
                         </select>
-                        <p class="mt-1.5 text-[11px] text-slate-500">
-                            Changing the preset reloads the checklist below. Then tick/untick what this person may use.
-                        </p>
+                        <p class="mt-1.5 text-[11px] text-slate-500" x-text="roleSummary"></p>
                         @error('role') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
                     </div>
 
-                    <div class="rounded-lg border border-sky-100 bg-sky-50/50 px-3 py-2 text-[11px] text-sky-950">
-                        <p class="font-semibold">Menus this access unlocks</p>
-                        <p class="mt-0.5 text-sky-800/80" x-text="selectedMenuLabel"></p>
+                    <div class="rounded-lg border border-emerald-100 bg-emerald-50/40 px-3 py-2.5">
+                        <p class="text-[11px] font-semibold text-emerald-900">This role unlocks</p>
+                        <p class="mt-0.5 text-[11px] leading-relaxed text-emerald-950/90" x-text="selectedMenuLabel"></p>
+                        <p class="mt-1.5 text-[10px] text-emerald-800/80" x-text="permissionCountLabel"></p>
                     </div>
 
-                    <div class="flex flex-wrap items-center justify-between gap-2">
-                        <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Select access</p>
-                        <div class="flex gap-2 text-[11px]">
-                            <button type="button" @click="applyPreset()" class="font-semibold text-[#2b579a] hover:underline">Reset to preset</button>
-                            <button type="button" @click="selectNone()" class="font-semibold text-slate-500 hover:underline">Clear all</button>
-                        </div>
+                    <div class="flex flex-wrap gap-2">
+                        <a href="{{ route('roles.create') }}" class="inline-flex h-8 items-center rounded-md border border-slate-200 bg-white px-2.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50">+ Create role</a>
+                        <a href="{{ route('roles.index') }}" class="inline-flex h-8 items-center rounded-md border border-slate-200 bg-white px-2.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50">Edit role permissions</a>
                     </div>
-
-                    <div class="grid gap-3 lg:grid-cols-2">
-                        @foreach ($permissionGroups as $groupKey => $group)
-                            <div class="rounded-lg border border-slate-200 p-3">
-                                <p class="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-500">{{ $group['label'] }}</p>
-                                <div class="space-y-1.5">
-                                    @foreach ($group['permissions'] as $permKey => $permLabel)
-                                        <label class="flex cursor-pointer items-start gap-2 rounded-md px-1.5 py-1 hover:bg-slate-50">
-                                            <input
-                                                type="checkbox"
-                                                name="permissions[]"
-                                                value="{{ $permKey }}"
-                                                class="mt-0.5 rounded border-slate-300 text-[#2b579a]"
-                                                :disabled="role === 'superadmin'"
-                                                x-model="permissions"
-                                            >
-                                            <span class="text-[12px] text-navy-900">{{ $permLabel }}</span>
-                                        </label>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                    @error('permissions') <p class="text-[11px] text-rose-600">{{ $message }}</p> @enderror
-                    @error('permissions.*') <p class="text-[11px] text-rose-600">{{ $message }}</p> @enderror
-
-                    <p class="text-[10px] text-slate-400" x-show="isCustomized" x-cloak>
-                        Customized from the preset — saved as a personal access package for this user only.
-                    </p>
                 </div>
             </section>
 
@@ -214,7 +183,7 @@
                     <p class="mb-2 text-[11px] text-slate-500">
                         Field staff already get branches from <strong>Monthly Visits</strong> allocations.
                         Use this only to grant <strong>extra</strong> shakhas beyond those visits.
-                        “All shakhas” permission above still opens every branch.
+                        Roles with “All shakhas” still open every branch.
                     </p>
                     <div class="mb-2">
                         <input type="search" x-model="shakhaQuery" placeholder="Filter shakhas…" class="h-8 w-full max-w-sm rounded-lg border-slate-200 text-[12px]">
@@ -257,10 +226,13 @@
                         type="submit"
                         form="delete-user"
                         class="text-[12px] font-medium text-rose-600 hover:underline"
-                        onclick="return confirm('Permanently delete this login? The organogram employee (if linked) will be kept.')"
+                        data-bynnas-confirm="Permanently delete this login? The organogram employee (if linked) will be kept."
+                        data-bynnas-confirm-title="Delete login?"
+                        data-bynnas-confirm-ok="Delete login"
+                        data-bynnas-confirm-tone="rose"
                     >Delete login</button>
                 @else
-                    <span class="text-[11px] text-slate-400">Access is applied immediately after save.</span>
+                    <span class="text-[11px] text-slate-400">Role access is applied immediately after save.</span>
                 @endif
                 <button type="submit" class="inline-flex h-9 items-center rounded-lg bg-[#2b579a] px-4 text-[12px] font-semibold text-white hover:bg-[#204072]">
                     {{ $editing ? 'Save access' : 'Grant access' }}
@@ -281,50 +253,47 @@
             return {
                 createEmployee: !!cfg.createEmployee,
                 role: cfg.role || 'audit_officer',
-                permissions: (cfg.permissions || []).slice(),
                 rolePermissionMap: cfg.rolePermissionMap || {},
-                roleMenus: cfg.roleMenus || {},
+                permissionMenuMap: cfg.permissionMenuMap || {},
+                roleCatalog: cfg.roleCatalog || {},
                 shakhaQuery: '',
-                applyPreset() {
-                    if (this.role === 'superadmin') {
-                        this.permissions = Object.values(this.rolePermissionMap['superadmin'] || []).length
-                            ? (this.rolePermissionMap['superadmin'] || []).slice()
-                            : this.permissions;
-                        // Superadmin is full access via role — keep all known keys checked for UI.
-                        const all = [];
-                        Object.values(this.rolePermissionMap).forEach((list) => {
-                            (list || []).forEach((p) => { if (!all.includes(p)) all.push(p); });
-                        });
-                        document.querySelectorAll('input[name="permissions[]"]').forEach((el) => {
-                            if (!all.includes(el.value)) all.push(el.value);
-                        });
-                        this.permissions = all;
-                        return;
-                    }
-                    this.permissions = (this.rolePermissionMap[this.role] || []).slice();
-                },
-                selectNone() {
-                    if (this.role === 'superadmin') return;
-                    this.permissions = [];
-                },
                 shakhaMatch(haystack) {
                     const q = (this.shakhaQuery || '').toLowerCase().trim();
                     if (!q) return true;
                     return q.split(/\s+/).every((t) => (haystack || '').includes(t));
                 },
-                get isCustomized() {
-                    if (this.role === 'superadmin') return false;
-                    const preset = (this.rolePermissionMap[this.role] || []).slice().sort();
-                    const current = this.permissions.slice().sort();
-                    if (preset.length !== current.length) return true;
-                    return preset.some((p, i) => p !== current[i]);
+                rolePermissions() {
+                    if (this.role === 'superadmin') {
+                        const all = new Set();
+                        Object.values(this.rolePermissionMap).forEach((list) => {
+                            (list || []).forEach((p) => all.add(p));
+                        });
+                        return Array.from(all);
+                    }
+                    return (this.rolePermissionMap[this.role] || []).slice();
+                },
+                menusFromPermissions(list) {
+                    const menus = [];
+                    (list || []).forEach((perm) => {
+                        (this.permissionMenuMap[perm] || []).forEach((label) => {
+                            if (!menus.includes(label)) menus.push(label);
+                        });
+                    });
+                    return menus;
+                },
+                get roleSummary() {
+                    const meta = this.roleCatalog[this.role] || {};
+                    return meta.notes || meta.summary || 'Access is controlled by this role’s permissions.';
                 },
                 get selectedMenuLabel() {
-                    const menus = this.roleMenus[this.role] || [];
-                    if (this.role === 'superadmin') return 'Full system access';
-                    if (!this.isCustomized && menus.length) return menus.join(' · ');
-                    const count = this.permissions.length;
-                    return count ? (count + ' permission' + (count === 1 ? '' : 's') + ' selected') : 'No permissions selected';
+                    if (this.role === 'superadmin') return 'Full system access (all menus + superadmin chat)';
+                    const menus = this.menusFromPermissions(this.rolePermissions());
+                    return menus.length ? menus.join(' · ') : 'No permissions on this role yet — edit the role first.';
+                },
+                get permissionCountLabel() {
+                    if (this.role === 'superadmin') return 'All permissions';
+                    const n = this.rolePermissions().length;
+                    return n + ' permission' + (n === 1 ? '' : 's') + ' on this role';
                 },
             };
         }

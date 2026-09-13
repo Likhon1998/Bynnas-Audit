@@ -82,4 +82,43 @@ class AuthenticationTest extends TestCase
         $response->assertRedirect(route('login', absolute: false));
         $response->assertSessionHas('status');
     }
+
+    public function test_token_mismatch_for_authenticated_user_does_not_logout(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        $request = \Illuminate\Http\Request::create(
+            '/profile',
+            'PATCH',
+            ['name' => $user->name, 'email' => $user->email],
+            server: ['HTTP_REFERER' => route('dashboard')]
+        );
+        $request->setLaravelSession($this->app['session']->driver());
+        $request->setUserResolver(fn () => $user);
+        $this->app['session']->setPreviousUrl(route('dashboard'));
+
+        // Same shape Laravel uses after preparing TokenMismatchException.
+        $response = $this->app[\Illuminate\Contracts\Debug\ExceptionHandler::class]
+            ->render(
+                $request,
+                new \Symfony\Component\HttpKernel\Exception\HttpException(419, 'CSRF token mismatch.')
+            );
+
+        $this->assertAuthenticatedAs($user);
+        $this->assertTrue($response->isRedirect());
+        $this->assertSame(route('dashboard'), $response->headers->get('Location'));
+        $this->assertSame(
+            'Your form expired. Please try again — you are still signed in.',
+            $this->app['session']->get('status')
+        );
+    }
+
+    public function test_csrf_token_endpoint_returns_token(): void
+    {
+        $response = $this->getJson(route('csrf.token'));
+
+        $response->assertOk()->assertJsonStructure(['token']);
+        $this->assertNotEmpty($response->json('token'));
+    }
 }

@@ -3,7 +3,7 @@
         <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div>
                 <h1 class="text-[16px] font-semibold tracking-tight text-navy-900">Roles</h1>
-                <p class="mt-0.5 text-[12px] text-slate-500">Create custom roles · pick permissions · assign on Users &amp; Access</p>
+                <p class="mt-0.5 text-[12px] text-slate-500">Create roles · set permissions on the role · assign that role on Users &amp; Access</p>
             </div>
             <a href="{{ route('roles.create') }}" class="inline-flex h-8 items-center rounded-lg bg-navy-900 px-3 text-[12px] font-medium text-white hover:bg-navy-800">
                 + New role
@@ -46,6 +46,11 @@
                                 </p>
                                 @if (! empty($meta['notes']))
                                     <p class="mt-1 text-[10px] text-slate-400">{{ $meta['notes'] }}</p>
+                                @endif
+                                @if (! empty($meta['menus']))
+                                    <p class="mt-1 text-[10px] leading-relaxed text-slate-500">
+                                        {{ implode(' · ', array_slice($meta['menus'], 0, 6)) }}{{ count($meta['menus']) > 6 ? ' · …' : '' }}
+                                    </p>
                                 @endif
                             </td>
                             <td class="px-3 py-2.5 text-slate-600">

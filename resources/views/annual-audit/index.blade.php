@@ -15,11 +15,15 @@
             'project_monitoring' => ['label' => 'Project Monitoring', 'idle' => 'bg-cyan-50 text-cyan-700 hover:bg-cyan-100', 'active' => 'bg-cyan-600 text-white shadow-md ring-2 ring-cyan-600/30'],
         ];
         $canEditSchedule = $canEditSchedule ?? true;
+        $canManageAnnual = $canManageAnnual ?? $canEditSchedule;
     @endphp
 
     <div class="px-4 py-5 lg:px-6">
         <div class="mb-3 flex flex-nowrap items-center gap-2 overflow-x-auto pb-0.5">
             <h1 class="shrink-0 text-[14px] font-semibold tracking-tight text-navy-900">Annual Audit &amp; Monitoring</h1>
+            @unless ($canManageAnnual)
+                <span class="inline-flex shrink-0 items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-800">View only</span>
+            @endunless
             <span class="hidden h-4 w-px shrink-0 bg-slate-200 sm:block"></span>
             <label class="inline-flex shrink-0 items-center gap-1 text-[11px] text-slate-400">
                 FY
@@ -39,16 +43,19 @@
             </label>
             <span class="hidden shrink-0 text-[11px] capitalize text-slate-400 sm:inline">{{ $plan->status }}</span>
             @if ($plan->generated_at)
-                <span class="hidden shrink-0 text-[11px] text-slate-400 lg:inline">· {{ $plan->generated_at->format('d M Y H:i') }}</span>
+                <span class="hidden shrink-0 text-[11px] text-slate-400 lg:inline">· {{ bd_datetime($plan->generated_at) }}</span>
             @endif
 
             <div class="ml-auto flex shrink-0 flex-nowrap items-center gap-1.5">
-                @if ($canDeletePlan ?? false)
+                @if ($canManageAnnual && ($canDeletePlan ?? false))
                     <form
                         method="POST"
                         action="{{ route('annual-audit.years.destroy') }}"
                         class="inline"
-                        onsubmit="return confirm('Delete the entire FY {{ $plan->fy_label }} report?\n\nThis permanently removes all schedules and policies for that year. This cannot be undone.')"
+                        data-bynnas-confirm="Delete the entire FY {{ $plan->fy_label }} report? This permanently removes all schedules and policies for that year."
+                        data-bynnas-confirm-title="Delete financial year?"
+                        data-bynnas-confirm-ok="Delete FY"
+                        data-bynnas-confirm-tone="rose"
                     >
                         @csrf
                         @method('DELETE')
@@ -58,15 +65,17 @@
                         </button>
                     </form>
                 @endif
-                @unless ($nextPlanExists)
-                    <form method="POST" action="{{ route('annual-audit.years.store') }}" class="inline">
-                        @csrf
-                        <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
-                        <button type="submit" class="inline-flex h-7 items-center rounded-md border border-emerald-200 bg-emerald-50 px-2 text-[11px] font-medium text-emerald-800 hover:bg-emerald-100">
-                            Create {{ $nextFyLabel }}
-                        </button>
-                    </form>
-                @endunless
+                @if ($canManageAnnual)
+                    @unless ($nextPlanExists)
+                        <form method="POST" action="{{ route('annual-audit.years.store') }}" class="inline">
+                            @csrf
+                            <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
+                            <button type="submit" class="inline-flex h-7 items-center rounded-md border border-emerald-200 bg-emerald-50 px-2 text-[11px] font-medium text-emerald-800 hover:bg-emerald-100">
+                                Create {{ $nextFyLabel }}
+                            </button>
+                        </form>
+                    @endunless
+                @endif
                 <a
                     href="{{ route('annual-audit.export', ['mode' => 'all', 'fy' => $plan->fy_label]) }}"
                     class="inline-flex h-7 items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 text-[11px] font-medium text-emerald-800 hover:bg-emerald-100"
@@ -77,30 +86,32 @@
                     </svg>
                     Export Full Report
                 </a>
-                <form method="POST" action="{{ route('annual-audit.generate') }}" class="inline">
-                    @csrf
-                    <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
-                    <button
-                        type="submit"
-                        class="inline-flex h-7 items-center rounded-md bg-navy-900 px-2.5 text-[11px] font-medium text-white hover:bg-navy-800"
-                        title="Uses frequencies from Policies to build the yearly schedule"
-                    >
-                        {{ $plan->generated_at ? 'Regenerate' : '2. Generate Plan' }}
-                    </button>
-                </form>
-                @if ($plan->generated_at)
-                    <form method="POST" action="{{ route('annual-audit.sync-missing') }}" class="inline">
+                @if ($canManageAnnual)
+                    <form method="POST" action="{{ route('annual-audit.generate') }}" class="inline">
                         @csrf
                         <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
-                        <input type="hidden" name="tab" value="{{ $tab }}">
                         <button
                             type="submit"
-                            class="inline-flex h-7 items-center rounded-md border border-slate-200 bg-white px-2.5 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
-                            title="Add only new shakha / area / project rows without changing existing schedules"
+                            class="inline-flex h-7 items-center rounded-md bg-navy-900 px-2.5 text-[11px] font-medium text-white hover:bg-navy-800"
+                            title="Uses frequencies from Policies to build the yearly schedule"
                         >
-                            Sync new items
+                            {{ $plan->generated_at ? 'Regenerate' : '2. Generate Plan' }}
                         </button>
                     </form>
+                    @if ($plan->generated_at)
+                        <form method="POST" action="{{ route('annual-audit.sync-missing') }}" class="inline">
+                            @csrf
+                            <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
+                            <input type="hidden" name="tab" value="{{ $tab }}">
+                            <button
+                                type="submit"
+                                class="inline-flex h-7 items-center rounded-md border border-slate-200 bg-white px-2.5 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
+                                title="Add only new shakha / area / project rows without changing existing schedules"
+                            >
+                                Sync new items
+                            </button>
+                        </form>
+                    @endif
                 @endif
             </div>
         </div>
@@ -117,12 +128,17 @@
 
         @unless ($plan->generated_at)
             <div class="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-rose-100 bg-rose-50/70 px-3 py-2 text-[12px] text-rose-900">
-                <span class="font-semibold">Setup this FY:</span>
-                <a href="{{ route('annual-audit.index', ['fy' => $plan->fy_label, 'tab' => 'policies']) }}" class="font-medium underline decoration-rose-300 underline-offset-2 hover:text-rose-700">1. Set Policies</a>
-                <span class="text-rose-300">→</span>
-                <span>2. Generate Plan</span>
-                <span class="text-rose-300">→</span>
-                <span class="text-rose-700/80">3. Review report tabs</span>
+                @if ($canManageAnnual)
+                    <span class="font-semibold">Setup this FY:</span>
+                    <a href="{{ route('annual-audit.index', ['fy' => $plan->fy_label, 'tab' => 'policies']) }}" class="font-medium underline decoration-rose-300 underline-offset-2 hover:text-rose-700">1. Set Policies</a>
+                    <span class="text-rose-300">→</span>
+                    <span>2. Generate Plan</span>
+                    <span class="text-rose-300">→</span>
+                    <span class="text-rose-700/80">3. Review report tabs</span>
+                @else
+                    <span class="font-semibold">Plan not generated yet.</span>
+                    <span class="text-rose-700/80">Ask a planner with Annual Audit manage access to generate this FY.</span>
+                @endif
             </div>
         @endunless
 
@@ -216,6 +232,7 @@
                     'categoryTotals' => $categoryTotals,
                 ])
             @elseif ($tab === 'policies')
+                @if ($canManageAnnual)
                 <form method="POST" action="{{ route('annual-audit.policies') }}" class="p-4">
                     @csrf
                     <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
@@ -273,6 +290,29 @@
                         </button>
                     </div>
                 </form>
+                @else
+                    <div class="p-4">
+                        <p class="mb-3 text-[12px] text-slate-500">View only — policy frequencies for this FY.</p>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-left">
+                                <thead class="border-b border-slate-100 bg-slate-50/80">
+                                    <tr class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                                        <th class="px-3 py-2.5">Category</th>
+                                        <th class="px-3 py-2.5">Times / Year</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    @foreach ($policies as $policy)
+                                        <tr class="text-[12px]">
+                                            <td class="px-3 py-2.5 font-medium capitalize text-navy-900">{{ str_replace('_', ' ', $policy->category) }}</td>
+                                            <td class="px-3 py-2.5 text-slate-700">{{ $policy->frequency_per_year }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                @endif
             @else
                 <div class="overflow-x-auto">
                     <table class="min-w-full text-left">

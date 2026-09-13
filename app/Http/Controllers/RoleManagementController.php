@@ -21,7 +21,9 @@ class RoleManagementController extends Controller
             ->with('permissions')
             ->withCount('users')
             ->orderBy('name')
-            ->get();
+            ->get()
+            ->reject(fn (Role $role) => RoleAccess::isPersonalAccessRole($role->name))
+            ->values();
 
         return view('roles.index', [
             'roles' => $roles,

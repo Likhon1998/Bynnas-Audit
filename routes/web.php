@@ -27,6 +27,11 @@ Route::get('/', function () {
         : redirect()->route('login');
 });
 
+// Fresh CSRF for long-lived pages (forms / Alpine fetch) without logging the user out.
+Route::get('/csrf-token', function () {
+    return response()->json(['token' => csrf_token()]);
+})->name('csrf.token');
+
 Route::middleware(['auth', 'verified', 'active'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
@@ -44,6 +49,7 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
         Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
         Route::get('/users/create', [UserManagementController::class, 'create'])->name('users.create');
         Route::post('/users', [UserManagementController::class, 'store'])->name('users.store');
+        Route::post('/users/sync-auditors', [UserManagementController::class, 'syncAuditors'])->name('users.sync-auditors');
         Route::get('/users/{user}/edit', [UserManagementController::class, 'edit'])->name('users.edit');
         Route::put('/users/{user}', [UserManagementController::class, 'update'])->name('users.update');
         Route::patch('/users/{user}/toggle-active', [UserManagementController::class, 'toggleActive'])->name('users.toggle-active');
@@ -85,6 +91,10 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
     Route::middleware('permission:audits.review_assign')->group(function () {
         Route::get('/audit-review/assignments', [AuditReportReviewController::class, 'assignments'])->name('audit-review.assignments');
         Route::post('/audit-review/assignments', [AuditReportReviewController::class, 'saveAssignments'])->name('audit-review.assignments.save');
+        Route::get('/audit-review/log', [AuditReportReviewController::class, 'log'])->name('audit-review.log');
+        Route::get('/audit-review/log/pipeline', [AuditReportReviewController::class, 'logPipeline'])->name('audit-review.log.pipeline');
+        Route::get('/audit-review/log/activity', [AuditReportReviewController::class, 'logActivity'])->name('audit-review.log.activity');
+        Route::get('/audit-review/log/{report}', [AuditReportReviewController::class, 'logHistory'])->whereNumber('report')->name('audit-review.log.show');
     });
     Route::middleware('permission:audits.review|audits.review_assign|audits.create|audits.manage')->group(function () {
         Route::get('/audit-review', [AuditReportReviewController::class, 'index'])->name('audit-review.index');
@@ -92,9 +102,10 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
         Route::get('/audit-review/{report}/document', [AuditReportReviewController::class, 'document'])->whereNumber('report')->name('audit-review.document');
         Route::get('/audit-review/{report}/download', [AuditReportReviewController::class, 'downloadReviewPack'])->whereNumber('report')->name('audit-review.download');
     });
-    Route::middleware('permission:audits.review')->group(function () {
+    Route::middleware('permission:audits.review|audits.review_assign')->group(function () {
         Route::post('/audit-review/{report}/request-changes', [AuditReportReviewController::class, 'requestChanges'])->whereNumber('report')->name('audit-review.request-changes');
         Route::post('/audit-review/{report}/approve', [AuditReportReviewController::class, 'approve'])->whereNumber('report')->name('audit-review.approve');
+        Route::post('/audit-review/{report}/totally-fixed', [AuditReportReviewController::class, 'totallyFixed'])->whereNumber('report')->name('audit-review.totally-fixed');
         Route::post('/audit-review/{report}/done', [AuditReportReviewController::class, 'completeReview'])->whereNumber('report')->name('audit-review.done');
         Route::post('/audit-review/{report}/send-to-maker', [AuditReportReviewController::class, 'sendToMaker'])->whereNumber('report')->name('audit-review.send-to-maker');
         Route::post('/audit-review/{report}/reopen', [AuditReportReviewController::class, 'reopenReview'])->whereNumber('report')->name('audit-review.reopen');
@@ -104,17 +115,23 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
         Route::delete('/audit-review/{report}/annotations/{annotation}', [AuditReportReviewController::class, 'destroyAnnotation'])->whereNumber('report')->whereNumber('annotation')->name('audit-review.annotations.destroy');
     });
 
-    Route::middleware('permission:findings.view_all')->group(function () {
-        Route::get('/audit-findings', [AuditFindingController::class, 'index'])->name('audit-findings.index');
+    Route::middleware('permission:findings.summary.view|findings.view_all')->group(function () {
         Route::get('/audit-findings/summary', [AuditFindingController::class, 'summary'])->name('audit-findings.summary');
         Route::get('/audit-findings/summary/export', [AuditFindingController::class, 'exportSummary'])->name('audit-findings.summary.export');
+    });
+    Route::middleware('permission:findings.summary.export_ppt|findings.view_all')->group(function () {
         Route::get('/audit-findings/summary/export-ppt', [AuditFindingController::class, 'exportSummaryPpt'])->name('audit-findings.summary.export-ppt');
+    });
+    Route::middleware('permission:findings.view_all')->group(function () {
+        Route::get('/audit-findings', [AuditFindingController::class, 'index'])->name('audit-findings.index');
         Route::get('/audit-findings/export', [AuditFindingController::class, 'export'])->name('audit-findings.export');
         Route::get('/audit-findings/{indicator}', [AuditFindingController::class, 'show'])->whereNumber('indicator')->name('audit-findings.show');
     });
     Route::middleware('permission:findings.enter')->group(function () {
         Route::get('/audit-findings/entry', [AuditFindingController::class, 'entry'])->name('audit-findings.entry');
         Route::post('/audit-findings/entry', [AuditFindingController::class, 'storeEntry'])->name('audit-findings.entry.store');
+    });
+    Route::middleware('permission:findings.summary.edit|findings.enter|findings.view_all')->group(function () {
         Route::patch('/audit-findings/findings/{finding}/staff', [AuditFindingController::class, 'updateStaff'])->name('audit-findings.staff.update');
     });
 
@@ -148,15 +165,17 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
         Route::post('/areas', [AreaController::class, 'store'])->name('areas.store');
     });
 
-    Route::middleware('permission:annual_audit.manage')->group(function () {
+    Route::middleware('permission:annual_audit.view|annual_audit.manage')->group(function () {
         Route::get('/annual-audit', [AnnualAuditController::class, 'index'])->name('annual-audit.index');
+        Route::get('/annual-audit/export', [AnnualAuditController::class, 'export'])->name('annual-audit.export');
+    });
+    Route::middleware('permission:annual_audit.manage')->group(function () {
         Route::post('/annual-audit/years', [AnnualAuditController::class, 'createYear'])->name('annual-audit.years.store');
         Route::delete('/annual-audit/years', [AnnualAuditController::class, 'destroyYear'])->name('annual-audit.years.destroy');
         Route::post('/annual-audit/generate', [AnnualAuditController::class, 'generate'])->name('annual-audit.generate');
         Route::post('/annual-audit/sync-missing', [AnnualAuditController::class, 'syncMissing'])->name('annual-audit.sync-missing');
         Route::post('/annual-audit/policies', [AnnualAuditController::class, 'updatePolicies'])->name('annual-audit.policies');
         Route::post('/annual-audit/toggle-month', [AnnualAuditController::class, 'toggleMonth'])->name('annual-audit.toggle-month');
-        Route::get('/annual-audit/export', [AnnualAuditController::class, 'export'])->name('annual-audit.export');
         Route::post('/annual-audit/hq-departments', [AnnualAuditController::class, 'storeHqDepartment'])->name('annual-audit.hq.store');
         Route::delete('/annual-audit/hq-departments/{department}', [AnnualAuditController::class, 'destroyHqDepartment'])->name('annual-audit.hq.destroy');
         Route::post('/annual-audit/projects', [AnnualAuditController::class, 'storeProject'])->name('annual-audit.projects.store');
@@ -188,7 +207,7 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
         Route::post('/monthly-visits/assignments/{assignment}/unlock', [MonthlyVisitController::class, 'unlock'])->name('monthly-visits.unlock');
     });
 
-    Route::middleware('permission:calendar.manage|monthly_visits.manage|monthly_visits.execute')->group(function () {
+    Route::middleware('permission:calendar.view|calendar.manage|monthly_visits.manage|monthly_visits.execute')->group(function () {
         Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar.index');
     });
     Route::middleware('permission:calendar.manage')->group(function () {
@@ -199,13 +218,17 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
         Route::put('/calendar/weekends', [CalendarController::class, 'updateWeekends'])->name('calendar.weekends');
     });
 
-    Route::middleware('permission:projects.manage')->group(function () {
+    Route::middleware('permission:projects.view|projects.manage')->group(function () {
         Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
+    });
+    Route::middleware('permission:projects.manage')->group(function () {
         Route::get('/projects/create', [ProjectController::class, 'create'])->name('projects.create');
         Route::post('/projects', [ProjectController::class, 'store'])->name('projects.store');
-        Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
         Route::post('/projects/{project}/locations', [ProjectController::class, 'storeLocation'])->name('projects.locations.store');
         Route::delete('/projects/{project}/locations/{location}', [ProjectController::class, 'destroyLocation'])->name('projects.locations.destroy');
+    });
+    Route::middleware('permission:projects.view|projects.manage')->group(function () {
+        Route::get('/projects/{project}', [ProjectController::class, 'show'])->whereNumber('project')->name('projects.show');
     });
 });
 

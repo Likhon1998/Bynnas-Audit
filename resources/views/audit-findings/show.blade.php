@@ -12,6 +12,12 @@
             savedId: null,
             dropdownStyle: {},
             csrf: @js(csrf_token()),
+            csrfToken() {
+                return window.bynnasCsrf?.token?.()
+                    || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                    || this.csrf
+                    || '';
+            },
             employeesFor(shakhaId) {
                 return this.employeesByShakha[String(shakhaId)] || this.employeesByShakha[shakhaId] || [];
             },
@@ -75,12 +81,17 @@
                         headers: {
                             'Content-Type': 'application/json',
                             'Accept': 'application/json',
-                            'X-CSRF-TOKEN': this.csrf,
+                            'X-CSRF-TOKEN': this.csrfToken(),
                             'X-Requested-With': 'XMLHttpRequest',
                         },
                         body: JSON.stringify({ responsible_staff_name: resolved }),
                     });
-                    if (!res.ok) throw new Error('save failed');
+                    if (!res.ok) {
+                        if (res.status === 419 && window.bynnasCsrf?.refresh) {
+                            await window.bynnasCsrf.refresh({ force: true });
+                        }
+                        throw new Error('save failed');
+                    }
                     const data = await res.json();
                     row.responsible_staff_name = data.responsible_staff_name || '';
                     this.savedId = row.id;
@@ -185,7 +196,7 @@
                                 <td class="px-3 py-2 text-right tabular-nums font-semibold text-rose-700" x-text="row.irregularity_count"></td>
                                 <td class="max-w-[280px] px-3 py-2 text-[11px] text-slate-600" x-text="row.observation"></td>
                                 <td class="px-3 py-2" @click.outside="if (openFor === row.id) openFor = null">
-                                    @can('findings.enter')
+                                    @canany(['findings.summary.edit', 'findings.enter', 'findings.view_all'])
                                       <div class="relative w-44">
                                         <input
                                             type="text"
@@ -231,7 +242,7 @@
                                       </div>
                                     @else
                                         <span class="text-[11px] text-slate-600" x-text="row.responsible_staff_name || '—'"></span>
-                                    @endcan
+                                    @endcanany
                                 </td>
                             </tr>
                         </template>

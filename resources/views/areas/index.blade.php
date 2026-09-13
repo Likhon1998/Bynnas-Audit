@@ -63,7 +63,7 @@
                                                 <span class="inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-medium text-rose-600">Inactive</span>
                                             @endif
                                         </td>
-                                        <td class="px-4 py-2.5 text-slate-500">{{ $area->created_at->format('d M Y') }}</td>
+                                        <td class="px-4 py-2.5 text-slate-500">{{ bd_date($area->created_at) }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>

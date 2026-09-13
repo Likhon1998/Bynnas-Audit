@@ -47,6 +47,8 @@ class AuditReport extends Model
             'progress_pct' => 'integer',
             'review_round' => 'integer',
             'review_cc_superadmin' => 'boolean',
+            'review_perfect' => 'boolean',
+            'maker_done_at' => 'datetime',
             'last_saved_at' => 'datetime',
             'completed_at' => 'datetime',
             'submitted_for_review_at' => 'datetime',
@@ -120,11 +122,37 @@ class AuditReport extends Model
             ->orderBy('id');
     }
 
+    public function reviewSnapshots(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(AuditReportReviewSnapshot::class, 'audit_report_id')
+            ->orderByDesc('review_round');
+    }
+
     public function collaborators(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'audit_report_collaborators')
             ->withTimestamps()
             ->orderBy('users.name');
+    }
+
+    public static function reviewRoundLabel(int $round): string
+    {
+        $round = max(1, $round);
+        $ordinal = match ($round) {
+            1 => '1st',
+            2 => '2nd',
+            3 => '3rd',
+            default => $round.'th',
+        };
+
+        return $round === 1
+            ? $ordinal.' review'
+            : $ordinal.' review (after changes)';
+    }
+
+    public function currentReviewRoundLabel(): string
+    {
+        return self::reviewRoundLabel((int) ($this->review_round ?: 1));
     }
 
     public function checklistFiles(): \Illuminate\Database\Eloquent\Relations\HasMany
@@ -275,6 +303,29 @@ class AuditReport extends Model
         return $this->status === self::STATUS_REVIEWED;
     }
 
+    public function isPerfectReview(): bool
+    {
+        return $this->isReviewed() && (bool) $this->review_perfect;
+    }
+
+    public function isMakerDone(): bool
+    {
+        return $this->maker_done_at !== null;
+    }
+
+    /** Maker may tick done only after reviewer granted Totally fixed · 100% perfect. */
+    public function canMakerAcknowledgeDone(?User $user): bool
+    {
+        return $this->isPerfectReview()
+            && ! $this->isMakerDone()
+            && $this->isAccessibleBy($user);
+    }
+
+    public function makerDoneBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'maker_done_by');
+    }
+
     public function isReviewReady(): bool
     {
         return $this->review_ready_at !== null;
@@ -309,8 +360,61 @@ class AuditReport extends Model
             self::STATUS_CHANGES_REQUESTED => $this->review_sent_to_maker_at
                 ? 'Fix & resubmit'
                 : 'Changes requested',
-            self::STATUS_REVIEWED => 'Confirmed',
+            self::STATUS_REVIEWED => $this->isMakerDone()
+                ? 'Done · 100% perfect'
+                : ($this->review_perfect
+                    ? 'Totally fixed · 100%'
+                    : 'Confirmed'),
             default => (string) $this->status,
+        };
+    }
+
+    /**
+     * Pipeline position key for admin auditor log filters.
+     */
+    public function workflowPositionKey(): string
+    {
+        if ($this->status === self::STATUS_DRAFT) {
+            return 'draft';
+        }
+        if ($this->status === self::STATUS_COMPLETED) {
+            return 'awaiting_submit';
+        }
+        if ($this->status === self::STATUS_IN_REVIEW && $this->isReviewReady() && ! $this->isReviewSentToMaker()) {
+            return 'review_ready';
+        }
+        if ($this->status === self::STATUS_IN_REVIEW) {
+            return 'in_review';
+        }
+        if ($this->status === self::STATUS_CHANGES_REQUESTED) {
+            return 'with_maker';
+        }
+        if ($this->status === self::STATUS_REVIEWED) {
+            if ($this->isMakerDone()) {
+                return 'maker_done';
+            }
+            if ($this->review_perfect) {
+                return 'totally_fixed';
+            }
+
+            return 'confirmed';
+        }
+
+        return 'other';
+    }
+
+    public function workflowPositionLabel(): string
+    {
+        return match ($this->workflowPositionKey()) {
+            'draft' => 'Draft (not ready)',
+            'awaiting_submit' => 'Ready — not sent for review',
+            'in_review' => 'With reviewer (inbox)',
+            'review_ready' => 'Review done — send / confirm',
+            'with_maker' => 'Returned — maker fixing',
+            'confirmed' => 'Confirmed (locked)',
+            'totally_fixed' => 'Totally fixed · 100%',
+            'maker_done' => 'Maker marked done',
+            default => $this->statusLabel(),
         };
     }
 

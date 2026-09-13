@@ -75,7 +75,7 @@
                 </x-sidebar-link>
             @endcanany
 
-            @can('annual_audit.manage')
+            @canany(['annual_audit.view', 'annual_audit.manage'])
                 <x-sidebar-link :href="route('annual-audit.index')" :active="request()->routeIs('annual-audit.*')" title="Annual Audit Plan">
                     <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('annual-audit.*') ? 'text-indigo-100' : 'text-indigo-400' }}" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M7 3a1 1 0 011 1v1h8V4a1 1 0 112 0v1h1.5A2.5 2.5 0 0122 7.5v11A2.5 2.5 0 0119.5 21h-15A2.5 2.5 0 012 18.5v-11A2.5 2.5 0 014.5 5H6V4a1 1 0 011-1zm12.5 6h-15v9.5a.5.5 0 00.5.5h14a.5.5 0 00.5-.5V9z"/>
@@ -83,7 +83,7 @@
                     </svg>
                     <span class="sidebar-link-label truncate">Annual Audit Plan</span>
                 </x-sidebar-link>
-            @endcan
+            @endcanany
 
             @canany(['monthly_visits.manage', 'monthly_visits.execute'])
                 <x-sidebar-link :href="route('monthly-visits.index')" :active="request()->routeIs('monthly-visits.*')" title="Monthly Visits">
@@ -95,7 +95,7 @@
                 </x-sidebar-link>
             @endcanany
 
-            @canany(['calendar.manage', 'monthly_visits.manage', 'monthly_visits.execute'])
+            @canany(['calendar.view', 'calendar.manage', 'monthly_visits.manage', 'monthly_visits.execute'])
                 <x-sidebar-link :href="route('calendar.index')" :active="request()->routeIs('calendar.*')" title="Working Calendar">
                     <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('calendar.*') ? 'text-amber-200' : 'text-teal-500' }}" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M7 3a1 1 0 011 1v1h8V4a1 1 0 112 0v1h1.5A2.5 2.5 0 0122 7.5v11A2.5 2.5 0 0119.5 21h-15A2.5 2.5 0 012 18.5v-11A2.5 2.5 0 014.5 5H6V4a1 1 0 011-1zm12.5 6h-15v9.5a.5.5 0 00.5.5h14a.5.5 0 00.5-.5V9z"/>
@@ -105,7 +105,7 @@
                 </x-sidebar-link>
             @endcanany
 
-            @can('projects.manage')
+            @canany(['projects.view', 'projects.manage'])
                 <x-sidebar-link :href="route('projects.index')" :active="request()->routeIs('projects.*')" title="Projects">
                     <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('projects.*') ? 'text-amber-100' : 'text-amber-400' }}" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M3.75 7A1.75 1.75 0 015.5 5.25h4.1l1.4 1.5h7.5A1.75 1.75 0 0120.25 8.5v9.75A1.75 1.75 0 0118.5 20H5.5A1.75 1.75 0 013.75 18.25V7z"/>
@@ -113,7 +113,7 @@
                     </svg>
                     <span class="sidebar-link-label truncate">Projects</span>
                 </x-sidebar-link>
-            @endcan
+            @endcanany
 
             @can('kpis.manage')
                 <x-sidebar-link :href="route('kpis.index')" :active="request()->routeIs('kpis.*')" title="Key Performance Indicator (KPI)">
@@ -165,17 +165,17 @@
                 </x-sidebar-link>
             @endcanany
 
-            @can('findings.view_all')
+            @canany(['findings.view_all', 'findings.summary.view'])
                 <x-sidebar-link
-                    :href="route('audit-findings.index')"
+                    :href="auth()->user()->can('findings.view_all') ? route('audit-findings.index') : route('audit-findings.summary')"
                     :active="request()->routeIs('audit-findings.*') && ! request()->routeIs('audit-findings.entry*')"
-                    title="Findings Matrix"
+                    title="{{ auth()->user()->can('findings.view_all') ? 'Findings Matrix' : 'Findings Summary' }}"
                 >
                     <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('audit-findings.*') && ! request()->routeIs('audit-findings.entry*') ? 'text-rose-100' : 'text-rose-400' }}" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M4 5.5A1.5 1.5 0 015.5 4h13A1.5 1.5 0 0120 5.5v1A1.5 1.5 0 0118.5 8h-13A1.5 1.5 0 014 6.5v-1zM4 11.5A1.5 1.5 0 015.5 10H14a1.5 1.5 0 011.5 1.5v1A1.5 1.5 0 0114 14H5.5A1.5 1.5 0 014 12.5v-1z"/>
                         <path class="{{ request()->routeIs('audit-findings.*') && ! request()->routeIs('audit-findings.entry*') ? 'text-amber-300' : 'text-amber-400' }}" fill="currentColor" d="M4 17.5A1.5 1.5 0 015.5 16h13a1.5 1.5 0 011.5 1.5v1a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 18.5v-1z"/>
                     </svg>
-                    <span class="sidebar-link-label truncate">Findings Matrix</span>
+                    <span class="sidebar-link-label truncate">{{ auth()->user()->can('findings.view_all') ? 'Findings Matrix' : 'Findings Summary' }}</span>
                 </x-sidebar-link>
             @elsecan('findings.enter')
                 <x-sidebar-link
@@ -189,7 +189,7 @@
                     </svg>
                     <span class="sidebar-link-label truncate">Enter Findings</span>
                 </x-sidebar-link>
-            @endcan
+            @endcanany
 
             @canany(['shakhas.manage', 'shakhas.view_all', 'areas.manage'])
                 <div x-data="{ shakhaOpen: {{ request()->routeIs('shakhas.*') || request()->routeIs('areas.*') || request()->routeIs('shakha-employees.*') ? 'true' : 'false' }} }">

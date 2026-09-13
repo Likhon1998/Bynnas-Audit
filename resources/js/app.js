@@ -3,6 +3,168 @@ import './bootstrap';
 // Alpine is provided/started by Livewire (@livewireScripts in the layout).
 // Do not call Alpine.start() here — a second start breaks Livewire pages.
 
+/** Bangladesh Standard Time helpers for the whole frontend (Asia/Dhaka). */
+(() => {
+    const ZONE = document.querySelector('meta[name="bynnas-timezone"]')?.getAttribute('content') || 'Asia/Dhaka';
+    const metaToday = document.querySelector('meta[name="bynnas-today"]')?.getAttribute('content') || '';
+
+    const partsFor = (date = new Date()) => {
+        const parts = new Intl.DateTimeFormat('en-GB', {
+            timeZone: ZONE,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false,
+        }).formatToParts(date);
+
+        const get = (type) => parts.find((p) => p.type === type)?.value || '00';
+        return {
+            year: Number(get('year')),
+            month: Number(get('month')),
+            day: Number(get('day')),
+            hour: Number(get('hour')),
+            minute: Number(get('minute')),
+            second: Number(get('second')),
+        };
+    };
+
+    const pad = (n) => String(n).padStart(2, '0');
+
+    const todayYmd = () => {
+        if (metaToday && /^\d{4}-\d{2}-\d{2}$/.test(metaToday)) {
+            return metaToday;
+        }
+        const p = partsFor(new Date());
+        return `${p.year}-${pad(p.month)}-${pad(p.day)}`;
+    };
+
+    const formatDateTime = (value, options = {}) => {
+        const date = value instanceof Date ? value : new Date(value);
+        if (Number.isNaN(date.getTime())) return '—';
+        return new Intl.DateTimeFormat('en-GB', {
+            timeZone: ZONE,
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+            ...options,
+        }).format(date);
+    };
+
+    window.bynnasTime = {
+        zone: ZONE,
+        parts: partsFor,
+        todayYmd,
+        nowParts: () => partsFor(new Date()),
+        formatDateTime,
+        /** Local calendar Date representing "now" in BD (for date pickers). */
+        nowLocalDate() {
+            const p = partsFor(new Date());
+            return new Date(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
+        },
+    };
+})();
+
+/** Keep Laravel CSRF meta + form tokens fresh (avoids intermittent 419 Page Expired). */
+(() => {
+    const META = 'meta[name="csrf-token"]';
+    let refreshing = null;
+    let lastRefreshAt = 0;
+
+    const applyToken = (token) => {
+        if (!token || typeof token !== 'string') return;
+        const meta = document.querySelector(META);
+        if (meta) meta.setAttribute('content', token);
+        document.querySelectorAll('input[name="_token"]').forEach((input) => {
+            input.value = token;
+        });
+        window.__bynnasCsrf = token;
+        lastRefreshAt = Date.now();
+    };
+
+    const currentToken = () =>
+        document.querySelector(META)?.getAttribute('content')
+        || window.__bynnasCsrf
+        || '';
+
+    const refreshCsrf = async ({ force = false } = {}) => {
+        if (!force && Date.now() - lastRefreshAt < 30_000 && currentToken()) {
+            applyToken(currentToken());
+            return currentToken();
+        }
+        if (refreshing) return refreshing;
+
+        refreshing = fetch('/csrf-token', {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        })
+            .then(async (res) => {
+                if (!res.ok) return currentToken();
+                const data = await res.json().catch(() => ({}));
+                if (data?.token) applyToken(data.token);
+                return data?.token || currentToken();
+            })
+            .catch(() => currentToken())
+            .finally(() => {
+                refreshing = null;
+            });
+
+        return refreshing;
+    };
+
+    window.bynnasCsrf = {
+        token: currentToken,
+        apply: applyToken,
+        refresh: refreshCsrf,
+    };
+
+    document.addEventListener('submit', (e) => {
+        const form = e.target;
+        if (!(form instanceof HTMLFormElement)) return;
+        if (form.hasAttribute('wire:submit')) return;
+
+        const token = currentToken();
+        const input = form.querySelector('input[name="_token"]');
+        if (token && input) input.value = token;
+    }, true);
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            refreshCsrf({ force: true });
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        applyToken(currentToken());
+        lastRefreshAt = Date.now();
+        refreshCsrf({ force: false });
+    });
+
+    // Every 10 minutes while the tab is open.
+    window.setInterval(() => {
+        if (document.visibilityState === 'visible') {
+            refreshCsrf({ force: true });
+        }
+    }, 10 * 60 * 1000);
+
+    document.addEventListener('livewire:init', () => {
+        Livewire.hook('commit', ({ succeed }) => {
+            succeed(() => {
+                applyToken(currentToken());
+            });
+        });
+    });
+})();
+
 (() => {
     const DELAY_MS = 280;
     const MAX_MS = 12000;

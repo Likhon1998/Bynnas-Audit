@@ -63,7 +63,7 @@
                     <p class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">History</p>
                     <ul class="space-y-1 text-[11px] text-slate-600">
                         @foreach ($assignment->statusLogs->sortByDesc('id') as $log)
-                            <li>{{ $log->created_at?->format('d M Y H:i') }}: {{ $log->from_status ?? '—' }} → {{ $log->to_status }} @if($log->reason)— {{ $log->reason }}@endif</li>
+                            <li>{{ bd_datetime($log->created_at) }}: {{ $log->from_status ?? '—' }} → {{ $log->to_status }} @if($log->reason)— {{ $log->reason }}@endif</li>
                         @endforeach
                     </ul>
                 </div>

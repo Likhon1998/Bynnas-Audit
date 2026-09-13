@@ -112,6 +112,15 @@ class AuditReportReviewTest extends TestCase
         $report->refresh();
         $this->assertSame(AuditReport::STATUS_IN_REVIEW, $report->status);
         $this->assertSame(2, (int) $report->review_round);
+        $this->assertDatabaseHas('audit_report_review_snapshots', [
+            'audit_report_id' => $report->id,
+            'review_round' => 2,
+            'is_resubmit' => 1,
+        ]);
+
+        $this->actingAs($reviewer)
+            ->post(route('audit-review.done', $report))
+            ->assertRedirect();
 
         $this->actingAs($reviewer)
             ->post(route('audit-review.approve', $report), [
@@ -128,7 +137,8 @@ class AuditReportReviewTest extends TestCase
         $this->actingAs($admin)
             ->get(route('audit-review.show', $report))
             ->assertOk()
-            ->assertSee('Reviewed');
+            ->assertSee('Reviewed')
+            ->assertSee('2nd review');
     }
 
     public function test_superadmin_can_act_when_cc_flag_set(): void
@@ -167,6 +177,10 @@ class AuditReportReviewTest extends TestCase
         $report->refresh();
 
         $this->actingAs($admin)
+            ->post(route('audit-review.done', $report))
+            ->assertRedirect();
+
+        $this->actingAs($admin)
             ->post(route('audit-review.approve', $report), ['note' => 'SA approve'])
             ->assertRedirect(route('audit-review.index', ['tab' => 'reviewed']));
 
@@ -203,12 +217,16 @@ class AuditReportReviewTest extends TestCase
                 'destination' => 'superadmin',
                 'note' => 'Please review urgently',
             ])
-            ->assertRedirect(route('audit-review.show', $report));
+            ->assertRedirect(route('audits.index', ['report' => $report->id]));
 
         $report->refresh();
         $this->assertSame(AuditReport::STATUS_IN_REVIEW, $report->status);
         $this->assertSame((int) $admin->id, (int) $report->reviewer_user_id);
         $this->assertTrue($report->review_cc_superadmin);
+
+        $this->actingAs($admin)
+            ->post(route('audit-review.done', $report))
+            ->assertRedirect();
 
         $this->actingAs($admin)
             ->post(route('audit-review.approve', $report), ['note' => 'Approved by SA'])
@@ -486,7 +504,7 @@ class AuditReportReviewTest extends TestCase
             ->get(route('audits.index', ['report' => $report->id]))
             ->assertOk()
             ->assertSee('Fix & resubmit')
-            ->assertSee('Resubmit for review')
+            ->assertSee('Resubmit for re-review')
             ->assertDontSee('Read-only — waiting for reviewer');
 
         $this->assertTrue(app(AuditReportReviewService::class)->isEditableByMaker($report->fresh()));
@@ -554,6 +572,374 @@ class AuditReportReviewTest extends TestCase
             ->get(route('audit-review.index'))
             ->assertOk()
             ->assertSee('waiting for your review')
-            ->assertSee('What to do');
+            ->assertSee('What to do')
+            ->assertSee('1st reviews')
+            ->assertSee('Re-reviews');
+    }
+
+    public function test_resubmit_shows_change_context_and_monthly_re_review_count(): void
+    {
+        $admin = User::query()->where('email', 'admin@bynnasaudit.com')->firstOrFail();
+        $auditor = User::factory()->create(['email_verified_at' => now()]);
+        $auditor->assignRole('audit_officer');
+        $reviewer = User::factory()->create(['email_verified_at' => now()]);
+        $reviewer->assignRole('senior_officer');
+
+        AuditReviewerAssignment::query()->create([
+            'auditor_user_id' => $auditor->id,
+            'reviewer_user_id' => $reviewer->id,
+            'assigned_by' => $admin->id,
+        ]);
+
+        $area = Area::query()->create(['name' => 'Metro', 'division' => 'Dhaka', 'status' => 'active']);
+        $shakha = Shakha::query()->create([
+            'area_id' => $area->id,
+            'name' => 'Diff Branch',
+            'code' => 'DIFF-1',
+            'status' => 'active',
+        ]);
+
+        $report = AuditReport::query()->create([
+            'user_id' => $auditor->id,
+            'shakha_id' => $shakha->id,
+            'report_month' => 9,
+            'report_year' => 2026,
+            'status' => AuditReport::STATUS_COMPLETED,
+            'progress_pct' => 100,
+            'completed_at' => now(),
+            'pages_data' => ['cover' => ['title' => 'A'], 'findings' => [1]],
+        ]);
+
+        $service = app(AuditReportReviewService::class);
+        $service->submitForReview($report, $auditor, false, 'First send');
+        $report->refresh();
+
+        $ann = $report->reviewAnnotations()->create([
+            'user_id' => $reviewer->id,
+            'review_round' => 1,
+            'type' => 'text',
+            'color' => 'yellow',
+            'quote' => 'Bad line',
+            'body' => 'Please fix this line',
+        ]);
+
+        $this->actingAs($reviewer)->post(route('audit-review.done', $report));
+        $this->actingAs($reviewer)->post(route('audit-review.send-to-maker', $report));
+
+        $report->refresh()->update([
+            'pages_data' => ['cover' => ['title' => 'B'], 'findings' => [1, 2]],
+        ]);
+
+        $service->submitForReview(
+            $report->fresh(),
+            $auditor,
+            false,
+            'Fixed the line and added a finding',
+            'assigned',
+            [$ann->id],
+        );
+
+        $report->refresh();
+        $this->assertSame(2, (int) $report->review_round);
+        $this->assertNotNull($ann->fresh()->addressed_at);
+
+        $this->actingAs($reviewer)
+            ->get(route('audit-review.show', $report))
+            ->assertOk()
+            ->assertSee('2nd review')
+            ->assertSee('compare asks vs fixes')
+            ->assertSee('Fixed the line and added a finding')
+            ->assertSee('Please fix this line')
+            ->assertSee('Maker marked done');
+
+        $stats = $service->monthlyReviewStats($reviewer, 9, 2026);
+        $this->assertSame(1, $stats['first_reviews']);
+        $this->assertSame(1, $stats['re_reviews']);
+    }
+
+    public function test_totally_fixed_grants_perfect_and_locks(): void
+    {
+        $admin = User::query()->where('email', 'admin@bynnasaudit.com')->firstOrFail();
+        $auditor = User::factory()->create(['email_verified_at' => now()]);
+        $auditor->assignRole('audit_officer');
+        $reviewer = User::factory()->create(['email_verified_at' => now()]);
+        $reviewer->assignRole('senior_officer');
+
+        AuditReviewerAssignment::query()->create([
+            'auditor_user_id' => $auditor->id,
+            'reviewer_user_id' => $reviewer->id,
+            'assigned_by' => $admin->id,
+        ]);
+
+        $area = Area::query()->create(['name' => 'Metro', 'division' => 'Dhaka', 'status' => 'active']);
+        $shakha = Shakha::query()->create([
+            'area_id' => $area->id,
+            'name' => 'Perfect Branch',
+            'code' => 'PF-1',
+            'status' => 'active',
+        ]);
+
+        $report = AuditReport::query()->create([
+            'user_id' => $auditor->id,
+            'shakha_id' => $shakha->id,
+            'report_month' => 9,
+            'report_year' => 2026,
+            'status' => AuditReport::STATUS_COMPLETED,
+            'progress_pct' => 90,
+            'completed_at' => now(),
+            'pages_data' => [],
+        ]);
+
+        app(AuditReportReviewService::class)->submitForReview($report, $auditor, false);
+        $report->refresh();
+
+        $this->actingAs($reviewer)
+            ->post(route('audit-review.totally-fixed', $report))
+            ->assertRedirect(route('audit-review.index', ['tab' => 'reviewed']));
+
+        $report->refresh();
+        $this->assertSame(AuditReport::STATUS_REVIEWED, $report->status);
+        $this->assertTrue((bool) $report->review_perfect);
+        $this->assertSame(100, (int) $report->progress_pct);
+        $this->assertSame('Totally fixed · 100%', $report->statusLabel());
+    }
+
+    public function test_maker_can_tick_perfect_report_as_done(): void
+    {
+        $admin = User::query()->where('email', 'admin@bynnasaudit.com')->firstOrFail();
+        $auditor = User::factory()->create(['email_verified_at' => now(), 'name' => 'Maker']);
+        $auditor->assignRole('audit_officer');
+        $reviewer = User::factory()->create(['email_verified_at' => now()]);
+        $reviewer->assignRole('senior_officer');
+
+        AuditReviewerAssignment::query()->create([
+            'auditor_user_id' => $auditor->id,
+            'reviewer_user_id' => $reviewer->id,
+            'assigned_by' => $admin->id,
+        ]);
+
+        $area = Area::query()->create(['name' => 'Metro', 'division' => 'Dhaka', 'status' => 'active']);
+        $shakha = Shakha::query()->create([
+            'area_id' => $area->id,
+            'name' => 'Tick Branch',
+            'code' => 'TK-1',
+            'status' => 'active',
+        ]);
+
+        $report = AuditReport::query()->create([
+            'user_id' => $auditor->id,
+            'shakha_id' => $shakha->id,
+            'report_month' => 9,
+            'report_year' => 2026,
+            'status' => AuditReport::STATUS_COMPLETED,
+            'progress_pct' => 100,
+            'completed_at' => now(),
+            'pages_data' => [],
+        ]);
+
+        app(AuditReportReviewService::class)->submitForReview($report, $auditor, false);
+        app(AuditReportReviewService::class)->grantTotallyFixed($report->fresh(), $reviewer);
+        $report->refresh();
+
+        app(AuditReportReviewService::class)->acknowledgeByMaker($report, $auditor);
+        $report->refresh();
+
+        $this->assertNotNull($report->maker_done_at);
+        $this->assertSame((int) $auditor->id, (int) $report->maker_done_by);
+        $this->assertSame('Done · 100% perfect', $report->statusLabel());
+
+        $this->expectException(ValidationException::class);
+        app(AuditReportReviewService::class)->acknowledgeByMaker(
+            AuditReport::query()->create([
+                'user_id' => $auditor->id,
+                'shakha_id' => $shakha->id,
+                'report_month' => 9,
+                'report_year' => 2026,
+                'status' => AuditReport::STATUS_REVIEWED,
+                'review_perfect' => false,
+                'progress_pct' => 100,
+                'pages_data' => [],
+            ]),
+            $auditor,
+        );
+
+        $this->actingAs($auditor)
+            ->get(route('audits.index', ['report' => $report->id]))
+            ->assertOk()
+            ->assertSee('reviewer marked 100% perfect');
+    }
+
+    public function test_admin_can_view_auditors_log_with_pipeline_positions(): void
+    {
+        $admin = User::query()->where('email', 'admin@bynnasaudit.com')->firstOrFail();
+        $auditor = User::factory()->create(['email_verified_at' => now(), 'name' => 'Log Auditor']);
+        $auditor->assignRole('audit_officer');
+        $reviewer = User::factory()->create(['email_verified_at' => now(), 'name' => 'Log Reviewer']);
+        $reviewer->assignRole('senior_officer');
+
+        AuditReviewerAssignment::query()->create([
+            'auditor_user_id' => $auditor->id,
+            'reviewer_user_id' => $reviewer->id,
+            'assigned_by' => $admin->id,
+        ]);
+
+        $area = Area::query()->create(['name' => 'Log Area', 'division' => 'Dhaka', 'status' => 'active']);
+        $shakha = Shakha::query()->create([
+            'area_id' => $area->id,
+            'name' => 'Log Branch',
+            'code' => 'LG-1',
+            'status' => 'active',
+        ]);
+
+        $report = AuditReport::query()->create([
+            'user_id' => $auditor->id,
+            'shakha_id' => $shakha->id,
+            'report_month' => 9,
+            'report_year' => 2026,
+            'status' => AuditReport::STATUS_COMPLETED,
+            'progress_pct' => 100,
+            'completed_at' => now(),
+            'pages_data' => [],
+        ]);
+
+        app(AuditReportReviewService::class)->submitForReview($report, $auditor, false);
+        $report->refresh();
+
+        $this->actingAs($admin)
+            ->get(route('audit-review.log'))
+            ->assertOk()
+            ->assertSee('Auditors log')
+            ->assertSee('Watch only')
+            ->assertSee('Pipeline by auditor')
+            ->assertSee('Recent activity')
+            ->assertSee('Assign reviewers')
+            ->assertDontSee('Log Branch');
+
+        $this->actingAs($admin)
+            ->get(route('audit-review.log.pipeline'))
+            ->assertOk()
+            ->assertSee('Pipeline by auditor')
+            ->assertSee('Log Auditor')
+            ->assertSee('Log Branch')
+            ->assertSee('With reviewer (inbox)')
+            ->assertSee('History')
+            ->assertDontSee(route('audit-review.show', $report), false);
+
+        $this->actingAs($admin)
+            ->get(route('audit-review.log.activity'))
+            ->assertOk()
+            ->assertSee('Recent activity');
+
+        $this->actingAs($admin)
+            ->get(route('audit-review.log.show', $report))
+            ->assertOk()
+            ->assertSee('Watch only')
+            ->assertSee('Timeline')
+            ->assertSee(route('audit-review.show', $report))
+            ->assertDontSee(route('audit-review.done', $report), false)
+            ->assertDontSee(route('audit-review.approve', $report), false)
+            ->assertDontSee(route('audit-review.annotations.store', $report), false);
+
+        $this->actingAs($admin)
+            ->get(route('audit-review.log.pipeline', [
+                'auditor_id' => $auditor->id,
+                'position' => 'in_review',
+                'month' => 9,
+                'year' => 2026,
+            ]))
+            ->assertOk()
+            ->assertSee('Log Auditor')
+            ->assertSee('With reviewer (inbox)')
+            ->assertDontSee('>Apply</', false);
+
+        \Livewire\Livewire::actingAs($admin)
+            ->test(\App\Livewire\AuditorsLogPanel::class, ['mode' => 'pipeline'])
+            ->set('position', 'in_review')
+            ->assertSee('Log Auditor')
+            ->assertSee('With reviewer (inbox)')
+            ->set('q', 'Log Branch')
+            ->assertSee('Log Branch')
+            ->call('clearFilters')
+            ->assertSet('position', '')
+            ->assertSet('q', '');
+
+        // Position chips keep full counts while filtering the list.
+        $log = app(\App\Services\AuditReportReviewService::class)->auditorLog(
+            9,
+            2026,
+            $auditor->id,
+            null,
+            'in_review',
+            null,
+        );
+        $this->assertSame(1, $log['filtered_total']);
+        $this->assertSame(1, $log['summary']['in_review']);
+        $this->assertGreaterThanOrEqual(1, $log['summary']['total']);
+
+
+        $this->actingAs($auditor)
+            ->get(route('audit-review.log'))
+            ->assertForbidden();
+
+        $this->actingAs($admin)
+            ->get(route('audit-review.index'))
+            ->assertOk()
+            ->assertSee('Auditors log');
+    }
+
+    public function test_admin_can_step_into_any_in_review_report_from_panel(): void
+    {
+        $admin = User::query()->where('email', 'admin@bynnasaudit.com')->firstOrFail();
+        $auditor = User::factory()->create(['email_verified_at' => now(), 'name' => 'Step Auditor']);
+        $auditor->assignRole('audit_officer');
+        $reviewer = User::factory()->create(['email_verified_at' => now(), 'name' => 'Assigned Reviewer']);
+        $reviewer->assignRole('senior_officer');
+
+        AuditReviewerAssignment::query()->create([
+            'auditor_user_id' => $auditor->id,
+            'reviewer_user_id' => $reviewer->id,
+            'assigned_by' => $admin->id,
+        ]);
+
+        $area = Area::query()->create(['name' => 'Step Area', 'division' => 'Dhaka', 'status' => 'active']);
+        $shakha = Shakha::query()->create([
+            'area_id' => $area->id,
+            'name' => 'Step Branch',
+            'code' => 'ST-1',
+            'status' => 'active',
+        ]);
+
+        $report = AuditReport::query()->create([
+            'user_id' => $auditor->id,
+            'shakha_id' => $shakha->id,
+            'report_month' => 9,
+            'report_year' => 2026,
+            'status' => AuditReport::STATUS_COMPLETED,
+            'progress_pct' => 100,
+            'completed_at' => now(),
+            'pages_data' => [],
+        ]);
+
+        app(AuditReportReviewService::class)->submitForReview($report, $auditor, false);
+        $report->refresh();
+
+        $this->assertSame((int) $reviewer->id, (int) $report->reviewer_user_id);
+
+        $this->actingAs($admin)
+            ->get(route('audit-review.index', ['tab' => 'inbox']))
+            ->assertOk()
+            ->assertSee('Step Branch');
+
+        $this->actingAs($admin)
+            ->get(route('audit-review.show', $report))
+            ->assertOk()
+            ->assertSee('Step Branch');
+
+        $this->actingAs($admin)
+            ->post(route('audit-review.done', $report))
+            ->assertRedirect();
+
+        $report->refresh();
+        $this->assertNotNull($report->review_ready_at);
     }
 }

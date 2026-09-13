@@ -203,7 +203,7 @@
                                 <p class="truncate text-[12px] font-semibold text-navy-900">{{ $indicator->title }}</p>
                                 <p class="mt-0.5 truncate text-[10px] text-slate-500">
                                     <span class="font-mono">{{ $indicator->indicator_code }}</span>
-                                    · {{ $indicator->created_at?->timezone('Asia/Dhaka')->format('d M, h:i A') }}
+                                    · {{ bd_datetime($indicator->created_at, \App\Support\AppTime::DATETIME_SHORT) }}
                                 </p>
                             </div>
                         </a>

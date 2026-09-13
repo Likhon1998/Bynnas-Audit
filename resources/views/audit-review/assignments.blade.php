@@ -10,7 +10,11 @@
                 <h1 class="text-[16px] font-semibold tracking-tight text-navy-900">Reviewer assignments</h1>
                 <p class="mt-0.5 text-[12px] text-slate-500">Fixed map: Auditor X → Reviewer Y</p>
             </div>
-            <a href="{{ route('audit-review.index') }}" class="inline-flex h-9 items-center rounded-md border border-slate-200 bg-white px-3 text-[12px] font-medium text-slate-600 hover:bg-slate-50">Back</a>
+            <div class="flex flex-wrap gap-1.5">
+                <a href="{{ route('audit-review.log') }}" class="inline-flex h-9 items-center rounded-md border border-sky-200 bg-sky-50 px-3 text-[12px] font-semibold text-sky-900 hover:bg-sky-100">Auditors log</a>
+                <a href="{{ route('audit-review.log.pipeline') }}" class="inline-flex h-9 items-center rounded-md border border-slate-200 bg-white px-3 text-[12px] font-semibold text-slate-700 hover:bg-slate-50">Pipeline</a>
+                <a href="{{ route('audit-review.index') }}" class="inline-flex h-9 items-center rounded-md border border-slate-200 bg-white px-3 text-[12px] font-medium text-slate-600 hover:bg-slate-50">Review Panel</a>
+            </div>
         </div>
 
         @if (session('status'))

@@ -27,6 +27,7 @@ class RoleAccess
             'director_audit',
             'audit_manager',
             'senior_officer',
+            'auditor_reviewer',
             'audit_officer',
         ];
     }
@@ -128,6 +129,33 @@ class RoleAccess
     }
 
     /**
+     * Short guide shown on Users & Access / Grant access.
+     *
+     * @return list<array{title:string,body:string}>
+     */
+    public static function accessModelGuide(): array
+    {
+        return [
+            [
+                'title' => '1 · Build roles',
+                'body' => 'On Manage roles, create or edit a role and tick the permissions it should unlock. That is where access is defined.',
+            ],
+            [
+                'title' => '2 · Assign a role',
+                'body' => 'On Grant access, pick one role for the login. The user receives exactly that role’s access — no per-user permission ticks.',
+            ],
+            [
+                'title' => 'Auditor vs reviewer',
+                'body' => 'Audit Officer = maker only. Auditor + Reviewer = maker who can also review assigned reports. Map them under Assign reviewers.',
+            ],
+            [
+                'title' => 'Need a special mix?',
+                'body' => 'Create a custom role with the exact permissions, then assign that role to the person.',
+            ],
+        ];
+    }
+
+    /**
      * @return array<string, array{label:string,summary:string,menus:list<string>,notes:string}>
      */
     public static function catalog(): array
@@ -138,36 +166,49 @@ class RoleAccess
                 'summary' => 'Full system control',
                 'menus' => [
                     'Users & Access',
+                    'Roles',
                     'Organogram',
                     'Annual Audit',
                     'Monthly Visits',
+                    'Working Calendar',
                     'Projects',
                     'KPI',
+                    'Risk',
                     'Audit Reports',
                     'Checklists',
+                    'Review Panel',
+                    'Assign reviewers',
+                    'Auditors log',
                     'Findings Matrix',
                     'Shakha / Areas',
                     'Map',
                     'Ops Dashboard',
+                    'Superadmin chat',
                 ],
-                'notes' => 'Creates logins and assigns roles for every organogram person.',
+                'notes' => 'Creates logins, manages roles, sees every report/review. Superadmin chat is role-locked (not a permission tick).',
             ],
             'director_audit' => [
                 'label' => 'Director Audit',
-                'summary' => 'Leadership oversight',
+                'summary' => 'Leadership oversight (no user logins)',
                 'menus' => [
                     'Ops Dashboard',
                     'Organogram',
                     'Annual Audit',
                     'Monthly Visits',
+                    'Working Calendar',
                     'Projects',
                     'KPI',
+                    'Risk',
                     'Audit Reports',
+                    'Checklists',
+                    'Review Panel',
+                    'Assign reviewers',
+                    'Auditors log',
                     'Findings Matrix',
                     'Shakha / Areas',
                     'Map',
                 ],
-                'notes' => 'Sees organisation-wide performance. Cannot manage user logins.',
+                'notes' => 'Same planning & review powers as managers. Cannot manage Users & Access / Roles.',
             ],
             'audit_manager' => [
                 'label' => 'Audit Manager',
@@ -177,44 +218,75 @@ class RoleAccess
                     'Organogram',
                     'Annual Audit',
                     'Monthly Visits',
+                    'Working Calendar',
                     'Projects',
                     'KPI',
+                    'Risk',
                     'Audit Reports',
                     'Checklists',
+                    'Review Panel',
+                    'Assign reviewers',
+                    'Auditors log',
                     'Findings Matrix',
                     'Shakha / Areas',
                     'Map',
                 ],
-                'notes' => 'Joint / Deputy / Assistant Directors. Full planning and all branches.',
+                'notes' => 'Joint / Deputy / Assistant Directors. Full planning, all branches, can assign reviewers and review.',
             ],
             'senior_officer' => [
                 'label' => 'Senior Officer',
-                'summary' => 'Field lead + matrix visibility',
+                'summary' => 'Field lead + can review assigned reports',
                 'menus' => [
                     'Officer Dashboard',
+                    'Organogram (view)',
+                    'Annual Audit Plan (view)',
                     'Monthly Visits (execute)',
+                    'Working Calendar (view)',
+                    'Projects (view)',
                     'Audit Reports',
-                    'Findings Matrix',
+                    'Checklists',
+                    'Review Panel (as reviewer)',
+                    'Findings Matrix (full)',
+                    'Findings Summary',
+                    'Enter Findings',
                     'KPI',
                     'Risk',
                     'All shakhas',
                     'Map',
                 ],
-                'notes' => 'Personal visit dashboard, can view findings across branches and enter findings.',
+                'notes' => 'Maker + reviewer with matrix & summary access. Can view calendar and projects. Does not assign reviewers. Change access by editing this role.',
             ],
-            'audit_officer' => [
-                'label' => 'Audit Officer',
-                'summary' => 'Field work on assigned branches',
+            'auditor_reviewer' => [
+                'label' => 'Auditor + Reviewer',
+                'summary' => 'Field auditor who can also review',
                 'menus' => [
                     'Officer Dashboard',
                     'Map',
                     'Monthly Visits (execute)',
+                    'Working Calendar (view)',
                     'Audit Reports',
                     'Checklists',
-                    'Findings (enter)',
+                    'Review Panel (as reviewer)',
+                    'Enter Findings',
                     'Profile',
                 ],
-                'notes' => 'Shakhas come from Monthly Visits allocations. Admin can grant extra branches.',
+                'notes' => 'Same as Audit Officer plus Act as reviewer. Assign this role, then map them under Assign reviewers.',
+            ],
+            'audit_officer' => [
+                'label' => 'Audit Officer (Auditor)',
+                'summary' => 'Field maker on assigned branches',
+                'menus' => [
+                    'Officer Dashboard',
+                    'Map',
+                    'Monthly Visits (execute)',
+                    'Working Calendar (view)',
+                    'Audit Reports',
+                    'Checklists',
+                    'Review Panel (as maker — returned work)',
+                    'Enter Findings',
+                    'Profile',
+                ],
+                'notes' => 'Default auditor role. To also review: assign Auditor + Reviewer (or a custom role), then Assign reviewers.',
             ],
         ];
     }
@@ -259,9 +331,9 @@ class RoleAccess
     }
 
     /**
-     * Permission key → human label, grouped for the role builder UI.
+     * Permission key → human label + help, grouped for Access Panel / Roles builder.
      *
-     * @return array<string, array{label:string,permissions:array<string,string>}>
+     * @return array<string, array{label:string,permissions:array<string, array{label:string,help:string}>}>
      */
     public static function permissionGroups(): array
     {
@@ -269,50 +341,201 @@ class RoleAccess
             'Access' => [
                 'label' => 'Access',
                 'permissions' => [
-                    'users.manage' => 'Users & Access / Roles',
+                    'users.manage' => [
+                        'label' => 'Users & Access / Roles',
+                        'help' => 'Create logins, grant access, build custom roles. Super Admin only by default.',
+                    ],
                 ],
             ],
             'Organisation' => [
                 'label' => 'Organisation',
                 'permissions' => [
-                    'organogram.view' => 'Organogram (view)',
-                    'organogram.manage' => 'Organogram (manage)',
-                    'shakhas.view_all' => 'All shakhas (no visit scope)',
-                    'shakhas.manage' => 'Manage shakhas',
-                    'areas.manage' => 'Manage areas',
+                    'organogram.view' => [
+                        'label' => 'Organogram (view)',
+                        'help' => 'See the organisation chart and people.',
+                    ],
+                    'organogram.manage' => [
+                        'label' => 'Organogram (manage)',
+                        'help' => 'Add/edit positions and employees on the organogram.',
+                    ],
+                    'shakhas.view_all' => [
+                        'label' => 'All shakhas (no visit scope)',
+                        'help' => 'Browse every branch — not limited to Monthly Visits allocations.',
+                    ],
+                    'shakhas.manage' => [
+                        'label' => 'Manage shakhas',
+                        'help' => 'Create/edit shakhas, employees list, dossiers.',
+                    ],
+                    'areas.manage' => [
+                        'label' => 'Manage areas',
+                        'help' => 'Create/edit geographic areas used by shakhas.',
+                    ],
                 ],
             ],
             'Planning' => [
                 'label' => 'Planning',
                 'permissions' => [
-                    'annual_audit.manage' => 'Annual Audit',
-                    'monthly_visits.manage' => 'Monthly Visits (manage)',
-                    'monthly_visits.execute' => 'Monthly Visits (execute)',
-                    'calendar.manage' => 'Working Calendar (manage off days)',
-                    'projects.manage' => 'Projects',
-                    'kpis.manage' => 'KPI',
-                    'risk.manage' => 'Risk assessment',
+                    'annual_audit.view' => [
+                        'label' => 'Annual Audit Plan (view only)',
+                        'help' => 'Open and export the yearly plan. Cannot change policies, generate, or edit months.',
+                    ],
+                    'annual_audit.manage' => [
+                        'label' => 'Annual Audit Plan (manage)',
+                        'help' => 'Full edit: policies, generate, toggle months, create FY, projects on the plan.',
+                    ],
+                    'monthly_visits.manage' => [
+                        'label' => 'Monthly Visits (manage)',
+                        'help' => 'Allocate visits / officers. Also unlocks Working Calendar view.',
+                    ],
+                    'monthly_visits.execute' => [
+                        'label' => 'Monthly Visits (execute)',
+                        'help' => 'Do assigned field visits. Unlocks Working Calendar view. Branches for reports come from allocations.',
+                    ],
+                    'calendar.view' => [
+                        'label' => 'Working Calendar (view only)',
+                        'help' => 'See holidays and off days. Cannot add or edit calendar entries.',
+                    ],
+                    'calendar.manage' => [
+                        'label' => 'Working Calendar (manage off days)',
+                        'help' => 'Add/edit holidays and weekend settings.',
+                    ],
+                    'projects.view' => [
+                        'label' => 'Projects (view only)',
+                        'help' => 'Browse projects and locations. Cannot create or edit.',
+                    ],
+                    'projects.manage' => [
+                        'label' => 'Projects (manage)',
+                        'help' => 'Create/edit projects and project locations.',
+                    ],
+                    'kpis.manage' => [
+                        'label' => 'KPI',
+                        'help' => 'Key performance indicators module.',
+                    ],
+                    'risk.manage' => [
+                        'label' => 'Risk assessment',
+                        'help' => 'Shakha risk tools and related assessment screens.',
+                    ],
                 ],
             ],
             'Field work' => [
-                'label' => 'Field work',
+                'label' => 'Field work & review',
                 'permissions' => [
-                    'audits.create' => 'Audit reports (create)',
-                    'audits.manage' => 'Audit reports (manage all)',
-                    'audits.review' => 'Audit reports (review panel)',
-                    'audits.review_assign' => 'Audit reports (assign reviewers)',
-                    'findings.enter' => 'Findings (enter)',
-                    'findings.view_all' => 'Findings (view all)',
+                    'audits.create' => [
+                        'label' => 'Audit reports (create) — maker / auditor',
+                        'help' => 'Write own reports + Checklists. Review Panel opens for returned fixes. Can also be made a reviewer separately.',
+                    ],
+                    'audits.manage' => [
+                        'label' => 'Audit reports (manage)',
+                        'help' => 'Leadership override on report workflows (with create). Does not replace Users & Access.',
+                    ],
+                    'audits.review' => [
+                        'label' => 'Act as reviewer (Review Panel)',
+                        'help' => 'Review reports assigned to this person (inbox, marks, send back, confirm). An auditor can hold this too.',
+                    ],
+                    'audits.review_assign' => [
+                        'label' => 'Assign reviewers + Auditors log',
+                        'help' => 'Map Auditor → Reviewer, watch the Auditors log (history only — no review actions from the log), and step into any report from Review Panel when needed.',
+                    ],
+                    'findings.enter' => [
+                        'label' => 'Enter Findings',
+                        'help' => 'Enter findings data for branches. Feeds the matrix and summary.',
+                    ],
+                    'findings.view_all' => [
+                        'label' => 'Findings Matrix (full access)',
+                        'help' => 'Full matrix across branches, indicator drill-down, and matrix Excel export.',
+                    ],
+                    'findings.summary.view' => [
+                        'label' => 'Findings Summary (view)',
+                        'help' => 'Open the Findings Summary page and download Excel.',
+                    ],
+                    'findings.summary.export_ppt' => [
+                        'label' => 'Findings Summary — download PPT',
+                        'help' => 'Download the PowerPoint export from Findings Summary.',
+                    ],
+                    'findings.summary.edit' => [
+                        'label' => 'Findings Summary (edit)',
+                        'help' => 'Edit accused staff / summary-linked finding fields on indicator detail.',
+                    ],
                 ],
             ],
             'Dashboard' => [
-                'label' => 'Dashboard',
+                'label' => 'Dashboard & map',
                 'permissions' => [
-                    'dashboard.ops' => 'Ops dashboard',
-                    'dashboard.officer' => 'Officer dashboard',
-                    'map.view' => 'Map',
+                    'dashboard.ops' => [
+                        'label' => 'Ops dashboard',
+                        'help' => 'Leadership / operations home dashboard.',
+                    ],
+                    'dashboard.officer' => [
+                        'label' => 'Officer dashboard',
+                        'help' => 'Personal field-officer home dashboard.',
+                    ],
+                    'map.view' => [
+                        'label' => 'Map',
+                        'help' => 'Geographic map of shakhas / visits (when map feature is on).',
+                    ],
                 ],
             ],
+        ];
+    }
+
+    public static function permissionLabel(string $permission): string
+    {
+        foreach (self::permissionGroups() as $group) {
+            if (isset($group['permissions'][$permission])) {
+                return $group['permissions'][$permission]['label'];
+            }
+        }
+
+        return $permission;
+    }
+
+    public static function permissionHelp(string $permission): string
+    {
+        foreach (self::permissionGroups() as $group) {
+            if (isset($group['permissions'][$permission])) {
+                return $group['permissions'][$permission]['help'];
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Permission → sidebar / feature labels unlocked (for live Access Panel preview).
+     *
+     * @return array<string, list<string>>
+     */
+    public static function permissionMenuMap(): array
+    {
+        return [
+            'users.manage' => ['Users & Access', 'Roles'],
+            'organogram.view' => ['Organogram'],
+            'organogram.manage' => ['Organogram'],
+            'annual_audit.view' => ['Annual Audit Plan (view)'],
+            'annual_audit.manage' => ['Annual Audit Plan (manage)'],
+            'monthly_visits.manage' => ['Monthly Visits', 'Working Calendar (view)'],
+            'monthly_visits.execute' => ['Monthly Visits (execute)', 'Working Calendar (view)'],
+            'calendar.view' => ['Working Calendar (view)'],
+            'calendar.manage' => ['Working Calendar (manage)'],
+            'projects.view' => ['Projects (view)'],
+            'projects.manage' => ['Projects (manage)'],
+            'kpis.manage' => ['KPI'],
+            'risk.manage' => ['Risk'],
+            'shakhas.manage' => ['Shakha', 'Shakha Employees'],
+            'shakhas.view_all' => ['All shakhas', 'Shakha Employees'],
+            'areas.manage' => ['Areas'],
+            'audits.create' => ['Audit Reports', 'Checklists', 'Review Panel (as maker)'],
+            'audits.manage' => ['Audit Reports', 'Checklists', 'Review Panel'],
+            'audits.review' => ['Review Panel (as reviewer)'],
+            'audits.review_assign' => ['Assign reviewers', 'Auditors log'],
+            'findings.enter' => ['Enter Findings'],
+            'findings.view_all' => ['Findings Matrix (full)'],
+            'findings.summary.view' => ['Findings Summary'],
+            'findings.summary.export_ppt' => ['Findings Summary PPT'],
+            'findings.summary.edit' => ['Findings Summary (edit)'],
+            'dashboard.ops' => ['Ops Dashboard'],
+            'dashboard.officer' => ['Officer Dashboard'],
+            'map.view' => ['Map'],
         ];
     }
 
@@ -322,37 +545,18 @@ class RoleAccess
      */
     public static function menusFromPermissions(iterable $permissions): array
     {
-        $set = collect($permissions)->flip();
+        $set = collect($permissions)->map(fn ($p) => (string) $p)->flip();
         $menus = [];
+        $map = self::permissionMenuMap();
 
-        $map = [
-            'users.manage' => 'Users & Access',
-            'organogram.view' => 'Organogram',
-            'organogram.manage' => 'Organogram',
-            'annual_audit.manage' => 'Annual Audit',
-            'monthly_visits.manage' => 'Monthly Visits',
-            'monthly_visits.execute' => 'Monthly Visits (execute)',
-            'calendar.manage' => 'Calendar',
-            'projects.manage' => 'Projects',
-            'kpis.manage' => 'KPI',
-            'risk.manage' => 'Risk',
-            'shakhas.manage' => 'Shakha',
-            'shakhas.view_all' => 'All shakhas',
-            'areas.manage' => 'Areas',
-            'audits.create' => 'Audit Reports',
-            'audits.manage' => 'Audit Reports',
-            'audits.review' => 'Review Panel',
-            'audits.review_assign' => 'Reviewer Assignments',
-            'findings.enter' => 'Findings Matrix',
-            'findings.view_all' => 'Findings Matrix',
-            'dashboard.ops' => 'Ops Dashboard',
-            'dashboard.officer' => 'Officer Dashboard',
-            'map.view' => 'Map',
-        ];
-
-        foreach ($map as $permission => $label) {
-            if ($set->has($permission) && ! in_array($label, $menus, true)) {
-                $menus[] = $label;
+        foreach ($map as $permission => $labels) {
+            if (! $set->has($permission)) {
+                continue;
+            }
+            foreach ($labels as $label) {
+                if (! in_array($label, $menus, true)) {
+                    $menus[] = $label;
+                }
             }
         }
 

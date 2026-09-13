@@ -21,8 +21,18 @@ class AuditReportReviewEvent extends Model
         'audit_report_id',
         'actor_user_id',
         'action',
+        'review_round',
         'body',
+        'meta',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'review_round' => 'integer',
+            'meta' => 'array',
+        ];
+    }
 
     public function report(): BelongsTo
     {
@@ -37,10 +47,10 @@ class AuditReportReviewEvent extends Model
     public function actionLabel(): string
     {
         return match ($this->action) {
-            self::ACTION_SUBMITTED => 'Submitted for review',
-            self::ACTION_RETURNED => 'Changes requested',
-            self::ACTION_RESUBMITTED => 'Resubmitted',
-            self::ACTION_APPROVED => 'Approved / reviewed',
+            self::ACTION_SUBMITTED => 'Sent for 1st review',
+            self::ACTION_RETURNED => 'Sent back for changes',
+            self::ACTION_RESUBMITTED => 'Sent for re-review (after changes)',
+            self::ACTION_APPROVED => 'Confirmed / locked',
             self::ACTION_NOTE => 'Note',
             default => (string) $this->action,
         };

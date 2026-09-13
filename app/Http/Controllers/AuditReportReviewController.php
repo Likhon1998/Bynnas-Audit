@@ -30,8 +30,8 @@ class AuditReportReviewController extends Controller
                 ->orderByDesc('submitted_for_review_at')
                 ->orderByDesc('id');
 
-            if ($user->hasRole('superadmin')) {
-                // Superadmin sees all pending in-review.
+            if ($reviews->seesAllReviewInbox($user)) {
+                // Admin / assigner sees every pending in-review report.
             } else {
                 $query->where('reviewer_user_id', $user->id);
             }
@@ -54,7 +54,7 @@ class AuditReportReviewController extends Controller
             // - Makers: Confirmed only (ready items stay with the reviewer until Send)
             $query = AuditReport::query()
                 ->with(['shakha:id,name,code', 'projectLocation.project', 'user:id,name', 'reviewer:id,name'])
-                ->where(function ($q) use ($user) {
+                ->where(function ($q) use ($user, $reviews) {
                     $q->where(function ($confirmed) use ($user) {
                         $confirmed->where('status', AuditReport::STATUS_REVIEWED)
                             ->where(function ($own) use ($user) {
@@ -65,12 +65,12 @@ class AuditReportReviewController extends Controller
                     });
 
                     // Ready-to-send is reviewer work only.
-                    if ($user->can('audits.review') || $user->hasRole('superadmin') || $user->isSuperAdmin()) {
-                        $q->orWhere(function ($ready) use ($user) {
+                    if ($user->can('audits.review') || $reviews->isReviewAdmin($user)) {
+                        $q->orWhere(function ($ready) use ($user, $reviews) {
                             $ready->where('status', AuditReport::STATUS_IN_REVIEW)
                                 ->whereNotNull('review_ready_at');
 
-                            if (! $user->hasRole('superadmin') && ! $user->isSuperAdmin()) {
+                            if (! $reviews->seesAllReviewInbox($user)) {
                                 $ready->where('reviewer_user_id', $user->id);
                             }
                         });
@@ -87,12 +87,19 @@ class AuditReportReviewController extends Controller
         $counts = $reviews->actionCounts($user);
         $notifications = $reviews->actionNotifications($user);
 
+        $statsMonth = (int) $request->input('stats_month', now('Asia/Dhaka')->month);
+        $statsYear = (int) $request->input('stats_year', now('Asia/Dhaka')->year);
+        $monthlyStats = ($user->can('audits.review') || $reviews->isReviewAdmin($user))
+            ? $reviews->monthlyReviewStats($user, $statsMonth, $statsYear)
+            : null;
+
         return view('audit-review.index', [
             'tab' => $tab,
             'reports' => $reports,
             'reviews' => $reviews,
             'counts' => $counts,
             'notifications' => $notifications,
+            'monthlyStats' => $monthlyStats,
         ]);
     }
 
@@ -145,6 +152,7 @@ class AuditReportReviewController extends Controller
             ]),
             'preview' => $preview,
             'previewError' => $previewError,
+            'reviewContext' => $reviews->reviewContext($report),
             'annotations' => $report->reviewAnnotations
                 ->map(fn (\App\Models\AuditReportReviewAnnotation $a) => $a->toReviewPayload())
                 ->values()
@@ -186,6 +194,8 @@ class AuditReportReviewController extends Controller
             'destination' => ['nullable', 'in:assigned,superadmin'],
             'cc_superadmin' => ['nullable', 'boolean'],
             'note' => ['nullable', 'string', 'max:2000'],
+            'addressed_annotation_ids' => ['nullable', 'array'],
+            'addressed_annotation_ids.*' => ['integer'],
         ]);
 
         $destination = (string) ($data['destination'] ?? 'assigned');
@@ -200,13 +210,17 @@ class AuditReportReviewController extends Controller
             $cc,
             $data['note'] ?? null,
             $destination,
+            $data['addressed_annotation_ids'] ?? [],
         );
 
+        $fresh = $report->fresh();
+        $round = max(1, (int) ($fresh?->review_round ?? 1));
         $label = $destination === 'superadmin' ? 'Super Admin' : 'your reviewer';
+        $kind = $round >= 2 ? 're-review (after changes)' : '1st review';
 
         return redirect()
-            ->route('audit-review.show', $report)
-            ->with('status', 'Report sent for review to '.$label.'.');
+            ->route('audits.index', ['report' => $report->id])
+            ->with('status', 'Report sent for '.$kind.' to '.$label.'.');
     }
 
     public function requestChanges(Request $request, AuditReport $report, AuditReportReviewService $reviews): RedirectResponse
@@ -235,6 +249,19 @@ class AuditReportReviewController extends Controller
             ->with('status', 'Report confirmed and locked.');
     }
 
+    public function totallyFixed(Request $request, AuditReport $report, AuditReportReviewService $reviews): RedirectResponse
+    {
+        $data = $request->validate([
+            'note' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $reviews->grantTotallyFixed($report, $request->user(), $data['note'] ?? null);
+
+        return redirect()
+            ->route('audit-review.index', ['tab' => 'reviewed'])
+            ->with('status', 'Report granted as Totally fixed · 100% perfect and locked.');
+    }
+
     public function completeReview(Request $request, AuditReport $report, AuditReportReviewService $reviews): RedirectResponse
     {
         abort_unless($reviews->canActAsReviewer($request->user(), $report), 403);
@@ -245,7 +272,9 @@ class AuditReportReviewController extends Controller
                 'audit_report_id' => $report->id,
                 'actor_user_id' => $request->user()->id,
                 'action' => \App\Models\AuditReportReviewEvent::ACTION_NOTE,
-                'body' => 'Review marked done. Send to maker for fixes, or Confirm to lock finally.',
+                'review_round' => max(1, (int) $report->review_round),
+                'body' => 'Review marked done ('.\App\Models\AuditReport::reviewRoundLabel((int) $report->review_round)
+                    .'). Send to maker for fixes, or Confirm to lock finally.',
             ]);
         }
 
@@ -275,7 +304,7 @@ class AuditReportReviewController extends Controller
         abort_unless($report->isReviewed(), 422, 'Only confirmed reviews can be reopened.');
         abort_unless(
             (int) $report->reviewer_user_id === (int) $user->id
-                || $user->hasRole('superadmin')
+                || $reviews->isReviewAdmin($user)
                 || $user->can('audits.manage'),
             403
         );
@@ -387,6 +416,7 @@ class AuditReportReviewController extends Controller
 
         $annotation = $report->reviewAnnotations()->create([
             'user_id' => $request->user()->id,
+            'review_round' => max(1, (int) $report->review_round),
             'type' => $type,
             'color' => $data['color'],
             'quote' => $quote,
@@ -577,6 +607,64 @@ class AuditReportReviewController extends Controller
             'auditors' => $auditors,
             'reviewers' => $reviewers,
             'map' => $map,
+        ]);
+    }
+
+    /**
+     * Compact hub: pick a log feature (pipeline / activity / assignments).
+     * Watch-only — no review actions from these screens.
+     */
+    public function log(AuditReportReviewService $reviews): View
+    {
+        $log = $reviews->auditorLog();
+
+        return view('audit-review.log', [
+            'summary' => $log['summary'],
+            'positionOptions' => $log['position_options'],
+            'eventCount' => count($log['events']),
+        ]);
+    }
+
+    /**
+     * Pipeline by auditor — live filters (Livewire).
+     */
+    public function logPipeline(): View
+    {
+        return view('audit-review.log-pipeline');
+    }
+
+    /**
+     * Recent review activity — live filters (Livewire).
+     */
+    public function logActivity(): View
+    {
+        return view('audit-review.log-activity');
+    }
+
+    /**
+     * Read-only history for one report from the Auditors log.
+     * Review / annotate / confirm happen only via Review Panel.
+     */
+    public function logHistory(AuditReport $report, AuditReportReviewService $reviews): View
+    {
+        $report->load([
+            'shakha:id,name,code',
+            'projectLocation.project',
+            'user:id,name,email',
+            'reviewer:id,name,email',
+            'reviewEvents.actor:id,name',
+            'reviewAnnotations.user:id,name',
+        ]);
+
+        $canStepIn = $reviews->canActAsReviewer(auth()->user(), $report)
+            || $reviews->canReview(auth()->user(), $report);
+
+        return view('audit-review.log-history', [
+            'report' => $report,
+            'reviewContext' => $reviews->reviewContext($report),
+            'canStepIn' => $canStepIn,
+            'downloadReviewUrl' => route('audit-review.download', $report),
+            'documentUrl' => route('audit-review.document', $report),
         ]);
     }
 

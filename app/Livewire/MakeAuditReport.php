@@ -61,6 +61,12 @@ class MakeAuditReport extends Component
     /** Latest return / send-back note from reviewer. */
     public string $reviewFixSummary = '';
 
+    /** Reviewer granted Totally fixed · 100% perfect. */
+    public bool $reviewPerfect = false;
+
+    /** Maker ticked this perfect report as done. */
+    public bool $reviewMakerDone = false;
+
     /** Checklist is optional; link/progress only (never locks findings). */
     public bool $checklistReady = true;
 
@@ -586,8 +592,8 @@ class MakeAuditReport extends Component
 
     public function showCurrentMonthReports(): void
     {
-        $this->listFilterMonth = (int) now('Asia/Dhaka')->month;
-        $this->listFilterYear = (int) now('Asia/Dhaka')->year;
+        $this->listFilterMonth = (int) \App\Support\AppTime::now()->month;
+        $this->listFilterYear = (int) \App\Support\AppTime::now()->year;
         $this->listFilterStatus = 'all';
     }
 
@@ -883,7 +889,7 @@ class MakeAuditReport extends Component
         $this->clearPersistedUndoStack();
         $this->undoStack = [];
         $this->rememberCommittedBlocks();
-        $this->lastAutoSavedAt = now('Asia/Dhaka')->format('h:i A');
+        $this->lastAutoSavedAt = bd_time(bd_now());
         $this->autoSaveHint = 'Draft saved '.$this->lastAutoSavedAt;
         $this->sign_auditor_name = $this->auditor_name;
         $this->sign_auditor_designation = $this->auditor_designation;
@@ -922,6 +928,8 @@ class MakeAuditReport extends Component
         $this->hydrateFromReport($report);
         $this->reviewReadOnly = ! $reviews->isEditableByMaker($report);
         $this->reviewNeedsFix = $report->isChangesRequested() && ! $this->reviewReadOnly;
+        $this->reviewPerfect = $report->isPerfectReview();
+        $this->reviewMakerDone = $report->isMakerDone();
         $this->loadReviewFixComments($report);
         $this->refreshChecklistGate($report);
         $this->step = 'wizard';
@@ -965,7 +973,7 @@ class MakeAuditReport extends Component
                 'quote' => $a->quote ? (string) $a->quote : null,
                 'body' => $a->body ? (string) $a->body : null,
                 'author' => $a->user?->name,
-                'created' => $a->created_at?->timezone('Asia/Dhaka')->format('d M, h:i A'),
+                'created' => bd_datetime($a->created_at, \App\Support\AppTime::DATETIME_SHORT),
                 'snapshot_url' => $a->snapshotUrl(),
                 'rect_x' => $a->rect_x,
                 'rect_y' => $a->rect_y,
@@ -1090,7 +1098,7 @@ class MakeAuditReport extends Component
             $this->pruneExpiredUndoStack();
             $this->persistDraft(markTab: null, flash: false);
             $this->persistUndoStack();
-            $this->lastAutoSavedAt = now('Asia/Dhaka')->format('h:i:s A');
+            $this->lastAutoSavedAt = bd_now()->format('h:i:s A');
             $remaining = $this->undoSecondsRemaining();
             $this->autoSaveHint = 'Saved '.$this->lastAutoSavedAt
                 .($remaining > 0 ? ' · Undo '.$this->formatUndoRemaining($remaining) : '');
@@ -1152,7 +1160,7 @@ class MakeAuditReport extends Component
             try {
                 $this->persistDraft(markTab: null, flash: false);
                 $this->persistUndoStack();
-                $this->lastAutoSavedAt = now('Asia/Dhaka')->format('h:i:s A');
+                $this->lastAutoSavedAt = bd_now()->format('h:i:s A');
             } catch (\Throwable $e) {
                 report($e);
             }
@@ -1532,6 +1540,25 @@ class MakeAuditReport extends Component
 
         $report->delete();
         session()->flash('status', 'খসড়া রিপোর্ট মুছে ফেলা হয়েছে।');
+    }
+
+    public function acknowledgeReportDone(int $reportId): void
+    {
+        $user = auth()->user();
+        abort_unless($user, 403);
+
+        $report = AuditReport::query()
+            ->accessibleBy((int) $user->id)
+            ->findOrFail($reportId);
+
+        app(\App\Services\AuditReportReviewService::class)
+            ->acknowledgeByMaker($report, $user);
+
+        if ((int) $this->reportId === (int) $reportId) {
+            $this->reviewMakerDone = true;
+        }
+
+        session()->flash('status', 'You marked this report as done · 100% perfect.');
     }
 
     public function openSendMailModal(int $reportId): void
@@ -5643,6 +5670,8 @@ class MakeAuditReport extends Component
         $this->reportId = null;
         $this->reviewReadOnly = false;
         $this->reviewNeedsFix = false;
+        $this->reviewPerfect = false;
+        $this->reviewMakerDone = false;
         $this->reviewCommentsOpen = true;
         $this->reviewFixComments = [];
         $this->reviewFixSummary = '';
@@ -5943,7 +5972,7 @@ class MakeAuditReport extends Component
         $this->outlineActiveAnchor = $this->defaultOutlineAnchorForTab($this->activeTab);
 
         $this->lastAutoSavedAt = $report->last_saved_at
-            ? $report->last_saved_at->timezone('Asia/Dhaka')->format('h:i A')
+            ? bd_time($report->last_saved_at)
             : '';
         $this->autoSaveHint = $this->lastAutoSavedAt ? 'Last saved '.$this->lastAutoSavedAt : '';
     }

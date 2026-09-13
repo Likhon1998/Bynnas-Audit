@@ -15,7 +15,7 @@
         <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
             {{-- Hidden for now: Send by Gmail / send history
             <a
-                href="{{ route('audits.send-history', ['month' => $listFilterMonth ?: now()->month, 'year' => $listFilterYear ?: now()->year]) }}"
+                href="{{ route('audits.send-history', ['month' => $listFilterMonth ?: bd_now()->month, 'year' => $listFilterYear ?: bd_now()->year]) }}"
                 class="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 font-semibold text-slate-700 hover:bg-slate-50"
             >Send history</a>
             --}}
@@ -149,7 +149,7 @@
             <div>
                 <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Year</label>
                 <select wire:model.live="report_year" class="block w-full rounded-md border-slate-200 py-1.5 text-[12px] leading-5" @disabled(! $canStartNewReport)>
-                    @for ($y = now()->year + 1; $y >= now()->year - 6; $y--)
+                    @for ($y = bd_now()->year + 1; $y >= bd_now()->year - 6; $y--)
                         <option value="{{ $y }}">{{ $y }}</option>
                     @endfor
                 </select>
@@ -194,7 +194,7 @@
             <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Year</label>
             <select wire:model.live="listFilterYear" class="block w-full rounded-md border-slate-200 py-1.5 text-[12px] leading-5">
                 <option value="0">All</option>
-                @for ($y = now()->year + 1; $y >= now()->year - 6; $y--)
+                @for ($y = bd_now()->year + 1; $y >= bd_now()->year - 6; $y--)
                     <option value="{{ $y }}">{{ $y }}</option>
                 @endfor
             </select>
@@ -272,7 +272,16 @@
                             @elseif ($report->isChangesRequested())
                                 <span class="inline-flex rounded bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700">Changes requested</span>
                             @elseif ($report->isReviewed())
-                                <span class="inline-flex rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800">Reviewed</span>
+                                @if ($report->isMakerDone())
+                                    <span class="inline-flex items-center gap-1 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800">
+                                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                        Done · 100%
+                                    </span>
+                                @elseif ($report->review_perfect)
+                                    <span class="inline-flex rounded bg-teal-50 px-1.5 py-0.5 text-[10px] font-semibold text-teal-800">Totally fixed · 100%</span>
+                                @else
+                                    <span class="inline-flex rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800">Reviewed</span>
+                                @endif
                             @else
                                 <span class="inline-flex rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-700">Completed</span>
                             @endif
@@ -291,9 +300,9 @@
                         </td>
                         <td class="hidden whitespace-nowrap px-2 py-2 align-middle text-[11px] text-slate-500 lg:table-cell">
                             @if ($isDraft && $report->last_saved_at)
-                                {{ $report->last_saved_at->timezone('Asia/Dhaka')->format('d M, h:i A') }}
+                                {{ bd_datetime($report->last_saved_at, \App\Support\AppTime::DATETIME_SHORT) }}
                             @elseif (! $isDraft && $report->completed_at)
-                                {{ $report->completed_at->format('d M Y') }}
+                                {{ bd_date($report->completed_at) }}
                             @else
                                 —
                             @endif
@@ -362,9 +371,11 @@
                                                 panelStyle: '',
                                                 get submitLabel() {
                                                     if (this.dest === 'superadmin') {
-                                                        return 'Send to Super Admin';
+                                                        return @js($report->isChangesRequested() ? 'Re-review via Super Admin' : 'Send to Super Admin');
                                                     }
-                                                    return @js($assignedName ? 'Send to '.$assignedName : 'Send for review');
+                                                    return @js($report->isChangesRequested()
+                                                        ? ($assignedName ? 'Re-review with '.$assignedName : 'Send for re-review')
+                                                        : ($assignedName ? 'Send to '.$assignedName : 'Send for 1st review'));
                                                 },
                                                 toggle() {
                                                     if (this.open) {
@@ -504,7 +515,7 @@
                                                                 type="submit"
                                                                 class="inline-flex h-8 w-full items-center justify-center rounded-md bg-[#2b579a] text-[11px] font-semibold text-white transition hover:bg-[#204072]"
                                                                 x-text="submitLabel"
-                                                            >Send for review</button>
+                                                            >{{ $report->isChangesRequested() ? 'Send for re-review' : 'Send for 1st review' }}</button>
                                                         </form>
                                                     </div>
                                                 </div>
@@ -516,6 +527,30 @@
                                             href="{{ route('audit-review.show', $report) }}"
                                             class="inline-flex h-7 items-center rounded-md border border-amber-200 bg-amber-50 px-2 text-[11px] font-semibold text-amber-900 hover:bg-amber-100"
                                         >Review status</a>
+                                    @endif
+                                    @if ($report->canMakerAcknowledgeDone(auth()->user()))
+                                        <button
+                                            type="button"
+                                            @click="async () => {
+                                                const ok = await window.bynnasConfirm({
+                                                    title: 'Mark this report as done?',
+                                                    message: 'Reviewer marked this report Totally fixed · 100% perfect. Confirm you are finished.',
+                                                    okLabel: 'Mark as done',
+                                                    tone: 'emerald',
+                                                });
+                                                if (ok) $wire.acknowledgeReportDone({{ $report->id }});
+                                            }"
+                                            class="inline-flex h-7 items-center gap-1 rounded-md bg-teal-600 px-2.5 text-[11px] font-semibold text-white hover:bg-teal-700"
+                                            title="Reviewer granted 100% perfect"
+                                        >
+                                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                            Mark done
+                                        </button>
+                                    @elseif ($report->isPerfectReview() && $report->isMakerDone())
+                                        <span class="inline-flex h-7 items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 text-[11px] font-semibold text-emerald-800">
+                                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                            Done
+                                        </span>
                                     @endif
                                     @if ($report->isInReview() && $report->reviewer)
                                         <span class="inline-flex h-7 max-w-[9rem] items-center truncate rounded-md border border-slate-200 bg-white px-2 text-[10px] font-medium text-slate-600" title="Reviewer: {{ $report->reviewer->name }}">

@@ -37,6 +37,22 @@ class AuditReportExportLayoutTest extends TestCase
         $this->assertGreaterThan(4000, strlen($binary));
     }
 
+    public function test_docx_builder_uses_consistent_readable_font_scale(): void
+    {
+        $path = app_path('Support/PhpWord/AuditReportDocxBuilder.php');
+        $src = file_get_contents($path);
+
+        $this->assertStringContainsString('SIZE_BODY = 11', $src);
+        $this->assertStringContainsString('SIZE_HEADING = 13', $src);
+        $this->assertStringContainsString('SIZE_TABLE = 10', $src);
+
+        // Tiny unreadable sizes must not remain in DOCX export.
+        $this->assertDoesNotMatchRegularExpression("/'size'\\s*=>\\s*[1-5](\\D|$)/", $src);
+        $this->assertDoesNotMatchRegularExpression("/'size'\\s*=>\\s*6(\\D|$)/", $src);
+        $this->assertDoesNotMatchRegularExpression("/'size'\\s*=>\\s*7(\\.5)?(\\D|$)/", $src);
+        $this->assertDoesNotMatchRegularExpression("/'size'\\s*=>\\s*8(\\.5)?(\\D|$)/", $src);
+    }
+
     public function test_doc_service_embeds_logo_in_docx_when_path_exists(): void
     {
         $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mNk+M9Qz0AEYBxVSF+FABJAD9/qQ8WCAAAAAElFTkSuQmCC', true);

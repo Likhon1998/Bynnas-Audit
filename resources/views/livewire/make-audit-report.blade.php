@@ -110,9 +110,42 @@
                             @endif
                         </button>
                     </div>
+                @elseif ($reviewReadOnly && $reviewPerfect)
+                    <div class="order-last flex w-full flex-wrap items-center gap-2 rounded-md border border-teal-200 bg-teal-50 px-3 py-2 text-[11px] text-teal-950 sm:order-none sm:max-w-xl sm:w-auto">
+                        @if ($reviewMakerDone)
+                            <span class="inline-flex items-center gap-1.5 font-semibold text-emerald-800">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                Done · reviewer marked 100% perfect
+                            </span>
+                        @else
+                            <span class="min-w-0 flex-1">
+                                Reviewer marked this report <span class="font-semibold">Totally fixed · 100% perfect</span>. Tick when you are finished with this report.
+                            </span>
+                            <button
+                                type="button"
+                                @click="async () => {
+                                    const ok = await window.bynnasConfirm({
+                                        title: 'Mark this report as done?',
+                                        message: 'Reviewer granted 100% perfect. Confirm you are finished with this audit report.',
+                                        okLabel: 'Mark as done',
+                                        tone: 'emerald',
+                                    });
+                                    if (ok) $wire.acknowledgeReportDone({{ $reportId }});
+                                }"
+                                class="inline-flex h-7 shrink-0 items-center gap-1 rounded-md bg-teal-600 px-2.5 text-[11px] font-semibold text-white hover:bg-teal-700"
+                            >
+                                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                Mark as done
+                            </button>
+                        @endif
+                    </div>
                 @elseif ($reviewReadOnly)
                     <div class="order-last w-full rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] font-medium text-amber-900 sm:order-none sm:w-auto">
-                        Read-only — waiting for reviewer, or already confirmed.
+                        @if ($reportId && \App\Models\AuditReport::query()->find($reportId)?->isReviewed())
+                            Read-only — confirmed by reviewer (not 100% perfect; no done tick).
+                        @else
+                            Read-only — waiting for reviewer.
+                        @endif
                     </div>
                 @endif
 
@@ -553,7 +586,50 @@
             </div>{{-- end main editor --}}
 
             @if ($reviewNeedsFix && $reviewCommentsOpen)
-                <aside class="z-[5] flex max-h-[42vh] w-full shrink-0 flex-col border-t border-rose-200 bg-rose-50/40 xl:max-h-none xl:w-[300px] xl:border-t-0 xl:border-l">
+                <aside
+                    class="z-[5] flex max-h-[42vh] w-full shrink-0 flex-col border-t border-rose-200 bg-rose-50/40 xl:max-h-none xl:w-[300px] xl:border-t-0 xl:border-l"
+                    x-data="{
+                        reportId: {{ (int) $reportId }},
+                        ids: @js(collect($reviewFixComments)->pluck('id')->map(fn ($id) => (int) $id)->values()->all()),
+                        doneMap: {},
+                        previewOpen: false,
+                        previewUrl: '',
+                        previewTitle: '',
+                        previewBody: '',
+                        storageKey(id) { return 'bynnas-fix-done:' + this.reportId + ':' + id; },
+                        init() {
+                            this.ids.forEach((id) => {
+                                try {
+                                    this.doneMap[id] = localStorage.getItem(this.storageKey(id)) === '1';
+                                } catch (e) {
+                                    this.doneMap[id] = false;
+                                }
+                            });
+                        },
+                        isDone(id) { return !!this.doneMap[id]; },
+                        doneCount() { return this.ids.filter((id) => this.isDone(id)).length; },
+                        toggleDone(id) {
+                            const next = !this.isDone(id);
+                            this.doneMap = { ...this.doneMap, [id]: next };
+                            try {
+                                localStorage.setItem(this.storageKey(id), next ? '1' : '0');
+                            } catch (e) {}
+                        },
+                        openPreview(url, title, body) {
+                            this.previewUrl = url || '';
+                            this.previewTitle = title || '';
+                            this.previewBody = body || '';
+                            this.previewOpen = !!this.previewUrl;
+                        },
+                        closePreview() {
+                            this.previewOpen = false;
+                            this.previewUrl = '';
+                            this.previewTitle = '';
+                            this.previewBody = '';
+                        },
+                    }"
+                    @keydown.escape.window="if (previewOpen) closePreview()"
+                >
                     @php
                         $missingSnapshots = collect($reviewFixComments)->contains(fn ($c) => empty($c['snapshot_url']));
                     @endphp
@@ -563,7 +639,10 @@
                     <div class="flex shrink-0 items-start justify-between gap-2 border-b border-rose-100 bg-rose-50 px-3 py-2.5">
                         <div class="min-w-0">
                             <p class="text-[11px] font-semibold uppercase tracking-wide text-rose-700">What to change</p>
-                            <p class="mt-0.5 text-[11px] text-rose-900/80">{{ count($reviewFixComments) }} mark(s) · edit report beside this list</p>
+                            <p class="mt-0.5 text-[11px] text-rose-900/80">
+                                <span x-text="doneCount() + ' of ' + ids.length + ' done'"></span>
+                                · edit report beside this list
+                            </p>
                         </div>
                         <div class="flex shrink-0 flex-col items-end gap-1">
                             <a
@@ -582,29 +661,64 @@
                     @endif
                     <div class="min-h-0 flex-1 space-y-2 overflow-y-auto p-2.5">
                         @forelse ($reviewFixComments as $i => $c)
-                            <div class="rounded-lg border border-slate-200 bg-white px-2.5 py-2 shadow-sm">
+                            @php $commentId = (int) ($c['id'] ?? 0); @endphp
+                            <div
+                                class="rounded-lg border bg-white px-2.5 py-2 shadow-sm transition"
+                                :class="isDone({{ $commentId }}) ? 'border-emerald-200 bg-emerald-50/50 opacity-80' : 'border-slate-200'"
+                            >
                                 <div class="mb-1 flex items-center justify-between gap-2">
-                                    <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full text-[10px] font-bold text-white"
-                                        style="background: {{ match ($c['color'] ?? 'yellow') {
-                                            'rose' => '#e11d48',
-                                            'sky' => '#0284c7',
-                                            'lime' => '#65a30d',
-                                            'orange' => '#ea580c',
-                                            default => '#ca8a04',
-                                        } }}"
-                                    >{{ $i + 1 }}</span>
-                                    <span class="text-[10px] text-slate-400">{{ ($c['type'] ?? '') === 'area' ? 'Area' : 'Text' }}</span>
+                                    <span
+                                        class="inline-flex h-5 min-w-5 items-center justify-center rounded-full text-[10px] font-bold text-white"
+                                        :style="isDone({{ $commentId }})
+                                            ? 'background:#059669'
+                                            : 'background: {{ match ($c['color'] ?? 'yellow') {
+                                                'rose' => '#e11d48',
+                                                'sky' => '#0284c7',
+                                                'lime' => '#65a30d',
+                                                'orange' => '#ea580c',
+                                                default => '#ca8a04',
+                                            } }}'"
+                                    >
+                                        <span x-show="!isDone({{ $commentId }})">{{ $i + 1 }}</span>
+                                        <svg x-show="isDone({{ $commentId }})" x-cloak class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                    </span>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-[10px] text-slate-400">{{ ($c['type'] ?? '') === 'area' ? 'Area' : 'Text' }}</span>
+                                        <button
+                                            type="button"
+                                            @click="toggleDone({{ $commentId }})"
+                                            class="inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold transition"
+                                            :class="isDone({{ $commentId }})
+                                                ? 'border-emerald-300 bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                                                : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800'"
+                                        >
+                                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                            <span x-text="isDone({{ $commentId }}) ? 'Done' : 'Mark done'"></span>
+                                        </button>
+                                    </div>
                                 </div>
 
                                 @if (! empty($c['snapshot_url']))
-                                    <div class="mb-1.5 overflow-hidden rounded-md border border-slate-200 bg-slate-50">
+                                    <button
+                                        type="button"
+                                        class="group relative mb-1.5 block w-full overflow-hidden rounded-md border border-slate-200 bg-slate-50 text-left"
+                                        :class="isDone({{ $commentId }}) && 'opacity-70'"
+                                        @click="openPreview(
+                                            @js($c['snapshot_url']),
+                                            @js('Mark #'.($i + 1).(($c['type'] ?? '') === 'area' ? ' · Area' : ' · Text')),
+                                            @js((string) ($c['body'] ?? ''))
+                                        )"
+                                    >
                                         <img
                                             src="{{ $c['snapshot_url'] }}"
-                                            alt="Marked place in report"
-                                            class="max-h-40 w-full object-contain object-top"
+                                            alt="Marked place in report — click to enlarge"
+                                            class="max-h-40 w-full object-contain object-top transition group-hover:opacity-95"
                                             loading="lazy"
                                         >
-                                    </div>
+                                        <span class="pointer-events-none absolute inset-x-0 bottom-0 bg-slate-900/70 px-2 py-1 text-center text-[10px] font-semibold text-white opacity-0 transition group-hover:opacity-100">
+                                            Click to enlarge
+                                        </span>
+                                    </button>
                                 @elseif (($c['type'] ?? '') === 'area' && isset($c['rect_w'], $c['rect_h']))
                                     <a
                                         href="{{ route('audit-review.show', $reportId) }}#ann-{{ (int) $c['id'] }}"
@@ -619,11 +733,11 @@
                                         <p class="absolute bottom-1 left-2 right-2 text-[9px] font-semibold text-rose-700">Open marked view to create photo</p>
                                     </a>
                                 @elseif (! empty($c['quote']))
-                                    <p class="mb-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-2 text-[11px] italic leading-snug text-slate-800">“{{ \Illuminate\Support\Str::limit($c['quote'], 180) }}”</p>
+                                    <p class="mb-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-2 text-[11px] italic leading-snug text-slate-800" :class="isDone({{ $commentId }}) && 'line-through opacity-70'">“{{ \Illuminate\Support\Str::limit($c['quote'], 180) }}”</p>
                                 @endif
 
                                 @if (! empty($c['body']))
-                                    <p class="mt-1 text-[12px] font-medium leading-snug text-slate-900">{{ $c['body'] }}</p>
+                                    <p class="mt-1 text-[12px] font-medium leading-snug text-slate-900" :class="isDone({{ $commentId }}) && 'line-through opacity-70'">{{ $c['body'] }}</p>
                                 @endif
                                 <p class="mt-2 text-[10px] text-slate-400">{{ $c['author'] ?? 'Reviewer' }}@if (! empty($c['created'])) · {{ $c['created'] }}@endif</p>
                             </div>
@@ -634,20 +748,84 @@
                         @endforelse
                     </div>
                     <div class="shrink-0 border-t border-rose-100 bg-white px-3 py-2.5">
-                        <form method="POST" action="{{ route('audit-review.submit', $reportId) }}" class="space-y-2">
+                        <form
+                            method="POST"
+                            action="{{ route('audit-review.submit', $reportId) }}"
+                            class="space-y-2"
+                            @submit="
+                                $el.querySelectorAll('input[data-addressed-id]').forEach((n) => n.remove());
+                                ids.filter((id) => isDone(id)).forEach((id) => {
+                                    const input = document.createElement('input');
+                                    input.type = 'hidden';
+                                    input.name = 'addressed_annotation_ids[]';
+                                    input.value = String(id);
+                                    input.setAttribute('data-addressed-id', '1');
+                                    $el.appendChild(input);
+                                });
+                            "
+                        >
                             @csrf
                             <input type="hidden" name="destination" value="assigned">
                             <label class="block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Resubmit note (optional)</label>
-                            <textarea name="note" rows="2" class="w-full rounded-lg border-slate-200 text-[12px]" placeholder="Optional note to reviewer"></textarea>
+                            <textarea name="note" rows="2" class="w-full rounded-lg border-slate-200 text-[12px]" placeholder="Tell the reviewer what you fixed"></textarea>
                             <label class="inline-flex items-center gap-1.5 text-[11px] text-slate-600">
                                 <input type="checkbox" name="cc_superadmin" value="1" class="rounded border-slate-300">
                                 CC Superadmin
                             </label>
+                            <p class="text-[10px] text-slate-500">
+                                This sends a <span class="font-semibold text-amber-800">re-review (after changes)</span>, not a 1st review.
+                                Done ticks: <span class="font-semibold" x-text="doneCount()"></span>/<span x-text="ids.length"></span>
+                            </p>
                             <button
                                 type="submit"
                                 class="inline-flex h-8 w-full items-center justify-center rounded-md bg-rose-700 text-[11px] font-semibold text-white hover:bg-rose-800"
-                            >Resubmit for review</button>
+                            >Resubmit for re-review</button>
                         </form>
+                    </div>
+
+                    {{-- Enlarge marked snapshot so maker can see what to change --}}
+                    <div
+                        x-show="previewOpen"
+                        x-cloak
+                        class="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/70 p-3 sm:p-6"
+                        @click.self="closePreview()"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Marked place preview"
+                    >
+                        <div
+                            class="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl ring-1 ring-black/10"
+                            x-transition:enter="transition ease-out duration-150"
+                            x-transition:enter-start="opacity-0 translate-y-2 scale-[0.98]"
+                            x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                            @click.stop
+                        >
+                            <div class="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 px-4 py-3">
+                                <div class="min-w-0">
+                                    <p class="text-[13px] font-semibold text-navy-900" x-text="previewTitle || 'Marked place'"></p>
+                                    <p class="mt-0.5 text-[11px] text-slate-500">Reviewer mark — zoomed so you can see what to fix</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+                                    @click="closePreview()"
+                                    aria-label="Close"
+                                >
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+                            </div>
+                            <div class="min-h-0 flex-1 overflow-auto bg-slate-100 p-3 sm:p-4">
+                                <img
+                                    :src="previewUrl"
+                                    alt="Enlarged marked place"
+                                    class="mx-auto max-h-[70vh] w-auto max-w-full rounded-md border border-slate-200 bg-white object-contain shadow-sm"
+                                >
+                            </div>
+                            <div class="shrink-0 border-t border-slate-100 bg-white px-4 py-3" x-show="previewBody">
+                                <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">What to change</p>
+                                <p class="mt-1 text-[13px] font-medium leading-snug text-slate-900" x-text="previewBody"></p>
+                            </div>
+                        </div>
                     </div>
                 </aside>
             @endif

@@ -87,12 +87,15 @@
                     <label class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Permissions</label>
                     @error('permissions') <p class="text-[11px] text-rose-600">{{ $message }}</p> @enderror
                 </div>
+                <div class="mb-3 rounded-lg border border-emerald-100 bg-emerald-50/50 px-3 py-2 text-[11px] leading-relaxed text-emerald-950/90">
+                    <strong>Tip:</strong> Auditor = create reports. Same person can also <em>Act as reviewer</em>. Assign reviewers + Auditors log is for who maps Auditor → Reviewer.
+                </div>
                 <div class="space-y-3">
                     @foreach ($permissionGroups as $group)
                         <div class="rounded-lg border border-slate-200 p-3">
                             <p class="mb-2 text-[12px] font-semibold text-navy-900">{{ $group['label'] }}</p>
-                            <div class="grid gap-1.5 sm:grid-cols-2">
-                                @foreach ($group['permissions'] as $key => $permLabel)
+                            <div class="grid gap-2 sm:grid-cols-2">
+                                @foreach ($group['permissions'] as $key => $perm)
                                     <label class="flex items-start gap-2 rounded px-1 py-1 text-[12px] hover:bg-slate-50">
                                         <input
                                             type="checkbox"
@@ -101,8 +104,9 @@
                                             class="mt-0.5 rounded border-slate-300 text-[#2b579a]"
                                             @checked(in_array($key, $checked, true))
                                         >
-                                        <span>
-                                            <span class="font-medium text-slate-800">{{ $permLabel }}</span>
+                                        <span class="min-w-0">
+                                            <span class="font-medium text-slate-800">{{ $perm['label'] }}</span>
+                                            <span class="mt-0.5 block text-[10px] leading-snug text-slate-500">{{ $perm['help'] }}</span>
                                             <span class="mt-0.5 block font-mono text-[10px] text-slate-400">{{ $key }}</span>
                                         </span>
                                     </label>

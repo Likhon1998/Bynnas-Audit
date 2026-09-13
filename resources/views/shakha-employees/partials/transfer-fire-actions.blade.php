@@ -58,7 +58,7 @@
                     </div>
                     <div>
                         <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Joined new shakha</label>
-                        <input type="date" name="joined_shakha_at" value="{{ now()->toDateString() }}" class="h-9 w-full rounded-lg border-slate-200 text-[12px]">
+                        <input type="date" name="joined_shakha_at" value="{{ bd_today() }}" class="h-9 w-full rounded-lg border-slate-200 text-[12px]">
                     </div>
                     <div>
                         <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Note (optional)</label>

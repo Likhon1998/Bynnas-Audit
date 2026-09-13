@@ -57,7 +57,7 @@
                 'label' => 'Annual plan shakhas',
                 'value' => number_format($sights['annual_plan_shakhas'] ?? 0),
                 'meta' => 'FY '.$pulse['fy_label'].' · '.($sights['plan_status'] ?? $pulse['plan_status']),
-                'href' => auth()->user()->can('annual_audit.manage') ? route('annual-audit.index') : null,
+                'href' => auth()->user()->canany(['annual_audit.view', 'annual_audit.manage']) ? route('annual-audit.index') : null,
                 'tone' => 'indigo',
             ],
             [

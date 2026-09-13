@@ -62,7 +62,7 @@
                             @endphp
                             <tr class="{{ $index % 2 === 0 ? 'bg-white' : 'bg-slate-50/60' }} hover:bg-sky-50/40">
                                 <td class="whitespace-nowrap px-3 py-2.5 tabular-nums text-slate-600">
-                                    {{ optional($send->sent_at)->timezone('Asia/Dhaka')->format('d M Y, h:i A') ?: '—' }}
+                                    {{ bd_datetime($send->sent_at) }}
                                 </td>
                                 <td class="px-3 py-2.5 align-top">
                                     <p class="font-medium text-slate-800">{{ $reportLabel }}</p>

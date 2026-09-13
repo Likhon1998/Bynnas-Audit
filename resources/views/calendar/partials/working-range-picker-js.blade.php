@@ -48,7 +48,7 @@
                     const isStart = startStr && ymd === startStr;
                     const isEnd = endStr && ymd === endStr;
                     const inRange = !!(startStr && endStr && ymd >= startStr && ymd <= endStr);
-                    const today = fmt(new Date()) === ymd;
+                const today = (window.bynnasTime?.todayYmd?.() || fmt(new Date())) === ymd;
                     let title = ymd;
                     let dot = '';
                     if (holiday) {
@@ -130,7 +130,7 @@
             }
 
             function syncMonthFrom(ymd, fallbackDate) {
-                const d = parseYmd(ymd) || fallbackDate || new Date();
+                const d = parseYmd(ymd) || fallbackDate || (window.bynnasTime?.nowLocalDate?.() || new Date());
                 return { year: d.getFullYear(), month: d.getMonth() + 1 };
             }
 

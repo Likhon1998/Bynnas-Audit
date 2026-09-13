@@ -364,7 +364,7 @@
                 openCreate(date = null) {
                     this.editingId = null;
                     this.form = {
-                        holiday_date: date || new Date().toISOString().slice(0, 10),
+                        holiday_date: date || (window.bynnasTime?.todayYmd?.() || new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Dhaka' })),
                         name: '',
                         type: 'ngo',
                         notes: '',

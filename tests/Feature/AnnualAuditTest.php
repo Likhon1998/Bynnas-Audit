@@ -220,10 +220,15 @@ class AnnualAuditTest extends TestCase
 
     public function test_only_superadmin_can_delete_financial_year_plan(): void
     {
+        $this->seed(\Database\Seeders\RolePermissionSeeder::class);
+
         $regular = User::factory()->create([
             'email_verified_at' => now(),
             'is_superadmin' => false,
+            'is_active' => true,
         ]);
+        $regular->assignRole('audit_manager');
+
         $super = User::factory()->create([
             'email_verified_at' => now(),
             'is_superadmin' => true,
@@ -252,5 +257,25 @@ class AnnualAuditTest extends TestCase
 
         $this->assertDatabaseMissing('audit_plans', ['fy_label' => '2027-2028']);
         $this->assertDatabaseHas('audit_plans', ['fy_label' => '2026-2027']);
+    }
+
+    public function test_view_only_user_can_open_annual_plan_but_not_generate(): void
+    {
+        $this->seed(\Database\Seeders\RolePermissionSeeder::class);
+
+        $viewer = User::factory()->create(['email_verified_at' => now(), 'is_active' => true]);
+        $role = \Spatie\Permission\Models\Role::findOrCreate('annual_viewer', 'web');
+        $role->syncPermissions(['annual_audit.view', 'dashboard.officer']);
+        $viewer->syncRoles(['annual_viewer']);
+
+        $this->actingAs($viewer)
+            ->get(route('annual-audit.index'))
+            ->assertOk()
+            ->assertSee('View only', false)
+            ->assertDontSee('Generate Plan', false);
+
+        $this->actingAs($viewer)
+            ->post(route('annual-audit.generate'))
+            ->assertForbidden();
     }
 }

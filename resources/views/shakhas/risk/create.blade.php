@@ -59,7 +59,7 @@
             <div>
                 <label for="year" class="mb-1 block text-[11px] font-medium text-slate-600">Year</label>
                 <select id="year" name="year" class="h-9 rounded-lg border-slate-200 text-[13px]">
-                    @for ($y = now()->year + 1; $y >= now()->year - 5; $y--)
+                    @for ($y = bd_now()->year + 1; $y >= bd_now()->year - 5; $y--)
                         <option value="{{ $y }}" @selected($y === $year)>{{ $y }}</option>
                     @endfor
                 </select>

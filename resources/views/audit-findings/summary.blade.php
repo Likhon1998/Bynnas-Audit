@@ -23,7 +23,9 @@
                     </select>
                 </form>
                 <a href="{{ $exportUrl }}" class="inline-flex h-9 items-center gap-1.5 rounded-md bg-emerald-700 px-3 text-[12px] font-semibold text-white hover:bg-emerald-800">Excel</a>
-                <a href="{{ $exportPptUrl }}" class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#c43e1c] px-3 text-[12px] font-semibold text-white hover:bg-[#a83316]">Download PPT</a>
+                @canany(['findings.summary.export_ppt', 'findings.view_all'])
+                    <a href="{{ $exportPptUrl }}" class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#c43e1c] px-3 text-[12px] font-semibold text-white hover:bg-[#a83316]">Download PPT</a>
+                @endcanany
             </div>
         </div>
 

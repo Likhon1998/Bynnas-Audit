@@ -79,6 +79,10 @@ class AnnualAuditController extends Controller
             'highlightProjectId' => $highlightProjectId,
         ];
 
+        $canManageAnnual = (bool) $request->user()?->can('annual_audit.manage');
+        $data['canEditSchedule'] = $canManageAnnual;
+        $data['canManageAnnual'] = $canManageAnnual;
+
         return match ($tab) {
             'shakha' => view('annual-audit.index', $data + [
                 'shakhaGroups' => ($shakhaGroups = $builder->shakhaGroups()),

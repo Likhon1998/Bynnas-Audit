@@ -183,7 +183,7 @@
 
         <div class="footer-note">
             Includes all yearly-plan offices for the month — allocated and not yet allocated.
-            Generated {{ now()->format('d M Y H:i') }}.
+            Generated {{ bd_datetime(bd_now()) }}.
         </div>
     </div>
 </body>

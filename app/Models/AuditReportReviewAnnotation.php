@@ -16,6 +16,7 @@ class AuditReportReviewAnnotation extends Model
     protected $fillable = [
         'audit_report_id',
         'user_id',
+        'review_round',
         'type',
         'color',
         'quote',
@@ -27,15 +28,18 @@ class AuditReportReviewAnnotation extends Model
         'rect_w',
         'rect_h',
         'snapshot_path',
+        'addressed_at',
     ];
 
     protected function casts(): array
     {
         return [
+            'review_round' => 'integer',
             'rect_x' => 'float',
             'rect_y' => 'float',
             'rect_w' => 'float',
             'rect_h' => 'float',
+            'addressed_at' => 'datetime',
         ];
     }
 
@@ -106,7 +110,9 @@ class AuditReportReviewAnnotation extends Model
             'author' => $this->user?->name ?: 'Reviewer',
             'bg' => $this->cssBackground(),
             'border' => $this->cssBorder(),
-            'created_at' => $this->created_at?->timezone('Asia/Dhaka')->format('d M Y, h:i A'),
+            'review_round' => (int) ($this->review_round ?: 1),
+            'addressed' => $this->addressed_at !== null,
+            'created_at' => \App\Support\AppTime::dateTime($this->created_at),
         ];
     }
 }
