@@ -25,12 +25,12 @@
         <input
             type="text"
             wire:model.blur="{{ $labelWire }}"
-            class="min-w-[120px] flex-1 rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] font-semibold"
+            class="min-w-[120px] flex-1 rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[13px] font-semibold"
             placeholder="কলাম নাম"
         >
 
         @if ($showWidth && $isLeaf)
-            <label class="flex items-center gap-0.5 text-[10px] text-slate-500" title="কলামের প্রস্থ %">
+            <label class="flex items-center gap-0.5 text-xs text-slate-500" title="কলামের প্রস্থ %">
                 <span>প্রস্থ</span>
                 <input
                     type="number"
@@ -39,7 +39,7 @@
                     step="1"
                     value="{{ isset($column['width']) ? (float) $column['width'] : '' }}"
                     placeholder="auto"
-                    class="w-14 rounded border border-slate-200 bg-white px-1 py-0.5 text-[11px]"
+                    class="w-14 rounded border border-slate-200 bg-white px-1 py-0.5 text-[13px]"
                     wire:change="setCustomTableLeafWidth({{ (int) $blockIndex }}, '{{ $colId }}', $event.target.value)"
                 >
                 <span>%</span>
@@ -49,14 +49,14 @@
         <button
             type="button"
             wire:click="addCustomTableColumn({{ (int) $blockIndex }}, '{{ $colId }}')"
-            class="rounded border border-violet-300 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-violet-700 hover:bg-violet-50"
+            class="rounded border border-violet-300 bg-white px-1.5 py-0.5 text-xs font-semibold text-violet-700 hover:bg-violet-50"
             title="এই কলামের নিচে সাব-কলাম"
         >+ সাব</button>
 
         <button
             type="button"
             wire:click="removeCustomTableColumn({{ (int) $blockIndex }}, '{{ $colId }}')"
-            class="rounded border border-rose-200 px-1.5 py-0.5 text-[10px] text-rose-600 hover:bg-rose-50"
+            class="rounded border border-rose-200 px-1.5 py-0.5 text-xs text-rose-600 hover:bg-rose-50"
         >×</button>
     </div>
 

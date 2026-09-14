@@ -14,7 +14,7 @@
                 <span class="text-white">Bynnas</span>
                 <span class="text-sky-300"> Audit</span>
             </p>
-            <p class="mt-0.5 truncate text-[9px] tracking-wide text-slate-400">Secure • Analyze</p>
+            <p class="mt-0.5 truncate text-xs tracking-wide text-slate-400">Secure • Analyze</p>
         </div>
         <button
             type="button"
@@ -41,7 +41,7 @@
     <div class="sidebar-scroll relative z-10 min-h-0 flex-1 overflow-y-auto px-2 pb-3 pt-3" :class="sidebarCollapsed && 'lg:px-1.5'">
         <div class="sidebar-section-label mb-1.5 flex items-center gap-1.5 px-1.5" :class="sidebarCollapsed && 'lg:hidden'">
             <span class="h-px w-2.5 rounded-full bg-sky-400/80"></span>
-            <p class="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-400">Main</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Main</p>
         </div>
         <div class="sidebar-section-rule mb-1.5 hidden h-px bg-white/10 lg:mx-1" :class="sidebarCollapsed ? 'lg:block' : 'lg:hidden'"></div>
         <nav class="space-y-0.5">
@@ -150,7 +150,7 @@
                     </svg>
                     <span class="sidebar-link-label truncate">Review Panel</span>
                     @if ($reviewActionTotal > 0)
-                        <span class="sidebar-link-label ml-auto inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">{{ $reviewActionTotal > 99 ? '99+' : $reviewActionTotal }}</span>
+                        <span class="sidebar-link-label ml-auto inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-xs font-bold text-white">{{ $reviewActionTotal > 99 ? '99+' : $reviewActionTotal }}</span>
                     @endif
                 </x-sidebar-link>
             @else
@@ -236,15 +236,15 @@
 
                         <div x-show="shakhaOpen" x-cloak class="mt-0.5 space-y-0.5 border-l border-white/10 py-0.5 pl-2 ml-3">
                             @canany(['shakhas.manage', 'shakhas.view_all'])
-                                <a href="{{ route('shakhas.index') }}" class="block rounded-md px-2 py-1 text-[11px] {{ request()->routeIs('shakhas.index') ? 'bg-blue-500/20 text-white' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white' }}">All Shakha</a>
-                                <a href="{{ route('shakha-employees.index') }}" class="block rounded-md px-2 py-1 text-[11px] {{ request()->routeIs('shakha-employees.*') ? 'bg-blue-500/20 text-white' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white' }}">Shakha Employees</a>
+                                <a href="{{ route('shakhas.index') }}" class="block rounded-md px-2 py-1 text-[13px] {{ request()->routeIs('shakhas.index') ? 'bg-blue-500/20 text-white' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white' }}">All Shakha</a>
+                                <a href="{{ route('shakha-employees.index') }}" class="block rounded-md px-2 py-1 text-[13px] {{ request()->routeIs('shakha-employees.*') ? 'bg-blue-500/20 text-white' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white' }}">Shakha Employees</a>
                             @endcanany
                             @can('shakhas.manage')
-                                <a href="{{ route('shakhas.create') }}" class="block rounded-md px-2 py-1 text-[11px] {{ request()->routeIs('shakhas.create') ? 'bg-blue-500/20 text-white' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white' }}">Add Shakha</a>
+                                <a href="{{ route('shakhas.create') }}" class="block rounded-md px-2 py-1 text-[13px] {{ request()->routeIs('shakhas.create') ? 'bg-blue-500/20 text-white' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white' }}">Add Shakha</a>
                             @endcan
                             @can('areas.manage')
-                                <a href="{{ route('areas.index') }}" class="block rounded-md px-2 py-1 text-[11px] {{ request()->routeIs('areas.index') ? 'bg-blue-500/20 text-white' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white' }}">All Areas</a>
-                                <a href="{{ route('areas.create') }}" class="block rounded-md px-2 py-1 text-[11px] {{ request()->routeIs('areas.create') ? 'bg-blue-500/20 text-white' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white' }}">Add Area</a>
+                                <a href="{{ route('areas.index') }}" class="block rounded-md px-2 py-1 text-[13px] {{ request()->routeIs('areas.index') ? 'bg-blue-500/20 text-white' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white' }}">All Areas</a>
+                                <a href="{{ route('areas.create') }}" class="block rounded-md px-2 py-1 text-[13px] {{ request()->routeIs('areas.create') ? 'bg-blue-500/20 text-white' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white' }}">Add Area</a>
                             @endcan
                         </div>
                     </div>
@@ -254,7 +254,7 @@
 
         <div class="sidebar-section-label mb-1.5 mt-4 flex items-center gap-1.5 px-1.5" :class="sidebarCollapsed && 'lg:hidden'">
             <span class="h-px w-2.5 rounded-full bg-sky-400/80"></span>
-            <p class="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-400">Settings</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Settings</p>
         </div>
         <div class="sidebar-section-rule mb-1.5 mt-3 hidden h-px bg-white/10 lg:mx-1" :class="sidebarCollapsed ? 'lg:block' : 'lg:hidden'"></div>
         <nav class="space-y-0.5">
@@ -293,12 +293,12 @@
             :class="sidebarCollapsed && 'lg:justify-center lg:px-0'"
             :title="sidebarCollapsed ? '{{ e(Auth::user()->name) }}' : ''"
         >
-            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-400 to-blue-500 text-[11px] font-semibold text-white shadow-md shadow-violet-500/30">
+            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-400 to-blue-500 text-[13px] font-semibold text-white shadow-md shadow-violet-500/30">
                 {{ strtoupper(mb_substr(Auth::user()->name, 0, 1)) }}
             </span>
             <span class="sidebar-user-meta min-w-0 flex-1" :class="sidebarCollapsed && 'lg:hidden'">
-                <span class="block truncate text-[11px] font-medium text-white">{{ Auth::user()->name }}</span>
-                <span class="block truncate text-[10px] text-slate-400">{{ Auth::user()->roleLabel() }}</span>
+                <span class="block truncate text-[13px] font-medium text-white">{{ Auth::user()->name }}</span>
+                <span class="block truncate text-xs text-slate-500">{{ Auth::user()->roleLabel() }}</span>
             </span>
             <svg class="sidebar-chevron h-3 w-3 shrink-0 text-slate-500 transition" :class="[profileOpen ? 'rotate-180' : '', sidebarCollapsed && 'lg:hidden']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
@@ -310,11 +310,11 @@
             class="mt-1 space-y-0.5 rounded-lg border border-white/10 bg-[#0b1f3f]/90 p-1 backdrop-blur"
             :class="sidebarCollapsed && 'lg:absolute lg:bottom-full lg:left-full lg:mb-0 lg:ml-1 lg:w-36 lg:shadow-xl'"
         >
-            <a href="{{ route('profile.edit') }}" class="block rounded-md px-2 py-1 text-[11px] text-slate-300 hover:bg-white/[0.05] hover:text-white">Profile</a>
+            <a href="{{ route('profile.edit') }}" class="block rounded-md px-2 py-1 text-[13px] text-slate-300 hover:bg-white/[0.05] hover:text-white">Profile</a>
             <button
                 type="button"
                 @click="toggleTheme()"
-                class="block w-full rounded-md px-2 py-1 text-left text-[11px] text-slate-300 hover:bg-white/[0.05] hover:text-white"
+                class="block w-full rounded-md px-2 py-1 text-left text-[13px] text-slate-300 hover:bg-white/[0.05] hover:text-white"
                 x-text="darkMode ? 'Light theme' : 'Dark theme'"
             ></button>
             <form
@@ -329,7 +329,7 @@
                 "
             >
                 @csrf
-                <button type="submit" class="block w-full rounded-md px-2 py-1 text-left text-[11px] text-slate-300 hover:bg-white/[0.05] hover:text-white">Log Out</button>
+                <button type="submit" class="block w-full rounded-md px-2 py-1 text-left text-[13px] text-slate-300 hover:bg-white/[0.05] hover:text-white">Log Out</button>
             </form>
         </div>
     </div>

@@ -2,12 +2,12 @@
     <div class="px-3 py-3 lg:px-5" style="font-family:'Hind Siliguri','Nirmala UI',system-ui,sans-serif;">
         <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
             <div>
-                <div class="mb-1 flex items-center gap-1.5 text-[11px] text-slate-400">
+                <div class="mb-1 flex items-center gap-1.5 text-[13px] text-slate-400">
                     <a href="{{ route('audit-review.index') }}" class="hover:text-brand-600">Review Panel</a>
                     <span>/</span>
                     <span class="text-slate-600">Assignments</span>
                 </div>
-                <h1 class="text-[16px] font-semibold tracking-tight text-navy-900">Reviewer assignments</h1>
+                <h1 class="text-lg font-semibold tracking-tight text-navy-900">Reviewer assignments</h1>
                 <p class="mt-0.5 text-[12px] text-slate-500">Fixed map: Auditor X → Reviewer Y</p>
             </div>
             <div class="flex flex-wrap gap-1.5">
@@ -25,7 +25,7 @@
             @csrf
             <div class="overflow-x-auto">
                 <table class="min-w-full text-left text-[12px]">
-                    <thead class="border-b border-slate-100 bg-slate-50/80 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                    <thead class="border-b border-slate-100 bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-slate-500">
                         <tr>
                             <th class="px-3 py-2.5">Auditor</th>
                             <th class="px-3 py-2.5">Email</th>

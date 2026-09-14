@@ -14,14 +14,14 @@
                     @if (! empty($logoUrl))
                         <img src="{{ $logoUrl }}" alt="Logo" class="max-h-[70px] max-w-[220px] object-contain p-0.5">
                     @else
-                        <span class="px-1 text-center text-[9px] font-medium leading-tight text-slate-500">Add<br>Logo</span>
+                        <span class="px-1 text-center text-xs font-medium leading-tight text-slate-500">Add<br>Logo</span>
                     @endif
                     <input type="file" accept="image/*" wire:model="logoUpload" class="absolute inset-0 cursor-pointer opacity-0">
                 </label>
-                <div wire:loading wire:target="logoUpload" class="mt-0.5 text-[9px] text-slate-500">Uploading…</div>
-                @error('logoUpload') <p class="mt-0.5 max-w-[70px] text-[9px] text-rose-600">{{ $message }}</p> @enderror
+                <div wire:loading wire:target="logoUpload" class="mt-0.5 text-xs text-slate-500">Uploading…</div>
+                @error('logoUpload') <p class="mt-0.5 max-w-[70px] text-xs text-rose-600">{{ $message }}</p> @enderror
                 @if (! empty($logoUrl))
-                    <button type="button" wire:click="removeLogo" class="mt-0.5 text-[9px] text-rose-600 hover:underline">Remove</button>
+                    <button type="button" wire:click="removeLogo" class="mt-0.5 text-xs text-rose-600 hover:underline">Remove</button>
                 @endif
             </div>
         @else
@@ -29,7 +29,7 @@
                 <img src="{{ $logoUrl }}" alt="Logo" class="max-h-[70px] max-w-[220px] shrink-0 object-contain">
             @else
                 <div class="flex h-[58px] w-[58px] shrink-0 items-center justify-center overflow-hidden border border-slate-300 bg-white">
-                    <span class="px-1 text-center text-[9px] leading-tight text-slate-400">Logo</span>
+                    <span class="px-1 text-center text-xs leading-tight text-slate-400">Logo</span>
                 </div>
             @endif
         @endif
@@ -38,7 +38,7 @@
             <div class="leading-tight pt-0.5">
                 <p class="text-[20px] font-extrabold tracking-tight text-black">DSK</p>
                 <p class="text-[12px] font-semibold text-black">দুঃস্থ স্বাস্থ্য কেন্দ্র</p>
-                <p class="text-[9px] font-semibold uppercase tracking-[0.04em] text-black">Dushtha Shasthya Kendra</p>
+                <p class="text-xs font-semibold uppercase tracking-[0.04em] text-black">Dushtha Shasthya Kendra</p>
             </div>
         @endif
     </div>
@@ -46,7 +46,7 @@
     <div class="w-[132px] shrink-0 text-center">
         <table class="w-full border-collapse" style="table-layout:fixed;">
             <tr>
-                <td class="rounded-[2px] bg-[#1d4ed8] px-1.5 py-1 text-[9px] font-semibold leading-snug text-white">
+                <td class="rounded-[2px] bg-[#1d4ed8] px-1.5 py-1 text-xs font-semibold leading-snug text-white">
                     Branch Internal<br>Control Rating
                 </td>
             </tr>
@@ -55,7 +55,7 @@
                     @if ($editable)
                         <select
                             wire:model.live="control_rating"
-                            class="w-full rounded-[2px] border-2 border-orange-400 px-1 py-1 text-center text-[10px] font-bold leading-tight text-white"
+                            class="w-full rounded-[2px] border-2 border-orange-400 px-1 py-1 text-center text-xs font-bold leading-tight text-white"
                             style="background: {{ $ratingColor }};"
                         >
                             <option>Satisfactory</option>
@@ -66,7 +66,7 @@
                         </select>
                     @else
                         <div
-                            class="w-full break-words rounded-[2px] border-2 border-orange-400 px-1.5 py-1.5 text-center text-[10px] font-bold leading-tight text-white"
+                            class="w-full break-words rounded-[2px] border-2 border-orange-400 px-1.5 py-1.5 text-center text-xs font-bold leading-tight text-white"
                             style="background: {{ $ratingColor }};"
                         >
                             {{ $control_rating ?: '—' }}

@@ -6,7 +6,7 @@
 
 <div class="pointer-events-none select-none overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm opacity-95">
     <div class="border-b border-slate-200 bg-slate-50 px-4 py-3 text-center">
-        <p class="text-[11px] font-semibold text-slate-500">Format: {{ $formatModel?->format_number }}</p>
+        <p class="text-[13px] font-semibold text-slate-500">Format: {{ $formatModel?->format_number }}</p>
         <p class="text-[15px] font-bold text-navy-900">{{ $formatModel?->org_name }}</p>
         <p class="text-[12px] font-semibold text-slate-700">{{ $formatModel?->dept_name }}</p>
         <p class="mt-1 text-[13px] font-bold text-navy-900">“{{ $formatModel?->heading }}”</p>
@@ -14,17 +14,17 @@
 
     <div class="grid gap-3 border-b border-slate-200 px-4 py-3 sm:grid-cols-2">
         <div>
-            <label class="mb-0.5 block text-[11px] font-semibold text-slate-600">শাখার নাম :</label>
-            <div class="flex h-9 items-center rounded-md border border-slate-200 bg-white px-3 text-[12px] text-slate-400">…………………………</div>
+            <label class="mb-0.5 block text-[13px] font-semibold text-slate-600">শাখার নাম :</label>
+            <div class="flex h-9 items-center rounded-md border border-slate-200 bg-white px-3 text-[13px] text-slate-500">…………………………</div>
         </div>
         <div>
-            <label class="mb-0.5 block text-[11px] font-semibold text-slate-600">নিরীক্ষা কাল :</label>
-            <div class="flex h-9 items-center rounded-md border border-slate-200 bg-white px-3 text-[12px] text-slate-400">…………………………</div>
+            <label class="mb-0.5 block text-[13px] font-semibold text-slate-600">নিরীক্ষা কাল :</label>
+            <div class="flex h-9 items-center rounded-md border border-slate-200 bg-white px-3 text-[13px] text-slate-500">…………………………</div>
         </div>
     </div>
 
     <div class="overflow-x-auto px-2 py-3">
-        <table class="min-w-[980px] w-full border-collapse text-[11px]">
+        <table class="min-w-[980px] w-full border-collapse text-[13px]">
             <thead>
                 <tr class="bg-slate-100 text-center font-semibold text-slate-700">
                     <th class="border border-slate-300 px-1 py-1.5 w-10">ক্রঃ নং</th>
@@ -83,13 +83,13 @@
         @foreach ($sections as $section)
             <div class="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
                 <p class="mb-2 text-[12px] font-bold text-navy-900">{{ $section['label'] }}</p>
-                <ol class="mb-3 list-decimal space-y-1.5 pl-4 text-[11px] leading-snug text-slate-700">
+                <ol class="mb-3 list-decimal space-y-1.5 pl-4 text-[13px] leading-snug text-slate-700">
                     @foreach (($section['questions'] ?? []) as $q)
                         <li>{{ $q }}</li>
                     @endforeach
                 </ol>
-                <p class="mb-1 text-[11px] font-bold text-navy-900">সারসংক্ষেপ — {{ $section['label'] }}</p>
-                <div class="min-h-[72px] rounded-md border border-slate-200 bg-white px-2 py-1.5 text-[11px] text-slate-300">…………………………………………</div>
+                <p class="mb-1 text-[13px] font-bold text-navy-900">সারসংক্ষেপ — {{ $section['label'] }}</p>
+                <div class="min-h-[72px] rounded-md border border-slate-200 bg-white px-2 py-1.5 text-[13px] text-slate-300">…………………………………………</div>
             </div>
         @endforeach
     </div>

@@ -215,3 +215,24 @@ html.dark [class*='from-slate-50'] {
     }
 }
 
+/* Readability: shared chrome for labels / table headers */
+.ui-label {
+    @apply text-xs font-medium text-slate-600;
+}
+
+.ui-thead {
+    @apply text-xs font-semibold uppercase tracking-wide text-slate-500;
+}
+
+.ui-muted {
+    @apply text-[13px] text-slate-600;
+}
+
+.ui-page-title {
+    @apply text-lg font-semibold tracking-tight text-navy-900;
+}
+
+.ui-page-sub {
+    @apply mt-1 text-[13px] text-slate-600;
+}
+

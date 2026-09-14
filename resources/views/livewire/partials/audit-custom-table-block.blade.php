@@ -20,11 +20,11 @@
             <button
                 type="button"
                 wire:click="openCustomTableEditor({{ $blockIndex }})"
-                class="rounded bg-violet-600 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-violet-700"
+                class="rounded bg-violet-600 px-2.5 py-1 text-[13px] font-semibold text-white hover:bg-violet-700"
             >Customize Table</button>
-            <button type="button" wire:click="moveBlock({{ $blockIndex }}, 'up')" class="text-[11px] text-slate-600 hover:underline">↑</button>
-            <button type="button" wire:click="moveBlock({{ $blockIndex }}, 'down')" class="text-[11px] text-slate-600 hover:underline">↓</button>
-            <button type="button" wire:click="removeBlock({{ $blockIndex }})" class="text-[11px] text-rose-600 hover:underline">মুছুন</button>
+            <button type="button" wire:click="moveBlock({{ $blockIndex }}, 'up')" class="text-[13px] text-slate-600 hover:underline">↑</button>
+            <button type="button" wire:click="moveBlock({{ $blockIndex }}, 'down')" class="text-[13px] text-slate-600 hover:underline">↓</button>
+            <button type="button" wire:click="removeBlock({{ $blockIndex }})" class="text-[13px] text-rose-600 hover:underline">মুছুন</button>
         </div>
     @else
         <p class="mb-[1mm] font-bold">{{ $table['title'] }}</p>
@@ -42,14 +42,14 @@
 
     @if ($editable)
         <div class="mt-1 flex flex-wrap gap-2 text-right">
-            <button type="button" wire:click="addCustomTableRow({{ $blockIndex }})" class="text-[10px] text-violet-700 hover:underline">+ সারি</button>
+            <button type="button" wire:click="addCustomTableRow({{ $blockIndex }})" class="text-xs text-violet-700 hover:underline">+ সারি</button>
             @foreach ($table['rows'] as $rIndex => $row)
                 @if ($rIndex === count($table['rows']) - 1)
-                    <button type="button" wire:click="toggleCustomTableTotalRow({{ $blockIndex }}, {{ $rIndex }})" class="text-[10px] text-slate-500 hover:underline">
+                    <button type="button" wire:click="toggleCustomTableTotalRow({{ $blockIndex }}, {{ $rIndex }})" class="text-xs text-slate-500 hover:underline">
                         {{ ($row['is_total'] ?? false) ? 'মোট সারি বন্ধ' : 'মোট সারি' }}
                     </button>
                     @if (count($table['rows']) > 1)
-                        <button type="button" wire:click="removeCustomTableRow({{ $blockIndex }}, {{ $rIndex }})" class="text-[10px] text-rose-600 hover:underline">শেষ সারি মুছুন</button>
+                        <button type="button" wire:click="removeCustomTableRow({{ $blockIndex }}, {{ $rIndex }})" class="text-xs text-rose-600 hover:underline">শেষ সারি মুছুন</button>
                     @endif
                 @endif
             @endforeach

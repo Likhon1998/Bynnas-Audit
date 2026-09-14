@@ -3,7 +3,7 @@
     $editable = $editable ?? false;
     $compact = $compact ?? false;
     $tableClass = $compact ? 'a4-table a4-table-compact text-[9.5px]' : 'a4-table text-[10.5px]';
-    $obsTableClass = $compact ? 'a4-table a4-table-compact text-[9px]' : 'a4-table text-[10px]';
+    $obsTableClass = $compact ? 'a4-table a4-table-compact text-xs' : 'a4-table text-xs';
 
     $blocks = $reportBlocks ?? [];
     if ($blocks === []) {
@@ -60,9 +60,9 @@
                     placeholder="বিভাগের শিরোনাম"
                 >
                 <div class="ml-auto flex flex-wrap items-center gap-1">
-                    <button type="button" wire:click="moveBlock({{ $bIndex }}, 'up')" class="h-7 rounded border border-slate-200 px-2 text-[11px] text-slate-600 hover:bg-slate-50" title="উপরে">↑</button>
-                    <button type="button" wire:click="moveBlock({{ $bIndex }}, 'down')" class="h-7 rounded border border-slate-200 px-2 text-[11px] text-slate-600 hover:bg-slate-50" title="নিচে">↓</button>
-                    <button type="button" wire:click="removeBlock({{ $bIndex }})" class="h-7 rounded border border-rose-200 px-2 text-[11px] text-rose-600 hover:bg-rose-50">
+                    <button type="button" wire:click="moveBlock({{ $bIndex }}, 'up')" class="h-7 rounded border border-slate-200 px-2 text-[13px] text-slate-600 hover:bg-slate-50" title="উপরে">↑</button>
+                    <button type="button" wire:click="moveBlock({{ $bIndex }}, 'down')" class="h-7 rounded border border-slate-200 px-2 text-[13px] text-slate-600 hover:bg-slate-50" title="নিচে">↓</button>
+                    <button type="button" wire:click="removeBlock({{ $bIndex }})" class="h-7 rounded border border-rose-200 px-2 text-[13px] text-rose-600 hover:bg-rose-50">
                         বিভাগ মুছুন
                     </button>
                 </div>
@@ -104,7 +104,7 @@
                                 'code' => $block['indicator_code'] ?? null,
                                 'wireKey' => 'blk-ind-'.$bIndex.'-'.(int) ($block['indicator_id'] ?? 0).'-'.md5((string) ($block['body'] ?? '')),
                             ])
-                            <div class="mt-1 flex flex-wrap items-center gap-2 text-[11px]">
+                            <div class="mt-1 flex flex-wrap items-center gap-2 text-[13px]">
                                 <span class="font-semibold">টাকার পরিমাণ:</span>
                                 <input type="text" wire:model.blur="reportBlocks.{{ $bIndex }}.amount" class="inline-input min-w-[100px]" placeholder="0">
                             </div>
@@ -128,12 +128,12 @@
         </table>
         @if ($editable)
             <div class="mb-[3mm] flex flex-wrap items-center justify-end gap-2">
-                <button type="button" wire:click="moveBlock({{ $bIndex }}, 'up')" class="text-[11px] text-slate-600 hover:underline">↑ উপরে</button>
-                <button type="button" wire:click="moveBlock({{ $bIndex }}, 'down')" class="text-[11px] text-slate-600 hover:underline">↓ নিচে</button>
+                <button type="button" wire:click="moveBlock({{ $bIndex }}, 'up')" class="text-[13px] text-slate-600 hover:underline">↑ উপরে</button>
+                <button type="button" wire:click="moveBlock({{ $bIndex }}, 'down')" class="text-[13px] text-slate-600 hover:underline">↓ নিচে</button>
                 <button
                     type="button"
                     wire:click="removeBlock({{ $bIndex }})"
-                    class="text-[11px] text-rose-600 hover:underline"
+                    class="text-[13px] text-rose-600 hover:underline"
                 >শিরোনাম মুছুন</button>
             </div>
         @endif
@@ -148,14 +148,14 @@
                         class="min-w-[200px] flex-1 rounded border border-slate-200 bg-sky-50/40 px-2 py-1 text-[12px] font-bold"
                         placeholder="প্রচলিত নিয়ম (Criteria):"
                     >
-                    <button type="button" wire:click="moveBlock({{ $bIndex }}, 'up')" class="text-[11px] text-slate-600 hover:underline">↑</button>
-                    <button type="button" wire:click="moveBlock({{ $bIndex }}, 'down')" class="text-[11px] text-slate-600 hover:underline">↓</button>
-                    <button type="button" wire:click="removeBlock({{ $bIndex }})" class="text-[11px] text-rose-600 hover:underline">মুছুন</button>
+                    <button type="button" wire:click="moveBlock({{ $bIndex }}, 'up')" class="text-[13px] text-slate-600 hover:underline">↑</button>
+                    <button type="button" wire:click="moveBlock({{ $bIndex }}, 'down')" class="text-[13px] text-slate-600 hover:underline">↓</button>
+                    <button type="button" wire:click="removeBlock({{ $bIndex }})" class="text-[13px] text-rose-600 hover:underline">মুছুন</button>
                 </div>
                 <textarea
                     wire:model.live="reportBlocks.{{ $bIndex }}.body"
                     rows="2"
-                    class="audit-autogrow w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[11px] leading-relaxed"
+                    class="audit-autogrow w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[13px] leading-relaxed"
                     placeholder="প্রচলিত নিয়ম লিখুন…"
                 ></textarea>
             @else
@@ -199,21 +199,21 @@
                                 x-show="open"
                                 x-cloak
                                 @click.outside="open = false"
-                                class="absolute right-0 z-30 mt-1 w-72 rounded-md border border-sky-200 bg-white p-2.5 text-[11px] leading-snug text-slate-700 shadow-lg"
+                                class="absolute right-0 z-30 mt-1 w-72 rounded-md border border-sky-200 bg-white p-2.5 text-[13px] leading-snug text-slate-700 shadow-lg"
                             >
-                                <p class="mb-0.5 text-[10px] font-bold uppercase tracking-wide text-sky-800">পর্যবেক্ষণের উৎস</p>
+                                <p class="mb-0.5 text-xs font-bold uppercase tracking-wide text-sky-800">পর্যবেক্ষণের উৎস</p>
                                 <p>{{ $obsSourceDetail }}</p>
                             </div>
                         </div>
                     @endif
-                    <button type="button" wire:click="moveBlock({{ $bIndex }}, 'up')" class="text-[11px] text-slate-600 hover:underline">↑</button>
-                    <button type="button" wire:click="moveBlock({{ $bIndex }}, 'down')" class="text-[11px] text-slate-600 hover:underline">↓</button>
-                    <button type="button" wire:click="removeBlock({{ $bIndex }})" class="text-[11px] text-rose-600 hover:underline">মুছুন</button>
+                    <button type="button" wire:click="moveBlock({{ $bIndex }}, 'up')" class="text-[13px] text-slate-600 hover:underline">↑</button>
+                    <button type="button" wire:click="moveBlock({{ $bIndex }}, 'down')" class="text-[13px] text-slate-600 hover:underline">↓</button>
+                    <button type="button" wire:click="removeBlock({{ $bIndex }})" class="text-[13px] text-rose-600 hover:underline">মুছুন</button>
                 </div>
                 <textarea
                     wire:model.live="reportBlocks.{{ $bIndex }}.body"
                     rows="2"
-                    class="audit-autogrow w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[11px] leading-relaxed"
+                    class="audit-autogrow w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[13px] leading-relaxed"
                     placeholder="পর্যবেক্ষণ লিখুন…"
                 ></textarea>
                 @php
@@ -229,7 +229,7 @@
                     ])
                 @endif
                 @if ($obsSourceDetail !== '')
-                    <p class="mt-1 text-[10px] text-sky-800/90">{{ $obsSourceDetail }}</p>
+                    <p class="mt-1 text-xs text-sky-800/90">{{ $obsSourceDetail }}</p>
                 @endif
             @else
                 @if (($block['label'] ?? '') !== '')
@@ -241,7 +241,7 @@
                     <p class="m-0 border-b border-dotted border-black">&nbsp;</p>
                 @endif
                 @if ($obsSourceDetail !== '')
-                    <p class="mt-[1mm] text-[10px] text-slate-500">{{ $obsSourceDetail }}</p>
+                    <p class="mt-[1mm] text-xs text-slate-500">{{ $obsSourceDetail }}</p>
                 @endif
             @endif
         </div>
@@ -273,34 +273,34 @@
                         class="min-w-[200px] flex-1 rounded border border-slate-200 bg-sky-50/40 px-2 py-1 text-[12px] font-bold"
                         placeholder="Report Rating Box:"
                     >
-                    <button type="button" wire:click="moveBlock({{ $bIndex }}, 'up')" class="text-[11px] text-slate-600 hover:underline">↑</button>
-                    <button type="button" wire:click="moveBlock({{ $bIndex }}, 'down')" class="text-[11px] text-slate-600 hover:underline">↓</button>
-                    <button type="button" wire:click="removeBlock({{ $bIndex }})" class="text-[11px] text-rose-600 hover:underline">মুছুন</button>
+                    <button type="button" wire:click="moveBlock({{ $bIndex }}, 'up')" class="text-[13px] text-slate-600 hover:underline">↑</button>
+                    <button type="button" wire:click="moveBlock({{ $bIndex }}, 'down')" class="text-[13px] text-slate-600 hover:underline">↓</button>
+                    <button type="button" wire:click="removeBlock({{ $bIndex }})" class="text-[13px] text-rose-600 hover:underline">মুছুন</button>
                 </div>
 
                 <div class="mb-2 rounded-lg border {{ $hasMatrixLink ? 'border-emerald-200 bg-emerald-50/70' : 'border-amber-200 bg-amber-50/80' }} px-2.5 py-2">
                     <div class="mb-1.5 flex flex-wrap items-center justify-between gap-2">
-                        <p class="text-[10px] font-bold uppercase tracking-wide {{ $hasMatrixLink ? 'text-emerald-800' : 'text-amber-800' }}">
+                        <p class="text-xs font-bold uppercase tracking-wide {{ $hasMatrixLink ? 'text-emerald-800' : 'text-amber-800' }}">
                             {{ $hasMatrixLink ? '✓ Matrix indicator confirmed' : '⚠ Matrix indicator missing' }}
                         </p>
                         @if ($hasMatrixLink && $linkedCode !== '')
-                            <span class="rounded bg-white/80 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-emerald-800">{{ $linkedCode }}</span>
+                            <span class="rounded bg-white/80 px-1.5 py-0.5 font-mono text-xs font-semibold text-emerald-800">{{ $linkedCode }}</span>
                         @endif
                     </div>
 
                     @if ($hasMatrixLink)
-                        <p class="mb-1.5 text-[11px] font-semibold leading-snug text-emerald-950">
+                        <p class="mb-1.5 text-[13px] font-semibold leading-snug text-emerald-950">
                             @if ($linkedSerial !== '')
                                 <span class="text-emerald-700">{{ $linkedSerial }}</span> ·
                             @endif
                             {{ $linkedTitle !== '' ? $linkedTitle : 'Selected indicator' }}
                         </p>
-                        <p class="mb-1.5 text-[10px] text-emerald-800/80">এই বক্সের Sample / Instances / Amount এই indicator-এর Findings Matrix সারিতে যাবে (শাখা × মাস)।</p>
+                        <p class="mb-1.5 text-xs text-emerald-800/80">এই বক্সের Sample / Instances / Amount এই indicator-এর Findings Matrix সারিতে যাবে (শাখা × মাস)।</p>
                     @else
-                        <p class="mb-1.5 text-[10px] text-amber-900">নিচ থেকে indicator বেছে নিন — না হলে Matrix-এ ডেটা যাবে না।</p>
+                        <p class="mb-1.5 text-xs text-amber-900">নিচ থেকে indicator বেছে নিন — না হলে Matrix-এ ডেটা যাবে না।</p>
                     @endif
 
-                    <label class="mb-0.5 block text-[10px] font-semibold text-slate-600">এই Rating Box কোন indicator-এর?</label>
+                    <label class="mb-0.5 block text-xs font-semibold text-slate-600">এই Rating Box কোন indicator-এর?</label>
                     @include('livewire.partials.audit-indicator-combobox', [
                         'index' => $bIndex,
                         'value' => $hasMatrixLink ? $linkedTitle : '',
@@ -315,7 +315,7 @@
             @elseif ($obsHeading !== '')
                 <p class="mb-[1mm] font-bold">{{ $obsHeading }}</p>
                 @if ($hasMatrixLink)
-                    <p class="mb-[1mm] text-[10px] text-slate-600">
+                    <p class="mb-[1mm] text-xs text-slate-600">
                         Indicator:
                         @if ($linkedSerial !== '') {{ $linkedSerial }} · @endif
                         {{ $linkedTitle }}
@@ -340,13 +340,13 @@
                                             <input
                                                 type="text"
                                                 wire:model.live="reportBlocks.{{ $bIndex }}.rows.{{ $rowIndex }}.percentage"
-                                                class="w-full border-0 bg-slate-50 text-center text-[11px] font-semibold text-slate-700"
+                                                class="w-full border-0 bg-slate-50 text-center text-[13px] font-semibold text-slate-700"
                                                 readonly
                                                 tabindex="-1"
                                                 title="স্বয়ংক্রিয়: Instances ÷ Sample Size × ১০০"
                                             >
                                         @else
-                                            <input type="text" wire:model.live="reportBlocks.{{ $bIndex }}.rows.{{ $rowIndex }}.{{ $field }}" class="w-full border-0 bg-transparent text-center text-[11px]">
+                                            <input type="text" wire:model.live="reportBlocks.{{ $bIndex }}.rows.{{ $rowIndex }}.{{ $field }}" class="w-full border-0 bg-transparent text-center text-[13px]">
                                         @endif
                                     @else
                                         {{ $row[$field] ?? '' }}
@@ -356,7 +356,7 @@
                             @if ($editable)
                                 <td class="text-center">
                                     @if (count($obsRows) > 1)
-                                        <button type="button" wire:click="removeObservationBlockRow({{ $bIndex }}, {{ $rowIndex }})" class="text-[10px] text-rose-600">×</button>
+                                        <button type="button" wire:click="removeObservationBlockRow({{ $bIndex }}, {{ $rowIndex }})" class="text-xs text-rose-600">×</button>
                                     @endif
                                 </td>
                             @endif
@@ -365,7 +365,7 @@
                 </tbody>
             </table>
             @if ($editable)
-                <button type="button" wire:click="addObservationBlockRow({{ $bIndex }})" class="mb-[2mm] text-[11px] font-medium text-[#2b579a]">+ সারি যোগ</button>
+                <button type="button" wire:click="addObservationBlockRow({{ $bIndex }})" class="mb-[2mm] text-[13px] font-medium text-[#2b579a]">+ সারি যোগ</button>
             @endif
         </div>
 

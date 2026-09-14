@@ -11,21 +11,21 @@
     <div class="px-3 py-3 lg:px-5" style="font-family:'Hind Siliguri','Nirmala UI',system-ui,sans-serif;">
         <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
             <div class="min-w-0">
-                <div class="mb-1 flex items-center gap-1.5 text-[11px] text-slate-400">
+                <div class="mb-1 flex items-center gap-1.5 text-[13px] text-slate-400">
                     <a href="{{ route('audit-review.index') }}" class="hover:text-brand-600">Review Panel</a>
                     <span>/</span>
                     <span class="text-slate-600">#{{ $report->id }}</span>
                 </div>
-                <h1 class="text-[16px] font-semibold tracking-tight text-navy-900">
+                <h1 class="text-lg font-semibold tracking-tight text-navy-900">
                     {{ $report->entityDisplayName() }} · {{ $report->periodLabel() }}
                 </h1>
                 <p class="mt-0.5 text-[12px] text-slate-500">
                     Maker: {{ $report->user?->name ?: '—' }}
                     · Reviewer: {{ $report->reviewer?->name ?: '—' }}
                     · <span class="font-semibold text-slate-700">{{ $report->statusLabel() }}</span>
-                    · <span class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold {{ ($reviewContext['is_resubmit'] ?? false) ? 'bg-amber-50 text-amber-800' : 'bg-violet-50 text-violet-800' }}">{{ $reviewContext['round_label'] ?? $report->currentReviewRoundLabel() }}</span>
+                    · <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-semibold {{ ($reviewContext['is_resubmit'] ?? false) ? 'bg-amber-50 text-amber-800' : 'bg-violet-50 text-violet-800' }}">{{ $reviewContext['round_label'] ?? $report->currentReviewRoundLabel() }}</span>
                     @if ($report->review_cc_superadmin)
-                        · CC Superadmin
+                        · Flagged for Super Admin
                     @endif
                 </p>
             </div>
@@ -51,13 +51,13 @@
                 </div>
                 @if (! empty($reviewContext['maker_note']))
                     <div class="rounded-lg border border-amber-200 bg-white px-3 py-2">
-                        <p class="text-[10px] font-semibold uppercase tracking-wide text-amber-700">Maker resubmit note</p>
+                        <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Maker resubmit note</p>
                         <p class="mt-1 text-[12px] font-medium text-slate-900">{{ $reviewContext['maker_note'] }}</p>
                     </div>
                 @endif
                 @if (! empty($reviewContext['change_summary']))
                     <div class="rounded-lg border border-amber-200 bg-white px-3 py-2">
-                        <p class="text-[10px] font-semibold uppercase tracking-wide text-amber-700">What changed in the report</p>
+                        <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">What changed in the report</p>
                         <ul class="mt-1 list-disc space-y-0.5 pl-4 text-[12px] text-slate-800">
                             @foreach ($reviewContext['change_summary'] as $line)
                                 <li>{{ $line }}</li>
@@ -67,24 +67,24 @@
                 @endif
                 <div class="grid gap-2 lg:grid-cols-2">
                     <div class="rounded-lg border border-rose-200 bg-white px-3 py-2">
-                        <p class="text-[10px] font-semibold uppercase tracking-wide text-rose-700">Earlier asks (previous round)</p>
+                        <p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Earlier asks (previous round)</p>
                         @forelse ($reviewContext['prior_asks'] as $ask)
                             <div class="mt-1.5 border-t border-slate-100 pt-1.5 first:mt-1 first:border-0 first:pt-0">
-                                <p class="text-[11px] font-medium text-slate-900">{{ $ask['body'] ?: ($ask['quote'] ?: 'Mark') }}</p>
-                                <p class="text-[10px] text-slate-400">Round {{ $ask['review_round'] ?? '?' }} · {{ $ask['author'] ?? 'Reviewer' }}@if (! empty($ask['addressed'])) · <span class="font-semibold text-emerald-700">Maker marked done</span>@endif</p>
+                                <p class="text-[13px] font-medium text-slate-900">{{ $ask['body'] ?: ($ask['quote'] ?: 'Mark') }}</p>
+                                <p class="text-xs text-slate-500">Round {{ $ask['review_round'] ?? '?' }} · {{ $ask['author'] ?? 'Reviewer' }}@if (! empty($ask['addressed'])) · <span class="font-semibold text-emerald-700">Maker marked done</span>@endif</p>
                             </div>
                         @empty
-                            <p class="mt-1 text-[11px] text-slate-500">No earlier marks stored for a prior round.</p>
+                            <p class="mt-1 text-[13px] text-slate-500">No earlier marks stored for a prior round.</p>
                         @endforelse
                     </div>
                     <div class="rounded-lg border border-emerald-200 bg-white px-3 py-2">
-                        <p class="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">Maker marked done</p>
+                        <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Maker marked done</p>
                         @forelse ($reviewContext['addressed_asks'] as $ask)
                             <div class="mt-1.5 border-t border-slate-100 pt-1.5 first:mt-1 first:border-0 first:pt-0">
-                                <p class="text-[11px] font-medium text-slate-900 line-through decoration-emerald-600/50">{{ $ask['body'] ?: ($ask['quote'] ?: 'Mark') }}</p>
+                                <p class="text-[13px] font-medium text-slate-900 line-through decoration-emerald-600/50">{{ $ask['body'] ?: ($ask['quote'] ?: 'Mark') }}</p>
                             </div>
                         @empty
-                            <p class="mt-1 text-[11px] text-slate-500">Maker did not tick any marks as done.</p>
+                            <p class="mt-1 text-[13px] text-slate-500">Maker did not tick any marks as done.</p>
                         @endforelse
                     </div>
                 </div>
@@ -100,7 +100,7 @@
                 <summary class="cursor-pointer text-[12px] font-semibold text-navy-900">Review timeline ({{ count($reviewContext['timeline']) }})</summary>
                 <ol class="mt-2 space-y-1.5 border-t border-slate-100 pt-2">
                     @foreach ($reviewContext['timeline'] as $ev)
-                        <li class="text-[11px] text-slate-700">
+                        <li class="text-[13px] text-slate-700">
                             <span class="font-semibold {{ ($ev['round'] ?? 1) >= 2 ? 'text-amber-800' : 'text-violet-800' }}">{{ $ev['label'] }}</span>
                             <span class="text-slate-400">· {{ $ev['round_label'] }} · {{ $ev['actor'] }} · {{ $ev['at'] }}</span>
                             @if (! empty($ev['body']))
@@ -136,17 +136,20 @@
             })"
             x-init="init()"
         >
+            <div class="xl:col-span-full" x-show="uiError" x-cloak>
+                <div class="mb-1 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] text-rose-800" x-text="uiError"></div>
+            </div>
             <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                 <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/80 px-4 py-2.5">
                     <div>
                         <p class="text-[13px] font-semibold text-navy-900">Full report</p>
                         @if ($canAnnotate)
-                            <p class="text-[11px] text-slate-500">
+                            <p class="text-[13px] text-slate-500">
                                 <span x-show="tool === 'text'">Select text to highlight, or switch to Draw area</span>
                                 <span x-show="tool === 'area'" x-cloak>Drag on the report to box the issue area, then add a note</span>
                             </p>
                         @else
-                            <p class="text-[11px] text-slate-500">Complete audit document</p>
+                            <p class="text-[13px] text-slate-500">Complete audit document</p>
                         @endif
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
@@ -154,13 +157,13 @@
                             <div class="inline-flex rounded-lg border border-slate-200 bg-white p-0.5">
                                 <button
                                     type="button"
-                                    class="rounded-md px-2.5 py-1 text-[11px] font-semibold"
+                                    class="rounded-md px-2.5 py-1 text-[13px] font-semibold"
                                     :class="tool === 'text' ? 'bg-navy-900 text-white' : 'text-slate-600 hover:bg-slate-50'"
                                     @click="setTool('text')"
                                 >Select text</button>
                                 <button
                                     type="button"
-                                    class="rounded-md px-2.5 py-1 text-[11px] font-semibold"
+                                    class="rounded-md px-2.5 py-1 text-[13px] font-semibold"
                                     :class="tool === 'area' ? 'bg-navy-900 text-white' : 'text-slate-600 hover:bg-slate-50'"
                                     @click="setTool('area')"
                                 >Draw area</button>
@@ -234,7 +237,7 @@
                                         @click.stop="focusAnnotation(ann.id)"
                                     >
                                         <span
-                                            class="absolute -top-2 -right-2 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white shadow"
+                                            class="absolute -top-2 -right-2 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-bold text-white shadow"
                                             :style="`background:${ann.border || '#ca8a04'}`"
                                             x-text="annNumber(ann.id)"
                                         ></span>
@@ -269,8 +272,8 @@
                         :style="`left:${composer.x}px;top:${composer.y}px`"
                         @mousedown.stop
                     >
-                        <p class="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400" x-text="composer.type === 'area' ? 'Area note' : 'Text mark'"></p>
-                        <p class="mb-2 line-clamp-2 text-[11px] text-slate-500" x-text="composer.quote"></p>
+                        <p class="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500" x-text="composer.type === 'area' ? 'Area note' : 'Text mark'"></p>
+                        <p class="mb-2 line-clamp-2 text-[13px] text-slate-500" x-text="composer.quote"></p>
                         <div class="mb-2 flex items-center gap-1.5">
                             <template x-for="(bg, key) in colors" :key="key">
                                 <button
@@ -291,10 +294,10 @@
                             @keydown.ctrl.enter.prevent="saveComposer()"
                         ></textarea>
                         <div class="flex items-center justify-end gap-1.5">
-                            <button type="button" class="h-8 rounded-md px-2.5 text-[11px] font-medium text-slate-600 hover:bg-slate-50" @click="hideComposer()">Cancel</button>
+                            <button type="button" class="h-8 rounded-md px-2.5 text-[13px] font-medium text-slate-600 hover:bg-slate-50" @click="hideComposer()">Cancel</button>
                             <button
                                 type="button"
-                                class="inline-flex h-8 items-center rounded-md bg-navy-900 px-3 text-[11px] font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+                                class="inline-flex h-8 items-center rounded-md bg-navy-900 px-3 text-[13px] font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
                                 :disabled="composer.saving || (composer.type === 'area' && !String(composer.body || '').trim())"
                                 @click="saveComposer()"
                             >
@@ -310,7 +313,7 @@
                     <div class="border-b border-slate-100 px-3 py-2.5">
                         <div>
                             <p class="text-[12px] font-semibold text-navy-900">1. Marks and comments</p>
-                            <p class="text-[10px] text-slate-500">Draw/select on the report → note here → Edit anytime</p>
+                            <p class="text-xs text-slate-500">Draw/select on the report → note here → Edit anytime</p>
                         </div>
                     </div>
                     <ul class="max-h-[min(70vh,820px)] divide-y divide-slate-100 overflow-y-auto">
@@ -319,11 +322,11 @@
                                 <button type="button" class="w-full text-left" @click="focusAnnotation(ann.id)" x-show="editingId !== ann.id">
                                     <div class="mb-1 flex items-center gap-1.5">
                                         <span class="inline-block h-2.5 w-2.5 rounded-full border border-slate-300" :style="`background:${ann.bg}`"></span>
-                                        <span class="rounded bg-slate-100 px-1 text-[9px] font-semibold uppercase text-slate-500" x-text="ann.type === 'area' ? 'Area' : 'Text'"></span>
-                                        <span class="text-[10px] font-semibold text-slate-600" x-text="ann.author"></span>
-                                        <span class="text-[10px] text-slate-400" x-text="ann.created_at"></span>
+                                        <span class="rounded bg-slate-100 px-1 text-xs font-semibold uppercase text-slate-500" x-text="ann.type === 'area' ? 'Area' : 'Text'"></span>
+                                        <span class="text-xs font-semibold text-slate-600" x-text="ann.author"></span>
+                                        <span class="text-xs text-slate-500" x-text="ann.created_at"></span>
                                     </div>
-                                    <p class="line-clamp-2 text-[11px] text-slate-500" x-text="ann.type === 'area' ? ('Area #' + annNumber(ann.id)) : ann.quote"></p>
+                                    <p class="line-clamp-2 text-[13px] text-slate-500" x-text="ann.type === 'area' ? ('Area #' + annNumber(ann.id)) : ann.quote"></p>
                                     <template x-if="ann.snapshot_url">
                                         <img :src="ann.snapshot_url" alt="" class="mt-1.5 max-h-28 w-full rounded border border-slate-200 object-contain object-top bg-slate-50">
                                     </template>
@@ -331,7 +334,7 @@
                                 </button>
 
                                 <div x-show="editingId === ann.id" x-cloak class="space-y-2" @click.stop>
-                                    <p class="text-[11px] text-slate-500" x-text="ann.type === 'area' ? ('Area #' + annNumber(ann.id)) : ann.quote"></p>
+                                    <p class="text-[13px] text-slate-500" x-text="ann.type === 'area' ? ('Area #' + annNumber(ann.id)) : ann.quote"></p>
                                     <div class="flex items-center gap-1.5">
                                         <template x-for="(bg, key) in colors" :key="key">
                                             <button
@@ -355,25 +358,25 @@
                                 <div class="mt-1 flex items-center gap-3" x-show="canAnnotate">
                                     <button
                                         type="button"
-                                        class="text-[10px] font-semibold text-[#2b579a] hover:underline"
+                                        class="text-xs font-semibold text-[#2b579a] hover:underline"
                                         @click="editingId === ann.id ? stopEditing(ann.id) : startEditing(ann)"
                                         x-text="editingId === ann.id ? 'Done' : 'Edit'"
                                     ></button>
                                     <button
                                         type="button"
-                                        class="text-[10px] font-semibold text-rose-600 hover:underline"
+                                        class="text-xs font-semibold text-rose-600 hover:underline"
                                         @click="removeAnnotation(ann.id)"
                                     >Remove</button>
                                 </div>
                             </li>
                         </template>
-                        <li x-show="!annotations.length" class="px-3 py-8 text-center text-[12px] text-slate-400">
+                        <li x-show="!annotations.length" class="px-3 py-8 text-center text-[13px] text-slate-500">
                             No marks yet. Select text or draw an area on the report.
                         </li>
                     </ul>
                     @if ($canAct || $canDownloadReviewPack)
                         <div class="space-y-2 border-t border-slate-100 bg-emerald-50/50 px-3 py-3">
-                            <p class="text-[11px] font-semibold text-emerald-950">Finish</p>
+                            <p class="text-[13px] font-semibold text-emerald-950">Finish</p>
                             @if ($canDownloadReviewPack)
                                 <a
                                     href="{{ $downloadReviewUrl }}"
@@ -408,11 +411,11 @@
                                         class="inline-flex h-9 w-full items-center justify-center rounded-md bg-teal-600 px-3 text-[12px] font-semibold text-white hover:bg-teal-700"
                                     >Totally fixed · 100%</button>
                                 </form>
-                                <p class="text-[10px] text-emerald-800">Need fixes? Use <span class="font-semibold">Review done</span> then Send to maker. Perfect as-is? Use <span class="font-semibold">Totally fixed</span>.</p>
+                                <p class="text-xs text-emerald-800">Need fixes? Use <span class="font-semibold">Review done</span> then Send to maker. Perfect as-is? Use <span class="font-semibold">Totally fixed</span>.</p>
                             @endif
 
                             @if ($canAct && $reviewReady)
-                                <p class="rounded-md bg-sky-50 px-2 py-1.5 text-[11px] text-sky-900">Ready — Send to maker for fixes, Confirm, or Totally fixed on the Reviewed tab.</p>
+                                <p class="rounded-md bg-sky-50 px-2 py-1.5 text-[13px] text-sky-900">Ready — Send to maker for fixes, Confirm, or Totally fixed on the Reviewed tab.</p>
                                 <form
                                     method="POST"
                                     action="{{ route('audit-review.totally-fixed', $report) }}"
@@ -451,6 +454,7 @@
                 tool: 'area',
                 activeId: null,
                 editingId: null,
+                uiError: '',
                 csrfToken() {
                     return window.bynnasCsrf?.token?.()
                         || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
@@ -584,15 +588,20 @@
 
                 async openConfirm({ title, message, okLabel = 'OK', tone = 'emerald', action = null }) {
                     if (typeof window.bynnasConfirm !== 'function') {
-                        if (window.confirm([title, message].filter(Boolean).join('\n'))) {
-                            if (typeof action === 'function') await action();
-                        }
+                        this.uiError = 'Confirm dialog unavailable. Refresh the page and try again.';
                         return;
                     }
                     const ok = await window.bynnasConfirm({ title, message, okLabel, tone });
                     if (ok && typeof action === 'function') {
                         await action();
                     }
+                },
+
+                flashError(message) {
+                    this.uiError = message || 'Something went wrong.';
+                    window.setTimeout(() => {
+                        if (this.uiError === message) this.uiError = '';
+                    }, 5000);
                 },
 
                 async askReviewDone() {
@@ -967,7 +976,7 @@
                 async saveComposer() {
                     if (!this.canAnnotate || this.composer.saving) return;
                     if (this.composer.type === 'area' && !String(this.composer.body || '').trim()) {
-                        alert('Please add a note for this area.');
+                        this.flashError('Please add a note for this area.');
                         return;
                     }
                     this.composer.saving = true;
@@ -1007,7 +1016,7 @@
                         this.selectionClip = null;
                         this.hideComposer();
                     } catch (err) {
-                        alert('Could not save mark. Please try again.');
+                        this.flashError('Could not save mark. Please try again.');
                     } finally {
                         this.composer.saving = false;
                     }
@@ -1045,7 +1054,7 @@
                         this.activeId = null;
                         this.paintAll();
                     } catch (err) {
-                        alert('Could not remove mark.');
+                        this.flashError('Could not remove mark.');
                     }
                 },
 

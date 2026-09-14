@@ -3,7 +3,7 @@
     $summaryRows = \App\Support\AuditReportClassification::performanceSummaryRows();
     $compact = $compact ?? true;
     $editable = $editable ?? false;
-    $tableClass = $compact ? 'a4-table a4-table-compact text-[8px]' : 'a4-table text-[10px]';
+    $tableClass = $compact ? 'a4-table a4-table-compact text-[8px]' : 'a4-table text-xs';
     $hImportance = $tableHeaders['classification_importance'] ?? \App\Support\AuditTableHeaders::defaults()['classification_importance'];
     $hEval = $tableHeaders['classification_eval'] ?? \App\Support\AuditTableHeaders::defaults()['classification_eval'];
 @endphp

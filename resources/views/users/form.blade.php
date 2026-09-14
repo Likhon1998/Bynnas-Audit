@@ -16,8 +16,8 @@
 
     <div class="px-4 py-4 lg:px-6">
         <div class="mb-4">
-            <a href="{{ route('users.index') }}" class="text-[11px] font-medium text-[#2b579a] hover:underline">← Back to users</a>
-            <h1 class="mt-1 text-[16px] font-semibold tracking-tight text-navy-900">
+            <a href="{{ route('users.index') }}" class="text-[13px] font-medium text-[#2b579a] hover:underline">← Back to users</a>
+            <h1 class="mt-1 text-lg font-semibold tracking-tight text-navy-900">
                 {{ $editing ? 'Edit access' : 'Grant access' }}
             </h1>
             <p class="mt-0.5 text-[12px] text-slate-500">
@@ -49,39 +49,39 @@
             {{-- 1. Who --}}
             <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                 <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-2.5">
-                    <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">1 · Who</p>
+                    <p class="text-[13px] font-bold uppercase tracking-[0.12em] text-slate-500">1 · Who</p>
                     <p class="text-[12px] font-semibold text-navy-900">Person &amp; login</p>
                 </div>
                 <div class="space-y-3 p-4">
                     <div class="grid gap-3 sm:grid-cols-2">
                         <div>
-                            <label class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Name</label>
+                            <label class="mb-1 block text-[13px] font-semibold uppercase tracking-wide text-slate-500">Name</label>
                             <input type="text" name="name" value="{{ old('name', $user?->name ?? $prefillEmployee?->name) }}" class="h-9 w-full rounded-lg border-slate-200 text-[13px]" required>
-                            @error('name') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
+                            @error('name') <p class="mt-1 text-[13px] text-rose-600">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Email (login)</label>
+                            <label class="mb-1 block text-[13px] font-semibold uppercase tracking-wide text-slate-500">Email (login)</label>
                             <input type="email" name="email" value="{{ old('email', $user?->email ?? $prefillEmployee?->email) }}" class="h-9 w-full rounded-lg border-slate-200 text-[13px]" required>
-                            @error('email') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
+                            @error('email') <p class="mt-1 text-[13px] text-rose-600">{{ $message }}</p> @enderror
                         </div>
                     </div>
 
                     <div>
-                        <label class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Mail send email</label>
+                        <label class="mb-1 block text-[13px] font-semibold uppercase tracking-wide text-slate-500">Mail send email</label>
                         <input type="email" name="mail_from_email" value="{{ old('mail_from_email', $user?->mail_from_email) }}" class="h-9 w-full rounded-lg border-slate-200 text-[13px]" placeholder="Optional sender for audit emails">
-                        @error('mail_from_email') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
+                        @error('mail_from_email') <p class="mt-1 text-[13px] text-rose-600">{{ $message }}</p> @enderror
                     </div>
 
                     <div class="grid gap-3 sm:grid-cols-2">
                         <div>
-                            <label class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                            <label class="mb-1 block text-[13px] font-semibold uppercase tracking-wide text-slate-500">
                                 Password {{ $editing ? '(leave blank to keep)' : '' }}
                             </label>
                             <input type="password" name="password" class="h-9 w-full rounded-lg border-slate-200 text-[13px]" @unless($editing) required @endunless autocomplete="new-password">
-                            @error('password') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
+                            @error('password') <p class="mt-1 text-[13px] text-rose-600">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Confirm password</label>
+                            <label class="mb-1 block text-[13px] font-semibold uppercase tracking-wide text-slate-500">Confirm password</label>
                             <input type="password" name="password_confirmation" class="h-9 w-full rounded-lg border-slate-200 text-[13px]" @unless($editing) required @endunless autocomplete="new-password">
                         </div>
                     </div>
@@ -93,7 +93,7 @@
                                 Also create organogram employee
                             </label>
                             <div class="mt-3" x-show="createEmployee" x-cloak>
-                                <label class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Position</label>
+                                <label class="mb-1 block text-[13px] font-semibold uppercase tracking-wide text-slate-500">Position</label>
                                 <select name="position_id" class="h-9 w-full rounded-lg border-slate-200 text-[13px]" :required="createEmployee">
                                     <option value="">— Select position —</option>
                                     @foreach ($positions as $position)
@@ -102,13 +102,13 @@
                                         </option>
                                     @endforeach
                                 </select>
-                                @error('position_id') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
+                                @error('position_id') <p class="mt-1 text-[13px] text-rose-600">{{ $message }}</p> @enderror
                             </div>
                         </div>
                     @endunless
 
                     <div x-show="!createEmployee" x-cloak>
-                        <label class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Link organogram employee</label>
+                        <label class="mb-1 block text-[13px] font-semibold uppercase tracking-wide text-slate-500">Link organogram employee</label>
                         <select name="employee_id" class="h-9 w-full rounded-lg border-slate-200 text-[13px]" :disabled="createEmployee">
                             <option value="">— Not linked —</option>
                             @foreach ($employees as $employee)
@@ -122,15 +122,15 @@
                                 </option>
                             @endforeach
                         </select>
-                        <p class="mt-1 text-[10px] text-slate-400">Required for monthly-visit allocations and field report branches.</p>
-                        @error('employee_id') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
+                        <p class="mt-1 text-xs text-slate-500">Required for monthly-visit allocations and field report branches.</p>
+                        @error('employee_id') <p class="mt-1 text-[13px] text-rose-600">{{ $message }}</p> @enderror
                     </div>
 
                     <label class="flex items-start gap-2 text-[12px] text-slate-700">
                         <input type="checkbox" name="is_active" value="1" class="mt-0.5 rounded border-slate-300 text-[#2b579a]" @checked(old('is_active', $user?->is_active ?? true))>
                         <span>
                             <span class="font-semibold">Account active</span>
-                            <span class="mt-0.5 block text-[10px] text-slate-400">Uncheck to block login without deleting.</span>
+                            <span class="mt-0.5 block text-xs text-slate-500">Uncheck to block login without deleting.</span>
                         </span>
                     </label>
                 </div>
@@ -139,36 +139,36 @@
             {{-- 2. Role --}}
             <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                 <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-2.5">
-                    <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">2 · Role</p>
+                    <p class="text-[13px] font-bold uppercase tracking-[0.12em] text-slate-500">2 · Role</p>
                     <p class="text-[12px] font-semibold text-navy-900">Assign one role (access comes from the role)</p>
                 </div>
                 <div class="space-y-4 p-4">
-                    <div class="rounded-lg border border-sky-100 bg-sky-50/50 px-3 py-2.5 text-[11px] leading-relaxed text-sky-950">
+                    <div class="rounded-lg border border-sky-100 bg-sky-50/50 px-3 py-2.5 text-[13px] leading-relaxed text-sky-950">
                         Access is <strong>role-based</strong>. Define permissions on
                         <a href="{{ route('roles.index') }}" class="font-semibold text-[#2b579a] hover:underline">Manage roles</a>,
                         then assign that role here. Do not tick permissions per person.
                     </div>
 
                     <div>
-                        <label class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Role</label>
+                        <label class="mb-1 block text-[13px] font-semibold uppercase tracking-wide text-slate-500">Role</label>
                         <select name="role" x-model="role" class="h-9 w-full rounded-lg border-slate-200 text-[13px]" required>
                             @foreach ($roles as $role)
                                 <option value="{{ $role }}">{{ $roleCatalog[$role]['label'] ?? \App\Support\RoleAccess::label($role) }}</option>
                             @endforeach
                         </select>
-                        <p class="mt-1.5 text-[11px] text-slate-500" x-text="roleSummary"></p>
-                        @error('role') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
+                        <p class="mt-1.5 text-[13px] text-slate-500" x-text="roleSummary"></p>
+                        @error('role') <p class="mt-1 text-[13px] text-rose-600">{{ $message }}</p> @enderror
                     </div>
 
                     <div class="rounded-lg border border-emerald-100 bg-emerald-50/40 px-3 py-2.5">
-                        <p class="text-[11px] font-semibold text-emerald-900">This role unlocks</p>
-                        <p class="mt-0.5 text-[11px] leading-relaxed text-emerald-950/90" x-text="selectedMenuLabel"></p>
-                        <p class="mt-1.5 text-[10px] text-emerald-800/80" x-text="permissionCountLabel"></p>
+                        <p class="text-[13px] font-semibold text-emerald-900">This role unlocks</p>
+                        <p class="mt-0.5 text-[13px] leading-relaxed text-emerald-950/90" x-text="selectedMenuLabel"></p>
+                        <p class="mt-1.5 text-xs text-emerald-800/80" x-text="permissionCountLabel"></p>
                     </div>
 
                     <div class="flex flex-wrap gap-2">
-                        <a href="{{ route('roles.create') }}" class="inline-flex h-8 items-center rounded-md border border-slate-200 bg-white px-2.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50">+ Create role</a>
-                        <a href="{{ route('roles.index') }}" class="inline-flex h-8 items-center rounded-md border border-slate-200 bg-white px-2.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50">Edit role permissions</a>
+                        <a href="{{ route('roles.create') }}" class="inline-flex h-8 items-center rounded-md border border-slate-200 bg-white px-2.5 text-[13px] font-semibold text-slate-700 hover:bg-slate-50">+ Create role</a>
+                        <a href="{{ route('roles.index') }}" class="inline-flex h-8 items-center rounded-md border border-slate-200 bg-white px-2.5 text-[13px] font-semibold text-slate-700 hover:bg-slate-50">Edit role permissions</a>
                     </div>
                 </div>
             </section>
@@ -176,11 +176,11 @@
             {{-- 3. Where --}}
             <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                 <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-2.5">
-                    <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">3 · Where (optional)</p>
+                    <p class="text-[13px] font-bold uppercase tracking-[0.12em] text-slate-500">3 · Where (optional)</p>
                     <p class="text-[12px] font-semibold text-navy-900">Extra shakha access</p>
                 </div>
                 <div class="p-4">
-                    <p class="mb-2 text-[11px] text-slate-500">
+                    <p class="mb-2 text-[13px] text-slate-500">
                         Field staff already get branches from <strong>Monthly Visits</strong> allocations.
                         Use this only to grant <strong>extra</strong> shakhas beyond those visits.
                         Roles with “All shakhas” still open every branch.
@@ -203,7 +203,7 @@
                                 >
                                 <span class="min-w-0 flex-1">
                                     <span class="font-medium {{ $shakha->riskCategory() ? \App\Support\ShakhaRiskTone::textClasses($shakha->riskCategory()) : 'text-navy-900' }}">{{ $shakha->name }}</span>
-                                    <span class="text-[10px] text-slate-400">
+                                    <span class="text-xs text-slate-500">
                                         {{ $shakha->code }}
                                         @if ($shakha->area)
                                             · {{ $shakha->area->division }} · {{ $shakha->area->name }}
@@ -213,10 +213,10 @@
                                 </span>
                             </label>
                         @empty
-                            <p class="px-2 py-4 text-center text-[12px] text-slate-400">No shakhas yet.</p>
+                            <p class="px-2 py-4 text-center text-[13px] text-slate-500">No shakhas yet.</p>
                         @endforelse
                     </div>
-                    @error('shakha_ids') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
+                    @error('shakha_ids') <p class="mt-1 text-[13px] text-rose-600">{{ $message }}</p> @enderror
                 </div>
             </section>
 
@@ -232,7 +232,7 @@
                         data-bynnas-confirm-tone="rose"
                     >Delete login</button>
                 @else
-                    <span class="text-[11px] text-slate-400">Role access is applied immediately after save.</span>
+                    <span class="text-[13px] text-slate-400">Role access is applied immediately after save.</span>
                 @endif
                 <button type="submit" class="inline-flex h-9 items-center rounded-lg bg-[#2b579a] px-4 text-[12px] font-semibold text-white hover:bg-[#204072]">
                     {{ $editing ? 'Save access' : 'Grant access' }}

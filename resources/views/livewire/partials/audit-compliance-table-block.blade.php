@@ -11,32 +11,32 @@
     $extraCount = max(0, count($headers) - count($coreFields));
     $rows = array_values((array) ($block['rows'] ?? []));
     $cellPad = $compact ? '' : 'border border-slate-800 px-1.5 py-1';
-    $tableClass = $compact ? 'a4-table a4-table-compact text-[7.5px]' : 'w-full border-collapse text-[10px]';
+    $tableClass = $compact ? 'a4-table a4-table-compact text-[7.5px]' : 'w-full border-collapse text-xs';
 @endphp
 
 <div class="mt-[3mm] mb-[4mm]" wire:key="compliance-{{ $blockIndex }}" id="{{ \App\Livewire\MakeAuditReport::sectionAnchorId((string) ($block['serial'] ?? 'compliance')) }}">
     @if ($editable)
         <div class="mb-2 flex flex-wrap items-center gap-2">
-            <p class="text-[11px] font-semibold text-emerald-800">কমপ্লায়েন্স টেবিল</p>
-            <button type="button" wire:click="fillComplianceBlockFromReport({{ $blockIndex }})" class="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-700 hover:bg-slate-50">রিপোর্টের নম্বর বসান</button>
-            <button type="button" wire:click="addComplianceBlockColumn({{ $blockIndex }})" class="rounded bg-emerald-700 px-2 py-0.5 text-[10px] font-semibold text-white hover:bg-emerald-800">+ কলাম</button>
-            <button type="button" wire:click="addComplianceBlockRow({{ $blockIndex }})" class="rounded bg-emerald-700 px-2 py-0.5 text-[10px] font-semibold text-white hover:bg-emerald-800">+ সারি</button>
-            <button type="button" wire:click="moveBlock({{ $blockIndex }}, 'up')" class="ml-auto text-[11px] text-slate-600 hover:underline">↑</button>
-            <button type="button" wire:click="moveBlock({{ $blockIndex }}, 'down')" class="text-[11px] text-slate-600 hover:underline">↓</button>
-            <button type="button" wire:click="removeBlock({{ $blockIndex }})" class="text-[11px] text-rose-600 hover:underline">মুছুন</button>
+            <p class="text-[13px] font-semibold text-emerald-800">কমপ্লায়েন্স টেবিল</p>
+            <button type="button" wire:click="fillComplianceBlockFromReport({{ $blockIndex }})" class="rounded border border-slate-200 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">রিপোর্টের নম্বর বসান</button>
+            <button type="button" wire:click="addComplianceBlockColumn({{ $blockIndex }})" class="rounded bg-emerald-700 px-2 py-0.5 text-xs font-semibold text-white hover:bg-emerald-800">+ কলাম</button>
+            <button type="button" wire:click="addComplianceBlockRow({{ $blockIndex }})" class="rounded bg-emerald-700 px-2 py-0.5 text-xs font-semibold text-white hover:bg-emerald-800">+ সারি</button>
+            <button type="button" wire:click="moveBlock({{ $blockIndex }}, 'up')" class="ml-auto text-[13px] text-slate-600 hover:underline">↑</button>
+            <button type="button" wire:click="moveBlock({{ $blockIndex }}, 'down')" class="text-[13px] text-slate-600 hover:underline">↓</button>
+            <button type="button" wire:click="removeBlock({{ $blockIndex }})" class="text-[13px] text-rose-600 hover:underline">মুছুন</button>
         </div>
     @endif
 
     @if ($editable)
         <div class="mb-3 space-y-2 rounded border border-emerald-100 bg-emerald-50/30 p-3">
-            <p class="text-center text-[10px] font-semibold uppercase tracking-wide text-emerald-800">শিরোনাম (প্রিভিউ/PDF/Doc-এর মতো কেন্দ্রীয়)</p>
+            <p class="text-center text-xs font-semibold uppercase tracking-wide text-emerald-800">শিরোনাম (প্রিভিউ/PDF/Doc-এর মতো কেন্দ্রীয়)</p>
             <input type="text" wire:model.blur="reportBlocks.{{ $blockIndex }}.title" class="finding-serial-input w-full rounded border border-slate-200 bg-white px-2 py-1.5 text-center text-[13px] font-bold" placeholder="৫.০ বিগত অভ্যন্তরীণ নিরীক্ষা…">
             <input type="text" wire:model.blur="reportBlocks.{{ $blockIndex }}.title_en" class="w-full rounded border border-slate-200 bg-white px-2 py-1 text-center text-[12px] font-semibold" placeholder="(Compliance of Previous Internal Audit Report Reply)">
-            <div class="flex flex-wrap items-center justify-center gap-2 text-[11px]">
+            <div class="flex flex-wrap items-center justify-center gap-2 text-[13px]">
                 <span class="font-semibold">নিরীক্ষাকাল ঃ</span>
                 <input type="text" wire:model.blur="reportBlocks.{{ $blockIndex }}.period" class="min-w-[200px] rounded border border-slate-200 bg-white px-2 py-1 text-center" placeholder="-ডিসেম্বর’২৫ থেকে মার্চ’২৬">
             </div>
-            <div class="flex flex-wrap items-center justify-center gap-2 text-[11px]">
+            <div class="flex flex-wrap items-center justify-center gap-2 text-[13px]">
                 <span class="font-semibold">ফলোআপের তারিখ ঃ</span>
                 <x-audit-date-field wire:model.blur="reportBlocks.{{ $blockIndex }}.followup_date" format="dmy" class="min-w-[120px] rounded border border-slate-200 bg-white px-2 py-1 text-center" />
             </div>
@@ -61,9 +61,9 @@
                         <th class="{{ $cellPad }} font-semibold text-center align-middle">
                             @if ($editable)
                                 <div class="flex items-start gap-1">
-                                    <input type="text" wire:model.blur="reportBlocks.{{ $blockIndex }}.headers.{{ $hi }}" class="w-full border-0 bg-transparent text-center text-[10px] font-semibold">
+                                    <input type="text" wire:model.blur="reportBlocks.{{ $blockIndex }}.headers.{{ $hi }}" class="w-full border-0 bg-transparent text-center text-xs font-semibold">
                                     @if ($hi >= 6)
-                                        <button type="button" wire:click="removeComplianceBlockColumn({{ $blockIndex }}, {{ $hi }})" class="shrink-0 text-[10px] text-rose-600" title="কলাম মুছুন">×</button>
+                                        <button type="button" wire:click="removeComplianceBlockColumn({{ $blockIndex }}, {{ $hi }})" class="shrink-0 text-xs text-rose-600" title="কলাম মুছুন">×</button>
                                     @endif
                                 </div>
                             @else
@@ -82,7 +82,7 @@
                         @foreach ($coreFields as $field)
                             <td class="{{ $cellPad }} align-top">
                                 @if ($editable)
-                                    <textarea wire:model.blur="reportBlocks.{{ $blockIndex }}.rows.{{ $rowIndex }}.{{ $field }}" rows="3" class="w-full border-0 bg-sky-50/50 p-1 text-[10px] leading-snug"></textarea>
+                                    <textarea wire:model.blur="reportBlocks.{{ $blockIndex }}.rows.{{ $rowIndex }}.{{ $field }}" rows="3" class="w-full border-0 bg-sky-50/50 p-1 text-xs leading-snug"></textarea>
                                 @else
                                     <span class="whitespace-pre-wrap">{{ $row[$field] ?? '' }}</span>
                                 @endif
@@ -91,7 +91,7 @@
                         @for ($ei = 0; $ei < $extraCount; $ei++)
                             <td class="{{ $cellPad }} align-top">
                                 @if ($editable)
-                                    <textarea wire:model.blur="reportBlocks.{{ $blockIndex }}.rows.{{ $rowIndex }}.extra.{{ $ei }}" rows="3" class="w-full border-0 bg-sky-50/50 p-1 text-[10px] leading-snug"></textarea>
+                                    <textarea wire:model.blur="reportBlocks.{{ $blockIndex }}.rows.{{ $rowIndex }}.extra.{{ $ei }}" rows="3" class="w-full border-0 bg-sky-50/50 p-1 text-xs leading-snug"></textarea>
                                 @else
                                     <span class="whitespace-pre-wrap">{{ $row['extra'][$ei] ?? '' }}</span>
                                 @endif
@@ -100,7 +100,7 @@
                         @if ($editable)
                             <td class="{{ $cellPad }} text-center align-top">
                                 @if (count($rows) > 1)
-                                    <button type="button" wire:click="removeComplianceBlockRow({{ $blockIndex }}, {{ $rowIndex }})" class="text-[11px] font-semibold text-rose-600">×</button>
+                                    <button type="button" wire:click="removeComplianceBlockRow({{ $blockIndex }}, {{ $rowIndex }})" class="text-[13px] font-semibold text-rose-600">×</button>
                                 @endif
                             </td>
                         @endif

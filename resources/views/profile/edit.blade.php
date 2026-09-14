@@ -18,19 +18,19 @@
             <div class="shrink-0 overflow-hidden rounded-xl border border-[#e9d5ff]/60 bg-white/95 shadow-sm">
                 <div class="h-1 bg-gradient-to-r from-[#ff2d9b] via-[#7c3aed] to-[#2563eb]"></div>
                 <div class="flex items-center gap-2.5 px-3 py-2">
-                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#ff2d9b] via-[#7c3aed] to-[#2563eb] text-[11px] font-bold text-white">
+                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#ff2d9b] via-[#7c3aed] to-[#2563eb] text-[13px] font-bold text-white">
                         {{ $initials }}
                     </div>
                     <div class="min-w-0 flex-1">
                         <h1 class="truncate text-[13px] font-semibold tracking-tight text-navy-900">{{ $user->name }}</h1>
-                        <p class="truncate text-[10px] text-slate-500">
+                        <p class="truncate text-xs text-slate-500">
                             {{ $user->email }}
                             @if (method_exists($user, 'roleLabel'))
                                 · {{ $user->roleLabel() }}
                             @endif
                         </p>
                     </div>
-                    <p class="hidden text-[10px] text-slate-400 sm:block">Account settings</p>
+                    <p class="hidden text-xs text-slate-500 sm:block">Account settings</p>
                 </div>
             </div>
 

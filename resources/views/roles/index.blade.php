@@ -2,7 +2,7 @@
     <div class="px-4 py-4 lg:px-6">
         <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div>
-                <h1 class="text-[16px] font-semibold tracking-tight text-navy-900">Roles</h1>
+                <h1 class="text-lg font-semibold tracking-tight text-navy-900">Roles</h1>
                 <p class="mt-0.5 text-[12px] text-slate-500">Create roles · set permissions on the role · assign that role on Users &amp; Access</p>
             </div>
             <a href="{{ route('roles.create') }}" class="inline-flex h-8 items-center rounded-lg bg-navy-900 px-3 text-[12px] font-medium text-white hover:bg-navy-800">
@@ -19,7 +19,7 @@
 
         <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <table class="min-w-full text-left text-[12px]">
-                <thead class="bg-slate-50 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
                     <tr>
                         <th class="px-3 py-2">Role</th>
                         <th class="px-3 py-2">Permissions</th>
@@ -36,19 +36,19 @@
                         <tr class="hover:bg-slate-50/60">
                             <td class="px-3 py-2.5">
                                 <p class="font-semibold text-navy-900">{{ $meta['label'] ?? \App\Support\RoleAccess::label($role->name) }}</p>
-                                <p class="text-[11px] text-slate-500">
-                                    <code class="rounded bg-slate-100 px-1 py-0.5 text-[10px]">{{ $role->name }}</code>
+                                <p class="text-[13px] text-slate-500">
+                                    <code class="rounded bg-slate-100 px-1 py-0.5 text-xs">{{ $role->name }}</code>
                                     @if ($isSystem)
-                                        <span class="ml-1 text-[10px] font-semibold text-slate-400">Built-in</span>
+                                        <span class="ml-1 text-xs font-semibold text-slate-400">Built-in</span>
                                     @else
-                                        <span class="ml-1 text-[10px] font-semibold text-sky-600">Custom</span>
+                                        <span class="ml-1 text-xs font-semibold text-sky-600">Custom</span>
                                     @endif
                                 </p>
                                 @if (! empty($meta['notes']))
-                                    <p class="mt-1 text-[10px] text-slate-400">{{ $meta['notes'] }}</p>
+                                    <p class="mt-1 text-xs text-slate-500">{{ $meta['notes'] }}</p>
                                 @endif
                                 @if (! empty($meta['menus']))
-                                    <p class="mt-1 text-[10px] leading-relaxed text-slate-500">
+                                    <p class="mt-1 text-xs leading-relaxed text-slate-500">
                                         {{ implode(' · ', array_slice($meta['menus'], 0, 6)) }}{{ count($meta['menus']) > 6 ? ' · …' : '' }}
                                     </p>
                                 @endif
@@ -64,9 +64,9 @@
                             <td class="px-3 py-2.5">
                                 <div class="flex flex-wrap items-center justify-end gap-2">
                                     @if ($role->name === 'superadmin')
-                                        <span class="text-[11px] text-slate-400">Locked</span>
+                                        <span class="text-[13px] text-slate-400">Locked</span>
                                     @else
-                                        <a href="{{ route('roles.edit', $role) }}" class="text-[11px] font-semibold text-[#2b579a] hover:underline">Edit</a>
+                                        <a href="{{ route('roles.edit', $role) }}" class="text-[13px] font-semibold text-[#2b579a] hover:underline">Edit</a>
                                     @endif
                                     @unless ($isSystem)
                                         <form method="POST" action="{{ route('roles.destroy', $role) }}" class="inline">
@@ -74,7 +74,7 @@
                                             @method('DELETE')
                                             <button
                                                 type="submit"
-                                                class="text-[11px] font-semibold text-rose-600 hover:underline"
+                                                class="text-[13px] font-semibold text-rose-600 hover:underline"
                                                 onclick="return confirm('Delete this role? Users must be reassigned first.')"
                                             >Delete</button>
                                         </form>

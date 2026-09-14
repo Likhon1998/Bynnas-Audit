@@ -40,7 +40,7 @@
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
                 <p class="text-[13px] font-semibold text-navy-900">Headquarters (HQ) Work Plan</p>
-                <p class="text-[11px] text-slate-500">
+                <p class="text-[13px] text-slate-500">
                     Monitoring &amp; Audit · July {{ $fyParts[0] ?? '' }} to June {{ $fyParts[1] ?? '' }}
                     · matches Excel HQ sheet (departments × months + quarter totals)
                 </p>
@@ -71,7 +71,7 @@
                 @csrf
                 <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
                 <div class="min-w-[260px] flex-1">
-                    <label class="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-400">Department name</label>
+                    <label class="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">Department name</label>
                     <input type="text" name="name" required placeholder="e.g. HR and Admin Department" class="block w-full rounded-lg border-slate-200 text-[12px]" value="{{ old('name') }}">
                     <x-input-error :messages="$errors->get('name')" class="mt-1" />
                 </div>
@@ -84,7 +84,7 @@
     <div class="max-h-[calc(100vh-13rem)] overflow-auto">
         <table class="min-w-full border-collapse text-left">
             <thead class="sticky top-0 z-20">
-                <tr class="bg-emerald-50 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+                <tr class="bg-emerald-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
                     <th rowspan="2" class="border border-slate-200 bg-emerald-50 px-2 py-2 text-center w-10">#</th>
                     <th rowspan="2" class="border border-slate-200 bg-emerald-50 px-3 py-2 min-w-[240px]">Department / Section</th>
                     <th colspan="3" class="border border-slate-200 bg-emerald-50 px-2 py-1.5 text-center">1st Quarter</th>
@@ -94,7 +94,7 @@
                     <th rowspan="2" class="border border-slate-200 bg-emerald-50 px-2 py-2 text-center w-12">Total</th>
                     <th rowspan="2" class="border border-slate-200 bg-emerald-50 px-2 py-2 w-16"></th>
                 </tr>
-                <tr class="bg-emerald-50 text-[9px] font-semibold tracking-wide text-slate-600">
+                <tr class="bg-emerald-50 text-xs font-semibold tracking-wide text-slate-600">
                     @foreach ($months as $month)
                         @php
                             $shortYear = $month['index'] <= 5 ? $startYear : $endYear;
@@ -138,13 +138,13 @@
                                 @csrf
                                 @method('DELETE')
                                 <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
-                                <button type="submit" class="text-[10px] font-medium text-rose-500 hover:underline">Delete</button>
+                                <button type="submit" class="text-xs font-medium text-rose-500 hover:underline">Delete</button>
                             </form>
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="16" class="border border-slate-200 px-4 py-10 text-center text-[12px] text-slate-400">
+                        <td colspan="16" class="border border-slate-200 px-4 py-10 text-center text-[13px] text-slate-500">
                             No HQ departments yet. Click <span class="font-medium text-navy-800">Add Department</span>.
                         </td>
                     </tr>
@@ -160,22 +160,22 @@
                         <td class="border border-slate-200 px-2 py-2 text-center text-navy-900" x-text="grandTotal"></td>
                         <td class="border border-slate-200"></td>
                     </tr>
-                    <tr class="bg-emerald-50/50 text-[11px]">
+                    <tr class="bg-emerald-50/50 text-[13px]">
                         <td colspan="2" class="border border-slate-200 px-3 py-2 font-semibold text-navy-900">Quarter total</td>
                         <td colspan="3" class="border border-slate-200 px-2 py-2 text-center font-semibold text-navy-900">
-                            <span class="text-[10px] font-normal text-slate-500">Q1</span>
+                            <span class="text-xs font-normal text-slate-500">Q1</span>
                             <span class="ml-1" x-text="quarterTotals[0]"></span>
                         </td>
                         <td colspan="3" class="border border-slate-200 px-2 py-2 text-center font-semibold text-navy-900">
-                            <span class="text-[10px] font-normal text-slate-500">Q2</span>
+                            <span class="text-xs font-normal text-slate-500">Q2</span>
                             <span class="ml-1" x-text="quarterTotals[1]"></span>
                         </td>
                         <td colspan="3" class="border border-slate-200 px-2 py-2 text-center font-semibold text-navy-900">
-                            <span class="text-[10px] font-normal text-slate-500">Q3</span>
+                            <span class="text-xs font-normal text-slate-500">Q3</span>
                             <span class="ml-1" x-text="quarterTotals[2]"></span>
                         </td>
                         <td colspan="3" class="border border-slate-200 px-2 py-2 text-center font-semibold text-navy-900">
-                            <span class="text-[10px] font-normal text-slate-500">Q4</span>
+                            <span class="text-xs font-normal text-slate-500">Q4</span>
                             <span class="ml-1" x-text="quarterTotals[3]"></span>
                         </td>
                         <td class="border border-slate-200 px-2 py-2 text-center font-semibold text-navy-900" x-text="grandTotal"></td>
@@ -186,7 +186,7 @@
         </table>
     </div>
 
-    <p class="border-t border-slate-100 px-4 py-2 text-[11px] text-slate-500">
+    <p class="border-t border-slate-100 px-4 py-2 text-[13px] text-slate-500">
         Green = planned HQ visit. Click to add/remove. Footer totals update instantly (monthly + quarterly), like Excel.
     </p>
 </div>

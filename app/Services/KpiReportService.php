@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\KpiLaw;
 use App\Models\Shakha;
 use App\Models\ShakhaAnnualKpi;
 use App\Support\FinancialYear;
@@ -79,7 +80,7 @@ class KpiReportService
 
         $opening = $shakha->opening_date ?? $shakha->opened_at;
 
-        return [
+        $row = [
             'serial' => $serial,
             'code' => $shakha->code,
             'area_name' => $shakha->area?->name,
@@ -90,17 +91,13 @@ class KpiReportService
             'total_members' => $members,
             'fy_savings_collection' => $savingsColl,
             'fy_savings_withdrawal' => $savingsWd,
-            'fy_savings_increase' => $savingsColl - $savingsWd,
             'savings_balance' => $savingsBal,
             'fy_members_admission' => $admission,
             'fy_members_dropout' => $dropout,
-            'fy_members_increase' => $admission - $dropout,
             'fy_disbursement_borrowers' => $disbBorrowers,
             'fy_fully_repayment_borrowers' => $repayBorrowers,
-            'fy_borrowers_increase' => $disbBorrowers - $repayBorrowers,
             'fy_disbursement_amount' => $disbAmt,
             'fy_loan_recovery' => $loanRec,
-            'fy_loan_outstanding_increase' => $disbAmt - $loanRec,
             'total_borrowers' => $borrowers,
             'loan_outstanding' => $loanOs,
             'recoverable' => $recoverable,
@@ -111,27 +108,8 @@ class KpiReportService
             'due_loanee_loan_outstanding' => $dueLoaneeOs,
             'own_fund_until_prior_june' => $ownFund,
             'surplus_deficit_fy' => $surplus,
-            'total_surplus_deficit' => $ownFund + $surplus,
             'new_due' => $newDue,
             'due_increase_this_month' => $dueInc,
-            'otr' => $this->safeDivide($currentRec, $recoverable),
-            'dr_borrowers' => $this->safeDivide($odBorrowers, $borrowers),
-            'dr_taka' => $this->safeDivide($odTaka, $loanOs),
-            'par' => $this->safeDivide($dueLoaneeOs, $loanOs),
-            'overdue_growth_vs_outstanding' => $this->safeDivide($dueInc, $loanOs),
-            'due_recovery_pct' => $this->safeDivide($dueRec, $odTaka),
-            'member_loanee' => $this->safeDivide($borrowers, $members),
-            'savings_loan' => $this->safeDivide($savingsBal, $loanOs),
-            'dropout_pct' => $this->safeDivide($dropout, $admission),
-            'savings_withdrawal_pct' => $this->safeDivide($savingsWd, $savingsColl),
-            'samities_member' => $this->safeDivide($members, $samities),
-            'samities_borrowers' => $this->safeDivide($borrowers, $samities),
-            'fo_member' => $this->safeDivide($members, $fo),
-            'fo_borrowers' => $this->safeDivide($borrowers, $fo),
-            'fo_savings' => $this->safeDivide($savingsBal, $fo),
-            'fo_loan' => $this->safeDivide($loanOs, $fo),
-            'member_savings' => $this->safeDivide($savingsBal, $members),
-            'borrowers_loan' => $this->safeDivide($loanOs, $borrowers),
             'today_date' => $asOf->copy()->startOfDay(),
             'opening_year' => $opening ? (int) $opening->year : null,
             'opening_month' => $opening ? (int) $opening->month : null,
@@ -142,6 +120,40 @@ class KpiReportService
             'prior_june_label' => 'June-'.$fy->startYear(),
             'end_june_label' => 'Jun-'.substr((string) $fy->endDate->year, -2),
         ];
+
+        foreach (KpiLaw::activeOrdered() as $law) {
+            $row[$law->key] = $this->applyLaw($law, $row);
+        }
+
+        return $row;
+    }
+
+    /**
+     * Apply one editable KPI law against already-known row values.
+     *
+     * @param  array<string, mixed>  $row
+     */
+    protected function applyLaw(KpiLaw $law, array $row): float|int|null
+    {
+        $left = (float) ($row[$law->left_operand] ?? 0);
+        $right = (float) ($row[$law->right_operand] ?? 0);
+
+        $value = match ($law->operation) {
+            KpiLaw::OPERATION_ADD => $left + $right,
+            KpiLaw::OPERATION_SUBTRACT => $left - $right,
+            KpiLaw::OPERATION_DIVIDE => $this->safeDivide($left, $right),
+            default => null,
+        };
+
+        if ($value === null) {
+            return null;
+        }
+
+        if ($law->format === 'int') {
+            return (int) round($value);
+        }
+
+        return $value;
     }
 
     /**

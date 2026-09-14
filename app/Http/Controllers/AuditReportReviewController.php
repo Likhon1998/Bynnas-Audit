@@ -145,11 +145,6 @@ class AuditReportReviewController extends Controller
                 || $user->can('audits.manage'),
             'documentUrl' => route('audit-review.document', $report),
             'downloadReviewUrl' => route('audit-review.download', $report),
-            'interactiveUrl' => route('audits.index', [
-                'report' => $report->id,
-                'mode' => 'review',
-                'preview' => 1,
-            ]),
             'preview' => $preview,
             'previewError' => $previewError,
             'reviewContext' => $reviews->reviewContext($report),
@@ -466,13 +461,7 @@ class AuditReportReviewController extends Controller
         AuditReportReviewService $reviews,
     ): \Illuminate\Http\JsonResponse {
         abort_unless($annotation->audit_report_id === $report->id, 404);
-        abort_unless(
-            $annotation->user_id === $request->user()->id
-                || $reviews->canActAsReviewer($request->user(), $report)
-                || $request->user()->can('audits.manage'),
-            403
-        );
-        abort_unless($reviews->canActAsReviewer($request->user(), $report) || $request->user()->can('audits.manage'), 403);
+        abort_unless($reviews->canActAsReviewer($request->user(), $report), 403);
 
         $data = $request->validate([
             'body' => ['nullable', 'string', 'max:5000'],
@@ -535,12 +524,7 @@ class AuditReportReviewController extends Controller
         AuditReportReviewService $reviews,
     ): \Illuminate\Http\JsonResponse {
         abort_unless($annotation->audit_report_id === $report->id, 404);
-        abort_unless(
-            $reviews->canReview($request->user(), $report)
-                || $report->isAccessibleBy($request->user())
-                || $request->user()->can('audits.manage'),
-            403
-        );
+        abort_unless($reviews->canActAsReviewer($request->user(), $report), 403);
 
         $data = $request->validate([
             'snapshot' => ['required', 'string', 'max:900000'],
@@ -571,12 +555,8 @@ class AuditReportReviewController extends Controller
         AuditReportReviewService $reviews,
     ): \Illuminate\Http\JsonResponse {
         abort_unless($annotation->audit_report_id === $report->id, 404);
-        abort_unless(
-            $annotation->user_id === $request->user()->id
-                || $reviews->canActAsReviewer($request->user(), $report)
-                || $request->user()->can('audits.manage'),
-            403
-        );
+        // Marks are immutable once review leaves the actionable in_review state.
+        abort_unless($reviews->canActAsReviewer($request->user(), $report), 403);
 
         if ($annotation->snapshot_path) {
             \Illuminate\Support\Facades\Storage::disk('public')->delete($annotation->snapshot_path);
@@ -678,6 +658,8 @@ class AuditReportReviewController extends Controller
 
         $rows = $data['assignments'] ?? [];
         $actorId = $request->user()->id;
+        $skippedSelf = 0;
+        $skippedNotReviewer = 0;
 
         foreach ($rows as $row) {
             $auditorId = (int) $row['auditor_user_id'];
@@ -689,6 +671,13 @@ class AuditReportReviewController extends Controller
             }
 
             if ($reviewerId === $auditorId) {
+                $skippedSelf++;
+                continue;
+            }
+
+            $reviewer = User::query()->find($reviewerId);
+            if (! $reviewer || ! $reviewer->can('audits.review')) {
+                $skippedNotReviewer++;
                 continue;
             }
 
@@ -701,8 +690,20 @@ class AuditReportReviewController extends Controller
             );
         }
 
+        $status = 'Reviewer assignments saved.';
+        $notes = [];
+        if ($skippedSelf > 0) {
+            $notes[] = $skippedSelf.' self-assignment'.($skippedSelf === 1 ? '' : 's').' skipped';
+        }
+        if ($skippedNotReviewer > 0) {
+            $notes[] = $skippedNotReviewer.' user'.($skippedNotReviewer === 1 ? '' : 's').' without review access skipped';
+        }
+        if ($notes !== []) {
+            $status .= ' ('.implode('; ', $notes).')';
+        }
+
         return redirect()
             ->route('audit-review.assignments')
-            ->with('status', 'Reviewer assignments saved.');
+            ->with('status', $status);
     }
 }

@@ -36,22 +36,22 @@
 >
     <div class="flex flex-wrap items-center justify-between gap-2">
         <div class="min-w-0 flex-1">
-            <p class="m-0 text-[11px] font-semibold text-emerald-800">Excel থেকে পেস্ট</p>
-            <p class="m-0 text-[10px] leading-snug text-emerald-700/90">{{ $hint }}@if($colCount > 0) · {{ $colCount }} কলাম@endif · পেস্ট করলে নিচের টেবিল <span class="font-semibold">পুরোপুরি বদলে যাবে</span></p>
+            <p class="m-0 text-[13px] font-semibold text-emerald-800">Excel থেকে পেস্ট</p>
+            <p class="m-0 text-xs leading-snug text-emerald-700/90">{{ $hint }}@if($colCount > 0) · {{ $colCount }} কলাম@endif · পেস্ট করলে নিচের টেবিল <span class="font-semibold">পুরোপুরি বদলে যাবে</span></p>
         </div>
         <div class="flex flex-shrink-0 items-center gap-2">
-            <span class="text-[10px] font-medium text-emerald-700" x-text="status" x-show="status" x-cloak></span>
+            <span class="text-xs font-medium text-emerald-700" x-text="status" x-show="status" x-cloak></span>
             <button
                 type="button"
                 @click="if (confirm('এই টেবিলের সব সারি মুছে ফেলবেন? পরে আবার পেস্ট বা + row দিয়ে যোগ করতে পারবেন।')) { $wire.clearTable(path) }"
-                class="rounded border border-rose-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-rose-700 hover:bg-rose-50"
+                class="rounded border border-rose-200 bg-white px-2 py-0.5 text-xs font-semibold text-rose-700 hover:bg-rose-50"
             >
                 টেবিল মুছুন
             </button>
         </div>
     </div>
     <textarea
-        class="mt-1.5 h-14 w-full resize-y rounded border border-emerald-200 bg-white/90 px-2 py-1 text-[11px] text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-emerald-500"
+        class="mt-1.5 h-14 w-full resize-y rounded border border-emerald-200 bg-white/90 px-2 py-1 text-[13px] text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-emerald-500"
         placeholder="এখানে Ctrl+V করুন…"
         @paste="onPaste($event)"
     ></textarea>

@@ -2,16 +2,21 @@
 
 namespace App\Services;
 
+use App\Models\RiskLaw;
 use App\Models\Shakha;
 use App\Models\ShakhaAnnualKpi;
 use App\Models\ShakhaRiskAssessment;
 use App\Support\FinancialYear;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use RuntimeException;
 
 class RiskAssessmentService
 {
+    /** @var Collection<string, RiskLaw>|null */
+    protected ?Collection $lawsByKey = null;
+
     /**
      * Calculate risk score from annual KPI + manual operational inputs, then persist.
      *
@@ -35,6 +40,50 @@ class RiskAssessmentService
      */
     public function calculateRiskScore(Shakha $shakha, int $month, int $year, array $manualInputs = []): ShakhaRiskAssessment
     {
+        $preview = $this->previewScore($shakha, $month, $year, $manualInputs);
+
+        return ShakhaRiskAssessment::query()->updateOrCreate(
+            [
+                'shakha_id' => $shakha->id,
+                'assessment_month' => $month,
+                'assessment_year' => $year,
+            ],
+            [
+                'distance_from_area_office_km' => $preview['inputs']['far'] ? 1 : 0,
+                'total_income' => $preview['inputs']['income'],
+                'total_expenditure' => $preview['inputs']['expenditure'],
+                'write_off_principal_amount' => $preview['inputs']['write_off'],
+                'savings_adjustment_amount' => $preview['inputs']['savings_adj'],
+                'overdue_principal_31_365_days' => $preview['inputs']['total_od_taka'],
+                'has_both_bm_and_abm' => $preview['inputs']['has_both_bm_abm'],
+                'special_audit_last_two_years' => $preview['inputs']['special_audit'],
+                'total_weighted_score' => $preview['total'],
+                'risk_category' => $preview['category'],
+            ]
+        );
+    }
+
+    /**
+     * Score preview for the risk form (does not save).
+     *
+     * @param  array{
+     *     total_income?: float|int|string,
+     *     total_expenditure?: float|int|string,
+     *     write_off_principal_amount?: float|int|string,
+     *     savings_adjustment_amount?: float|int|string,
+     *     distance_from_area_office_km?: bool|int|string,
+     *     has_both_bm_and_abm?: bool,
+     *     special_audit_last_two_years?: bool
+     * }  $manualInputs
+     * @return array{
+     *   total:int,
+     *   category:string,
+     *   lines:list<array{key:string,label:string,detail:string,points:int}>,
+     *   inputs:array{income:float,expenditure:float,write_off:float,savings_adj:float,far:bool,has_both_bm_abm:bool,special_audit:bool,total_od_taka:float}
+     * }
+     */
+    public function previewScore(Shakha $shakha, int $month, int $year, array $manualInputs = []): array
+    {
         $fy = $this->fyForPeriod($month, $year);
         $kpi = $this->findAnnualKpi($shakha, $fy->label);
 
@@ -44,11 +93,15 @@ class RiskAssessmentService
             );
         }
 
-        // From KPI
-        $surplusDeficit = (float) $kpi->surplus_deficit_fy;
-        $totalOdTaka = (float) $kpi->total_od_taka; // overdue principal
+        if (! $kpi->isReadyForRisk()) {
+            throw new RuntimeException(
+                'Annual KPI for FY '.$fy->label.' is incomplete for risk scoring. Enter members, loan outstanding, and recoverable (non-zero) first.'
+            );
+        }
 
-        // Manual
+        $surplusDeficit = (float) $kpi->surplus_deficit_fy;
+        $totalOdTaka = (float) $kpi->total_od_taka;
+
         $income = (float) ($manualInputs['total_income'] ?? 0);
         $expenditure = (float) ($manualInputs['total_expenditure'] ?? 0);
         $writeOff = (float) ($manualInputs['write_off_principal_amount'] ?? 0);
@@ -63,54 +116,94 @@ class RiskAssessmentService
         $recoverable = (float) $kpi->recoverable;
 
         $otr = $this->safeDivide($currentRecovery, $recoverable);
-
-        // OSS from manual income / expenditure
         $ossRatio = $this->safeDivide($income, $expenditure);
-
-        // Profitability from KPI Surplus/Deficit
         $isProfitable = $surplusDeficit >= 0;
-
-        // NPLR / DR from KPI Total OD Taka
         $odRatio = $this->safeDivide($totalOdTaka, $loanOs);
-
         $writeOffRatio = $this->safeDivide($writeOff, $loanOs);
         $savingsAdjustmentPercentage = $this->safeDivide($savingsAdj, $loanRecovery);
 
-        $scoreBreakdown = [
-            'otr' => $this->scoreOtr($otr),
-            'oss' => $this->scoreOss($ossRatio),
-            'profitability' => $this->scoreProfitability($isProfitable),
-            'write_off_ratio' => $this->scoreWriteOffRatio($writeOffRatio),
-            'savings_adjustment' => $this->scoreSavingsAdjustment($savingsAdjustmentPercentage),
-            'nplr' => $this->scoreNplr($odRatio),
-            'dr' => $this->scoreDr($odRatio),
-            'distance' => $this->scoreDistance($farFromOffice),
-            'bm_abm' => $this->scoreBmAbm($hasBothBmAbm),
-            'special_audit' => $this->scoreSpecialAudit($specialAudit),
-        ];
-
-        $totalWeightedScore = (int) array_sum($scoreBreakdown);
-        $riskCategory = $this->categorize($totalWeightedScore);
-
-        return ShakhaRiskAssessment::query()->updateOrCreate(
+        $lines = [
             [
-                'shakha_id' => $shakha->id,
-                'assessment_month' => $month,
-                'assessment_year' => $year,
+                'key' => 'otr',
+                'label' => 'OTR',
+                'detail' => number_format($otr * 100, 2).'% (from KPI recovery)',
+                'points' => $this->scoreByLaw('otr', $otr),
             ],
             [
-                'distance_from_area_office_km' => $farFromOffice ? 1 : 0,
-                'total_income' => $income,
-                'total_expenditure' => $expenditure,
-                'write_off_principal_amount' => $writeOff,
-                'savings_adjustment_amount' => $savingsAdj,
-                'overdue_principal_31_365_days' => $totalOdTaka,
-                'has_both_bm_and_abm' => $hasBothBmAbm,
-                'special_audit_last_two_years' => $specialAudit,
-                'total_weighted_score' => $totalWeightedScore,
-                'risk_category' => $riskCategory,
-            ]
-        );
+                'key' => 'oss',
+                'label' => 'OSS',
+                'detail' => $expenditure > 0
+                    ? number_format($ossRatio, 2).' (income ÷ expenditure)'
+                    : 'n/a — enter income & expenditure',
+                'points' => $this->scoreByLaw('oss', $ossRatio),
+            ],
+            [
+                'key' => 'profitability',
+                'label' => 'Profitability',
+                'detail' => $isProfitable ? 'Surplus from KPI' : 'Loss from KPI',
+                'points' => $this->scoreBooleanLaw('profitability', $isProfitable),
+            ],
+            [
+                'key' => 'write_off_ratio',
+                'label' => 'Write-off',
+                'detail' => number_format($writeOffRatio * 100, 2).'% of loan outstanding',
+                'points' => $this->scoreByLaw('write_off_ratio', $writeOffRatio),
+            ],
+            [
+                'key' => 'savings_adjustment',
+                'label' => 'Savings adj.',
+                'detail' => number_format($savingsAdjustmentPercentage * 100, 2).'% of FY loan recovery',
+                'points' => $this->scoreByLaw('savings_adjustment', $savingsAdjustmentPercentage),
+            ],
+            [
+                'key' => 'nplr',
+                'label' => 'NPLR',
+                'detail' => number_format($odRatio * 100, 2).'% OD / loan outstanding',
+                'points' => $this->scoreByLaw('nplr', $odRatio),
+            ],
+            [
+                'key' => 'dr',
+                'label' => 'DR',
+                'detail' => number_format($odRatio * 100, 2).'% OD / loan outstanding',
+                'points' => $this->scoreByLaw('dr', $odRatio),
+            ],
+            [
+                'key' => 'distance',
+                'label' => 'Distance',
+                'detail' => $farFromOffice ? '> 20 km' : 'Within 20 km',
+                'points' => $this->scoreBooleanLaw('distance', $farFromOffice),
+            ],
+            [
+                'key' => 'bm_abm',
+                'label' => 'BM / ABM',
+                'detail' => $hasBothBmAbm ? 'Has both' : 'Missing BM or ABM',
+                'points' => $this->scoreBooleanLaw('bm_abm', $hasBothBmAbm),
+            ],
+            [
+                'key' => 'special_audit',
+                'label' => 'Special audit',
+                'detail' => $specialAudit ? 'Had special audit' : 'No special audit',
+                'points' => $this->scoreBooleanLaw('special_audit', $specialAudit),
+            ],
+        ];
+
+        $total = (int) array_sum(array_column($lines, 'points'));
+
+        return [
+            'total' => $total,
+            'category' => $this->categorize($total),
+            'lines' => $lines,
+            'inputs' => [
+                'income' => $income,
+                'expenditure' => $expenditure,
+                'write_off' => $writeOff,
+                'savings_adj' => $savingsAdj,
+                'far' => $farFromOffice,
+                'has_both_bm_abm' => $hasBothBmAbm,
+                'special_audit' => $specialAudit,
+                'total_od_taka' => $totalOdTaka,
+            ],
+        ];
     }
 
     public function fyForPeriod(int $month, int $year): FinancialYear
@@ -146,14 +239,10 @@ class RiskAssessmentService
     }
 
     /**
-     * Rows for Risk Analysis Excel export (template layout).
-     *
      * @return list<array<string, mixed>>
      */
     public function compileExportRows(string $fyLabel): array
     {
-        $fy = FinancialYear::fromLabel($fyLabel);
-
         $assessments = ShakhaRiskAssessment::query()
             ->with(['shakha.area'])
             ->whereHas('shakha', fn ($q) => $q->where('status', 'active'))
@@ -229,19 +318,19 @@ class RiskAssessmentService
                 'last_audit_rating' => '',
                 'distance_yes_no' => $farFromOffice ? 'Yes' : 'No',
                 'bm_abm_yes_no' => $hasBothBmAbm ? 'Yes' : 'No',
-                'w_otr' => $this->scoreOtr($otr),
-                'w_par' => $this->scorePar($par),
-                'w_dr' => $this->scoreDr($odRatio),
-                'w_wr' => $this->scoreWriteOffRatio($writeOffRatio),
-                'w_write_off' => $this->scoreWriteOffRatio($writeOffRatio),
-                'w_savings_adj' => $this->scoreSavingsAdjustment($savingsAdjPct),
-                'w_oss' => $this->scoreOss($oss),
-                'w_nplr' => $this->scoreNplr($odRatio),
+                'w_otr' => $this->scoreByLaw('otr', $otr),
+                'w_par' => $this->scoreByLaw('par', $par),
+                'w_dr' => $this->scoreByLaw('dr', $odRatio),
+                'w_wr' => $this->scoreByLaw('write_off_ratio', $writeOffRatio),
+                'w_write_off' => $this->scoreByLaw('write_off_ratio', $writeOffRatio),
+                'w_savings_adj' => $this->scoreByLaw('savings_adjustment', $savingsAdjPct),
+                'w_oss' => $this->scoreByLaw('oss', $oss),
+                'w_nplr' => $this->scoreByLaw('nplr', $odRatio),
                 'w_fraud' => 0,
-                'w_profitability' => $this->scoreProfitability($isProfitable),
-                'w_distance' => $this->scoreDistance($farFromOffice),
-                'w_bm_abm' => $this->scoreBmAbm($hasBothBmAbm),
-                'w_special_audit' => $this->scoreSpecialAudit($specialAudit),
+                'w_profitability' => $this->scoreBooleanLaw('profitability', $isProfitable),
+                'w_distance' => $this->scoreBooleanLaw('distance', $farFromOffice),
+                'w_bm_abm' => $this->scoreBooleanLaw('bm_abm', $hasBothBmAbm),
+                'w_special_audit' => $this->scoreBooleanLaw('special_audit', $specialAudit),
                 'total_weighted_score' => (int) $assessment->total_weighted_score,
                 'risk_category' => $assessment->risk_category,
             ];
@@ -264,118 +353,117 @@ class RiskAssessmentService
         return $numerator / $denominator;
     }
 
-    protected function scoreOtr(float $otr): int
+    /**
+     * @return Collection<string, RiskLaw>
+     */
+    protected function lawsByKey(): Collection
     {
-        $pct = $otr * 100;
-
-        return match (true) {
-            $pct >= 98 => 0,
-            $pct >= 95 => 4,
-            $pct >= 90 => 8,
-            $pct >= 85 => 12,
-            default => 20,
-        };
+        return $this->lawsByKey ??= RiskLaw::ordered()->keyBy('key');
     }
 
-    protected function scorePar(float $par): int
+    protected function scoreByLaw(string $key, float $value): int
     {
-        $pct = $par * 100;
+        $law = $this->lawsByKey()->get($key);
+        if (! $law) {
+            return $this->fallbackScore($key, $value);
+        }
+        if (! $law->is_active) {
+            return 0;
+        }
 
-        return match (true) {
-            $pct <= 5 => 0,
-            $pct <= 8 => 4,
-            $pct <= 12 => 8,
-            $pct <= 15 => 10,
-            default => 12,
-        };
+        return $law->scoreNumeric($value);
     }
 
-    protected function scoreProfitability(bool $isProfitable): int
+    protected function scoreBooleanLaw(string $key, bool $value): int
     {
-        return $isProfitable ? 0 : 6;
-    }
+        $law = $this->lawsByKey()->get($key);
+        if (! $law) {
+            return $this->fallbackBooleanScore($key, $value);
+        }
+        if (! $law->is_active) {
+            return 0;
+        }
 
-    protected function scoreOss(float $oss): int
-    {
-        return match (true) {
-            $oss >= 1.20 => 0,
-            $oss >= 1.00 => 4,
-            $oss >= 0.90 => 8,
-            default => 12,
-        };
-    }
-
-    protected function scoreDr(float $dr): int
-    {
-        $pct = $dr * 100;
-
-        return match (true) {
-            $pct <= 5 => 0,
-            $pct <= 8 => 4,
-            $pct <= 12 => 8,
-            $pct <= 15 => 10,
-            default => 12,
-        };
-    }
-
-    protected function scoreWriteOffRatio(float $ratio): int
-    {
-        $pct = $ratio * 100;
-
-        return match (true) {
-            $pct <= 1 => 0,
-            $pct <= 3 => 4,
-            $pct <= 5 => 8,
-            default => 12,
-        };
-    }
-
-    protected function scoreSavingsAdjustment(float $ratio): int
-    {
-        $pct = $ratio * 100;
-
-        return match (true) {
-            $pct <= 2 => 0,
-            $pct <= 5 => 3,
-            $pct <= 10 => 6,
-            default => 10,
-        };
-    }
-
-    protected function scoreNplr(float $nplr): int
-    {
-        $pct = $nplr * 100;
-
-        return match (true) {
-            $pct <= 5 => 0,
-            $pct <= 10 => 4,
-            $pct <= 15 => 8,
-            default => 12,
-        };
-    }
-
-    protected function scoreDistance(bool $farFromOffice): int
-    {
-        return $farFromOffice ? 2 : 0;
-    }
-
-    protected function scoreBmAbm(bool $hasBoth): int
-    {
-        return $hasBoth ? 0 : 6;
-    }
-
-    protected function scoreSpecialAudit(bool $hadSpecialAudit): int
-    {
-        return $hadSpecialAudit ? 0 : 4;
+        return $law->scoreBoolean($value);
     }
 
     protected function categorize(int $score): string
     {
+        $law = $this->lawsByKey()->get('risk_category');
+        if ($law && $law->is_active) {
+            return $law->categorizeScore($score);
+        }
+
         return match (true) {
             $score <= 25 => 'Low Risk',
             $score <= 45 => 'Medium Risk',
             $score <= 65 => 'High Risk',
             default => 'Significant Risk',
+        };
+    }
+
+    protected function fallbackScore(string $key, float $value): int
+    {
+        $pct = $value * 100;
+
+        return match ($key) {
+            'otr' => match (true) {
+                $pct >= 98 => 0,
+                $pct >= 95 => 4,
+                $pct >= 90 => 8,
+                $pct >= 85 => 12,
+                default => 20,
+            },
+            'par' => match (true) {
+                $pct <= 5 => 0,
+                $pct <= 8 => 4,
+                $pct <= 12 => 8,
+                $pct <= 15 => 10,
+                default => 12,
+            },
+            'oss' => match (true) {
+                $value >= 1.20 => 0,
+                $value >= 1.00 => 4,
+                $value >= 0.90 => 8,
+                default => 12,
+            },
+            'dr' => match (true) {
+                $pct <= 5 => 0,
+                $pct <= 8 => 4,
+                $pct <= 12 => 8,
+                $pct <= 15 => 10,
+                default => 12,
+            },
+            'write_off_ratio' => match (true) {
+                $pct <= 1 => 0,
+                $pct <= 3 => 4,
+                $pct <= 5 => 8,
+                default => 12,
+            },
+            'savings_adjustment' => match (true) {
+                $pct <= 2 => 0,
+                $pct <= 5 => 3,
+                $pct <= 10 => 6,
+                default => 10,
+            },
+            'nplr' => match (true) {
+                $pct <= 5 => 0,
+                $pct <= 10 => 4,
+                $pct <= 15 => 8,
+                default => 12,
+            },
+            default => 0,
+        };
+    }
+
+    protected function fallbackBooleanScore(string $key, bool $value): int
+    {
+        return match ($key) {
+            'profitability' => $value ? 0 : 6,
+            'distance' => $value ? 2 : 0,
+            'bm_abm' => $value ? 0 : 6,
+            'special_audit' => $value ? 0 : 4,
+            default => 0,
         };
     }
 }

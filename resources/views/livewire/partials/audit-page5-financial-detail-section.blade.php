@@ -1,7 +1,7 @@
 @php
     $editable = $editable ?? false;
     $compact = $compact ?? false;
-    $tableClass = $compact ? 'a4-table a4-table-compact text-[8.5px]' : 'w-full border-collapse text-[10px]';
+    $tableClass = $compact ? 'a4-table a4-table-compact text-[8.5px]' : 'w-full border-collapse text-xs';
     $cellPad = $compact ? '' : 'border border-slate-800 px-1 py-1';
     $dash = $dash ?? '………………';
 @endphp
@@ -50,7 +50,7 @@
                                 <input
                                     type="text"
                                     wire:model.live="expenseDetailRows.{{ $rowIndex }}.{{ $field }}"
-                                    class="w-full min-w-[56px] border-0 bg-sky-50/50 px-0.5 text-[10px] {{ in_array($field, ['expense_amount', 'vat_applicable', 'vat_paid', 'vat_diff', 'tax_applicable', 'tax_paid', 'tax_diff'], true) ? 'text-center' : '' }}"
+                                    class="w-full min-w-[56px] border-0 bg-sky-50/50 px-0.5 text-xs {{ in_array($field, ['expense_amount', 'vat_applicable', 'vat_paid', 'vat_diff', 'tax_applicable', 'tax_paid', 'tax_diff'], true) ? 'text-center' : '' }}"
                                     @if ($isTotal && $field === 'description') readonly @endif
                                 >
                             @else
@@ -61,7 +61,7 @@
                     @if ($editable)
                         <td class="{{ $cellPad }} text-center">
                             @if (! $isTotal)
-                                <button type="button" wire:click="removeExpenseDetailRow({{ $rowIndex }})" class="text-[10px] text-rose-600">×</button>
+                                <button type="button" wire:click="removeExpenseDetailRow({{ $rowIndex }})" class="text-xs text-rose-600">×</button>
                             @endif
                         </td>
                     @endif
@@ -71,14 +71,14 @@
     </table>
 </div>
 @if ($editable)
-    <button type="button" wire:click="addExpenseDetailRow" class="mb-[3mm] text-[11px] font-medium text-[#2b579a]">+ খরচের সারি</button>
+    <button type="button" wire:click="addExpenseDetailRow" class="mb-[3mm] text-[13px] font-medium text-[#2b579a]">+ খরচের সারি</button>
 @endif
 
-<div class="mb-[2mm] space-y-[2mm] text-[11px] leading-relaxed">
+<div class="mb-[2mm] space-y-[2mm] text-[13px] leading-relaxed">
     <div>
         <p class="font-bold">ঝুঁকি/প্রভাব (Risk/Implication):</p>
         @if ($editable)
-            <textarea wire:model.live="expense_detail_risk" rows="2" class="mt-1 w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[11px]"></textarea>
+            <textarea wire:model.live="expense_detail_risk" rows="2" class="mt-1 w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[13px]"></textarea>
         @else
             <p class="m-0 text-justify">{{ $expense_detail_risk !== '' ? $expense_detail_risk : $dash }}</p>
         @endif
@@ -86,7 +86,7 @@
     <div>
         <p class="font-bold">মূল কারণ (Root Cause):</p>
         @if ($editable)
-            <textarea wire:model.live="expense_detail_root_cause" rows="2" class="mt-1 w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[11px]"></textarea>
+            <textarea wire:model.live="expense_detail_root_cause" rows="2" class="mt-1 w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[13px]"></textarea>
         @else
             <p class="m-0 border-b border-dotted border-black text-justify">{{ $expense_detail_root_cause !== '' ? $expense_detail_root_cause : ' ' }}</p>
         @endif
@@ -94,7 +94,7 @@
     <div>
         <p class="font-bold">সুপারিশ (Recommendation):</p>
         @if ($editable)
-            <textarea wire:model.live="expense_detail_recommendation" rows="2" class="mt-1 w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[11px]"></textarea>
+            <textarea wire:model.live="expense_detail_recommendation" rows="2" class="mt-1 w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[13px]"></textarea>
         @else
             <p class="m-0 border-b border-dotted border-black text-justify">{{ $expense_detail_recommendation !== '' ? $expense_detail_recommendation : ' ' }}</p>
         @endif
@@ -107,7 +107,7 @@
             <td class="{{ $cellPad }} w-[38%] font-semibold align-top">শাখা ব্যবস্থাপকের জবাব</td>
             <td class="{{ $cellPad }}">
                 @if ($editable)
-                    <textarea wire:model.live="expense_detail_bm_reply" rows="2" class="w-full border-0 bg-sky-50/40 p-1 text-[11px]"></textarea>
+                    <textarea wire:model.live="expense_detail_bm_reply" rows="2" class="w-full border-0 bg-sky-50/40 p-1 text-[13px]"></textarea>
                 @else
                     {{ $expense_detail_bm_reply }}
                 @endif
@@ -117,7 +117,7 @@
             <td class="{{ $cellPad }} font-semibold align-top">সমস্যা সমাধানের ক্ষেত্রে দায়িত্ব প্রাপ্ত কর্মীর নাম/আইডি ও গৃহীত পদক্ষেপ</td>
             <td class="{{ $cellPad }}">
                 @if ($editable)
-                    <textarea wire:model.live="expense_detail_responsible" rows="2" class="w-full border-0 bg-sky-50/40 p-1 text-[11px]"></textarea>
+                    <textarea wire:model.live="expense_detail_responsible" rows="2" class="w-full border-0 bg-sky-50/40 p-1 text-[13px]"></textarea>
                 @else
                     {{ $expense_detail_responsible }}
                 @endif
@@ -127,7 +127,7 @@
             <td class="{{ $cellPad }} font-semibold align-top">সমাধানের প্রকৃত সময়কাল/সম্ভাব্য সময়কাল <span class="underline decoration-yellow-400 decoration-2">(তারিখ)</span></td>
             <td class="{{ $cellPad }}">
                 @if ($editable)
-                    <x-audit-date-field wire:model.live="expense_detail_resolution_date" format="dmy" class="w-full border-0 bg-sky-50/40 px-1 text-[11px]" />
+                    <x-audit-date-field wire:model.live="expense_detail_resolution_date" format="dmy" class="w-full border-0 bg-sky-50/40 px-1 text-[13px]" />
                 @else
                     {{ $expense_detail_resolution_date }}
                 @endif
@@ -170,7 +170,7 @@
                         'code' => $finding13_indicator_code ?? null,
                         'wireKey' => 'p5-ind-13-'.(int) ($finding13_indicator_id ?? 0).'-'.md5((string) ($finding13_body ?? '')),
                     ])
-                    <div class="mt-1 flex flex-wrap items-center gap-2 text-[11px]">
+                    <div class="mt-1 flex flex-wrap items-center gap-2 text-[13px]">
                         <span class="font-semibold">টাকার পরিমাণ:</span>
                         <input type="text" wire:model.live="finding13_amount" class="inline-input min-w-[100px]">
                     </div>
@@ -196,7 +196,7 @@
 <div class="mb-[2mm]">
     <p class="mb-[1mm] font-bold">প্রচলিত নিয়ম (Criteria):</p>
     @if ($editable)
-        <textarea wire:model.live="finding13_criteria" rows="2" class="w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[11px]"></textarea>
+        <textarea wire:model.live="finding13_criteria" rows="2" class="w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[13px]"></textarea>
     @else
         <p class="m-0 text-justify">{{ $finding13_criteria }}</p>
     @endif
@@ -205,7 +205,7 @@
 <div class="mb-[2mm]">
     <p class="mb-[1mm] font-bold">পর্যবেক্ষণ (Observation) :</p>
     @if ($editable)
-        <textarea wire:model.live="finding13_observation" rows="2" class="w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[11px]"></textarea>
+        <textarea wire:model.live="finding13_observation" rows="2" class="w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[13px]"></textarea>
     @else
         <p class="m-0 border-b border-dotted border-black">{{ $finding13_observation !== '' ? $finding13_observation : ' ' }}</p>
     @endif
@@ -231,9 +231,9 @@
                     <td class="{{ $cellPad }} text-center">
                         @if ($editable)
                             @if (((string) $field === 'date' || str_ends_with((string) $field, '_date') || preg_match('/^date[_\d]/', (string) $field)))
-                                        <x-audit-date-field wire:model.live="finding13_statsRows.{{ $rowIndex }}.{{ $field }}" format="dmy" class="w-full border-0 bg-transparent text-center text-[11px]" />
+                                        <x-audit-date-field wire:model.live="finding13_statsRows.{{ $rowIndex }}.{{ $field }}" format="dmy" class="w-full border-0 bg-transparent text-center text-[13px]" />
                                     @else
-                                        <input type="text" wire:model.live="finding13_statsRows.{{ $rowIndex }}.{{ $field }}" class="w-full border-0 bg-transparent text-center text-[11px]">
+                                        <input type="text" wire:model.live="finding13_statsRows.{{ $rowIndex }}.{{ $field }}" class="w-full border-0 bg-transparent text-center text-[13px]">
                                     @endif
                         @else
                             {{ $row[$field] ?? '' }}
@@ -243,7 +243,7 @@
                 @if ($editable)
                     <td class="{{ $cellPad }} text-center">
                         @if (count($finding13_statsRows) > 1)
-                            <button type="button" wire:click="removeFinding13StatsRow({{ $rowIndex }})" class="text-[10px] text-rose-600">×</button>
+                            <button type="button" wire:click="removeFinding13StatsRow({{ $rowIndex }})" class="text-xs text-rose-600">×</button>
                         @endif
                     </td>
                 @endif
@@ -252,7 +252,7 @@
     </tbody>
 </table>
 @if ($editable)
-    <button type="button" wire:click="addFinding13StatsRow" class="mb-[3mm] text-[11px] font-medium text-[#2b579a]">+ Stats row</button>
+    <button type="button" wire:click="addFinding13StatsRow" class="mb-[3mm] text-[13px] font-medium text-[#2b579a]">+ Stats row</button>
 @endif
 
 @if ($editable)
@@ -281,9 +281,9 @@
                     <td class="{{ $cellPad }} {{ in_array($field, ['amount', 'holding_period'], true) ? 'text-center' : '' }}">
                         @if ($editable)
                             @if (((string) $field === 'date' || str_ends_with((string) $field, '_date') || preg_match('/^date[_\d]/', (string) $field)))
-                                        <x-audit-date-field wire:model.live="finding13_depositRows.{{ $rowIndex }}.{{ $field }}" format="dmy" class="w-full border-0 bg-sky-50/50 px-0.5 text-[10px]" />
+                                        <x-audit-date-field wire:model.live="finding13_depositRows.{{ $rowIndex }}.{{ $field }}" format="dmy" class="w-full border-0 bg-sky-50/50 px-0.5 text-xs" />
                                     @else
-                                        <input type="text" wire:model.live="finding13_depositRows.{{ $rowIndex }}.{{ $field }}" class="w-full border-0 bg-sky-50/50 px-0.5 text-[10px]">
+                                        <input type="text" wire:model.live="finding13_depositRows.{{ $rowIndex }}.{{ $field }}" class="w-full border-0 bg-sky-50/50 px-0.5 text-xs">
                                     @endif
                         @else
                             {{ $row[$field] ?? '' }}
@@ -293,7 +293,7 @@
                 @if ($editable)
                     <td class="{{ $cellPad }} text-center">
                         @if (count($finding13_depositRows) > 1)
-                            <button type="button" wire:click="removeFinding13DepositRow({{ $rowIndex }})" class="text-[10px] text-rose-600">×</button>
+                            <button type="button" wire:click="removeFinding13DepositRow({{ $rowIndex }})" class="text-xs text-rose-600">×</button>
                         @endif
                     </td>
                 @endif
@@ -302,14 +302,14 @@
     </tbody>
 </table>
 @if ($editable)
-    <button type="button" wire:click="addFinding13DepositRow" class="mb-[3mm] text-[11px] font-medium text-[#2b579a]">+ Deposit row</button>
+    <button type="button" wire:click="addFinding13DepositRow" class="mb-[3mm] text-[13px] font-medium text-[#2b579a]">+ Deposit row</button>
 @endif
 
-<div class="mb-[2mm] space-y-[2mm] text-[11px] leading-relaxed">
+<div class="mb-[2mm] space-y-[2mm] text-[13px] leading-relaxed">
     <div>
         <p class="font-bold">ঝুঁকি/প্রভাব (Risk/Implication):</p>
         @if ($editable)
-            <textarea wire:model.live="finding13_risk" rows="2" class="mt-1 w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[11px]"></textarea>
+            <textarea wire:model.live="finding13_risk" rows="2" class="mt-1 w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[13px]"></textarea>
         @else
             <p class="m-0 text-justify">{{ $finding13_risk !== '' ? $finding13_risk : $dash }}</p>
         @endif
@@ -317,7 +317,7 @@
     <div>
         <p class="font-bold">মূল কারণ (Root Cause):</p>
         @if ($editable)
-            <textarea wire:model.live="finding13_root_cause" rows="2" class="mt-1 w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[11px]"></textarea>
+            <textarea wire:model.live="finding13_root_cause" rows="2" class="mt-1 w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[13px]"></textarea>
         @else
             <p class="m-0 border-b border-dotted border-black">{{ $finding13_root_cause !== '' ? $finding13_root_cause : ' ' }}</p>
         @endif
@@ -325,7 +325,7 @@
     <div>
         <p class="font-bold">সুপারিশ (Recommendation):</p>
         @if ($editable)
-            <textarea wire:model.live="finding13_recommendation" rows="2" class="mt-1 w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[11px]"></textarea>
+            <textarea wire:model.live="finding13_recommendation" rows="2" class="mt-1 w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[13px]"></textarea>
         @else
             <p class="m-0 border-b border-dotted border-black">{{ $finding13_recommendation !== '' ? $finding13_recommendation : ' ' }}</p>
         @endif
@@ -338,7 +338,7 @@
             <td class="{{ $cellPad }} w-[38%] font-semibold align-top">শাখা ব্যবস্থাপকের জবাব</td>
             <td class="{{ $cellPad }}">
                 @if ($editable)
-                    <textarea wire:model.live="finding13_bm_reply" rows="2" class="w-full border-0 bg-sky-50/40 p-1 text-[11px]"></textarea>
+                    <textarea wire:model.live="finding13_bm_reply" rows="2" class="w-full border-0 bg-sky-50/40 p-1 text-[13px]"></textarea>
                 @else
                     {{ $finding13_bm_reply }}
                 @endif
@@ -348,7 +348,7 @@
             <td class="{{ $cellPad }} font-semibold align-top">সমস্যা সমাধানের ক্ষেত্রে দায়িত্ব প্রাপ্ত কর্মীর নাম/আইডি ও গৃহীত পদক্ষেপ</td>
             <td class="{{ $cellPad }}">
                 @if ($editable)
-                    <textarea wire:model.live="finding13_responsible" rows="2" class="w-full border-0 bg-sky-50/40 p-1 text-[11px]"></textarea>
+                    <textarea wire:model.live="finding13_responsible" rows="2" class="w-full border-0 bg-sky-50/40 p-1 text-[13px]"></textarea>
                 @else
                     {{ $finding13_responsible }}
                 @endif
@@ -358,7 +358,7 @@
             <td class="{{ $cellPad }} font-semibold align-top">সমাধানের প্রকৃত সময়কাল/সম্ভাব্য সময়কাল <span class="underline decoration-yellow-400 decoration-2">(তারিখ)</span></td>
             <td class="{{ $cellPad }}">
                 @if ($editable)
-                    <x-audit-date-field wire:model.live="finding13_resolution_date" format="dmy" class="w-full border-0 bg-sky-50/40 px-1 text-[11px]" />
+                    <x-audit-date-field wire:model.live="finding13_resolution_date" format="dmy" class="w-full border-0 bg-sky-50/40 px-1 text-[13px]" />
                 @else
                     {{ $finding13_resolution_date }}
                 @endif

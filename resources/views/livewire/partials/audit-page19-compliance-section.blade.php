@@ -14,7 +14,7 @@
         <p class="mb-3 text-[12px] font-bold finding-heading">{!! \App\Support\BanglaNumerals::highlight($page19_compliance_title ?? '', 'serial') !!}</p>
     @endif
 
-    <div class="mb-3 flex flex-wrap gap-4 text-[11px]">
+    <div class="mb-3 flex flex-wrap gap-4 text-[13px]">
         <div class="flex items-center gap-2">
             <span class="font-semibold">নিরীক্ষাকাল:</span>
             @if ($editable)
@@ -40,26 +40,26 @@
                 :columns="array_merge($coreFields, collect(range(0, max(0, $extraCount - 1)))->map(fn ($i) => 'extra.'.$i)->all())"
                 hint="Compliance: Excel থেকে কলামগুলো একই ক্রমে পেস্ট করুন"
             />
-            <button type="button" wire:click="fillComplianceNumbersFromReport" class="rounded border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50">
+            <button type="button" wire:click="fillComplianceNumbersFromReport" class="rounded border border-slate-200 bg-white px-2.5 py-1 text-[13px] font-semibold text-slate-700 hover:bg-slate-50">
                 রিপোর্টের নম্বর বসান
             </button>
-            <button type="button" wire:click="addPage19ComplianceColumn" class="rounded border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-[#2b579a] hover:bg-sky-50">
+            <button type="button" wire:click="addPage19ComplianceColumn" class="rounded border border-slate-200 bg-white px-2.5 py-1 text-[13px] font-semibold text-[#2b579a] hover:bg-sky-50">
                 + কলাম
             </button>
         </div>
     @endif
 
     <div class="overflow-x-auto">
-        <table class="{{ $compact ? 'a4-table a4-table-compact text-[7.5px]' : 'w-full border-collapse text-[10px]' }} min-w-full">
+        <table class="{{ $compact ? 'a4-table a4-table-compact text-[7.5px]' : 'w-full border-collapse text-xs' }} min-w-full">
             <thead>
                 <tr class="bg-slate-100">
                     @foreach ($hCompliance as $hi => $label)
                         <th class="{{ $cellPad }} font-semibold text-center align-middle">
                             @if ($editable)
                                 <div class="flex items-start gap-1">
-                                    <input type="text" wire:model.live="tableHeaders.compliance.{{ $hi }}" class="w-full border-0 bg-transparent text-center text-[10px] font-semibold">
+                                    <input type="text" wire:model.live="tableHeaders.compliance.{{ $hi }}" class="w-full border-0 bg-transparent text-center text-xs font-semibold">
                                     @if ($hi >= 6)
-                                        <button type="button" wire:click="removePage19ComplianceColumn({{ $hi }})" class="shrink-0 text-[10px] text-rose-600" title="কলাম মুছুন">×</button>
+                                        <button type="button" wire:click="removePage19ComplianceColumn({{ $hi }})" class="shrink-0 text-xs text-rose-600" title="কলাম মুছুন">×</button>
                                     @endif
                                 </div>
                             @else
@@ -78,7 +78,7 @@
                         @foreach ($coreFields as $field)
                             <td class="{{ $cellPad }} align-top">
                                 @if ($editable)
-                                    <textarea wire:model.live="page19ComplianceRows.{{ $rowIndex }}.{{ $field }}" rows="3" class="w-full border-0 bg-sky-50/50 p-1 text-[10px] leading-snug"></textarea>
+                                    <textarea wire:model.live="page19ComplianceRows.{{ $rowIndex }}.{{ $field }}" rows="3" class="w-full border-0 bg-sky-50/50 p-1 text-xs leading-snug"></textarea>
                                 @else
                                     <span class="whitespace-pre-wrap">{{ $row[$field] ?? '' }}</span>
                                 @endif
@@ -87,7 +87,7 @@
                         @for ($ei = 0; $ei < $extraCount; $ei++)
                             <td class="{{ $cellPad }} align-top">
                                 @if ($editable)
-                                    <textarea wire:model.live="page19ComplianceRows.{{ $rowIndex }}.extra.{{ $ei }}" rows="3" class="w-full border-0 bg-sky-50/50 p-1 text-[10px] leading-snug"></textarea>
+                                    <textarea wire:model.live="page19ComplianceRows.{{ $rowIndex }}.extra.{{ $ei }}" rows="3" class="w-full border-0 bg-sky-50/50 p-1 text-xs leading-snug"></textarea>
                                 @else
                                     <span class="whitespace-pre-wrap">{{ $row['extra'][$ei] ?? '' }}</span>
                                 @endif
@@ -96,7 +96,7 @@
                         @if ($editable)
                             <td class="{{ $cellPad }} text-center align-top">
                                 @if (count($page19ComplianceRows ?? []) > 1)
-                                    <button type="button" wire:click="removePage19ComplianceRow({{ $rowIndex }})" class="text-[11px] font-semibold text-rose-600">×</button>
+                                    <button type="button" wire:click="removePage19ComplianceRow({{ $rowIndex }})" class="text-[13px] font-semibold text-rose-600">×</button>
                                 @endif
                             </td>
                         @endif
@@ -107,6 +107,6 @@
     </div>
 
     @if ($editable)
-        <button type="button" wire:click="addPage19ComplianceRow" class="mt-2 text-[11px] font-semibold text-[#2b579a] hover:underline">+ সারি যোগ করুন</button>
+        <button type="button" wire:click="addPage19ComplianceRow" class="mt-2 text-[13px] font-semibold text-[#2b579a] hover:underline">+ সারি যোগ করুন</button>
     @endif
 </div>

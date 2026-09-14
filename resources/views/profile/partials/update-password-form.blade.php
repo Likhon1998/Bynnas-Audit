@@ -8,7 +8,7 @@
             </span>
             <div>
                 <h2 class="text-[12px] font-semibold text-navy-900">{{ __('Update Password') }}</h2>
-                <p class="text-[9px] text-slate-500">{{ __('Keep your account secure.') }}</p>
+                <p class="text-xs text-slate-500">{{ __('Keep your account secure.') }}</p>
             </div>
         </div>
     </header>
@@ -19,7 +19,7 @@
 
         <div class="space-y-2">
             <div>
-                <x-input-label for="update_password_current_password" :value="__('Current Password')" class="text-[10px] font-semibold text-slate-600" />
+                <x-input-label for="update_password_current_password" :value="__('Current Password')" class="text-xs font-semibold text-slate-600" />
                 <x-text-input
                     id="update_password_current_password"
                     name="current_password"
@@ -27,11 +27,11 @@
                     class="mt-0.5 block h-8 w-full rounded-lg border-slate-200 bg-white/90 px-2.5 text-[12px] shadow-sm focus:border-[#7c3aed] focus:ring-[#7c3aed]"
                     autocomplete="current-password"
                 />
-                <x-input-error :messages="$errors->updatePassword->get('current_password')" class="mt-1 text-[10px]" />
+                <x-input-error :messages="$errors->updatePassword->get('current_password')" class="mt-1 text-xs" />
             </div>
 
             <div>
-                <x-input-label for="update_password_password" :value="__('New Password')" class="text-[10px] font-semibold text-slate-600" />
+                <x-input-label for="update_password_password" :value="__('New Password')" class="text-xs font-semibold text-slate-600" />
                 <x-text-input
                     id="update_password_password"
                     name="password"
@@ -39,11 +39,11 @@
                     class="mt-0.5 block h-8 w-full rounded-lg border-slate-200 bg-white/90 px-2.5 text-[12px] shadow-sm focus:border-[#7c3aed] focus:ring-[#7c3aed]"
                     autocomplete="new-password"
                 />
-                <x-input-error :messages="$errors->updatePassword->get('password')" class="mt-1 text-[10px]" />
+                <x-input-error :messages="$errors->updatePassword->get('password')" class="mt-1 text-xs" />
             </div>
 
             <div>
-                <x-input-label for="update_password_password_confirmation" :value="__('Confirm Password')" class="text-[10px] font-semibold text-slate-600" />
+                <x-input-label for="update_password_password_confirmation" :value="__('Confirm Password')" class="text-xs font-semibold text-slate-600" />
                 <x-text-input
                     id="update_password_password_confirmation"
                     name="password_confirmation"
@@ -51,12 +51,12 @@
                     class="mt-0.5 block h-8 w-full rounded-lg border-slate-200 bg-white/90 px-2.5 text-[12px] shadow-sm focus:border-[#7c3aed] focus:ring-[#7c3aed]"
                     autocomplete="new-password"
                 />
-                <x-input-error :messages="$errors->updatePassword->get('password_confirmation')" class="mt-1 text-[10px]" />
+                <x-input-error :messages="$errors->updatePassword->get('password_confirmation')" class="mt-1 text-xs" />
             </div>
         </div>
 
         <div class="flex items-center gap-2 pt-1">
-            <button type="submit" class="inline-flex h-7 items-center rounded-lg bg-gradient-to-r from-[#c026d3] via-[#7c3aed] to-[#2563eb] px-3 text-[11px] font-semibold text-white shadow-sm hover:brightness-105">
+            <button type="submit" class="inline-flex h-7 items-center rounded-lg bg-gradient-to-r from-[#c026d3] via-[#7c3aed] to-[#2563eb] px-3 text-[13px] font-semibold text-white shadow-sm hover:brightness-105">
                 {{ __('Save') }}
             </button>
             @if (session('status') === 'password-updated')
@@ -65,7 +65,7 @@
                     x-show="show"
                     x-transition
                     x-init="setTimeout(() => show = false, 2000)"
-                    class="text-[10px] font-medium text-emerald-600"
+                    class="text-xs font-medium text-emerald-600"
                 >{{ __('Saved.') }}</p>
             @endif
         </div>

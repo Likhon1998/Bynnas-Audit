@@ -54,8 +54,8 @@
     >
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div class="min-w-0">
-                <h1 class="text-[15px] font-semibold tracking-tight text-navy-900">Shakha Employees</h1>
-                <p class="mt-0.5 text-[11px] text-slate-500">
+                <h1 class="text-lg font-semibold tracking-tight text-navy-900">Shakha Employees</h1>
+                <p class="mt-0.5 text-[13px] text-slate-500">
                     Division → Area → Shakha — pick a branch to open its roster
                 </p>
             </div>
@@ -96,11 +96,11 @@
             <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-4 shadow-xl" @click.outside="addOpen = false">
                 <div class="mb-3">
                     <p class="text-[14px] font-semibold text-navy-900">Add employee</p>
-                    <p class="mt-0.5 text-[11px] text-slate-500">Choose division, area, then shakha.</p>
+                    <p class="mt-0.5 text-[13px] text-slate-500">Choose division, area, then shakha.</p>
                 </div>
                 <div class="space-y-3">
                     <div>
-                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Division</label>
+                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Division</label>
                         <select x-model="division" @change="onDivisionChange()" class="h-9 w-full rounded-lg border-slate-200 text-[12px]">
                             <option value="">Select division…</option>
                             @foreach ($divisions as $divisionOption)
@@ -109,7 +109,7 @@
                         </select>
                     </div>
                     <div>
-                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Area</label>
+                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Area</label>
                         <select x-model="areaId" @change="onAreaChange()" class="h-9 w-full rounded-lg border-slate-200 text-[12px]" :disabled="!division">
                             <option value="">Select area…</option>
                             <template x-for="area in areasForDivision" :key="area.id">
@@ -118,7 +118,7 @@
                         </select>
                     </div>
                     <div>
-                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Shakha</label>
+                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Shakha</label>
                         <select x-model="shakhaId" class="h-9 w-full rounded-lg border-slate-200 text-[12px]" :disabled="!areaId">
                             <option value="">Select shakha…</option>
                             <template x-for="shakha in shakhasForArea" :key="shakha.id">
@@ -146,8 +146,8 @@
                         <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 01.8 1.6L14 13.67V19a1 1 0 01-.55.9l-4 2A1 1 0 018 21v-7.33L3.2 4.6A1 1 0 013 4z"/></svg>
                     </span>
                     <div>
-                        <p class="text-[11px] font-semibold text-navy-900">Find a shakha</p>
-                        <p class="text-[9px] text-slate-400">
+                        <p class="text-[13px] font-semibold text-navy-900">Find a shakha</p>
+                        <p class="text-xs text-slate-500">
                             @if ($selectedShakha)
                                 {{ $selectedShakha->area?->division }} · {{ $selectedShakha->area?->name }} · {{ $selectedShakha->name }}
                             @else
@@ -157,12 +157,12 @@
                     </div>
                 </div>
                 @if ($filters['division'] || $filters['area_id'] || $filters['shakha_id'] || $filters['status'] !== 'all' || $filters['q'] !== '')
-                    <a href="{{ route('shakha-employees.index') }}" class="rounded-md px-2 py-1 text-[10px] font-semibold text-rose-600 hover:bg-rose-50">Clear filters</a>
+                    <a href="{{ route('shakha-employees.index') }}" class="rounded-md px-2 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50">Clear filters</a>
                 @endif
             </div>
             <div class="grid grid-cols-1 gap-3 p-3 sm:grid-cols-2 xl:grid-cols-5 xl:items-end">
                 <div>
-                    <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Division</label>
+                    <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Division</label>
                     <select name="division" class="h-9 w-full rounded-lg border-slate-200 bg-white text-[12px] shadow-sm focus:border-[#2b579a] focus:ring-[#2b579a]" onchange="this.form.area_id.value=''; this.form.shakha_id.value=''; this.form.submit()">
                         <option value="">All divisions</option>
                         @foreach ($divisions as $divisionOption)
@@ -171,7 +171,7 @@
                     </select>
                 </div>
                 <div>
-                    <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Area</label>
+                    <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Area</label>
                     <select name="area_id" class="h-9 w-full rounded-lg border-slate-200 bg-white text-[12px] shadow-sm focus:border-[#2b579a] focus:ring-[#2b579a]" onchange="this.form.shakha_id.value=''; this.form.submit()">
                         <option value="">All areas{{ $filters['division'] ? ' in '.$filters['division'] : '' }}</option>
                         @foreach ($areas as $area)
@@ -182,7 +182,7 @@
                     </select>
                 </div>
                 <div>
-                    <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Shakha</label>
+                    <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Shakha</label>
                     <select name="shakha_id" class="h-9 w-full rounded-lg border-slate-200 bg-white text-[12px] shadow-sm focus:border-[#2b579a] focus:ring-[#2b579a]" onchange="this.form.submit()">
                         <option value="">Select shakha…</option>
                         @foreach ($shakhas as $shakha)
@@ -191,7 +191,7 @@
                     </select>
                 </div>
                 <div>
-                    <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Status</label>
+                    <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Status</label>
                     <select name="status" class="h-9 w-full rounded-lg border-slate-200 bg-white text-[12px] shadow-sm focus:border-[#2b579a] focus:ring-[#2b579a]" onchange="this.form.submit()">
                         <option value="all" @selected($filters['status'] === 'all')>All</option>
                         <option value="active" @selected($filters['status'] === 'active')>Active</option>
@@ -201,7 +201,7 @@
                     </select>
                 </div>
                 <div>
-                    <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Search roster</label>
+                    <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Search roster</label>
                     <div class="flex gap-2">
                         <div class="relative min-w-0 flex-1">
                             <svg class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="m20 20-3.5-3.5"/></svg>
@@ -249,7 +249,7 @@
             >
                 <div class="border-b border-slate-100 px-3.5 py-2.5">
                     <p class="text-[12px] font-semibold text-navy-900">Shakhas</p>
-                    <p class="mt-0.5 text-[10px] text-slate-500">
+                    <p class="mt-0.5 text-xs text-slate-500">
                         @if ($filters['division'] || $filters['area_id'])
                             {{ $filters['division'] ?: 'All divisions' }}{{ $filters['area_id'] ? ' · filtered area' : '' }} · highest staff first
                         @else
@@ -277,17 +277,17 @@
                         >
                             <div class="min-w-0">
                                 <p class="truncate text-[12px] font-medium text-navy-900" x-text="branch.name"></p>
-                                <p class="truncate text-[10px] text-slate-500" x-text="[branch.division, branch.area].filter(Boolean).join(' · ') || '—'"></p>
+                                <p class="truncate text-xs text-slate-500" x-text="[branch.division, branch.area].filter(Boolean).join(' · ') || '—'"></p>
                             </div>
                             <div class="flex shrink-0 flex-col items-end gap-1">
-                                <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600" x-text="branch.count"></span>
+                                <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600" x-text="branch.count"></span>
                                 @if ($canManage)
-                                    <span class="text-[10px] font-semibold text-[#2b579a]">+ Add</span>
+                                    <span class="text-xs font-semibold text-[#2b579a]">+ Add</span>
                                 @endif
                             </div>
                         </a>
                     </template>
-                    <p x-show="filteredBranches.length === 0" class="px-3.5 py-8 text-center text-[12px] text-slate-400">
+                    <p x-show="filteredBranches.length === 0" class="px-3.5 py-8 text-center text-[13px] text-slate-500">
                         No shakhas match your search.
                     </p>
                 </div>
@@ -303,7 +303,7 @@
                                 Employees
                             @endif
                         </p>
-                        <p class="text-[10px] text-slate-500">
+                        <p class="text-xs text-slate-500">
                             @if ($selectedShakha)
                                 {{ $employees->count() }} on this branch
                             @else
@@ -312,7 +312,7 @@
                         </p>
                     </div>
                     @if ($canManage && $selectedShakha)
-                        <a href="{{ route('shakha-employees.manage', $selectedShakha) }}" class="text-[11px] font-semibold text-[#2b579a] hover:underline">
+                        <a href="{{ route('shakha-employees.manage', $selectedShakha) }}" class="text-[13px] font-semibold text-[#2b579a] hover:underline">
                             Manage / add →
                         </a>
                     @endif
@@ -326,7 +326,7 @@
                     @else
                         <table class="min-w-full text-left">
                             <thead class="border-b border-slate-100 bg-slate-50/80">
-                                <tr class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                                <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
                                     <th class="px-3.5 py-2.5">Photo</th>
                                     <th class="px-3.5 py-2.5">Employee ID</th>
                                     <th class="px-3.5 py-2.5">Name</th>
@@ -347,27 +347,27 @@
                                         <td class="px-3.5 py-2.5 text-slate-600">{{ $employee->designation }}</td>
                                         <td class="px-3.5 py-2.5 text-slate-600">
                                             <span class="block">{{ $employee->shakha?->name }}</span>
-                                            <span class="text-[10px] text-slate-400">{{ $employee->shakha?->area?->division }} · {{ $employee->shakha?->area?->name }}</span>
+                                            <span class="text-xs text-slate-500">{{ $employee->shakha?->area?->division }} · {{ $employee->shakha?->area?->name }}</span>
                                         </td>
                                         <td class="px-3.5 py-2.5">
                                             @if ($employee->isActive())
-                                                <span class="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">Active</span>
+                                                <span class="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Active</span>
                                             @elseif ($employee->isFired())
-                                                <span class="inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-medium text-rose-700">Fired</span>
+                                                <span class="inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700">Fired</span>
                                             @elseif ($employee->isTransferred())
-                                                <span class="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-800">Transferred</span>
+                                                <span class="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">Transferred</span>
                                             @else
-                                                <span class="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">Inactive</span>
+                                                <span class="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">Inactive</span>
                                             @endif
                                         </td>
                                         <td class="px-3.5 py-2.5 text-right whitespace-nowrap">
                                             @php $count = (int) (($reportCounts[$employee->id] ?? 0)); @endphp
-                                            <a href="{{ route('shakha-employees.dossier', $employee) }}" class="text-[11px] font-semibold text-rose-700 hover:underline">
+                                            <a href="{{ route('shakha-employees.dossier', $employee) }}" class="text-[13px] font-semibold text-rose-700 hover:underline">
                                                 রিপোর্ট{{ $count > 0 ? ' ('.$count.')' : '' }}
                                             </a>
-                                            <a href="{{ route('shakha-employees.manage', $employee->shakha) }}" class="ml-2 text-[11px] font-semibold text-[#2b579a] hover:underline">Manage</a>
+                                            <a href="{{ route('shakha-employees.manage', $employee->shakha) }}" class="ml-2 text-[13px] font-semibold text-[#2b579a] hover:underline">Manage</a>
                                             @if ($canManage)
-                                                <a href="{{ route('shakha-employees.edit', $employee) }}" class="ml-2 text-[11px] font-semibold text-slate-600 hover:underline">Edit</a>
+                                                <a href="{{ route('shakha-employees.edit', $employee) }}" class="ml-2 text-[13px] font-semibold text-slate-600 hover:underline">Edit</a>
                                                 <span class="ml-2 inline-block align-middle">
                                                     @include('shakha-employees.partials.transfer-fire-actions', [
                                                         'employee' => $employee,
@@ -380,7 +380,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="7" class="px-3.5 py-10 text-center text-[12px] text-slate-400">
+                                        <td colspan="7" class="px-3.5 py-10 text-center text-[13px] text-slate-500">
                                             <p>No employees on this shakha yet.</p>
                                             @if ($canManage)
                                                 <a href="{{ route('shakha-employees.manage', $selectedShakha) }}" class="mt-2 inline-block font-semibold text-[#2b579a] hover:underline">

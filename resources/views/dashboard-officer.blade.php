@@ -16,7 +16,7 @@
         <div>
             <div class="mb-1 flex items-center gap-2">
                 <span class="h-2 w-8 rounded-full bg-gradient-to-r from-[#ff2d9b] via-[#7c3aed] to-[#2563eb]"></span>
-                <p class="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">My work</p>
+                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">My work</p>
             </div>
             <h1 class="text-[18px] font-semibold tracking-tight text-navy-900">Hello, {{ $firstName }}</h1>
             <p class="mt-0.5 text-[12px] text-slate-500">

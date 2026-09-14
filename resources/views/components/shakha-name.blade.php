@@ -18,6 +18,6 @@
     >{{ $name }}</{{ $tag }}>
     <x-shakha-risk-badge :category="$category" size="xs" />
     @if ($meta)
-        <span class="truncate text-[10px] text-slate-400">{{ $meta }}</span>
+        <span class="truncate text-xs text-slate-500">{{ $meta }}</span>
     @endif
 </span>

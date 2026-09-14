@@ -70,7 +70,7 @@ fi
 echo "==> migrate (no wipe)"
 php artisan migrate --force
 
-echo "==> sync roles/permissions (no data wipe)"
+echo "==> sync roles/permissions (creates missing perms; resets built-in role permission sets)"
 php artisan db:seed --class=RolePermissionSeeder --force || true
 php artisan permission:cache-reset 2>/dev/null || true
 

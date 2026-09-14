@@ -8,8 +8,8 @@
 
     <div class="px-4 py-4 lg:px-6">
         <div class="mb-4">
-            <a href="{{ route('roles.index') }}" class="text-[11px] font-medium text-[#2b579a] hover:underline">← Back to roles</a>
-            <h1 class="mt-1 text-[16px] font-semibold tracking-tight text-navy-900">
+            <a href="{{ route('roles.index') }}" class="text-[13px] font-medium text-[#2b579a] hover:underline">← Back to roles</a>
+            <h1 class="mt-1 text-lg font-semibold tracking-tight text-navy-900">
                 {{ $editing ? 'Edit role' : 'Create role' }}
             </h1>
             <p class="mt-0.5 text-[12px] text-slate-500">
@@ -51,7 +51,7 @@
 
             <div class="grid gap-3 sm:grid-cols-2">
                 <div>
-                    <label class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Display name</label>
+                    <label class="mb-1 block text-[13px] font-semibold uppercase tracking-wide text-slate-500">Display name</label>
                     <input
                         type="text"
                         name="label"
@@ -62,10 +62,10 @@
                         maxlength="80"
                         placeholder="e.g. Area Manager"
                     >
-                    @error('label') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
+                    @error('label') <p class="mt-1 text-[13px] text-rose-600">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Role key</label>
+                    <label class="mb-1 block text-[13px] font-semibold uppercase tracking-wide text-slate-500">Role key</label>
                     <input
                         type="text"
                         name="name"
@@ -77,17 +77,17 @@
                         pattern="[a-z][a-z0-9_]*"
                         placeholder="area_manager"
                     >
-                    <p class="mt-1 text-[10px] text-slate-400">Lowercase key used internally (auto from name).</p>
-                    @error('name') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
+                    <p class="mt-1 text-xs text-slate-500">Lowercase key used internally (auto from name).</p>
+                    @error('name') <p class="mt-1 text-[13px] text-rose-600">{{ $message }}</p> @enderror
                 </div>
             </div>
 
             <div>
                 <div class="mb-2 flex items-center justify-between gap-2">
-                    <label class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Permissions</label>
-                    @error('permissions') <p class="text-[11px] text-rose-600">{{ $message }}</p> @enderror
+                    <label class="text-[13px] font-semibold uppercase tracking-wide text-slate-500">Permissions</label>
+                    @error('permissions') <p class="text-[13px] text-rose-600">{{ $message }}</p> @enderror
                 </div>
-                <div class="mb-3 rounded-lg border border-emerald-100 bg-emerald-50/50 px-3 py-2 text-[11px] leading-relaxed text-emerald-950/90">
+                <div class="mb-3 rounded-lg border border-emerald-100 bg-emerald-50/50 px-3 py-2 text-[13px] leading-relaxed text-emerald-950/90">
                     <strong>Tip:</strong> Auditor = create reports. Same person can also <em>Act as reviewer</em>. Assign reviewers + Auditors log is for who maps Auditor → Reviewer.
                 </div>
                 <div class="space-y-3">
@@ -106,8 +106,8 @@
                                         >
                                         <span class="min-w-0">
                                             <span class="font-medium text-slate-800">{{ $perm['label'] }}</span>
-                                            <span class="mt-0.5 block text-[10px] leading-snug text-slate-500">{{ $perm['help'] }}</span>
-                                            <span class="mt-0.5 block font-mono text-[10px] text-slate-400">{{ $key }}</span>
+                                            <span class="mt-0.5 block text-xs leading-snug text-slate-500">{{ $perm['help'] }}</span>
+                                            <span class="mt-0.5 block font-mono text-xs text-slate-500">{{ $key }}</span>
                                         </span>
                                     </label>
                                 @endforeach

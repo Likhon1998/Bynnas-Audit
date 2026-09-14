@@ -1,7 +1,7 @@
 <div class="border-b border-slate-200 bg-slate-100 px-3 py-5 lg:px-6">
     <div class="mb-2 flex items-center justify-between gap-2">
         <p class="text-[12px] font-semibold text-slate-800">১৩. Finding ৪.১–৪.২ (কার্যক্রম/পরিচালন)</p>
-        <span class="text-[11px] text-slate-500">পৃষ্ঠা ১৩ · Operational Audit</span>
+        <span class="text-[13px] text-slate-500">পৃষ্ঠা ১৩ · Operational Audit</span>
     </div>
 
     <div class="mx-auto max-w-[1180px] rounded-sm bg-white p-6 shadow-lg">
@@ -20,7 +20,7 @@
         ])
 
         <div class="mt-6 flex items-center justify-between border-t border-dashed border-slate-200 pt-3">
-            <p class="text-[11px] text-slate-500">পৃষ্ঠা ১৩</p>
+            <p class="text-[13px] text-slate-500">পৃষ্ঠা ১৩</p>
             <div class="flex items-center gap-2">
                 <button type="button" wire:click="$set('activeTab', 'page12')" class="h-8 rounded-lg border border-slate-200 px-3 text-[12px] text-slate-600 hover:bg-slate-50">← পৃষ্ঠা ১২</button>
                 <button type="button" wire:click="openPreview" class="h-8 rounded-lg border border-[#2b579a] px-3 text-[12px] font-semibold text-[#2b579a] hover:bg-sky-50">Preview</button>

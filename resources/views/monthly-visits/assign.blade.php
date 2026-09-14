@@ -1,15 +1,11 @@
 <x-app-layout>
     <div class="px-4 py-5 lg:px-6">
         <div class="mb-4">
-            <a href="{{ route('monthly-visits.index', ['fy' => $item->fy_label, 'month' => $item->month_index]) }}" class="text-[11px] font-medium text-brand-600 hover:underline">← Back to monthly worklist</a>
-            <h1 class="mt-1 text-[15px] font-semibold tracking-tight text-navy-900">Assign visitor</h1>
-            <p class="mt-0.5 text-[11px] text-slate-500">
+            <a href="{{ route('monthly-visits.index', ['fy' => $item->fy_label, 'month' => $item->month_index]) }}" class="text-[13px] font-medium text-brand-600 hover:underline">← Back to monthly worklist</a>
+            <h1 class="mt-1 text-lg font-semibold tracking-tight text-navy-900">Assign visitor</h1>
+            <p class="mt-0.5 text-[13px] text-slate-500">
                 {{ $item->entity_label }} · {{ $item->activityType?->name }} · {{ $fy->months()[$item->month_index]['label'] }} {{ $fy->months()[$item->month_index]['year'] }}
             </p>
-        </div>
-
-        <div class="mb-3 max-w-xl">
-            @include('calendar.partials.source-banner')
         </div>
 
         @if (session('conflict_warning'))
@@ -18,7 +14,7 @@
                 @foreach (session('conflicts', []) as $c)
                     <p class="mt-1 text-amber-800">• {{ $c->employee?->name }}: {{ $c->start_date?->format('d M') }}–{{ $c->end_date?->format('d M') }} ({{ $c->workItem?->entity_label }})</p>
                 @endforeach
-                <p class="mt-2 text-[11px]">Check “Override conflict” below to save anyway.</p>
+                <p class="mt-2 text-[13px]">Check “Override conflict” below to save anyway.</p>
             </div>
         @endif
 
@@ -30,7 +26,7 @@
             <form method="POST" action="{{ route('monthly-visits.assign.store', $item) }}" class="space-y-3 px-4 py-4">
                 @csrf
                 <div>
-                    <label class="mb-1 block text-[11px] font-medium text-slate-600">Assigned person (Organogram)</label>
+                    <label class="mb-1 block text-[13px] font-medium text-slate-600">Assigned person (Organogram)</label>
                     <select name="employee_id" required class="block w-full rounded-lg border-slate-200 text-[13px]">
                         <option value="">Select staff</option>
                         @foreach ($employees as $employee)
@@ -43,29 +39,29 @@
 
                 <div class="grid gap-3 sm:grid-cols-2">
                     <div>
-                        <label class="mb-1 block text-[11px] font-medium text-slate-600">Start date</label>
+                        <label class="mb-1 block text-[13px] font-medium text-slate-600">Start date</label>
                         <input type="date" name="start_date" required value="{{ old('start_date', $defaultStart) }}" class="block w-full rounded-lg border-slate-200 text-[13px]">
                     </div>
                     <div>
-                        <label class="mb-1 block text-[11px] font-medium text-slate-600">End date</label>
+                        <label class="mb-1 block text-[13px] font-medium text-slate-600">End date</label>
                         <input type="date" name="end_date" required value="{{ old('end_date', $defaultEnd) }}" class="block w-full rounded-lg border-slate-200 text-[13px]">
                     </div>
                 </div>
 
                 <div class="grid gap-3 sm:grid-cols-2">
                     <div>
-                        <label class="mb-1 block text-[11px] font-medium text-slate-600">Start time (optional)</label>
+                        <label class="mb-1 block text-[13px] font-medium text-slate-600">Start time (optional)</label>
                         <input type="time" name="start_time" value="{{ old('start_time') }}" class="block w-full rounded-lg border-slate-200 text-[13px]">
                     </div>
                     <div>
-                        <label class="mb-1 block text-[11px] font-medium text-slate-600">End time (optional)</label>
+                        <label class="mb-1 block text-[13px] font-medium text-slate-600">End time (optional)</label>
                         <input type="time" name="end_time" value="{{ old('end_time') }}" class="block w-full rounded-lg border-slate-200 text-[13px]">
                     </div>
                 </div>
 
                 <div class="grid gap-3 sm:grid-cols-2">
                     <div>
-                        <label class="mb-1 block text-[11px] font-medium text-slate-600">Duration mode</label>
+                        <label class="mb-1 block text-[13px] font-medium text-slate-600">Duration mode</label>
                         <select name="duration_mode" class="block w-full rounded-lg border-slate-200 text-[13px]">
                             <option value="working" @selected(old('duration_mode', 'working') === 'working')>Working days (Working Calendar)</option>
                             <option value="calendar" @selected(old('duration_mode') === 'calendar')>Calendar days</option>
@@ -73,24 +69,24 @@
                         </select>
                     </div>
                     <div>
-                        <label class="mb-1 block text-[11px] font-medium text-slate-600">Manual duration (if manual)</label>
+                        <label class="mb-1 block text-[13px] font-medium text-slate-600">Manual duration (if manual)</label>
                         <input type="number" min="1" max="60" name="duration_days" value="{{ old('duration_days', 5) }}" class="block w-full rounded-lg border-slate-200 text-[13px]">
                     </div>
                 </div>
 
                 <div>
-                    <label class="mb-1 block text-[11px] font-medium text-slate-600">Last audit / monitoring upto</label>
+                    <label class="mb-1 block text-[13px] font-medium text-slate-600">Last audit / monitoring upto</label>
                     <input type="date" name="last_audit_upto" value="{{ old('last_audit_upto', $lastUpto) }}" class="block w-full rounded-lg border-slate-200 text-[13px]">
-                    <p class="mt-1 text-[10px] text-slate-400">Pre-filled from history when available; override if needed.</p>
+                    <p class="mt-1 text-xs text-slate-500">Pre-filled from history when available; override if needed.</p>
                 </div>
 
                 <div>
-                    <label class="mb-1 block text-[11px] font-medium text-slate-600">Purpose</label>
+                    <label class="mb-1 block text-[13px] font-medium text-slate-600">Purpose</label>
                     <input type="text" name="purpose" value="{{ old('purpose', $item->activityType?->name) }}" class="block w-full rounded-lg border-slate-200 text-[13px]">
                 </div>
 
                 <div>
-                    <label class="mb-1 block text-[11px] font-medium text-slate-600">Remarks</label>
+                    <label class="mb-1 block text-[13px] font-medium text-slate-600">Remarks</label>
                     <textarea name="remarks" rows="2" class="block w-full rounded-lg border-slate-200 text-[13px]">{{ old('remarks') }}</textarea>
                 </div>
 
@@ -104,7 +100,7 @@
                     <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] text-rose-900">
                         <p class="font-semibold">Cannot allocate — same person at two places</p>
                         <p class="mt-1">{{ session('conflict_warning') }}</p>
-                        <p class="mt-1 text-[11px] font-medium">Change visitors or dates. Overlap is never allowed.</p>
+                        <p class="mt-1 text-[13px] font-medium">Change visitors or dates. Overlap is never allowed.</p>
                     </div>
                 @endif
 

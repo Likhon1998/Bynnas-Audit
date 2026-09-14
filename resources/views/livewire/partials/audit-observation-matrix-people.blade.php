@@ -40,19 +40,19 @@
             <button
                 type="button"
                 wire:click="openObservationPeople({{ (int) $blockIndex }})"
-                class="inline-flex h-7 items-center gap-1.5 rounded-md border border-violet-200 bg-white px-2.5 text-[11px] font-semibold text-violet-800 shadow-sm hover:bg-violet-50"
+                class="inline-flex h-7 items-center gap-1.5 rounded-md border border-violet-200 bg-white px-2.5 text-[13px] font-semibold text-violet-800 shadow-sm hover:bg-violet-50"
             >
                 <span class="text-[12px] leading-none">+</span>
                 অভিযুক্ত আছে?
             </button>
             @if ($hasAccused)
-                <span class="max-w-[18rem] truncate text-[10px] text-violet-700/90" title="{{ $summary }}">
+                <span class="max-w-[18rem] truncate text-xs text-violet-700/90" title="{{ $summary }}">
                     {{ $summary }}
                 </span>
                 <button
                     type="button"
                     wire:click="openObservationPeople({{ (int) $blockIndex }})"
-                    class="text-[10px] font-semibold text-violet-700 hover:underline"
+                    class="text-xs font-semibold text-violet-700 hover:underline"
                 >সম্পাদনা</button>
             @endif
         </div>
@@ -60,19 +60,19 @@
         <div class="rounded-lg border border-violet-100 bg-violet-50/50 px-2.5 py-2">
             <div class="mb-1.5 flex flex-wrap items-center justify-between gap-2">
                 <div>
-                    <p class="text-[11px] font-semibold text-violet-950">অভিযুক্ত কর্মী (একাধিক)</p>
-                    <p class="text-[10px] text-violet-800/80">ID + নাম · এই শাখার staff · Preview/PDF-এ নয়</p>
+                    <p class="text-[13px] font-semibold text-violet-950">অভিযুক্ত কর্মী (একাধিক)</p>
+                    <p class="text-xs text-violet-800/80">ID + নাম · এই শাখার staff · Preview/PDF-এ নয়</p>
                 </div>
                 <div class="flex items-center gap-1.5">
                     <button
                         type="button"
                         wire:click="addObservationPerson({{ (int) $blockIndex }})"
-                        class="h-7 rounded border border-violet-200 bg-white px-2 text-[11px] font-semibold text-violet-800 hover:bg-violet-50"
+                        class="h-7 rounded border border-violet-200 bg-white px-2 text-[13px] font-semibold text-violet-800 hover:bg-violet-50"
                     >+ নাম</button>
                     <button
                         type="button"
                         wire:click="hideObservationPeople({{ (int) $blockIndex }})"
-                        class="h-7 rounded px-2 text-[11px] font-medium text-slate-500 hover:bg-white hover:text-slate-700"
+                        class="h-7 rounded px-2 text-[13px] font-medium text-slate-500 hover:bg-white hover:text-slate-700"
                     >বন্ধ</button>
                 </div>
             </div>
@@ -135,9 +135,9 @@
                     >
                         <div class="min-w-0 flex-1">
                             <div class="mb-0.5 flex items-center gap-1.5">
-                                <span class="text-[9px] font-semibold uppercase tracking-wide text-violet-700/70">ID + নাম</span>
+                                <span class="text-xs font-semibold uppercase tracking-wide text-violet-700/70">ID + নাম</span>
                                 @if ($personCode !== '')
-                                    <span class="rounded bg-violet-100 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-violet-900">{{ $personCode }}</span>
+                                    <span class="rounded bg-violet-100 px-1.5 py-0.5 font-mono text-xs font-semibold text-violet-900">{{ $personCode }}</span>
                                 @endif
                             </div>
                             <input
@@ -151,7 +151,7 @@
                                 @keydown.escape="open = false"
                                 @blur="commitTyped()"
                                 placeholder="Employee ID / নাম খুঁজুন…"
-                                class="h-8 w-full rounded border border-violet-200 bg-white px-2 text-[11px] focus:border-violet-400 focus:ring-violet-400"
+                                class="h-8 w-full rounded border border-violet-200 bg-white px-2 text-[13px] focus:border-violet-400 focus:ring-violet-400"
                                 autocomplete="off"
                             >
                             <div
@@ -167,15 +167,15 @@
                                         class="flex w-full flex-col items-start gap-0.5 px-2.5 py-1.5 text-left hover:bg-violet-50"
                                         :class="highlight === idx ? 'bg-violet-50' : ''"
                                     >
-                                        <span class="text-[11px] font-semibold text-navy-900">
+                                        <span class="text-[13px] font-semibold text-navy-900">
                                             <span class="font-mono text-violet-800" x-text="emp.code"></span>
                                             <span x-show="emp.code && emp.name"> — </span>
                                             <span x-text="emp.name"></span>
                                         </span>
-                                        <span class="text-[10px] text-slate-500" x-text="emp.designation || ''"></span>
+                                        <span class="text-xs text-slate-500" x-text="emp.designation || ''"></span>
                                     </button>
                                 </template>
-                                <p x-show="filtered.length === 0" class="px-2.5 py-2 text-[11px] text-slate-400">
+                                <p x-show="filtered.length === 0" class="px-2.5 py-2 text-[13px] text-slate-400">
                                     <span x-show="staff.length === 0">এই শাখায় staff নেই — নাম টাইপ করুন</span>
                                     <span x-show="staff.length > 0">মিল নেই — Enter চাপলে যা লিখেছেন সেভ হবে</span>
                                 </p>
@@ -184,7 +184,7 @@
                         <button
                             type="button"
                             wire:click="removeObservationPerson({{ (int) $blockIndex }}, {{ (int) $pIndex }})"
-                            class="mt-5 shrink-0 text-[11px] text-rose-600 hover:underline"
+                            class="mt-5 shrink-0 text-[13px] text-rose-600 hover:underline"
                             @disabled(count($displayPeople) <= 1)
                         >×</button>
                     </div>
@@ -196,7 +196,7 @@
                     <button
                         type="button"
                         wire:click="clearObservationPeople({{ (int) $blockIndex }})"
-                        class="text-[10px] font-semibold text-rose-600 hover:underline"
+                        class="text-xs font-semibold text-rose-600 hover:underline"
                     >অভিযুক্ত সরান</button>
                 </div>
             @endif

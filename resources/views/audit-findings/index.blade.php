@@ -91,8 +91,8 @@
 
         <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
             <div class="min-w-0">
-                <h1 class="text-[16px] font-semibold tracking-tight text-navy-900">Findings Matrix</h1>
-                <p class="mt-0.5 text-[11px] text-slate-500">Monthly summary · indicators × shakhas</p>
+                <h1 class="text-lg font-semibold tracking-tight text-navy-900">Findings Matrix</h1>
+                <p class="mt-0.5 text-[13px] text-slate-500">Monthly summary · indicators × shakhas</p>
                 @include('audit-findings.partials.view-tabs', ['activeTab' => 'matrix', 'month' => $month, 'year' => $year])
             </div>
             <div class="ml-auto flex flex-wrap items-center justify-end gap-1.5">
@@ -110,7 +110,7 @@
                 </form>
                 <a
                     href="{{ $exportYearUrl }}"
-                    class="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
+                    class="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] font-semibold text-slate-700 hover:bg-slate-50"
                     title="All 12 months — each tab is indicators × shakhas"
                 >Download all months {{ $year }}</a>
                 <a
@@ -127,7 +127,7 @@
         <div class="mb-3 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-3 py-2">
                 <p class="text-[12px] font-semibold text-navy-900">{{ $year }} — pick a month</p>
-                <p class="text-[10px] text-slate-400">Dots = months with findings · summary below is for the selected month only</p>
+                <p class="text-xs text-slate-500">Dots = months with findings · summary below is for the selected month only</p>
             </div>
             <div class="grid grid-cols-4 gap-1 p-2 sm:grid-cols-6 lg:grid-cols-12">
                 @foreach ($monthStrip as $chip)
@@ -139,8 +139,8 @@
                                 : ($chip['has_data'] ? 'bg-sky-50 text-sky-900 hover:bg-sky-100' : 'bg-slate-50 text-slate-500 hover:bg-slate-100') }}"
                         title="{{ $chip['full'] }}{{ $chip['has_data'] ? ' · '.$chip['cells'].' cells · '.$chip['branches'].' branches' : '' }}"
                     >
-                        <span class="block text-[11px] font-semibold">{{ $chip['label'] }}</span>
-                        <span class="mt-0.5 block text-[9px] tabular-nums {{ $chip['active'] ? 'text-slate-300' : 'text-slate-400' }}">
+                        <span class="block text-[13px] font-semibold">{{ $chip['label'] }}</span>
+                        <span class="mt-0.5 block text-xs tabular-nums {{ $chip['active'] ? 'text-slate-300' : 'text-slate-400' }}">
                             {{ $chip['has_data'] ? $chip['cells'] : '—' }}
                         </span>
                     </a>
@@ -154,28 +154,28 @@
 
         <div class="mb-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
             <div class="rounded-lg border border-slate-100 bg-white px-3 py-2 shadow-sm">
-                <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Period</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Period</p>
                 <p class="mt-0.5 text-[14px] font-semibold text-navy-900">{{ date('F', mktime(0, 0, 0, $month, 1)) }} {{ $year }}</p>
             </div>
             <div class="rounded-lg border border-sky-100 bg-sky-50/80 px-3 py-2">
-                <p class="text-[10px] font-semibold uppercase tracking-wide text-sky-700">Branches</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-sky-700">Branches</p>
                 <p class="mt-0.5 text-[18px] font-bold tabular-nums leading-none text-sky-900">{{ $branchesInPeriod }}</p>
             </div>
             <div class="rounded-lg border border-amber-100 bg-amber-50/80 px-3 py-2">
-                <p class="text-[10px] font-semibold uppercase tracking-wide text-amber-700">Finding cells</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Finding cells</p>
                 <p class="mt-0.5 text-[18px] font-bold tabular-nums leading-none text-amber-900">{{ $findingsInPeriod }}</p>
             </div>
             <div class="rounded-lg border border-rose-100 bg-rose-50/80 px-3 py-2">
-                <p class="text-[10px] font-semibold uppercase tracking-wide text-rose-700">Indicators hit</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Indicators hit</p>
                 <p class="mt-0.5 text-[18px] font-bold tabular-nums leading-none text-rose-900">
                     <span x-text="hitVisible"></span>
-                    <span class="text-[11px] font-medium text-rose-700/70">/ {{ $hitCount }}</span>
+                    <span class="text-[13px] font-medium text-rose-700/70">/ {{ $hitCount }}</span>
                 </p>
             </div>
             <div class="rounded-lg border border-violet-100 bg-violet-50/80 px-3 py-2">
-                <p class="text-[10px] font-semibold uppercase tracking-wide text-violet-700">New indicators</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-violet-700">New indicators</p>
                 <p class="mt-0.5 text-[18px] font-bold tabular-nums leading-none text-violet-900">{{ $newIndicatorsThisMonthCount }}</p>
-                <p class="mt-0.5 text-[10px] text-violet-700/80">{{ $newIndicatorsMonthLabel }} · নতুন যোগ</p>
+                <p class="mt-0.5 text-xs text-violet-700/80">{{ $newIndicatorsMonthLabel }} · নতুন যোগ</p>
             </div>
         </div>
 
@@ -184,12 +184,12 @@
                 <div class="flex items-center justify-between gap-2 border-b border-violet-50 px-3 py-2">
                     <div>
                         <p class="text-[13px] font-semibold text-navy-900">এই মাসে নতুন indicator</p>
-                        <p class="text-[10px] text-slate-500">{{ $newIndicatorsMonthLabel }} · {{ $newIndicatorsThisMonthCount }}টি যোগ হয়েছে</p>
+                        <p class="text-xs text-slate-500">{{ $newIndicatorsMonthLabel }} · {{ $newIndicatorsThisMonthCount }}টি যোগ হয়েছে</p>
                     </div>
                     <button
                         type="button"
                         @click="showOnlyNew()"
-                        class="text-[11px] font-semibold text-[#2b579a] hover:underline"
+                        class="text-[13px] font-semibold text-[#2b579a] hover:underline"
                     >সব দেখুন</button>
                 </div>
                 <div class="max-h-44 divide-y divide-slate-100 overflow-y-auto">
@@ -198,10 +198,10 @@
                             href="{{ route('audit-findings.show', ['indicator' => $indicator->id, 'month' => $month, 'year' => $year]) }}"
                             class="flex items-start gap-2 px-3 py-2 hover:bg-violet-50/50"
                         >
-                            <span class="mt-0.5 rounded bg-violet-50 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-violet-800">নতুন</span>
+                            <span class="mt-0.5 rounded bg-violet-50 px-1.5 py-0.5 font-mono text-xs font-semibold text-violet-800">নতুন</span>
                             <div class="min-w-0 flex-1">
                                 <p class="truncate text-[12px] font-semibold text-navy-900">{{ $indicator->title }}</p>
-                                <p class="mt-0.5 truncate text-[10px] text-slate-500">
+                                <p class="mt-0.5 truncate text-xs text-slate-500">
                                     <span class="font-mono">{{ $indicator->indicator_code }}</span>
                                     · {{ bd_datetime($indicator->created_at, \App\Support\AppTime::DATETIME_SHORT) }}
                                 </p>
@@ -214,7 +214,7 @@
 
         <div class="mb-3 flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
             <div class="min-w-[160px] flex-1">
-                <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Search</label>
+                <label class="mb-0.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Search</label>
                 <input
                     type="search"
                     x-model="q"
@@ -225,7 +225,7 @@
                 >
             </div>
             <div class="w-[180px]">
-                <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Category</label>
+                <label class="mb-0.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Category</label>
                 <select x-model="category" @change="onCategoryChange()" class="h-8 w-full rounded-lg border-slate-200 py-0 text-[12px]">
                     <option value="">All</option>
                     <template x-for="c in categories" :key="c">
@@ -234,7 +234,7 @@
                 </select>
             </div>
             <div class="w-[180px]">
-                <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Sub-category</label>
+                <label class="mb-0.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Sub-category</label>
                 <select x-model="subCategory" @change="page = 1" class="h-8 w-full rounded-lg border-slate-200 py-0 text-[12px]">
                     <option value="">All</option>
                     <template x-for="s in subCategories" :key="s">
@@ -243,7 +243,7 @@
                 </select>
             </div>
             <div class="w-[120px]">
-                <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Risk</label>
+                <label class="mb-0.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Risk</label>
                 <select x-model="risk" @change="page = 1" class="h-8 w-full rounded-lg border-slate-200 py-0 text-[12px]">
                     <option value="">All</option>
                     <template x-for="r in risks" :key="r">
@@ -252,7 +252,7 @@
                 </select>
             </div>
             <div class="w-[90px]">
-                <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Per page</label>
+                <label class="mb-0.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Per page</label>
                 <select x-model.number="perPage" @change="page = 1" class="h-8 w-full rounded-lg border-slate-200 py-0 text-[12px]">
                     <option :value="25">25</option>
                     <option :value="50">50</option>
@@ -266,7 +266,7 @@
                 :class="onlyNew ? 'border-violet-300 bg-violet-50 font-semibold text-violet-800' : 'border-slate-200 text-slate-600 hover:bg-slate-50'"
             >নতুন only</button>
             <button type="button" @click="resetFilters()" class="h-8 rounded-lg border border-slate-200 px-3 text-[12px] text-slate-600 hover:bg-slate-50">Reset</button>
-            <p class="ml-auto self-center text-[11px] text-slate-400">
+            <p class="ml-auto self-center text-[13px] text-slate-400">
                 <span class="font-semibold tabular-nums text-slate-700" x-text="fromRow + '–' + toRow"></span>
                 of <span class="tabular-nums" x-text="filtered.length"></span>
                 <span class="text-slate-300">·</span>
@@ -277,12 +277,12 @@
         <div id="findings-matrix-table" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <div class="border-b border-slate-100 px-3 py-2">
                 <p class="text-[12px] font-semibold text-navy-900">{{ date('F', mktime(0, 0, 0, $month, 1)) }} {{ $year }} — organization totals</p>
-                <p class="text-[10px] text-slate-500">On-screen summary for this month · Excel download adds every shakha as columns next to these indicators</p>
+                <p class="text-xs text-slate-500">On-screen summary for this month · Excel download adds every shakha as columns next to these indicators</p>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full border-collapse text-left text-[12px]">
                     <thead>
-                        <tr class="bg-slate-50 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                        <tr class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
                             <th class="border-b border-slate-200 px-3 py-2">Category</th>
                             <th class="border-b border-slate-200 px-3 py-2">Sub-category</th>
                             <th class="border-b border-slate-200 px-3 py-2">Code</th>
@@ -298,29 +298,29 @@
                     <tbody>
                         <template x-for="row in paged" :key="row.indicator_id">
                             <tr class="border-b border-slate-50 hover:bg-sky-50/40" :class="row.is_new ? 'bg-violet-50/40' : (row.objected_branch_count > 0 ? '' : 'opacity-70')">
-                                <td class="px-3 py-2 text-[11px] text-slate-600" x-text="row.category"></td>
-                                <td class="px-3 py-2 text-[11px] text-slate-500" x-text="row.sub_category"></td>
-                                <td class="px-3 py-2 font-mono text-[11px] text-slate-700" x-text="row.code"></td>
+                                <td class="px-3 py-2 text-[13px] text-slate-600" x-text="row.category"></td>
+                                <td class="px-3 py-2 text-[13px] text-slate-500" x-text="row.sub_category"></td>
+                                <td class="px-3 py-2 font-mono text-[13px] text-slate-700" x-text="row.code"></td>
                                 <td class="px-3 py-2 font-medium text-navy-900">
                                     <span class="inline-flex flex-wrap items-center gap-1.5">
-                                        <span x-show="row.is_new" class="rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-800">নতুন</span>
+                                        <span x-show="row.is_new" class="rounded bg-violet-100 px-1.5 py-0.5 text-xs font-semibold text-violet-800">নতুন</span>
                                         <span x-text="row.title"></span>
                                     </span>
                                 </td>
                                 <td class="px-3 py-2">
-                                    <span class="rounded-full px-1.5 py-0.5 text-[10px] font-semibold" :class="riskClass(row.risk_rating)" x-text="row.risk_rating"></span>
+                                    <span class="rounded-full px-1.5 py-0.5 text-xs font-semibold" :class="riskClass(row.risk_rating)" x-text="row.risk_rating"></span>
                                 </td>
                                 <td class="px-3 py-2 text-right tabular-nums" x-text="row.total_amount_fmt"></td>
                                 <td class="px-3 py-2 text-right tabular-nums" x-text="row.total_samples_checked"></td>
                                 <td class="px-3 py-2 text-right tabular-nums font-semibold" :class="row.total_irregularities > 0 ? 'text-rose-700' : 'text-slate-500'" x-text="row.total_irregularities"></td>
                                 <td class="px-3 py-2 text-right tabular-nums" x-text="row.objected_branch_count"></td>
                                 <td class="px-3 py-2 text-right">
-                                    <a :href="row.branches_url" class="text-[11px] font-semibold text-[#2b579a] hover:underline">Branches</a>
+                                    <a :href="row.branches_url" class="text-[13px] font-semibold text-[#2b579a] hover:underline">Branches</a>
                                 </td>
                             </tr>
                         </template>
                         <tr x-show="filtered.length === 0">
-                            <td colspan="10" class="px-3 py-10 text-center text-[12px] text-slate-400">
+                            <td colspan="10" class="px-3 py-10 text-center text-[13px] text-slate-500">
                                 <span x-show="rows.length === 0">
                                     No indicators yet. Import with
                                     <span class="font-medium text-navy-800">php artisan audit:import-indicators path/to/file.xlsx</span>
@@ -333,15 +333,15 @@
             </div>
 
             <div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-3 py-2.5" x-show="filtered.length > 0">
-                <p class="text-[11px] text-slate-500">
+                <p class="text-[13px] text-slate-500">
                     Page <span class="font-semibold tabular-nums text-slate-700" x-text="page"></span>
                     / <span class="tabular-nums" x-text="totalPages"></span>
                 </p>
                 <div class="flex items-center gap-1">
-                    <button type="button" @click="go(1)" :disabled="page <= 1" class="h-7 rounded-md border border-slate-200 px-2 text-[11px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">First</button>
-                    <button type="button" @click="go(page - 1)" :disabled="page <= 1" class="h-7 rounded-md border border-slate-200 px-2 text-[11px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">Prev</button>
-                    <button type="button" @click="go(page + 1)" :disabled="page >= totalPages" class="h-7 rounded-md border border-slate-200 px-2 text-[11px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">Next</button>
-                    <button type="button" @click="go(totalPages)" :disabled="page >= totalPages" class="h-7 rounded-md border border-slate-200 px-2 text-[11px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">Last</button>
+                    <button type="button" @click="go(1)" :disabled="page <= 1" class="h-7 rounded-md border border-slate-200 px-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">First</button>
+                    <button type="button" @click="go(page - 1)" :disabled="page <= 1" class="h-7 rounded-md border border-slate-200 px-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">Prev</button>
+                    <button type="button" @click="go(page + 1)" :disabled="page >= totalPages" class="h-7 rounded-md border border-slate-200 px-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">Next</button>
+                    <button type="button" @click="go(totalPages)" :disabled="page >= totalPages" class="h-7 rounded-md border border-slate-200 px-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">Last</button>
                 </div>
             </div>
         </div>

@@ -8,7 +8,7 @@
 <div class="border-b border-slate-200 bg-slate-100 px-3 py-5 lg:px-6">
     <div class="mb-2 flex items-center justify-between gap-2">
         <p class="text-[12px] font-semibold text-slate-800">২. এক নজরে + সূচিপত্র</p>
-        <span class="text-[11px] text-slate-500">Row/Column যোগ-বাদ করতে পারবেন · Preview এও দেখাবে</span>
+        <span class="text-[13px] text-slate-500">Row/Column যোগ-বাদ করতে পারবেন · Preview এও দেখাবে</span>
     </div>
 
     <div class="mx-auto max-w-[960px] rounded-sm bg-white p-6 shadow-lg">
@@ -41,13 +41,13 @@
                 }
                 $glancePairCount = max(1, min(4, $glancePairCount));
             @endphp
-            <p class="mr-auto text-[11px] font-semibold uppercase tracking-wide text-slate-500">Glance table</p>
-            <button type="button" wire:click="addGlanceRow" class="h-7 rounded border border-slate-300 px-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50">+ Row</button>
-            <button type="button" wire:click="addGlanceColumn" class="h-7 rounded border border-slate-300 px-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50" @disabled($glancePairCount >= 4)>+ Column</button>
+            <p class="mr-auto text-[13px] font-semibold uppercase tracking-wide text-slate-500">Glance table</p>
+            <button type="button" wire:click="addGlanceRow" class="h-7 rounded border border-slate-300 px-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50">+ Row</button>
+            <button type="button" wire:click="addGlanceColumn" class="h-7 rounded border border-slate-300 px-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50" @disabled($glancePairCount >= 4)>+ Column</button>
             <button
                 type="button"
                 wire:click="removeGlanceColumn"
-                class="h-7 rounded border border-slate-300 px-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                class="h-7 rounded border border-slate-300 px-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40"
                 @disabled($glancePairCount <= 1)
             >− Column</button>
         </div>
@@ -75,7 +75,7 @@
                                 </td>
                             @endforeach
                             <td class="w-[12%] border border-slate-800 px-1 py-1 text-center">
-                                <button type="button" wire:click="removeGlanceRow({{ $idx }})" class="text-[11px] text-rose-600 hover:underline" @disabled(count($glanceRows) <= 1)>Remove</button>
+                                <button type="button" wire:click="removeGlanceRow({{ $idx }})" class="text-[13px] text-rose-600 hover:underline" @disabled(count($glanceRows) <= 1)>Remove</button>
                             </td>
                         </tr>
                     @endforeach
@@ -90,21 +90,21 @@
         </p>
 
         <div class="mb-2 flex flex-wrap items-center gap-2">
-            <p class="mr-auto text-[11px] font-semibold uppercase tracking-wide text-slate-500">Staff table</p>
-            <button type="button" wire:click="addStaffRow" class="h-7 rounded border border-slate-300 px-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50">+ Row</button>
-            <button type="button" wire:click="addStaffColumn" class="h-7 rounded border border-slate-300 px-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50">+ Column</button>
+            <p class="mr-auto text-[13px] font-semibold uppercase tracking-wide text-slate-500">Staff table</p>
+            <button type="button" wire:click="addStaffRow" class="h-7 rounded border border-slate-300 px-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50">+ Row</button>
+            <button type="button" wire:click="addStaffColumn" class="h-7 rounded border border-slate-300 px-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50">+ Column</button>
         </div>
 
         <div class="overflow-x-auto">
-            <table class="w-full min-w-[720px] border-collapse text-[11px]">
+            <table class="w-full min-w-[720px] border-collapse text-[13px]">
                 <thead>
                     <tr class="bg-slate-200">
                         <th class="border border-slate-800 px-1 py-1.5 font-semibold">ক্রমিক নং</th>
                         @foreach ($staffColumns as $cIdx => $col)
                             <th class="border border-slate-800 px-1 py-1.5">
                                 <div class="flex items-center gap-1">
-                                    <input type="text" wire:model.live="staffColumns.{{ $cIdx }}" class="h-7 min-w-[90px] flex-1 border-0 bg-transparent px-1 text-center text-[11px] font-semibold focus:bg-white focus:ring-1 focus:ring-sky-400">
-                                    <button type="button" wire:click="removeStaffColumn({{ $cIdx }})" class="shrink-0 text-[10px] text-rose-600 hover:underline" title="Remove column" @disabled(count($staffColumns) <= 1)>×</button>
+                                    <input type="text" wire:model.live="staffColumns.{{ $cIdx }}" class="h-7 min-w-[90px] flex-1 border-0 bg-transparent px-1 text-center text-[13px] font-semibold focus:bg-white focus:ring-1 focus:ring-sky-400">
+                                    <button type="button" wire:click="removeStaffColumn({{ $cIdx }})" class="shrink-0 text-xs text-rose-600 hover:underline" title="Remove column" @disabled(count($staffColumns) <= 1)>×</button>
                                 </div>
                             </th>
                         @endforeach
@@ -121,7 +121,7 @@
                                 </td>
                             @endforeach
                             <td class="border border-slate-800 px-1 py-1 text-center">
-                                <button type="button" wire:click="removeStaffRow({{ $idx }})" class="text-[11px] text-rose-600 hover:underline" @disabled(count($staffRows) <= 1)>Remove</button>
+                                <button type="button" wire:click="removeStaffRow({{ $idx }})" class="text-[13px] text-rose-600 hover:underline" @disabled(count($staffRows) <= 1)>Remove</button>
                             </td>
                         </tr>
                     @endforeach
@@ -131,12 +131,12 @@
 
         <div class="mt-8 border-t border-dashed border-slate-200 pt-5">
             <h3 class="mb-3 text-center text-[14px] font-bold underline decoration-1 underline-offset-4">সূচিপত্র</h3>
-            <p class="mb-3 text-center text-[11px] text-slate-500">PDF-এ পুরো সূচিপত্র এক নজরের পরে একসাথে বসবে</p>
+            <p class="mb-3 text-center text-[13px] text-slate-500">PDF-এ পুরো সূচিপত্র এক নজরের পরে একসাথে বসবে</p>
             @include('livewire.partials.audit-toc-table-form', ['previewPage' => 2])
         </div>
 
         <div class="mt-6 flex items-center justify-between border-t border-dashed border-slate-200 pt-3">
-            <p class="text-[11px] text-slate-500">পৃষ্ঠা ২</p>
+            <p class="text-[13px] text-slate-500">পৃষ্ঠা ২</p>
             <div class="flex items-center gap-2">
                 <button type="button" wire:click="openPreview" class="h-8 rounded-lg border border-[#2b579a] px-3 text-[12px] font-semibold text-[#2b579a] hover:bg-sky-50">Preview</button>
                 <button type="button" wire:click="savePage2" class="h-8 rounded-lg bg-[#2b579a] px-3 text-[12px] font-medium text-white hover:bg-[#204072]">সংরক্ষণ ও পরবর্তী →</button>

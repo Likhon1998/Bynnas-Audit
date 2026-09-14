@@ -12,7 +12,7 @@
         <h3 class="mb-[2mm] text-center text-[13px] font-bold underline decoration-1 underline-offset-4">সূচিপত্র</h3>
     @endif
 
-    <table class="a4-table {{ $compact ? 'a4-table-compact' : '' }} text-[10px] leading-[1.3]">
+    <table class="a4-table {{ $compact ? 'a4-table-compact' : '' }} text-xs leading-[1.3]">
         <thead>
             <tr>
                 @foreach ($hToc as $hi => $label)

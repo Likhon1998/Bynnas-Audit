@@ -86,7 +86,7 @@
 
                 <div class="min-w-0 flex-1">
                     <h1 class="truncate text-[13px] font-semibold leading-tight text-navy-900">অভ্যন্তরীণ নিরীক্ষা প্রতিবেদন</h1>
-                    <p class="truncate text-[10px] leading-tight text-slate-500">
+                    <p class="truncate text-xs leading-tight text-slate-500">
                         {{ $shakha_display_name }} · {{ $area_display_name }} · {{ $monthLabel }} {{ $report_year }}
                         @if ($autoSaveHint !== '')
                             <span class="text-emerald-700"> · {{ $autoSaveHint }}</span>
@@ -95,23 +95,23 @@
                 </div>
 
                 @if ($reviewNeedsFix)
-                    <div class="order-last flex w-full flex-wrap items-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-950 sm:order-none sm:max-w-xl sm:w-auto">
+                    <div class="order-last flex w-full flex-wrap items-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-[13px] text-rose-950 sm:order-none sm:max-w-xl sm:w-auto">
                         <span class="min-w-0 flex-1">
                             <span class="font-semibold">Fix &amp; resubmit</span> — edit the report on the left; reviewer comments stay on the right.
                         </span>
                         <button
                             type="button"
                             wire:click="toggleReviewComments"
-                            class="inline-flex h-7 shrink-0 items-center rounded-md border border-rose-300 bg-white px-2.5 text-[11px] font-semibold text-rose-800 hover:bg-rose-100"
+                            class="inline-flex h-7 shrink-0 items-center rounded-md border border-rose-300 bg-white px-2.5 text-[13px] font-semibold text-rose-800 hover:bg-rose-100"
                         >
                             {{ $reviewCommentsOpen ? 'Hide comments' : 'Show comments' }}
                             @if (count($reviewFixComments) > 0)
-                                <span class="ml-1 rounded-full bg-rose-600 px-1.5 text-[9px] font-bold text-white">{{ count($reviewFixComments) }}</span>
+                                <span class="ml-1 rounded-full bg-rose-600 px-1.5 text-xs font-bold text-white">{{ count($reviewFixComments) }}</span>
                             @endif
                         </button>
                     </div>
                 @elseif ($reviewReadOnly && $reviewPerfect)
-                    <div class="order-last flex w-full flex-wrap items-center gap-2 rounded-md border border-teal-200 bg-teal-50 px-3 py-2 text-[11px] text-teal-950 sm:order-none sm:max-w-xl sm:w-auto">
+                    <div class="order-last flex w-full flex-wrap items-center gap-2 rounded-md border border-teal-200 bg-teal-50 px-3 py-2 text-[13px] text-teal-950 sm:order-none sm:max-w-xl sm:w-auto">
                         @if ($reviewMakerDone)
                             <span class="inline-flex items-center gap-1.5 font-semibold text-emerald-800">
                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
@@ -132,7 +132,7 @@
                                     });
                                     if (ok) $wire.acknowledgeReportDone({{ $reportId }});
                                 }"
-                                class="inline-flex h-7 shrink-0 items-center gap-1 rounded-md bg-teal-600 px-2.5 text-[11px] font-semibold text-white hover:bg-teal-700"
+                                class="inline-flex h-7 shrink-0 items-center gap-1 rounded-md bg-teal-600 px-2.5 text-[13px] font-semibold text-white hover:bg-teal-700"
                             >
                                 <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                                 Mark as done
@@ -140,7 +140,7 @@
                         @endif
                     </div>
                 @elseif ($reviewReadOnly)
-                    <div class="order-last w-full rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] font-medium text-amber-900 sm:order-none sm:w-auto">
+                    <div class="order-last w-full rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-[13px] font-medium text-amber-900 sm:order-none sm:w-auto">
                         @if ($reportId && \App\Models\AuditReport::query()->find($reportId)?->isReviewed())
                             Read-only — confirmed by reviewer (not 100% perfect; no done tick).
                         @else
@@ -153,7 +153,7 @@
                     @if ($checklistUrl !== '')
                         <a
                             href="{{ $checklistUrl }}"
-                            class="inline-flex h-8 items-center rounded-md border border-teal-200 bg-teal-50 px-2.5 text-[11px] font-medium text-teal-800 hover:bg-teal-100"
+                            class="inline-flex h-8 items-center rounded-md border border-teal-200 bg-teal-50 px-2.5 text-[13px] font-medium text-teal-800 hover:bg-teal-100"
                             title="Optional — checklist findings can seed into this report"
                         >
                             Checklist
@@ -188,8 +188,8 @@
                         <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a4 4 0 014 4v2M3 10l4-4M3 10l4 4"/></svg>
                         <span class="leading-none">Undo</span>
                         @if ($undoCount > 0)
-                            <span class="rounded bg-white/80 px-1 text-[10px] font-semibold tabular-nums text-emerald-700">{{ $undoCount }}</span>
-                            <span class="hidden text-[10px] tabular-nums text-emerald-600/80 sm:inline">{{ $this->formatUndoRemaining($undoSeconds) }}</span>
+                            <span class="rounded bg-white/80 px-1 text-xs font-semibold tabular-nums text-emerald-700">{{ $undoCount }}</span>
+                            <span class="hidden text-xs tabular-nums text-emerald-600/80 sm:inline">{{ $this->formatUndoRemaining($undoSeconds) }}</span>
                         @endif
                     </button>
 
@@ -248,7 +248,7 @@
                     <div class="flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-3">
                         <div>
                             <p class="text-[14px] font-semibold text-navy-900">Report search</p>
-                            <p class="text-[11px] text-slate-500">Count how many times a name or word appears anywhere in this report.</p>
+                            <p class="text-[13px] text-slate-500">Count how many times a name or word appears anywhere in this report.</p>
                         </div>
                         <button type="button" wire:click="closeReportSearch" class="rounded-md px-2 py-1 text-[12px] text-slate-500 hover:bg-slate-50">✕</button>
                     </div>
@@ -263,7 +263,7 @@
                             >
                             <button type="button" wire:click="runReportSearch" class="inline-flex h-9 items-center rounded-md bg-violet-700 px-3 text-[12px] font-semibold text-white hover:bg-violet-800">Search</button>
                         </div>
-                        <label class="inline-flex items-center gap-1.5 text-[11px] text-slate-600">
+                        <label class="inline-flex items-center gap-1.5 text-[13px] text-slate-600">
                             <input type="checkbox" wire:model.live="reportSearchWholeWord" class="rounded border-slate-300 text-violet-700 focus:ring-violet-500">
                             Whole word only
                         </label>
@@ -277,7 +277,7 @@
                     </div>
                     <div class="min-h-0 flex-1 overflow-y-auto px-2 py-2">
                         @if (trim($reportSearchQ) === '')
-                            <p class="px-2 py-6 text-center text-[12px] text-slate-400">Type a name or word to scan the full report.</p>
+                            <p class="px-2 py-6 text-center text-[13px] text-slate-500">Type a name or word to scan the full report.</p>
                         @elseif ($reportSearchHits === [])
                             <p class="px-2 py-6 text-center text-[12px] text-slate-500">No matches found.</p>
                         @else
@@ -290,10 +290,10 @@
                                             wire:key="search-hit-{{ $loop->index }}-{{ md5(($hit['tab'] ?? '').'|'.($hit['anchor'] ?? '').'|'.($hit['label'] ?? '')) }}"
                                             class="flex w-full items-start gap-2 rounded-lg px-2.5 py-2 text-left hover:bg-violet-50 focus:bg-violet-50 focus:outline-none focus:ring-2 focus:ring-violet-400"
                                         >
-                                            <span class="mt-0.5 inline-flex min-w-[2rem] justify-center rounded-md bg-violet-100 px-1.5 py-0.5 text-[11px] font-bold tabular-nums text-violet-900">{{ $hit['count'] }}×</span>
+                                            <span class="mt-0.5 inline-flex min-w-[2rem] justify-center rounded-md bg-violet-100 px-1.5 py-0.5 text-[13px] font-bold tabular-nums text-violet-900">{{ $hit['count'] }}×</span>
                                             <span class="min-w-0 flex-1">
                                                 <span class="block text-[12px] font-semibold text-slate-800">{{ $hit['label'] }}</span>
-                                                <span class="mt-0.5 block text-[11px] leading-snug text-slate-500">{{ $hit['snippet'] }}</span>
+                                                <span class="mt-0.5 block text-[13px] leading-snug text-slate-500">{{ $hit['snippet'] }}</span>
                                             </span>
                                         </button>
                                     </li>
@@ -352,8 +352,8 @@
                     class="flex shrink-0 items-center justify-between gap-1 border-b border-slate-100 px-2 py-2"
                 >
                     <div class="min-w-0 flex-1 px-1">
-                        <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">শিরোনাম</p>
-                        <p class="truncate text-[9px] text-slate-500">ক্লিক = স্ক্রল</p>
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">শিরোনাম</p>
+                        <p class="truncate text-xs text-slate-500">ক্লিক = স্ক্রল</p>
                     </div>
                     <button
                         type="button"
@@ -381,7 +381,7 @@
                     <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
                     </svg>
-                    <span class="select-none text-[10px] font-semibold tracking-wide" style="writing-mode: vertical-rl; text-orientation: mixed;">শিরোনাম</span>
+                    <span class="select-none text-xs font-semibold tracking-wide" style="writing-mode: vertical-rl; text-orientation: mixed;">শিরোনাম</span>
                 </button>
 
                 <nav
@@ -400,7 +400,7 @@
                             type="button"
                             @click="selectOutline(@js($itemTab), @js($itemAnchor))"
                             data-outline-nav="{{ $itemAnchor }}"
-                            class="block w-full rounded-md px-2 py-1 text-left text-[11px] leading-snug transition
+                            class="block w-full rounded-md px-2 py-1 text-left text-[13px] leading-snug transition
                                 {{ $depth > 0 ? 'pl-3.5' : '' }}
                                 {{ $kind === 'section' ? 'font-semibold' : '' }}"
                             :class="isOutlineActive(@js($itemTab), @js($itemAnchor), @js($kind))
@@ -418,7 +418,7 @@
             <div class="min-h-0 min-w-0 flex-1 overflow-y-auto">
                 {{-- Mobile outline --}}
                 <div class="sticky top-0 z-10 border-b border-slate-200 bg-white px-3 py-2 lg:hidden">
-                    <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">শিরোনাম</label>
+                    <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">শিরোনাম</label>
                     <select
                         class="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-[12px] text-slate-800"
                         @change="
@@ -444,7 +444,7 @@
         <div id="audit-cover" class="border-b border-slate-200 bg-slate-100 px-3 py-5 lg:px-6">
             <div class="mb-2 flex items-center justify-between">
                 <p class="text-[12px] font-semibold text-slate-800">১. Cover Page — ইনপুট ফর্ম</p>
-                <span class="text-[11px] text-slate-500">নীল ঘরগুলো পূরণ করুন · Preview দিয়ে ডাউনলোড দেখুন</span>
+                <span class="text-[13px] text-slate-500">নীল ঘরগুলো পূরণ করুন · Preview দিয়ে ডাউনলোড দেখুন</span>
             </div>
 
             <div class="cover-form mx-auto rounded-sm bg-white shadow-lg">
@@ -518,7 +518,7 @@
                             <span class="font-semibold shrink-0">নাম:</span>
                             <input type="text" wire:model.live.debounce.400ms="auditor_name" class="inline-input min-w-[180px] flex-1">
                         </p>
-                        @error('auditor_name') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
+                        @error('auditor_name') <p class="mt-1 text-[13px] text-rose-600">{{ $message }}</p> @enderror
                         <p class="mt-2 flex flex-wrap items-center gap-2">
                             <span class="font-semibold shrink-0">পদবী:</span>
                             <input type="text" wire:model.live.debounce.400ms="auditor_designation" class="inline-input min-w-[180px] flex-1">
@@ -531,13 +531,13 @@
                             <button
                                 type="button"
                                 wire:click="addCopyRecipient"
-                                class="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-[#2b579a] hover:bg-sky-50"
+                                class="rounded border border-slate-200 bg-white px-2 py-0.5 text-xs font-semibold text-[#2b579a] hover:bg-sky-50"
                             >+ যোগ করুন</button>
                         </div>
                         <ol class="ml-0 list-none space-y-1">
                             @foreach ($copyRecipients as $idx => $recipient)
                                 <li class="flex items-center gap-1.5">
-                                    <span class="w-4 shrink-0 text-right text-[11px] text-slate-400">{{ $idx + 1 }}.</span>
+                                    <span class="w-4 shrink-0 text-right text-[13px] text-slate-400">{{ $idx + 1 }}.</span>
                                     <input
                                         type="text"
                                         wire:model.live.debounce.400ms="copyRecipients.{{ $idx }}"
@@ -547,7 +547,7 @@
                                     <button
                                         type="button"
                                         wire:click="removeCopyRecipient({{ $idx }})"
-                                        class="shrink-0 text-[10px] font-semibold text-rose-600 hover:underline"
+                                        class="shrink-0 text-xs font-semibold text-rose-600 hover:underline"
                                         @disabled(count($copyRecipients) <= 1)
                                     >মুছুন</button>
                                 </li>
@@ -556,7 +556,7 @@
                     </div>
 
                     <div class="mt-8 flex items-center justify-between border-t border-dashed border-slate-200 pt-3">
-                        <p class="text-[11px] text-slate-500">পৃষ্ঠা ১ / Cover Page</p>
+                        <p class="text-[13px] text-slate-500">পৃষ্ঠা ১ / Cover Page</p>
                         <div class="flex items-center gap-2">
                             <button type="button" wire:click="openPreview" class="h-8 rounded-lg border border-[#2b579a] px-3 text-[12px] font-semibold text-[#2b579a] hover:bg-sky-50">Preview</button>
                             <button type="button" wire:click="saveCover" class="h-8 rounded-lg bg-[#2b579a] px-3 text-[12px] font-medium text-white hover:bg-[#204072]">সংরক্ষণ ও পরবর্তী →</button>
@@ -638,8 +638,8 @@
                     @endif
                     <div class="flex shrink-0 items-start justify-between gap-2 border-b border-rose-100 bg-rose-50 px-3 py-2.5">
                         <div class="min-w-0">
-                            <p class="text-[11px] font-semibold uppercase tracking-wide text-rose-700">What to change</p>
-                            <p class="mt-0.5 text-[11px] text-rose-900/80">
+                            <p class="text-[13px] font-semibold uppercase tracking-wide text-rose-700">What to change</p>
+                            <p class="mt-0.5 text-[13px] text-rose-900/80">
                                 <span x-text="doneCount() + ' of ' + ids.length + ' done'"></span>
                                 · edit report beside this list
                             </p>
@@ -647,14 +647,14 @@
                         <div class="flex shrink-0 flex-col items-end gap-1">
                             <a
                                 href="{{ route('audit-review.show', $reportId) }}"
-                                class="text-[10px] font-semibold text-[#2b579a] hover:underline"
+                                class="text-xs font-semibold text-[#2b579a] hover:underline"
                                 target="_blank"
                             >Full marked view</a>
-                            <button type="button" wire:click="refreshReviewFixComments" class="text-[10px] font-semibold text-rose-700 hover:underline">Refresh photos</button>
+                            <button type="button" wire:click="refreshReviewFixComments" class="text-xs font-semibold text-rose-700 hover:underline">Refresh photos</button>
                         </div>
                     </div>
                     @if ($missingSnapshots)
-                        <div class="border-b border-amber-100 bg-amber-50 px-3 py-2 text-[11px] text-amber-950">
+                        <div class="border-b border-amber-100 bg-amber-50 px-3 py-2 text-[13px] text-amber-950">
                             Place photos are missing for older marks.
                             Open <a href="{{ route('audit-review.show', $reportId) }}" target="_blank" class="font-semibold underline">Full marked view</a> once (wait ~2s), then click <span class="font-semibold">Refresh photos</span>.
                         </div>
@@ -668,7 +668,7 @@
                             >
                                 <div class="mb-1 flex items-center justify-between gap-2">
                                     <span
-                                        class="inline-flex h-5 min-w-5 items-center justify-center rounded-full text-[10px] font-bold text-white"
+                                        class="inline-flex h-5 min-w-5 items-center justify-center rounded-full text-xs font-bold text-white"
                                         :style="isDone({{ $commentId }})
                                             ? 'background:#059669'
                                             : 'background: {{ match ($c['color'] ?? 'yellow') {
@@ -683,11 +683,11 @@
                                         <svg x-show="isDone({{ $commentId }})" x-cloak class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                                     </span>
                                     <div class="flex items-center gap-1.5">
-                                        <span class="text-[10px] text-slate-400">{{ ($c['type'] ?? '') === 'area' ? 'Area' : 'Text' }}</span>
+                                        <span class="text-xs text-slate-500">{{ ($c['type'] ?? '') === 'area' ? 'Area' : 'Text' }}</span>
                                         <button
                                             type="button"
                                             @click="toggleDone({{ $commentId }})"
-                                            class="inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold transition"
+                                            class="inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-semibold transition"
                                             :class="isDone({{ $commentId }})
                                                 ? 'border-emerald-300 bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
                                                 : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800'"
@@ -715,7 +715,7 @@
                                             class="max-h-40 w-full object-contain object-top transition group-hover:opacity-95"
                                             loading="lazy"
                                         >
-                                        <span class="pointer-events-none absolute inset-x-0 bottom-0 bg-slate-900/70 px-2 py-1 text-center text-[10px] font-semibold text-white opacity-0 transition group-hover:opacity-100">
+                                        <span class="pointer-events-none absolute inset-x-0 bottom-0 bg-slate-900/70 px-2 py-1 text-center text-xs font-semibold text-white opacity-0 transition group-hover:opacity-100">
                                             Click to enlarge
                                         </span>
                                     </button>
@@ -730,16 +730,16 @@
                                             class="absolute rounded-sm border-2 border-rose-500 bg-rose-400/20"
                                             style="left: {{ max(4, (float) $c['rect_x']) }}%; top: {{ max(8, (float) $c['rect_y'] * 0.7) }}%; width: {{ max(8, (float) $c['rect_w']) }}%; height: {{ max(10, (float) $c['rect_h'] * 0.55) }}%;"
                                         ></div>
-                                        <p class="absolute bottom-1 left-2 right-2 text-[9px] font-semibold text-rose-700">Open marked view to create photo</p>
+                                        <p class="absolute bottom-1 left-2 right-2 text-xs font-semibold text-rose-700">Open marked view to create photo</p>
                                     </a>
                                 @elseif (! empty($c['quote']))
-                                    <p class="mb-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-2 text-[11px] italic leading-snug text-slate-800" :class="isDone({{ $commentId }}) && 'line-through opacity-70'">“{{ \Illuminate\Support\Str::limit($c['quote'], 180) }}”</p>
+                                    <p class="mb-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-2 text-[13px] italic leading-snug text-slate-800" :class="isDone({{ $commentId }}) && 'line-through opacity-70'">“{{ \Illuminate\Support\Str::limit($c['quote'], 180) }}”</p>
                                 @endif
 
                                 @if (! empty($c['body']))
                                     <p class="mt-1 text-[12px] font-medium leading-snug text-slate-900" :class="isDone({{ $commentId }}) && 'line-through opacity-70'">{{ $c['body'] }}</p>
                                 @endif
-                                <p class="mt-2 text-[10px] text-slate-400">{{ $c['author'] ?? 'Reviewer' }}@if (! empty($c['created'])) · {{ $c['created'] }}@endif</p>
+                                <p class="mt-2 text-xs text-slate-500">{{ $c['author'] ?? 'Reviewer' }}@if (! empty($c['created'])) · {{ $c['created'] }}@endif</p>
                             </div>
                         @empty
                             <div class="rounded-lg border border-dashed border-rose-200 bg-white px-3 py-8 text-center text-[12px] text-slate-500">
@@ -766,19 +766,20 @@
                         >
                             @csrf
                             <input type="hidden" name="destination" value="assigned">
-                            <label class="block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Resubmit note (optional)</label>
+                            <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500">Resubmit note (optional)</label>
                             <textarea name="note" rows="2" class="w-full rounded-lg border-slate-200 text-[12px]" placeholder="Tell the reviewer what you fixed"></textarea>
-                            <label class="inline-flex items-center gap-1.5 text-[11px] text-slate-600">
+                            <label class="inline-flex items-center gap-1.5 text-[13px] text-slate-600">
                                 <input type="checkbox" name="cc_superadmin" value="1" class="rounded border-slate-300">
-                                CC Superadmin
+                                Flag for Super Admin visibility
+                                <span class="font-normal text-slate-400">(no email yet)</span>
                             </label>
-                            <p class="text-[10px] text-slate-500">
+                            <p class="text-xs text-slate-500">
                                 This sends a <span class="font-semibold text-amber-800">re-review (after changes)</span>, not a 1st review.
                                 Done ticks: <span class="font-semibold" x-text="doneCount()"></span>/<span x-text="ids.length"></span>
                             </p>
                             <button
                                 type="submit"
-                                class="inline-flex h-8 w-full items-center justify-center rounded-md bg-rose-700 text-[11px] font-semibold text-white hover:bg-rose-800"
+                                class="inline-flex h-8 w-full items-center justify-center rounded-md bg-rose-700 text-[13px] font-semibold text-white hover:bg-rose-800"
                             >Resubmit for re-review</button>
                         </form>
                     </div>
@@ -803,7 +804,7 @@
                             <div class="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 px-4 py-3">
                                 <div class="min-w-0">
                                     <p class="text-[13px] font-semibold text-navy-900" x-text="previewTitle || 'Marked place'"></p>
-                                    <p class="mt-0.5 text-[11px] text-slate-500">Reviewer mark — zoomed so you can see what to fix</p>
+                                    <p class="mt-0.5 text-[13px] text-slate-500">Reviewer mark — zoomed so you can see what to fix</p>
                                 </div>
                                 <button
                                     type="button"
@@ -822,7 +823,7 @@
                                 >
                             </div>
                             <div class="shrink-0 border-t border-slate-100 bg-white px-4 py-3" x-show="previewBody">
-                                <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">What to change</p>
+                                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">What to change</p>
                                 <p class="mt-1 text-[13px] font-medium leading-snug text-slate-900" x-text="previewBody"></p>
                             </div>
                         </div>
@@ -847,7 +848,7 @@
                     <div class="flex items-center justify-between rounded-lg bg-white px-4 py-2.5 shadow-lg ring-1 ring-black/5">
                         <div>
                             <p class="text-[13px] font-semibold text-navy-900">Preview</p>
-                            <p class="text-[11px] text-slate-500">A4 · Cover আলাদা · বাকি অংশ একসাথে বসে (ফাঁকা পৃষ্ঠা নয়)</p>
+                            <p class="text-[13px] text-slate-500">A4 · Cover আলাদা · বাকি অংশ একসাথে বসে (ফাঁকা পৃষ্ঠা নয়)</p>
                         </div>
                         <div class="flex items-center gap-1.5">
                             <details class="relative">

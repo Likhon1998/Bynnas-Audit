@@ -128,7 +128,7 @@
             </a>
             <div class="min-w-0 flex-1">
                 <h1 class="truncate text-[15px] font-semibold text-navy-900">{{ $indicator->indicator_code }} — {{ $indicator->title }}</h1>
-                <p class="text-[11px] text-slate-500">
+                <p class="text-[13px] text-slate-500">
                     {{ $indicator->category ?: '—' }}
                     @if ($indicator->sub_category)
                         · {{ $indicator->sub_category }}
@@ -136,7 +136,7 @@
                     · {{ $indicator->risk_rating ?: '—' }}
                     · {{ date('F', mktime(0, 0, 0, $month, 1)) }} {{ $year }}
                 </p>
-                <p class="mt-0.5 text-[10px] text-slate-400">Staff: type employee ID or name from that branch’s Shakha Employees, then Enter / blur to save.</p>
+                <p class="mt-0.5 text-xs text-slate-500">Staff: type employee ID or name from that branch’s Shakha Employees, then Enter / blur to save.</p>
             </div>
         </div>
 
@@ -147,19 +147,19 @@
         @if ($orgRow)
             <div class="mb-3 grid gap-2 sm:grid-cols-4">
                 <div class="rounded-lg border border-slate-100 bg-white px-3 py-2 shadow-sm">
-                    <p class="text-[10px] font-semibold uppercase text-slate-400">Total amount</p>
+                    <p class="text-xs font-semibold uppercase text-slate-400">Total amount</p>
                     <p class="text-[14px] font-bold tabular-nums text-navy-900">{{ number_format($orgRow->total_amount, 2) }}</p>
                 </div>
                 <div class="rounded-lg border border-slate-100 bg-white px-3 py-2 shadow-sm">
-                    <p class="text-[10px] font-semibold uppercase text-slate-400">Samples</p>
+                    <p class="text-xs font-semibold uppercase text-slate-400">Samples</p>
                     <p class="text-[14px] font-bold tabular-nums text-navy-900">{{ $orgRow->total_samples_checked }}</p>
                 </div>
                 <div class="rounded-lg border border-slate-100 bg-white px-3 py-2 shadow-sm">
-                    <p class="text-[10px] font-semibold uppercase text-slate-400">Irregularities</p>
+                    <p class="text-xs font-semibold uppercase text-slate-400">Irregularities</p>
                     <p class="text-[14px] font-bold tabular-nums text-rose-700">{{ $orgRow->total_irregularities }}</p>
                 </div>
                 <div class="rounded-lg border border-slate-100 bg-white px-3 py-2 shadow-sm">
-                    <p class="text-[10px] font-semibold uppercase text-slate-400">Objected branches</p>
+                    <p class="text-xs font-semibold uppercase text-slate-400">Objected branches</p>
                     <p class="text-[14px] font-bold tabular-nums text-navy-900">{{ $orgRow->objected_branch_count }}</p>
                 </div>
             </div>
@@ -168,12 +168,12 @@
         <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <div class="border-b border-slate-100 px-3 py-2">
                 <p class="text-[12px] font-semibold text-navy-900">Branch blocks (Excel X-axis)</p>
-                <p class="text-[10px] text-slate-500">Only branches with stored finding cells · {{ count($branchRows ?? []) }} rows</p>
+                <p class="text-xs text-slate-500">Only branches with stored finding cells · {{ count($branchRows ?? []) }} rows</p>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full text-left text-[12px]">
                     <thead>
-                        <tr class="bg-slate-50 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                        <tr class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
                             <th class="border-b border-slate-200 px-3 py-2">Branch</th>
                             <th class="border-b border-slate-200 px-3 py-2">Area</th>
                             <th class="border-b border-slate-200 px-3 py-2 text-right">Amount</th>
@@ -188,13 +188,13 @@
                             <tr class="border-b border-slate-50 align-top">
                                 <td class="px-3 py-2 font-medium text-navy-900">
                                     <span x-text="row.shakha_name"></span>
-                                    <span class="mt-0.5 block font-mono text-[10px] text-slate-400" x-text="row.shakha_code"></span>
+                                    <span class="mt-0.5 block font-mono text-xs text-slate-500" x-text="row.shakha_code"></span>
                                 </td>
-                                <td class="px-3 py-2 text-[11px] text-slate-600" x-text="row.area_name"></td>
+                                <td class="px-3 py-2 text-[13px] text-slate-600" x-text="row.area_name"></td>
                                 <td class="px-3 py-2 text-right tabular-nums" x-text="row.amount"></td>
                                 <td class="px-3 py-2 text-right tabular-nums" x-text="row.sample_size_checked"></td>
                                 <td class="px-3 py-2 text-right tabular-nums font-semibold text-rose-700" x-text="row.irregularity_count"></td>
-                                <td class="max-w-[280px] px-3 py-2 text-[11px] text-slate-600" x-text="row.observation"></td>
+                                <td class="max-w-[280px] px-3 py-2 text-[13px] text-slate-600" x-text="row.observation"></td>
                                 <td class="px-3 py-2" @click.outside="if (openFor === row.id) openFor = null">
                                     @canany(['findings.summary.edit', 'findings.enter', 'findings.view_all'])
                                       <div class="relative w-44">
@@ -209,8 +209,8 @@
                                             @keydown="onStaffKey($event, row)"
                                             @blur="setTimeout(() => { if (openFor === row.id) saveStaff(row); }, 140)"
                                         >
-                                        <p class="mt-0.5 text-[9px] text-emerald-600" x-show="savedId === row.id" x-cloak>Saved</p>
-                                        <p class="mt-0.5 text-[9px] text-slate-400" x-show="savingId === row.id" x-cloak>Saving…</p>
+                                        <p class="mt-0.5 text-xs text-emerald-600" x-show="savedId === row.id" x-cloak>Saved</p>
+                                        <p class="mt-0.5 text-xs text-slate-500" x-show="savingId === row.id" x-cloak>Saving…</p>
                                         <template x-teleport="body">
                                             <div
                                                 x-show="openFor === row.id"
@@ -221,7 +221,7 @@
                                                 @mousedown.prevent
                                             >
                                                 <template x-if="employeesFor(row.shakha_id).length === 0">
-                                                    <p class="px-2.5 py-2 text-[11px] text-amber-700">No employees for this branch. Add them under Shakha Employees.</p>
+                                                    <p class="px-2.5 py-2 text-[13px] text-amber-700">No employees for this branch. Add them under Shakha Employees.</p>
                                                 </template>
                                                 <template x-for="(emp, idx) in filterEmployees(row.shakha_id, staffQ)" :key="emp.id">
                                                     <button
@@ -231,7 +231,7 @@
                                                         @mousedown.prevent="pickStaff(row, emp)"
                                                     >
                                                         <span class="text-[12px] font-semibold text-navy-900" x-text="emp.name"></span>
-                                                        <span class="text-[10px] text-slate-500">
+                                                        <span class="text-xs text-slate-500">
                                                             <span class="font-mono" x-text="emp.code"></span>
                                                             <span x-show="emp.designation"> · <span x-text="emp.designation"></span></span>
                                                         </span>
@@ -241,13 +241,13 @@
                                         </template>
                                       </div>
                                     @else
-                                        <span class="text-[11px] text-slate-600" x-text="row.responsible_staff_name || '—'"></span>
+                                        <span class="text-[13px] text-slate-600" x-text="row.responsible_staff_name || '—'"></span>
                                     @endcanany
                                 </td>
                             </tr>
                         </template>
                         <tr x-show="rows.length === 0">
-                                <td colspan="7" class="px-3 py-10 text-center text-[12px] text-slate-400">No branch findings for this indicator in the selected period.</td>
+                                <td colspan="7" class="px-3 py-10 text-center text-[13px] text-slate-500">No branch findings for this indicator in the selected period.</td>
                             </tr>
                     </tbody>
                 </table>

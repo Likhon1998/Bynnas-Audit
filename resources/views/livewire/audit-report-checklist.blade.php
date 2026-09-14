@@ -7,14 +7,14 @@
                 <div class="mb-2">
                     <a
                         href="{{ route('audits.index') }}"
-                        class="inline-flex h-7 items-center gap-1 rounded-md border border-slate-200 bg-white px-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
+                        class="inline-flex h-7 items-center gap-1 rounded-md border border-slate-200 bg-white px-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50"
                     >
                         <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
                         Back to reports
                     </a>
                 </div>
                 <h1 class="text-[16px] font-semibold text-navy-900">Check List</h1>
-                <p class="mt-0.5 text-[11px] text-slate-500">
+                <p class="mt-0.5 text-[13px] text-slate-500">
                     {{ $report->shakha_display_name ?: ($report->shakha?->name ?? 'Branch') }}
                     · {{ $report->periodLabel() }}
                     · Choose headings · fill · save · edit
@@ -80,7 +80,7 @@
             <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-3 py-2.5">
                 <div>
                     <p class="text-[13px] font-semibold text-navy-900">Headings for this report</p>
-                    <p class="text-[10px] text-slate-500">এই শাখার রিপোর্টে যে চেকলিস্টগুলোতে কাজ করবেন — বেছে নিন (এক বা একাধিক)</p>
+                    <p class="text-xs text-slate-500">এই শাখার রিপোর্টে যে চেকলিস্টগুলোতে কাজ করবেন — বেছে নিন (এক বা একাধিক)</p>
                 </div>
                 @if (! $choosingHeadings)
                     <button
@@ -103,7 +103,7 @@
                         <button type="button" wire:click="saveHeadingSelection" class="inline-flex h-8 items-center rounded-md bg-emerald-600 px-3 text-[12px] font-semibold text-white hover:bg-emerald-700">Save selection</button>
                         <button type="button" wire:click="closeHeadingPicker" class="inline-flex h-8 items-center rounded-md border border-slate-200 bg-white px-3 text-[12px] font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
                     </div>
-                    <p class="mt-1.5 text-[10px] text-slate-500">Tick only the checklists you need for this shakha (e.g. 3 of 5). Report unlocks when those are saved as evidence.</p>
+                    <p class="mt-1.5 text-xs text-slate-500">Tick only the checklists you need for this shakha (e.g. 3 of 5). Report unlocks when those are saved as evidence.</p>
                 </div>
                 <div class="max-h-72 divide-y divide-slate-100 overflow-y-auto">
                     @forelse ($pickerFormats as $format)
@@ -116,18 +116,18 @@
                                 wire:click="togglePickFormat({{ $format->id }})"
                             >
                             <span class="min-w-0 flex-1">
-                                <span class="mr-1.5 inline-flex h-5 items-center rounded bg-slate-100 px-1.5 text-[9px] font-bold text-slate-600">F{{ $format->format_number }}</span>
+                                <span class="mr-1.5 inline-flex h-5 items-center rounded bg-slate-100 px-1.5 text-xs font-bold text-slate-600">F{{ $format->format_number }}</span>
                                 <span class="text-[12px] font-semibold text-navy-900">{{ $format->heading }}</span>
                             </span>
                         </label>
                     @empty
-                        <div class="px-4 py-8 text-center text-[12px] text-slate-400">No heading matched</div>
+                        <div class="px-4 py-8 text-center text-[13px] text-slate-500">No heading matched</div>
                     @endforelse
                 </div>
             @elseif ($selectedFormats->isEmpty())
                 <div class="px-4 py-10 text-center">
                     <p class="text-[13px] font-medium text-slate-600">No headings selected yet</p>
-                    <p class="mt-1 text-[12px] text-slate-400">Click <span class="font-semibold">Choose headings</span> — pick one or many</p>
+                    <p class="mt-1 text-[13px] text-slate-500">Click <span class="font-semibold">Choose headings</span> — pick one or many</p>
                 </div>
             @else
                 <div class="divide-y divide-slate-100">
@@ -137,12 +137,12 @@
                             $status = $sub?->status;
                         @endphp
                         <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
-                            <span class="inline-flex h-7 items-center rounded-md bg-slate-100 px-2 text-[10px] font-bold tabular-nums text-slate-600">
+                            <span class="inline-flex h-7 items-center rounded-md bg-slate-100 px-2 text-xs font-bold tabular-nums text-slate-600">
                                 Format {{ $format->format_number }}
                             </span>
                             <div class="min-w-0 flex-1">
                                 <p class="text-[13px] font-semibold text-navy-900">{{ $format->heading }}</p>
-                                <p class="text-[10px] text-slate-500">
+                                <p class="text-xs text-slate-500">
                                     @if ($status === 'evidence')
                                         <span class="font-semibold text-emerald-700">Evidence saved</span>
                                         @if ($sub?->saved_at)
@@ -167,7 +167,7 @@
                                 type="button"
                                 wire:click="removeHeading({{ $format->id }})"
                                 wire:confirm="Remove this heading from the report? (Saved evidence stays until you delete it separately.)"
-                                class="inline-flex h-8 items-center rounded-md border border-rose-200 px-2 text-[11px] font-medium text-rose-600 hover:bg-rose-50"
+                                class="inline-flex h-8 items-center rounded-md border border-rose-200 px-2 text-[13px] font-medium text-rose-600 hover:bg-rose-50"
                             >Remove</button>
                         </div>
                     @endforeach
@@ -181,7 +181,7 @@
                 Back
             </button>
             <div class="min-w-0 flex-1">
-                <p class="text-[11px] font-semibold text-slate-500">Format {{ $formatModel?->format_number }} · Fill / Edit</p>
+                <p class="text-[13px] font-semibold text-slate-500">Format {{ $formatModel?->format_number }} · Fill / Edit</p>
                 <p class="truncate text-[13px] font-semibold text-navy-900">{{ $formatModel?->heading }}</p>
             </div>
             <button type="button" wire:click="saveDraft" class="inline-flex h-8 items-center rounded-md border border-slate-200 bg-white px-3 text-[12px] font-semibold text-slate-700 hover:bg-slate-50">Save draft</button>

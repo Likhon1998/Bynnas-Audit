@@ -11,7 +11,7 @@
         <p class="mb-3 text-center text-[12px] font-bold finding-heading">{!! \App\Support\BanglaNumerals::highlight($page20_it_title ?? '', 'serial') !!}</p>
     @endif
 
-    <div class="mb-3 text-center text-[11px] leading-relaxed">
+    <div class="mb-3 text-center text-[13px] leading-relaxed">
         @if ($editable)
             <input type="text" wire:model.live="page20_it_org_line1" class="mb-1 w-full rounded border border-slate-200 bg-sky-50/40 px-2 py-1 text-center">
             <input type="text" wire:model.live="page20_it_org_line2" class="mb-1 w-full rounded border border-slate-200 bg-sky-50/40 px-2 py-1 text-center">
@@ -23,7 +23,7 @@
         @endif
     </div>
 
-    <div class="mb-3 flex flex-wrap justify-center gap-4 text-[11px]">
+    <div class="mb-3 flex flex-wrap justify-center gap-4 text-[13px]">
         <div class="flex items-center gap-2">
             <span class="font-semibold">কর্মসূচীর নাম:</span>
             @if ($editable)
@@ -43,9 +43,9 @@
     </div>
 
     @if ($editable)
-        <input type="text" wire:model.live="page20_it_instruction" class="mb-3 w-full rounded border border-slate-200 bg-sky-50/40 px-2 py-1 text-center text-[11px]" placeholder="প্রযোজ্য ক্ষেত্রে টিক চিহ্ন দিন">
+        <input type="text" wire:model.live="page20_it_instruction" class="mb-3 w-full rounded border border-slate-200 bg-sky-50/40 px-2 py-1 text-center text-[13px]" placeholder="প্রযোজ্য ক্ষেত্রে টিক চিহ্ন দিন">
     @else
-        <p class="mb-2 text-center text-[11px] font-semibold">{{ $page20_it_instruction ?? 'প্রযোজ্য ক্ষেত্রে টিক চিহ্ন দিন' }}</p>
+        <p class="mb-2 text-center text-[13px] font-semibold">{{ $page20_it_instruction ?? 'প্রযোজ্য ক্ষেত্রে টিক চিহ্ন দিন' }}</p>
     @endif
 
     <div class="overflow-x-auto">
@@ -56,7 +56,7 @@
                 hint="IT checklist: Excel থেকে কলাম ক্রমে পেস্ট (Compliance = Yes/No/N/A)"
             />
         @endif
-        <table class="{{ $compact ? 'a4-table a4-table-compact text-[9.5px] it-checklist-table' : 'w-full border-collapse text-[11px] it-checklist-table' }} min-w-full">
+        <table class="{{ $compact ? 'a4-table a4-table-compact text-[9.5px] it-checklist-table' : 'w-full border-collapse text-[13px] it-checklist-table' }} min-w-full">
             @php
                 $hItR1 = $tableHeaders['it_r1'] ?? \App\Support\AuditTableHeaders::defaults()['it_r1'];
                 $hItR2 = $tableHeaders['it_r2'] ?? \App\Support\AuditTableHeaders::defaults()['it_r2'];
@@ -90,21 +90,21 @@
                     <tr>
                         <td class="{{ $cellPad }} text-center align-top">
                             @if ($editable)
-                                <input type="text" wire:model.live="page20ItChecklistRows.{{ $rowIndex }}.sl_no" class="w-full border-0 bg-sky-50/50 px-0.5 text-center text-[11px]">
+                                <input type="text" wire:model.live="page20ItChecklistRows.{{ $rowIndex }}.sl_no" class="w-full border-0 bg-sky-50/50 px-0.5 text-center text-[13px]">
                             @else
                                 {{ $row['sl_no'] ?? '' }}
                             @endif
                         </td>
                         <td class="{{ $cellPad }} align-top">
                             @if ($editable)
-                                <textarea wire:model.live="page20ItChecklistRows.{{ $rowIndex }}.description" rows="2" class="w-full border-0 bg-sky-50/50 p-0.5 text-[11px]"></textarea>
+                                <textarea wire:model.live="page20ItChecklistRows.{{ $rowIndex }}.description" rows="2" class="w-full border-0 bg-sky-50/50 p-0.5 text-[13px]"></textarea>
                             @else
                                 <span class="whitespace-pre-wrap">{{ $row['description'] ?? '' }}</span>
                             @endif
                         </td>
                         @if ($editable)
                             <td class="{{ $cellPad }} text-center align-top" colspan="3">
-                                <select wire:model.live="page20ItChecklistRows.{{ $rowIndex }}.compliance" class="w-full rounded border border-slate-200 bg-sky-50/40 px-1 py-0.5 text-[11px]">
+                                <select wire:model.live="page20ItChecklistRows.{{ $rowIndex }}.compliance" class="w-full rounded border border-slate-200 bg-sky-50/40 px-1 py-0.5 text-[13px]">
                                     <option value="">—</option>
                                     <option value="yes">Yes</option>
                                     <option value="no">No</option>
@@ -118,21 +118,21 @@
                         @endif
                         <td class="{{ $cellPad }} align-top">
                             @if ($editable)
-                                <input type="text" wire:model.live="page20ItChecklistRows.{{ $rowIndex }}.action_owner" class="w-full border-0 bg-sky-50/50 px-0.5 text-[11px]">
+                                <input type="text" wire:model.live="page20ItChecklistRows.{{ $rowIndex }}.action_owner" class="w-full border-0 bg-sky-50/50 px-0.5 text-[13px]">
                             @else
                                 {{ $row['action_owner'] ?? '' }}
                             @endif
                         </td>
                         <td class="{{ $cellPad }} align-top">
                             @if ($editable)
-                                <textarea wire:model.live="page20ItChecklistRows.{{ $rowIndex }}.management_comments" rows="2" class="w-full border-0 bg-sky-50/50 p-0.5 text-[11px]"></textarea>
+                                <textarea wire:model.live="page20ItChecklistRows.{{ $rowIndex }}.management_comments" rows="2" class="w-full border-0 bg-sky-50/50 p-0.5 text-[13px]"></textarea>
                             @else
                                 <span class="whitespace-pre-wrap">{{ $row['management_comments'] ?? '' }}</span>
                             @endif
                         </td>
                         <td class="{{ $cellPad }} align-top">
                             @if ($editable)
-                                <textarea wire:model.live="page20ItChecklistRows.{{ $rowIndex }}.recommendation" rows="2" class="w-full border-0 bg-sky-50/50 p-0.5 text-[11px]"></textarea>
+                                <textarea wire:model.live="page20ItChecklistRows.{{ $rowIndex }}.recommendation" rows="2" class="w-full border-0 bg-sky-50/50 p-0.5 text-[13px]"></textarea>
                             @else
                                 <span class="whitespace-pre-wrap">{{ $row['recommendation'] ?? '' }}</span>
                             @endif
@@ -140,7 +140,7 @@
                         @if ($editable)
                             <td class="{{ $cellPad }} text-center align-top">
                                 @if (count($page20ItChecklistRows ?? []) > 1)
-                                    <button type="button" wire:click="removePage20ItChecklistRow({{ $rowIndex }})" class="text-[10px] text-rose-600">×</button>
+                                    <button type="button" wire:click="removePage20ItChecklistRow({{ $rowIndex }})" class="text-xs text-rose-600">×</button>
                                 @endif
                             </td>
                         @endif
@@ -150,6 +150,6 @@
         </table>
     </div>
     @if ($editable)
-        <button type="button" wire:click="addPage20ItChecklistRow" class="mt-2 text-[11px] font-medium text-[#2b579a]">+ IT checklist row</button>
+        <button type="button" wire:click="addPage20ItChecklistRow" class="mt-2 text-[13px] font-medium text-[#2b579a]">+ IT checklist row</button>
     @endif
 </div>

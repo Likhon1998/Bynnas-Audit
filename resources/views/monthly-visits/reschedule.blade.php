@@ -9,9 +9,9 @@
         })"
     >
         <div class="mb-4">
-            <a href="{{ route('monthly-visits.index', ['fy' => $assignment->workItem->fy_label, 'month' => $assignment->workItem->month_index]) }}" class="text-[11px] font-medium text-brand-600 hover:underline">← Back</a>
-            <h1 class="mt-1 text-[15px] font-semibold tracking-tight text-navy-900">Reschedule visit</h1>
-            <p class="mt-0.5 text-[11px] text-slate-500">
+            <a href="{{ route('monthly-visits.index', ['fy' => $assignment->workItem->fy_label, 'month' => $assignment->workItem->month_index]) }}" class="text-[13px] font-medium text-brand-600 hover:underline">← Back</a>
+            <h1 class="mt-1 text-lg font-semibold tracking-tight text-navy-900">Reschedule visit</h1>
+            <p class="mt-0.5 text-[13px] text-slate-500">
                 {{ $assignment->workItem?->entity_label }} · Working days follow the Working Calendar unless special request.
             </p>
             <p class="mt-1 text-[12px] text-slate-600">
@@ -26,18 +26,11 @@
             <div class="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-[12px] text-rose-700">{{ $errors->first() }}</div>
         @endif
 
-        <div class="mb-3 max-w-xl">
-            @include('calendar.partials.source-banner', [
-                'weekendLabels' => $calendarPayload['weekend_labels'] ?? [],
-                'calendarManageUrl' => $calendarPayload['manage_url'] ?? route('calendar.index'),
-            ])
-        </div>
-
         <div class="max-w-xl overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-card">
             <form method="POST" action="{{ route('monthly-visits.reschedule.store', $assignment) }}" class="space-y-3 px-4 py-4">
                 @csrf
                 <div>
-                    <label class="mb-1 block text-[11px] font-medium text-slate-600">Visitor(s) — one or more</label>
+                    <label class="mb-1 block text-[13px] font-medium text-slate-600">Visitor(s) — one or more</label>
                     <div class="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50/50 p-2">
                         @php $selected = collect(old('employee_ids', $assignment->visitorList()->pluck('id')->all()))->map(fn ($id) => (int) $id); @endphp
                         @foreach ($employees as $employee)
@@ -59,7 +52,7 @@
                                     @endif
                                 </span>
                                 @if ($avail)
-                                    <span class="shrink-0 text-[10px] font-semibold tabular-nums {{ ($avail['free_days'] ?? 0) > 0 ? 'text-emerald-700' : 'text-rose-600' }}">
+                                    <span class="shrink-0 text-xs font-semibold tabular-nums {{ ($avail['free_days'] ?? 0) > 0 ? 'text-emerald-700' : 'text-rose-600' }}">
                                         {{ $avail['free_days'] }} free
                                     </span>
                                 @endif
@@ -69,7 +62,7 @@
                 </div>
 
                 <div>
-                    <p class="mb-1.5 text-[11px] font-medium text-slate-600">New visit dates</p>
+                    <p class="mb-1.5 text-[13px] font-medium text-slate-600">New visit dates</p>
                     <input type="hidden" name="start_date" required :value="start">
                     <input type="hidden" name="end_date" required :value="end">
                     @include('calendar.partials.working-range-picker')
@@ -77,8 +70,8 @@
 
                 <div class="flex items-baseline justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                     <div>
-                        <p class="text-[11px] font-medium text-slate-600">Working days</p>
-                        <p class="text-[10px] text-slate-500" x-text="hint"></p>
+                        <p class="text-[13px] font-medium text-slate-600">Working days</p>
+                        <p class="text-xs text-slate-500" x-text="hint"></p>
                     </div>
                     <p class="text-[18px] font-semibold tabular-nums text-navy-900" x-text="days"></p>
                 </div>
@@ -92,10 +85,10 @@
                     <span>Keep schedule locked — others cannot change this visit</span>
                 </label>
                 <div>
-                    <label class="mb-1 block text-[11px] font-medium text-slate-600">Reschedule reason (required)</label>
+                    <label class="mb-1 block text-[13px] font-medium text-slate-600">Reschedule reason (required)</label>
                     <textarea name="reschedule_reason" required rows="2" class="block w-full rounded-lg border-slate-200 text-[13px]">{{ old('reschedule_reason') }}</textarea>
                 </div>
-                <p class="text-[11px] text-slate-500">Same person cannot be scheduled at two places on overlapping dates — conflicts are blocked.</p>
+                <p class="text-[13px] text-slate-500">Same person cannot be scheduled at two places on overlapping dates — conflicts are blocked.</p>
                 <div class="flex justify-end gap-2 border-t border-slate-100 pt-3">
                     <button type="submit" class="rounded-lg bg-navy-900 px-3.5 py-1.5 text-[12px] font-medium text-white hover:bg-navy-800">Save reschedule</button>
                 </div>

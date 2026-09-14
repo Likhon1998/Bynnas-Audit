@@ -14,7 +14,7 @@
             <div class="pointer-events-none absolute -bottom-12 left-1/3 h-36 w-36 rounded-full bg-emerald-300/20 blur-2xl"></div>
             <div class="relative flex flex-wrap items-start justify-between gap-3">
                 <div class="min-w-0">
-                    <div class="mb-2 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-teal-50 ring-1 ring-white/20">
+                    <div class="mb-2 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-teal-50 ring-1 ring-white/20">
                         <span class="h-1.5 w-1.5 rounded-full bg-amber-300"></span>
                         Manual · Customizable
                     </div>
@@ -49,15 +49,15 @@
 
             <div class="relative mt-4 grid grid-cols-3 gap-2 sm:max-w-lg">
                 <div class="rounded-xl bg-white/15 px-3 py-2 ring-1 ring-white/20">
-                    <p class="text-[10px] font-medium uppercase tracking-wide text-teal-100">Working</p>
+                    <p class="text-xs font-medium uppercase tracking-wide text-teal-100">Working</p>
                     <p class="text-[18px] font-semibold tabular-nums">{{ $stats['working'] }}</p>
                 </div>
                 <div class="rounded-xl bg-rose-400/25 px-3 py-2 ring-1 ring-rose-200/30">
-                    <p class="text-[10px] font-medium uppercase tracking-wide text-rose-100">Off days</p>
+                    <p class="text-xs font-medium uppercase tracking-wide text-rose-100">Off days</p>
                     <p class="text-[18px] font-semibold tabular-nums">{{ $stats['off'] }}</p>
                 </div>
                 <div class="rounded-xl bg-amber-300/25 px-3 py-2 ring-1 ring-amber-200/40">
-                    <p class="text-[10px] font-medium uppercase tracking-wide text-amber-100">Internal</p>
+                    <p class="text-xs font-medium uppercase tracking-wide text-amber-100">Internal</p>
                     <p class="text-[18px] font-semibold tabular-nums">{{ $stats['custom'] }}</p>
                 </div>
             </div>
@@ -75,7 +75,7 @@
                 <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-gradient-to-r from-slate-50 via-white to-amber-50/40 px-3 py-3">
                     <div>
                         <p class="text-[15px] font-semibold text-navy-900">{{ $periodLabel }}</p>
-                        <p class="text-[11px] text-slate-500">
+                        <p class="text-[13px] text-slate-500">
                             @if ($canManage)
                                 Click any day to mark or edit an off day
                             @else
@@ -83,7 +83,7 @@
                             @endif
                         </p>
                     </div>
-                    <div class="flex flex-wrap gap-1.5 text-[10px] font-semibold">
+                    <div class="flex flex-wrap gap-1.5 text-xs font-semibold">
                         <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-emerald-700 ring-1 ring-emerald-100"><span class="h-2 w-2 rounded-full bg-emerald-500"></span> Working</span>
                         <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-slate-600 ring-1 ring-slate-200"><span class="h-2 w-2 rounded-full bg-slate-400"></span> Weekly off</span>
                         <span class="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2 py-1 text-sky-700 ring-1 ring-sky-100"><span class="h-2 w-2 rounded-full bg-sky-500"></span> National</span>
@@ -92,7 +92,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-7 border-b border-slate-100 text-center text-[10px] font-bold uppercase tracking-wide">
+                <div class="grid grid-cols-7 border-b border-slate-100 text-center text-xs font-bold uppercase tracking-wide">
                     @foreach ($weekdayLabels as $dow => $label)
                         <div class="px-1 py-2.5 {{ in_array($dow, $weekendDays, true) ? 'bg-slate-200/80 text-slate-600' : 'bg-teal-50/80 text-teal-800' }}">
                             {{ $label }}
@@ -117,29 +117,29 @@
                                 ></span>
                                 <span
                                     x-show="day.is_weekend && day.in_month"
-                                    class="rounded bg-slate-200/90 px-1 py-0.5 text-[8px] font-bold uppercase tracking-wide text-slate-600"
+                                    class="rounded bg-slate-200/90 px-1 py-0.5 text-xs font-bold uppercase tracking-wide text-slate-600"
                                 >Weekly</span>
                                 <span
                                     x-show="day.is_today"
-                                    class="rounded bg-teal-600 px-1 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white"
+                                    class="rounded bg-teal-600 px-1 py-0.5 text-xs font-bold uppercase tracking-wide text-white"
                                 >Today</span>
                             </div>
                             <div class="mt-1.5 space-y-1">
                                 <template x-for="h in day.holidays.slice(0, 2)" :key="h.id">
                                     <p
-                                        class="truncate rounded-md px-1.5 py-1 text-[9px] font-semibold leading-tight text-white shadow-sm"
+                                        class="truncate rounded-md px-1.5 py-1 text-xs font-semibold leading-tight text-white shadow-sm"
                                         :class="holidayChipClass(h.type)"
                                         x-text="h.name"
                                     ></p>
                                 </template>
                                 <p
                                     x-show="day.holidays.length > 2"
-                                    class="text-[9px] font-semibold text-slate-500"
+                                    class="text-xs font-semibold text-slate-500"
                                     x-text="'+' + (day.holidays.length - 2) + ' more'"
                                 ></p>
                                 <p
                                     x-show="canManage && day.in_month && day.holidays.length === 0 && !day.is_weekend"
-                                    class="text-[9px] font-medium text-teal-600/70 opacity-0 transition group-hover:opacity-100"
+                                    class="text-xs font-medium text-teal-600/70 opacity-0 transition group-hover:opacity-100"
                                     style="opacity: 0.55"
                                 >+ mark off</p>
                             </div>
@@ -151,7 +151,7 @@
             <aside class="space-y-3">
                 <div class="overflow-hidden rounded-2xl border border-teal-100 bg-gradient-to-b from-teal-50 to-white p-3 shadow-sm">
                     <p class="text-[12px] font-semibold text-teal-900">Weekly off days</p>
-                    <p class="mt-0.5 text-[10px] text-teal-700/80">Tap weekdays your organisation does not work</p>
+                    <p class="mt-0.5 text-xs text-teal-700/80">Tap weekdays your organisation does not work</p>
 
                     @if ($canManage)
                         <form method="POST" action="{{ route('calendar.weekends') }}" class="mt-3 space-y-1.5">
@@ -170,7 +170,7 @@
                                     >
                                     <span>{{ $label }}</span>
                                     @if (in_array($dow, $weekendDays, true))
-                                        <span class="ml-auto rounded bg-slate-200 px-1.5 py-0.5 text-[9px] font-bold uppercase text-slate-600">Off</span>
+                                        <span class="ml-auto rounded bg-slate-200 px-1.5 py-0.5 text-xs font-bold uppercase text-slate-600">Off</span>
                                     @endif
                                 </label>
                             @endforeach
@@ -191,7 +191,7 @@
 
                 <div class="overflow-hidden rounded-2xl border border-amber-100 bg-gradient-to-b from-amber-50 to-white p-3 shadow-sm">
                     <p class="text-[12px] font-semibold text-amber-950">This month’s marked offs</p>
-                    <p class="mt-0.5 text-[10px] text-amber-800/70">Manual entries & holidays</p>
+                    <p class="mt-0.5 text-xs text-amber-800/70">Manual entries & holidays</p>
                     <div class="mt-2 max-h-[360px] space-y-2 overflow-y-auto">
                         @forelse ($monthHolidays as $holiday)
                             @php
@@ -207,16 +207,16 @@
                                     <div class="min-w-0">
                                         <div class="mb-1 flex items-center gap-1.5">
                                             <span class="h-2 w-2 rounded-full {{ $chip }}"></span>
-                                            <p class="text-[11px] font-semibold text-slate-800">{{ $holiday->holiday_date->format('d M Y') }}</p>
+                                            <p class="text-[13px] font-semibold text-slate-800">{{ $holiday->holiday_date->format('d M Y') }}</p>
                                         </div>
                                         <p class="truncate text-[12px] font-medium text-navy-900">{{ $holiday->name }}</p>
-                                        <p class="text-[10px] text-slate-400">{{ \App\Models\CalendarHoliday::typeLabel($holiday->type) }}{{ $holiday->is_active ? '' : ' · inactive' }}</p>
+                                        <p class="text-xs text-slate-500">{{ \App\Models\CalendarHoliday::typeLabel($holiday->type) }}{{ $holiday->is_active ? '' : ' · inactive' }}</p>
                                     </div>
                                     @if ($canManage)
                                         <div class="flex shrink-0 gap-1">
                                             <button
                                                 type="button"
-                                                class="rounded-md bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-100"
+                                                class="rounded-md bg-slate-50 px-1.5 py-0.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
                                                 @click="openEdit(@js([
                                                     'id' => $holiday->id,
                                                     'holiday_date' => $holiday->holiday_date->toDateString(),
@@ -229,7 +229,7 @@
                                             <form method="POST" action="{{ route('calendar.toggle', $holiday) }}" onsubmit="return confirm('Toggle this off day?')">
                                                 @csrf
                                                 @method('PATCH')
-                                                <button type="submit" class="rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800 hover:bg-amber-100">{{ $holiday->is_active ? 'Off' : 'On' }}</button>
+                                                <button type="submit" class="rounded-md bg-amber-50 px-1.5 py-0.5 text-xs font-semibold text-amber-800 hover:bg-amber-100">{{ $holiday->is_active ? 'Off' : 'On' }}</button>
                                             </form>
                                         </div>
                                     @endif
@@ -237,8 +237,8 @@
                             </div>
                         @empty
                             <div class="rounded-xl border border-dashed border-amber-200 bg-white/70 px-3 py-6 text-center">
-                                <p class="text-[11px] font-medium text-amber-900/80">No marked offs yet</p>
-                                <p class="mt-1 text-[10px] text-amber-800/60">Click a day on the grid to add an internal off day</p>
+                                <p class="text-[13px] font-medium text-amber-900/80">No marked offs yet</p>
+                                <p class="mt-1 text-xs text-amber-800/60">Click a day on the grid to add an internal off day</p>
                             </div>
                         @endforelse
                     </div>
@@ -256,7 +256,7 @@
             <div class="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl" @click.outside="modalOpen = false">
                 <div class="bg-gradient-to-r from-teal-700 to-cyan-700 px-4 py-3 text-white">
                     <p class="text-[13px] font-semibold" x-text="editingId ? 'Edit off day' : 'Add manual off day'"></p>
-                    <p class="text-[10px] text-teal-100">Saved to Working Calendar for visits & free days</p>
+                    <p class="text-xs text-teal-100">Saved to Working Calendar for visits & free days</p>
                 </div>
                 <form method="POST" :action="formAction" class="space-y-3 px-4 py-4">
                     @csrf
@@ -266,15 +266,15 @@
                     <input type="hidden" name="is_active" :value="form.is_active ? 1 : 0">
 
                     <div>
-                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Date</label>
+                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Date</label>
                         <input type="date" name="holiday_date" x-model="form.holiday_date" required class="h-9 w-full rounded-lg border-slate-200 text-[12px]">
                     </div>
                     <div>
-                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Name</label>
+                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Name</label>
                         <input type="text" name="name" x-model="form.name" required maxlength="160" placeholder="e.g. Staff training day / Founders Day" class="h-9 w-full rounded-lg border-slate-200 text-[12px]">
                     </div>
                     <div>
-                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Type</label>
+                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Type</label>
                         <select name="type" x-model="form.type" class="h-9 w-full rounded-lg border-slate-200 text-[12px]">
                             <template x-for="(label, key) in types" :key="key">
                                 <option :value="key" x-text="label"></option>
@@ -282,7 +282,7 @@
                         </select>
                     </div>
                     <div>
-                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Notes</label>
+                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Notes</label>
                         <input type="text" name="notes" x-model="form.notes" maxlength="255" placeholder="Optional" class="h-9 w-full rounded-lg border-slate-200 text-[12px]">
                     </div>
                     <label class="flex items-center gap-2 text-[12px] text-slate-700">

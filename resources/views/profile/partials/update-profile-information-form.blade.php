@@ -8,7 +8,7 @@
             </span>
             <div>
                 <h2 class="text-[12px] font-semibold text-navy-900">{{ __('Profile Information') }}</h2>
-                <p class="text-[9px] text-slate-500">{{ __('Update name and email.') }}</p>
+                <p class="text-xs text-slate-500">{{ __('Update name and email.') }}</p>
             </div>
         </div>
     </header>
@@ -23,7 +23,7 @@
 
         <div class="space-y-2">
             <div>
-                <x-input-label for="name" :value="__('Name')" class="text-[10px] font-semibold text-slate-600" />
+                <x-input-label for="name" :value="__('Name')" class="text-xs font-semibold text-slate-600" />
                 <x-text-input
                     id="name"
                     name="name"
@@ -34,11 +34,11 @@
                     autofocus
                     autocomplete="name"
                 />
-                <x-input-error class="mt-1 text-[10px]" :messages="$errors->get('name')" />
+                <x-input-error class="mt-1 text-xs" :messages="$errors->get('name')" />
             </div>
 
             <div>
-                <x-input-label for="email" :value="__('Email')" class="text-[10px] font-semibold text-slate-600" />
+                <x-input-label for="email" :value="__('Email')" class="text-xs font-semibold text-slate-600" />
                 <x-text-input
                     id="email"
                     name="email"
@@ -48,10 +48,10 @@
                     required
                     autocomplete="username"
                 />
-                <x-input-error class="mt-1 text-[10px]" :messages="$errors->get('email')" />
+                <x-input-error class="mt-1 text-xs" :messages="$errors->get('email')" />
 
                 @if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail())
-                    <p class="mt-1 text-[10px] text-amber-800">
+                    <p class="mt-1 text-xs text-amber-800">
                         {{ __('Email unverified.') }}
                         <button form="send-verification" class="font-semibold text-[#7c3aed] underline">{{ __('Resend') }}</button>
                     </p>
@@ -60,7 +60,7 @@
         </div>
 
         <div class="flex items-center gap-2 pt-1">
-            <button type="submit" class="inline-flex h-7 items-center rounded-lg bg-gradient-to-r from-[#c026d3] via-[#7c3aed] to-[#2563eb] px-3 text-[11px] font-semibold text-white shadow-sm hover:brightness-105">
+            <button type="submit" class="inline-flex h-7 items-center rounded-lg bg-gradient-to-r from-[#c026d3] via-[#7c3aed] to-[#2563eb] px-3 text-[13px] font-semibold text-white shadow-sm hover:brightness-105">
                 {{ __('Save') }}
             </button>
             @if (session('status') === 'profile-updated')
@@ -69,7 +69,7 @@
                     x-show="show"
                     x-transition
                     x-init="setTimeout(() => show = false, 2000)"
-                    class="text-[10px] font-medium text-emerald-600"
+                    class="text-xs font-medium text-emerald-600"
                 >{{ __('Saved.') }}</p>
             @endif
         </div>

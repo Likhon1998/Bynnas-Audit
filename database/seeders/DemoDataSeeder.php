@@ -224,38 +224,34 @@ class DemoDataSeeder extends Seeder
 
     protected function seedRiskAssessments(): void
     {
-        if (! Schema::hasTable('shakha_risk_assessments')) {
+        if (! Schema::hasTable('shakha_risk_assessments') || ! Schema::hasTable('shakha_annual_kpis')) {
             return;
         }
+
+        $service = app(\App\Services\RiskAssessmentService::class);
         $shakhas = Shakha::query()->orderBy('id')->limit(100)->get();
-        $now = now();
-        $rows = [];
-        $categories = ['Low Risk', 'Medium Risk', 'High Risk', 'Significant Risk'];
+        $month = 7;
+        $year = 2026;
 
         foreach ($shakhas as $i => $shakha) {
-            $score = 25 + ($i * 3) % 70;
-            $category = $categories[min(3, intdiv($score, 25))];
-            $rows[] = [
-                'shakha_id' => $shakha->id,
-                'assessment_month' => 7,
-                'assessment_year' => 2026,
-                'distance_from_area_office_km' => 5 + ($i % 40),
-                'total_income' => 500000 + $i * 8000,
-                'total_expenditure' => 420000 + $i * 7000,
-                'write_off_principal_amount' => ($i % 5 === 0) ? 15000 + $i * 100 : 0,
-                'savings_adjustment_amount' => ($i % 7 === 0) ? 5000 : 0,
-                'overdue_principal_31_365_days' => 20000 + ($i % 20) * 1500,
-                'has_both_bm_and_abm' => $i % 3 !== 0,
-                'special_audit_last_two_years' => $i % 11 === 0,
-                'total_weighted_score' => $score,
-                'risk_category' => $category,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ];
-        }
+            $fy = $service->fyForPeriod($month, $year);
+            if (! $service->findAnnualKpi($shakha, $fy->label)?->isReadyForRisk()) {
+                continue;
+            }
 
-        foreach (array_chunk($rows, 100) as $chunk) {
-            DB::table('shakha_risk_assessments')->insertOrIgnore($chunk);
+            try {
+                $service->calculateRiskScore($shakha, $month, $year, [
+                    'total_income' => 500000 + $i * 8000,
+                    'total_expenditure' => 420000 + $i * 7000,
+                    'write_off_principal_amount' => ($i % 5 === 0) ? 15000 + $i * 100 : 0,
+                    'savings_adjustment_amount' => ($i % 7 === 0) ? 5000 : 0,
+                    'distance_from_area_office_km' => $i % 4 === 0,
+                    'has_both_bm_and_abm' => $i % 3 !== 0,
+                    'special_audit_last_two_years' => $i % 11 === 0,
+                ]);
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
     }
 

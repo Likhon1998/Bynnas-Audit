@@ -15,7 +15,7 @@
         <a id="{{ $anchor }}" name="{{ $anchor }}"></a>
     @endif
 
-    <table class="{{ $compact ? 'a4-table a4-table-compact text-[9px]' : 'w-full border-collapse text-[10.5px]' }} mb-[2mm]">
+    <table class="{{ $compact ? 'a4-table a4-table-compact text-xs' : 'w-full border-collapse text-[10.5px]' }} mb-[2mm]">
         <tbody>
             <tr>
                 <td class="{{ $cellPad }} w-[9%] text-center font-bold align-top finding-serial-cell">
@@ -43,7 +43,7 @@
                             'code' => $finding['indicator_code'] ?? null,
                             'wireKey' => 'p15-ind-'.$fIndex.'-'.(int) ($finding['indicator_id'] ?? 0).'-'.md5((string) ($finding['body'] ?? '')),
                         ])
-                        <div class="mt-1 flex flex-wrap items-center gap-2 text-[11px]">
+                        <div class="mt-1 flex flex-wrap items-center gap-2 text-[13px]">
                             <span class="font-semibold">টাকার পরিমাণ:</span>
                             <input type="text" wire:model.live="page15Findings.{{ $fIndex }}.amount" class="inline-input min-w-[100px]">
                         </div>
@@ -69,7 +69,7 @@
     <div class="mb-[2mm]">
         <p class="mb-[1mm] font-bold">প্রচলিত নিয়ম (Criteria):</p>
         @if ($editable)
-            <textarea wire:model.live="page15Findings.{{ $fIndex }}.criteria" rows="3" class="w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[11px]"></textarea>
+            <textarea wire:model.live="page15Findings.{{ $fIndex }}.criteria" rows="3" class="w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[13px]"></textarea>
         @elseif (($finding['criteria'] ?? '') !== '')
             <p class="m-0 text-justify">{{ $finding['criteria'] }}</p>
         @else
@@ -80,7 +80,7 @@
     <div class="mb-[2mm]">
         <p class="mb-[1mm] font-bold">পর্যবেক্ষণ (Observation) :</p>
         @if ($editable)
-            <textarea wire:model.live="page15Findings.{{ $fIndex }}.observation" rows="3" class="w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[11px]"></textarea>
+            <textarea wire:model.live="page15Findings.{{ $fIndex }}.observation" rows="3" class="w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[13px]"></textarea>
         @elseif (($finding['observation'] ?? '') !== '')
             <p class="m-0 text-justify">{{ $finding['observation'] }}</p>
         @else
@@ -96,7 +96,7 @@
         />
     @endif
 
-<table class="{{ $compact ? 'a4-table a4-table-compact text-[9px]' : 'w-full border-collapse text-[10.5px]' }} mb-[2mm]">
+<table class="{{ $compact ? 'a4-table a4-table-compact text-xs' : 'w-full border-collapse text-[10.5px]' }} mb-[2mm]">
         @include('livewire.partials.audit-stats-thead', [
             'editable' => $editable,
             'cellPad' => $cellPad,
@@ -109,9 +109,9 @@
                         <td class="{{ $cellPad }} text-center">
                             @if ($editable)
                                 @if (((string) $field === 'date' || str_ends_with((string) $field, '_date') || preg_match('/^date[_\d]/', (string) $field)))
-                                        <x-audit-date-field wire:model.live="page15Findings.{{ $fIndex }}.statsRows.{{ $rowIndex }}.{{ $field }}" format="dmy" class="w-full border-0 bg-transparent text-center text-[11px]" />
+                                        <x-audit-date-field wire:model.live="page15Findings.{{ $fIndex }}.statsRows.{{ $rowIndex }}.{{ $field }}" format="dmy" class="w-full border-0 bg-transparent text-center text-[13px]" />
                                     @else
-                                        <input type="text" wire:model.live="page15Findings.{{ $fIndex }}.statsRows.{{ $rowIndex }}.{{ $field }}" class="w-full border-0 bg-transparent text-center text-[11px]">
+                                        <input type="text" wire:model.live="page15Findings.{{ $fIndex }}.statsRows.{{ $rowIndex }}.{{ $field }}" class="w-full border-0 bg-transparent text-center text-[13px]">
                                     @endif
                             @else
                                 {{ $row[$field] ?? '' }}
@@ -121,7 +121,7 @@
                     @if ($editable)
                         <td class="{{ $cellPad }} text-center">
                             @if (count($finding['statsRows'] ?? []) > 1)
-                                <button type="button" wire:click="removePage15StatsRow({{ $fIndex }}, {{ $rowIndex }})" class="text-[10px] text-rose-600">×</button>
+                                <button type="button" wire:click="removePage15StatsRow({{ $fIndex }}, {{ $rowIndex }})" class="text-xs text-rose-600">×</button>
                             @endif
                         </td>
                     @endif
@@ -130,13 +130,13 @@
         </tbody>
     </table>
     @if ($editable)
-        <button type="button" wire:click="addPage15StatsRow({{ $fIndex }})" class="mb-[2mm] text-[11px] font-medium text-[#2b579a]">+ Stats row</button>
+        <button type="button" wire:click="addPage15StatsRow({{ $fIndex }})" class="mb-[2mm] text-[13px] font-medium text-[#2b579a]">+ Stats row</button>
     @endif
 
     @if ($editable)
         <div class="mb-[2mm] flex flex-wrap items-center gap-3">
-            <label class="text-[11px] font-semibold text-slate-600">বিস্তারিত ধরন:</label>
-            <select wire:model.live="page15Findings.{{ $fIndex }}.detail_type" class="rounded border border-slate-200 bg-sky-50/40 px-2 py-1 text-[11px]">
+            <label class="text-[13px] font-semibold text-slate-600">বিস্তারিত ধরন:</label>
+            <select wire:model.live="page15Findings.{{ $fIndex }}.detail_type" class="rounded border border-slate-200 bg-sky-50/40 px-2 py-1 text-[13px]">
                 <option value="arrears_compare">বকেয়া তুলনা</option>
                 <option value="none">নেই</option>
             </select>
@@ -147,7 +147,7 @@
     @if ($detailType === 'arrears_compare')
         <p class="mb-[1mm] font-semibold">{{ $finding['detail_intro'] ?? 'নিম্নে বিস্তারিত দেওয়া হলো:' }}</p>
         @if ($editable)
-            <input type="text" wire:model.live="page15Findings.{{ $fIndex }}.detail_intro" class="mb-[2mm] w-full rounded border border-slate-200 bg-sky-50/40 px-2 py-1 text-[11px]">
+            <input type="text" wire:model.live="page15Findings.{{ $fIndex }}.detail_intro" class="mb-[2mm] w-full rounded border border-slate-200 bg-sky-50/40 px-2 py-1 text-[13px]">
         @endif
 
         <div class="mb-[2mm] overflow-x-auto">
@@ -160,7 +160,7 @@
         @endif
 
 @php $hArrears = $tableHeaders['arrears'] ?? \App\Support\AuditTableHeaders::defaults()['arrears']; @endphp
-<table class="{{ $compact ? 'a4-table a4-table-compact text-[8px]' : 'w-full border-collapse text-[9px]' }} min-w-full">
+<table class="{{ $compact ? 'a4-table a4-table-compact text-[8px]' : 'w-full border-collapse text-xs' }} min-w-full">
                 <thead>
                     <tr class="bg-slate-100">
                         @foreach ($hArrears as $hi => $label)
@@ -178,9 +178,9 @@
                                 <td class="{{ $cellPad }} text-center">
                                     @if ($editable)
                                         @if (((string) $field === 'date' || str_ends_with((string) $field, '_date') || preg_match('/^date[_\d]/', (string) $field)))
-                                        <x-audit-date-field wire:model.live="page15Findings.{{ $fIndex }}.arrearsRows.{{ $rowIndex }}.{{ $field }}" format="dmy" class="w-full border-0 bg-sky-50/50 px-0.5 text-center text-[8px]" />
+                                        <x-audit-date-field wire:model.live="page15Findings.{{ $fIndex }}.arrearsRows.{{ $rowIndex }}.{{ $field }}" format="dmy" class="w-full border-0 bg-sky-50/50 px-0.5 text-center text-[13px]" />
                                     @else
-                                        <input type="text" wire:model.live="page15Findings.{{ $fIndex }}.arrearsRows.{{ $rowIndex }}.{{ $field }}" class="w-full border-0 bg-sky-50/50 px-0.5 text-center text-[8px]">
+                                        <input type="text" wire:model.live="page15Findings.{{ $fIndex }}.arrearsRows.{{ $rowIndex }}.{{ $field }}" class="w-full border-0 bg-sky-50/50 px-0.5 text-center text-[13px]">
                                     @endif
                                     @else
                                         {{ $row[$field] ?? '' }}
@@ -190,7 +190,7 @@
                             @if ($editable)
                                 <td class="{{ $cellPad }} text-center">
                                     @if (count($finding['arrearsRows'] ?? []) > 1)
-                                        <button type="button" wire:click="removePage15ArrearsRow({{ $fIndex }}, {{ $rowIndex }})" class="text-[10px] text-rose-600">×</button>
+                                        <button type="button" wire:click="removePage15ArrearsRow({{ $fIndex }}, {{ $rowIndex }})" class="text-xs text-rose-600">×</button>
                                     @endif
                                 </td>
                             @endif
@@ -200,15 +200,15 @@
             </table>
         </div>
         @if ($editable)
-            <button type="button" wire:click="addPage15ArrearsRow({{ $fIndex }})" class="mb-[3mm] text-[11px] font-medium text-[#2b579a]">+ Arrears row</button>
+            <button type="button" wire:click="addPage15ArrearsRow({{ $fIndex }})" class="mb-[3mm] text-[13px] font-medium text-[#2b579a]">+ Arrears row</button>
         @endif
     @endif
 
-    <div class="mb-[2mm] space-y-[2mm] text-[11px] leading-relaxed">
+    <div class="mb-[2mm] space-y-[2mm] text-[13px] leading-relaxed">
         <div>
             <p class="font-bold">ঝুঁকি (Risk):</p>
             @if ($editable)
-                <textarea wire:model.live="page15Findings.{{ $fIndex }}.risk" rows="2" class="mt-1 w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[11px]"></textarea>
+                <textarea wire:model.live="page15Findings.{{ $fIndex }}.risk" rows="2" class="mt-1 w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[13px]"></textarea>
             @else
                 <p class="m-0 whitespace-pre-wrap text-justify">{{ ($finding['risk'] ?? '') !== '' ? $finding['risk'] : $dash }}</p>
             @endif
@@ -216,7 +216,7 @@
         <div>
             <p class="font-bold">মূল কারণ (Root Cause):</p>
             @if ($editable)
-                <textarea wire:model.live="page15Findings.{{ $fIndex }}.root_cause" rows="2" class="mt-1 w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[11px]"></textarea>
+                <textarea wire:model.live="page15Findings.{{ $fIndex }}.root_cause" rows="2" class="mt-1 w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[13px]"></textarea>
             @elseif (($finding['root_cause'] ?? '') !== '')
                 <p class="m-0 text-justify">{{ $finding['root_cause'] }}</p>
             @else
@@ -226,7 +226,7 @@
         <div>
             <p class="font-bold">সুপারিশ (Recommendation):</p>
             @if ($editable)
-                <textarea wire:model.live="page15Findings.{{ $fIndex }}.recommendation" rows="2" class="mt-1 w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[11px]"></textarea>
+                <textarea wire:model.live="page15Findings.{{ $fIndex }}.recommendation" rows="2" class="mt-1 w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[13px]"></textarea>
             @elseif (($finding['recommendation'] ?? '') !== '')
                 <p class="m-0 text-justify">{{ $finding['recommendation'] }}</p>
             @else
@@ -235,13 +235,13 @@
         </div>
     </div>
 
-    <table class="{{ $compact ? 'a4-table a4-table-compact text-[9px]' : 'w-full border-collapse text-[10.5px]' }} {{ $loop->last ? '' : 'mb-[6mm]' }}">
+    <table class="{{ $compact ? 'a4-table a4-table-compact text-xs' : 'w-full border-collapse text-[10.5px]' }} {{ $loop->last ? '' : 'mb-[6mm]' }}">
         <tbody>
             <tr>
                 <td class="{{ $cellPad }} w-[38%] font-semibold align-top">শাখা ব্যবস্থাপকের জবাব</td>
                 <td class="{{ $cellPad }}">
                     @if ($editable)
-                        <textarea wire:model.live="page15Findings.{{ $fIndex }}.bm_reply" rows="2" class="w-full border-0 bg-sky-50/40 p-1 text-[11px]"></textarea>
+                        <textarea wire:model.live="page15Findings.{{ $fIndex }}.bm_reply" rows="2" class="w-full border-0 bg-sky-50/40 p-1 text-[13px]"></textarea>
                     @else
                         {{ $finding['bm_reply'] ?? '' }}
                     @endif
@@ -251,7 +251,7 @@
                 <td class="{{ $cellPad }} font-semibold align-top">সমস্যা সমাধানের ক্ষেত্রে দায়িত্ব প্রাপ্ত কর্মীর নাম/আইডি ও গৃহীত পদক্ষেপ</td>
                 <td class="{{ $cellPad }}">
                     @if ($editable)
-                        <textarea wire:model.live="page15Findings.{{ $fIndex }}.responsible" rows="2" class="w-full border-0 bg-sky-50/40 p-1 text-[11px]"></textarea>
+                        <textarea wire:model.live="page15Findings.{{ $fIndex }}.responsible" rows="2" class="w-full border-0 bg-sky-50/40 p-1 text-[13px]"></textarea>
                     @else
                         {{ $finding['responsible'] ?? '' }}
                     @endif
@@ -261,7 +261,7 @@
                 <td class="{{ $cellPad }} font-semibold align-top">সমাধানের প্রকৃত সময়কাল/সম্ভাব্য সময়কাল <span class="underline decoration-yellow-400 decoration-2">(তারিখ)</span></td>
                 <td class="{{ $cellPad }}">
                     @if ($editable)
-                        <x-audit-date-field wire:model.live="page15Findings.{{ $fIndex }}.resolution_date" format="dmy" class="w-full border-0 bg-sky-50/40 px-1 text-[11px]" />
+                        <x-audit-date-field wire:model.live="page15Findings.{{ $fIndex }}.resolution_date" format="dmy" class="w-full border-0 bg-sky-50/40 px-1 text-[13px]" />
                     @else
                         {{ $finding['resolution_date'] ?? '' }}
                     @endif

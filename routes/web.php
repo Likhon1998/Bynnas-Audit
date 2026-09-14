@@ -75,6 +75,9 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
     Route::middleware('permission:kpis.manage')->group(function () {
         Route::get('/kpi', [ShakhaKpiController::class, 'index'])->name('kpis.index');
         Route::get('/kpi/export', [ShakhaKpiController::class, 'export'])->name('kpis.export');
+        Route::get('/kpi/laws', [ShakhaKpiController::class, 'laws'])->name('kpis.laws');
+        Route::put('/kpi/laws', [ShakhaKpiController::class, 'updateLaws'])->name('kpis.laws.update');
+        Route::post('/kpi/laws/reset', [ShakhaKpiController::class, 'resetLaws'])->name('kpis.laws.reset');
         Route::get('/kpi/{shakha}/edit', [ShakhaKpiController::class, 'edit'])->name('kpis.edit');
         Route::post('/kpi/{shakha}', [ShakhaKpiController::class, 'store'])->name('kpis.store');
     });
@@ -155,6 +158,9 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
     });
     Route::middleware('permission:risk.manage')->group(function () {
         Route::get('/shakhas/risk/export', [RiskAssessmentController::class, 'export'])->name('shakhas.risk.export');
+        Route::get('/shakhas/risk/laws', [RiskAssessmentController::class, 'laws'])->name('shakhas.risk.laws');
+        Route::put('/shakhas/risk/laws', [RiskAssessmentController::class, 'updateLaws'])->name('shakhas.risk.laws.update');
+        Route::post('/shakhas/risk/laws/reset', [RiskAssessmentController::class, 'resetLaws'])->name('shakhas.risk.laws.reset');
         Route::get('/shakhas/{shakha}/risk', [RiskAssessmentController::class, 'create'])->name('shakhas.risk.create');
         Route::post('/shakhas/{shakha}/risk', [RiskAssessmentController::class, 'store'])->name('shakhas.risk.store');
     });

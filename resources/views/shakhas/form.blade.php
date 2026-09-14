@@ -29,7 +29,7 @@
         }"
     >
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div class="flex items-center gap-1.5 text-[11px] text-slate-400">
+            <div class="flex items-center gap-1.5 text-[13px] text-slate-400">
                 <a href="{{ route('shakhas.index') }}" class="hover:text-brand-600">All Shakha</a>
                 <span>/</span>
                 <span class="text-slate-600">{{ $isEdit ? 'Edit Shakha' : 'Add Shakha' }}</span>
@@ -65,7 +65,7 @@
             <div class="rounded-2xl border border-slate-100 bg-white shadow-card">
                 <div class="border-b border-slate-100 px-5 py-3.5">
                     <p class="text-[13px] font-semibold text-navy-900">Shakha information</p>
-                    <p class="mt-0.5 text-[11px] text-slate-500">
+                    <p class="mt-0.5 text-[13px] text-slate-500">
                         {{ $isEdit ? 'Update the branch record below.' : 'Complete the fields below to create a branch record.' }}
                     </p>
                 </div>
@@ -85,16 +85,16 @@
 
                     <section>
                         <div class="mb-3 flex items-center gap-2">
-                            <span class="flex h-6 w-6 items-center justify-center rounded-md bg-brand-50 text-[10px] font-semibold text-brand-600">1</span>
+                            <span class="flex h-6 w-6 items-center justify-center rounded-md bg-brand-50 text-xs font-semibold text-brand-600">1</span>
                             <div>
                                 <p class="text-[12px] font-semibold text-navy-900">Basic details</p>
-                                <p class="text-[11px] text-slate-400">Name and optional branch code</p>
+                                <p class="text-[13px] text-slate-400">Name and optional branch code</p>
                             </div>
                         </div>
 
                         <div class="grid gap-4 sm:grid-cols-2">
                             <div class="sm:col-span-2">
-                                <label for="name" class="mb-1.5 block text-[11px] font-medium text-slate-600">
+                                <label for="name" class="mb-1.5 block text-[13px] font-medium text-slate-600">
                                     Shakha name <span class="text-rose-500">*</span>
                                 </label>
                                 <input
@@ -112,7 +112,7 @@
                             </div>
 
                             <div>
-                                <label for="code" class="mb-1.5 block text-[11px] font-medium text-slate-600">
+                                <label for="code" class="mb-1.5 block text-[13px] font-medium text-slate-600">
                                     Branch code
                                 </label>
                                 <input
@@ -125,12 +125,12 @@
                                     placeholder="e.g. DHA-001"
                                     class="block w-full rounded-lg border-slate-200 text-[13px] text-slate-800 shadow-sm focus:border-brand-500 focus:ring-brand-500 disabled:cursor-not-allowed disabled:bg-slate-50"
                                 >
-                                <p class="mt-1 text-[10px] text-slate-400">Optional unique identifier for reports.</p>
+                                <p class="mt-1 text-xs text-slate-500">Optional unique identifier for reports.</p>
                                 <x-input-error :messages="$errors->get('code')" class="mt-1" />
                             </div>
 
                             <div>
-                                <label for="status" class="mb-1.5 block text-[11px] font-medium text-slate-600">
+                                <label for="status" class="mb-1.5 block text-[13px] font-medium text-slate-600">
                                     Status <span class="text-rose-500">*</span>
                                 </label>
                                 <select
@@ -148,7 +148,7 @@
                             </div>
 
                             <div>
-                                <label for="opening_date" class="mb-1.5 block text-[11px] font-medium text-slate-600">
+                                <label for="opening_date" class="mb-1.5 block text-[13px] font-medium text-slate-600">
                                     Branch opening date <span class="text-rose-500">*</span>
                                 </label>
                                 <input
@@ -160,12 +160,12 @@
                                     @disabled($areas->isEmpty())
                                     class="block w-full rounded-lg border-slate-200 text-[13px] text-slate-800 shadow-sm focus:border-brand-500 focus:ring-brand-500 disabled:cursor-not-allowed disabled:bg-slate-50"
                                 >
-                                <p class="mt-1 text-[10px] text-slate-400">Used in KPI Excel (Year / Month / Day columns).</p>
+                                <p class="mt-1 text-xs text-slate-500">Used in KPI Excel (Year / Month / Day columns).</p>
                                 <x-input-error :messages="$errors->get('opening_date')" class="mt-1" />
                             </div>
 
                             <div>
-                                <label for="focal_person_name" class="mb-1.5 block text-[11px] font-medium text-slate-600">
+                                <label for="focal_person_name" class="mb-1.5 block text-[13px] font-medium text-slate-600">
                                     Focal person
                                 </label>
                                 <input
@@ -184,15 +184,15 @@
 
                     <section class="border-t border-slate-100 pt-5">
                         <div class="mb-3 flex items-center gap-2">
-                            <span class="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-50 text-[10px] font-semibold text-emerald-600">2</span>
+                            <span class="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-50 text-xs font-semibold text-emerald-600">2</span>
                             <div>
                                 <p class="text-[12px] font-semibold text-navy-900">Location</p>
-                                <p class="text-[11px] text-slate-400">Assign this shakha to an area</p>
+                                <p class="text-[13px] text-slate-400">Assign this shakha to an area</p>
                             </div>
                         </div>
 
                         <div>
-                            <label for="area_id" class="mb-1.5 block text-[11px] font-medium text-slate-600">
+                            <label for="area_id" class="mb-1.5 block text-[13px] font-medium text-slate-600">
                                 Area <span class="text-rose-500">*</span>
                             </label>
                             <select
@@ -220,7 +220,7 @@
                 </div>
 
                 <div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/70 px-5 py-3.5">
-                    <p class="text-[11px] text-slate-400">Fields marked with <span class="text-rose-500">*</span> are required.</p>
+                    <p class="text-[13px] text-slate-400">Fields marked with <span class="text-rose-500">*</span> are required.</p>
                     <div class="flex items-center gap-1.5">
                         <a href="{{ route('shakhas.index') }}" class="rounded-lg px-3 py-1.5 text-[12px] font-medium text-slate-500 hover:bg-white">Cancel</a>
                         <button
@@ -239,12 +239,12 @@
 
             <aside class="flex flex-col gap-3">
                 <div class="rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
-                    <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Live preview</p>
+                    <p class="text-[13px] font-semibold uppercase tracking-wide text-slate-500">Live preview</p>
                     <div class="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-3.5">
                         <div class="flex items-start justify-between gap-2">
                             <div class="min-w-0">
                                 <p class="truncate text-[13px] font-semibold text-navy-900" x-text="name.trim() !== '' ? name : 'Shakha name'"></p>
-                                <p class="mt-0.5 truncate text-[11px] text-slate-500">
+                                <p class="mt-0.5 truncate text-[13px] text-slate-500">
                                     <span x-text="selectedArea ? selectedArea.name : 'Area not selected'"></span>
                                     <template x-if="selectedArea">
                                         <span> · <span x-text="selectedArea.division"></span></span>
@@ -252,12 +252,12 @@
                                 </p>
                             </div>
                             <span
-                                class="inline-flex shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                                class="inline-flex shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
                                 :class="status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-600'"
                                 x-text="status === 'active' ? 'Active' : 'Inactive'"
                             ></span>
                         </div>
-                        <div class="mt-3 flex items-center gap-2 border-t border-slate-200/70 pt-3 text-[11px] text-slate-500">
+                        <div class="mt-3 flex items-center gap-2 border-t border-slate-200/70 pt-3 text-[13px] text-slate-500">
                             <span class="rounded-md bg-white px-2 py-1 font-medium text-slate-600" x-text="code.trim() !== '' ? code : 'No code'"></span>
                             <template x-if="selectedArea">
                                 <span x-text="selectedArea.shakhas_count + ' existing in area'"></span>
@@ -268,18 +268,18 @@
 
                 <div class="grid grid-cols-2 gap-3">
                     <div class="rounded-2xl border border-slate-100 bg-white p-3.5 shadow-card">
-                        <p class="text-[10px] font-medium uppercase tracking-wide text-slate-400">Areas</p>
+                        <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Areas</p>
                         <p class="mt-1 text-[18px] font-semibold tracking-tight text-navy-900">{{ $areaCount }}</p>
                     </div>
                     <div class="rounded-2xl border border-slate-100 bg-white p-3.5 shadow-card">
-                        <p class="text-[10px] font-medium uppercase tracking-wide text-slate-400">Shakhas</p>
+                        <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Shakhas</p>
                         <p class="mt-1 text-[18px] font-semibold tracking-tight text-navy-900">{{ $shakhaCount }}</p>
                     </div>
                 </div>
 
                 <div class="rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
                     <p class="text-[12px] font-semibold text-navy-900">Guidelines</p>
-                    <ul class="mt-2 space-y-2 text-[11px] leading-relaxed text-slate-500">
+                    <ul class="mt-2 space-y-2 text-[13px] leading-relaxed text-slate-500">
                         <li class="flex gap-2">
                             <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-500"></span>
                             Use a clear branch name that matches local usage.
@@ -298,7 +298,7 @@
                 <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 p-4">
                     @can('areas.manage')
                         <p class="text-[12px] font-medium text-navy-900">Need a new area?</p>
-                        <p class="mt-1 text-[11px] text-slate-500">If the target area is missing, create it first then continue here.</p>
+                        <p class="mt-1 text-[13px] text-slate-500">If the target area is missing, create it first then continue here.</p>
                         <a href="{{ route('areas.create') }}" class="mt-2.5 inline-flex text-[12px] font-semibold text-brand-600 hover:text-brand-700">
                             Create area →
                         </a>

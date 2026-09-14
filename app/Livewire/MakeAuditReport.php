@@ -1098,7 +1098,7 @@ class MakeAuditReport extends Component
             $this->pruneExpiredUndoStack();
             $this->persistDraft(markTab: null, flash: false);
             $this->persistUndoStack();
-            $this->lastAutoSavedAt = bd_now()->format('h:i:s A');
+            $this->lastAutoSavedAt = bd_time(bd_now());
             $remaining = $this->undoSecondsRemaining();
             $this->autoSaveHint = 'Saved '.$this->lastAutoSavedAt
                 .($remaining > 0 ? ' · Undo '.$this->formatUndoRemaining($remaining) : '');
@@ -1160,7 +1160,7 @@ class MakeAuditReport extends Component
             try {
                 $this->persistDraft(markTab: null, flash: false);
                 $this->persistUndoStack();
-                $this->lastAutoSavedAt = bd_now()->format('h:i:s A');
+                $this->lastAutoSavedAt = bd_time(bd_now());
             } catch (\Throwable $e) {
                 report($e);
             }

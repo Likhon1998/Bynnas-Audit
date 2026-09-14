@@ -15,7 +15,7 @@
         <p class="mb-3 text-[12px] font-bold finding-heading">{!! \App\Support\BanglaNumerals::highlight($page21_section_title ?? '', 'serial') !!}</p>
     @endif
 
-    <div class="mb-3 flex flex-wrap gap-4 text-[11px]">
+    <div class="mb-3 flex flex-wrap gap-4 text-[13px]">
         <div class="flex items-center gap-2">
             <span class="font-semibold">Year of reporting</span>
             @if ($editable)
@@ -42,7 +42,7 @@
                 hint="External audit: Excel থেকে ৬ কলাম একই ক্রমে পেস্ট করুন"
             />
         @endif
-        <table class="{{ $compact ? 'a4-table a4-table-compact text-[7.5px]' : 'w-full border-collapse text-[9px]' }} min-w-full">
+        <table class="{{ $compact ? 'a4-table a4-table-compact text-[7.5px]' : 'w-full border-collapse text-xs' }} min-w-full">
             <thead>
                 <tr>
                     @foreach ($headers as $index => $header)
@@ -64,7 +64,7 @@
                         @foreach ($rowFields as $field)
                             <td class="{{ $cellPad }} align-top">
                                 @if ($editable)
-                                    <textarea wire:model.live="page21ExternalAuditRows.{{ $rowIndex }}.{{ $field }}" rows="2" class="w-full border-0 bg-sky-50/50 p-0.5 text-[8px]"></textarea>
+                                    <textarea wire:model.live="page21ExternalAuditRows.{{ $rowIndex }}.{{ $field }}" rows="2" class="w-full border-0 bg-sky-50/50 p-0.5 text-xs"></textarea>
                                 @else
                                     <span class="whitespace-pre-wrap">{{ $row[$field] ?? '' }}</span>
                                 @endif
@@ -73,7 +73,7 @@
                         @if ($editable)
                             <td class="{{ $cellPad }} text-center align-top">
                                 @if (count($page21ExternalAuditRows ?? []) > 1)
-                                    <button type="button" wire:click="removePage21ExternalAuditRow({{ $rowIndex }})" class="text-[10px] text-rose-600">×</button>
+                                    <button type="button" wire:click="removePage21ExternalAuditRow({{ $rowIndex }})" class="text-xs text-rose-600">×</button>
                                 @endif
                             </td>
                         @endif
@@ -83,10 +83,10 @@
         </table>
     </div>
     @if ($editable)
-        <button type="button" wire:click="addPage21ExternalAuditRow" class="mt-2 text-[11px] font-medium text-[#2b579a]">+ External audit row</button>
+        <button type="button" wire:click="addPage21ExternalAuditRow" class="mt-2 text-[13px] font-medium text-[#2b579a]">+ External audit row</button>
     @endif
 
-    <div class="mt-8 text-[11px]">
+    <div class="mt-8 text-[13px]">
         @if ($editable)
             <input type="text" wire:model.live="page21_sign_label" class="mb-2 w-full max-w-md rounded border border-slate-200 bg-sky-50/40 px-2 py-1 font-semibold">
             <div class="mt-6 space-y-2 max-w-md">

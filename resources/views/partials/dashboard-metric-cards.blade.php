@@ -38,13 +38,13 @@
             <span class="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r {{ $tone['accent'] }}"></span>
             <span class="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/70 blur-xl transition group-hover:scale-110"></span>
             <div class="relative flex items-start justify-between gap-2">
-                <p class="pt-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">{{ $card['label'] }}</p>
+                <p class="pt-0.5 text-xs font-bold uppercase tracking-[0.1em] text-slate-500">{{ $card['label'] }}</p>
                 <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg shadow-sm {{ $tone['icon'] }}">
                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l5-5 4 4 7-8"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 7h5v5"/></svg>
                 </span>
             </div>
             <p class="relative mt-2 text-[24px] font-bold tabular-nums leading-none tracking-tight {{ $tone['value'] }}">{{ $card['value'] }}</p>
-            <p class="relative mt-2 truncate text-[10px] font-medium text-slate-500">{{ $card['meta'] }}</p>
+            <p class="relative mt-2 truncate text-xs font-medium text-slate-500">{{ $card['meta'] }}</p>
         @if ($href)
             </a>
         @else

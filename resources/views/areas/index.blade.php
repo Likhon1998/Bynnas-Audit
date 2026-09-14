@@ -2,8 +2,8 @@
     <div class="px-4 py-5 lg:px-6">
         <div class="mb-4 flex flex-wrap items-center justify-between gap-2.5">
             <div>
-                <h1 class="text-[15px] font-semibold tracking-tight text-navy-900">All Areas</h1>
-                <p class="mt-0.5 text-[11px] text-slate-500">
+                <h1 class="text-lg font-semibold tracking-tight text-navy-900">All Areas</h1>
+                <p class="mt-0.5 text-[13px] text-slate-500">
                     Division → Area → Shakha · {{ $areas->count() }} area{{ $areas->count() === 1 ? '' : 's' }}
                 </p>
             </div>
@@ -19,7 +19,7 @@
 
         <form method="GET" action="{{ route('areas.index') }}" class="mb-3 flex flex-wrap items-end gap-2 rounded-xl border border-slate-100 bg-white p-3 shadow-card">
             <div class="min-w-[180px]">
-                <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Division</label>
+                <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Division</label>
                 <select name="division" class="h-9 w-full rounded-lg border-slate-200 text-[12px]" onchange="this.form.submit()">
                     <option value="">All divisions</option>
                     @foreach ($divisions as $divisionOption)
@@ -28,7 +28,7 @@
                 </select>
             </div>
             @if ($selectedDivision !== '')
-                <a href="{{ route('areas.index') }}" class="mb-0.5 rounded-md px-2 py-1 text-[11px] font-semibold text-rose-600 hover:bg-rose-50">Clear</a>
+                <a href="{{ route('areas.index') }}" class="mb-0.5 rounded-md px-2 py-1 text-[13px] font-semibold text-rose-600 hover:bg-rose-50">Clear</a>
             @endif
         </form>
 
@@ -38,13 +38,13 @@
                     <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-4 py-2.5">
                         <div>
                             <p class="text-[12px] font-semibold text-navy-900">{{ $divisionName ?: 'Unassigned division' }}</p>
-                            <p class="text-[10px] text-slate-500">{{ $divisionAreas->count() }} area{{ $divisionAreas->count() === 1 ? '' : 's' }}</p>
+                            <p class="text-xs text-slate-500">{{ $divisionAreas->count() }} area{{ $divisionAreas->count() === 1 ? '' : 's' }}</p>
                         </div>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="min-w-full text-left">
                             <thead class="border-b border-slate-100">
-                                <tr class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                                <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
                                     <th class="px-4 py-2.5">Area Name</th>
                                     <th class="px-4 py-2.5">Shakhas</th>
                                     <th class="px-4 py-2.5">Status</th>
@@ -58,9 +58,9 @@
                                         <td class="px-4 py-2.5 text-slate-600">{{ $area->shakhas_count }}</td>
                                         <td class="px-4 py-2.5">
                                             @if ($area->isActive())
-                                                <span class="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">Active</span>
+                                                <span class="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Active</span>
                                             @else
-                                                <span class="inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-medium text-rose-600">Inactive</span>
+                                                <span class="inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-600">Inactive</span>
                                             @endif
                                         </td>
                                         <td class="px-4 py-2.5 text-slate-500">{{ bd_date($area->created_at) }}</td>
@@ -71,7 +71,7 @@
                     </div>
                 </div>
             @empty
-                <div class="rounded-xl border border-slate-100 bg-white px-4 py-10 text-center text-[12px] text-slate-400 shadow-card">
+                <div class="rounded-xl border border-slate-100 bg-white px-4 py-10 text-center text-[13px] text-slate-500 shadow-card">
                     No areas yet.
                     <a href="{{ route('areas.create') }}" class="font-medium text-brand-600 hover:underline">Add the first one</a>
                 </div>

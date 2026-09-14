@@ -25,11 +25,11 @@
     @if ($editable)
         <div class="mb-2 flex flex-wrap items-center gap-2" style="font-size:11px;">
             <p class="font-semibold text-indigo-900">Audit Score Sheet</p>
-            <button type="button" wire:click="fillAuditScoreBlockFromReport({{ $blockIndex }})" class="rounded border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50">রিপোর্ট থেকে ভরুন</button>
-            <button type="button" wire:click="addAuditScoreBlockRow({{ $blockIndex }})" class="rounded bg-indigo-700 px-2 py-1 text-[11px] font-semibold text-white">+ সারি</button>
-            <button type="button" wire:click="addAuditScoreBlockColumn({{ $blockIndex }})" class="rounded bg-indigo-700 px-2 py-1 text-[11px] font-semibold text-white">+ কলাম</button>
-            <button type="button" wire:click="addAuditScoreAdjustmentRow({{ $blockIndex }})" class="rounded bg-indigo-700 px-2 py-1 text-[11px] font-semibold text-white">+ Adjustment</button>
-            <button type="button" wire:click="recalculateAuditScoreBlock({{ $blockIndex }})" class="rounded border border-indigo-200 bg-indigo-50 px-2 py-1 text-[11px] font-semibold text-indigo-800">হিসাব করুন</button>
+            <button type="button" wire:click="fillAuditScoreBlockFromReport({{ $blockIndex }})" class="rounded border border-slate-200 bg-white px-2 py-1 text-[13px] font-semibold text-slate-700 hover:bg-slate-50">রিপোর্ট থেকে ভরুন</button>
+            <button type="button" wire:click="addAuditScoreBlockRow({{ $blockIndex }})" class="rounded bg-indigo-700 px-2 py-1 text-[13px] font-semibold text-white">+ সারি</button>
+            <button type="button" wire:click="addAuditScoreBlockColumn({{ $blockIndex }})" class="rounded bg-indigo-700 px-2 py-1 text-[13px] font-semibold text-white">+ কলাম</button>
+            <button type="button" wire:click="addAuditScoreAdjustmentRow({{ $blockIndex }})" class="rounded bg-indigo-700 px-2 py-1 text-[13px] font-semibold text-white">+ Adjustment</button>
+            <button type="button" wire:click="recalculateAuditScoreBlock({{ $blockIndex }})" class="rounded border border-indigo-200 bg-indigo-50 px-2 py-1 text-[13px] font-semibold text-indigo-800">হিসাব করুন</button>
             <button type="button" wire:click="moveBlock({{ $blockIndex }}, 'up')" class="ml-auto text-slate-600 hover:underline">↑</button>
             <button type="button" wire:click="moveBlock({{ $blockIndex }}, 'down')" class="text-slate-600 hover:underline">↓</button>
             <button type="button" wire:click="removeBlock({{ $blockIndex }})" class="text-rose-600 hover:underline">মুছুন</button>

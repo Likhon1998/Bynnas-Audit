@@ -2,8 +2,8 @@
     <div class="px-4 py-5 lg:px-6 print:px-0">
         <div class="mb-4 flex flex-wrap items-start justify-between gap-2 print:hidden">
             <div>
-                <a href="{{ route('monthly-visits.index', ['fy' => $plan->fy_label, 'month' => $monthIndex]) }}" class="text-[11px] font-medium text-brand-600 hover:underline">← Monthly visits</a>
-                <h1 class="mt-1 text-[15px] font-semibold tracking-tight text-navy-900">
+                <a href="{{ route('monthly-visits.index', ['fy' => $plan->fy_label, 'month' => $monthIndex]) }}" class="text-[13px] font-medium text-brand-600 hover:underline">← Monthly visits</a>
+                <h1 class="mt-1 text-lg font-semibold tracking-tight text-navy-900">
                     @if ($type === 'performance')
                         Monthly Performance Report
                     @elseif ($type === 'workload')
@@ -14,14 +14,14 @@
                         Field Visit &amp; Inspection Monthly Schedule
                     @endif
                 </h1>
-                <p class="mt-0.5 text-[11px] text-slate-500">FY {{ $plan->fy_label }} · {{ $monthLabel }}</p>
+                <p class="mt-0.5 text-[13px] text-slate-500">FY {{ $plan->fy_label }} · {{ $monthLabel }}</p>
             </div>
             <div class="flex flex-wrap gap-2">
-                <a href="{{ route('monthly-visits.report', ['fy' => $plan->fy_label, 'month' => $monthIndex, 'type' => 'schedule']) }}" class="rounded-lg border px-2 py-1 text-[11px] {{ $type === 'schedule' ? 'border-navy-900 bg-navy-900 text-white' : 'border-slate-200' }}">Schedule</a>
-                <a href="{{ route('monthly-visits.report', ['fy' => $plan->fy_label, 'month' => $monthIndex, 'type' => 'projects']) }}" class="rounded-lg border px-2 py-1 text-[11px] {{ $type === 'projects' ? 'border-navy-900 bg-navy-900 text-white' : 'border-slate-200' }}">Projects</a>
-                <a href="{{ route('monthly-visits.report', ['fy' => $plan->fy_label, 'month' => $monthIndex, 'type' => 'performance']) }}" class="rounded-lg border px-2 py-1 text-[11px] {{ $type === 'performance' ? 'border-navy-900 bg-navy-900 text-white' : 'border-slate-200' }}">Performance</a>
-                <a href="{{ route('monthly-visits.report', ['fy' => $plan->fy_label, 'month' => $monthIndex, 'type' => 'workload']) }}" class="rounded-lg border px-2 py-1 text-[11px] {{ $type === 'workload' ? 'border-navy-900 bg-navy-900 text-white' : 'border-slate-200' }}">Workload</a>
-                <button type="button" onclick="window.print()" class="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-800">Print / PDF</button>
+                <a href="{{ route('monthly-visits.report', ['fy' => $plan->fy_label, 'month' => $monthIndex, 'type' => 'schedule']) }}" class="rounded-lg border px-2 py-1 text-[13px] {{ $type === 'schedule' ? 'border-navy-900 bg-navy-900 text-white' : 'border-slate-200' }}">Schedule</a>
+                <a href="{{ route('monthly-visits.report', ['fy' => $plan->fy_label, 'month' => $monthIndex, 'type' => 'projects']) }}" class="rounded-lg border px-2 py-1 text-[13px] {{ $type === 'projects' ? 'border-navy-900 bg-navy-900 text-white' : 'border-slate-200' }}">Projects</a>
+                <a href="{{ route('monthly-visits.report', ['fy' => $plan->fy_label, 'month' => $monthIndex, 'type' => 'performance']) }}" class="rounded-lg border px-2 py-1 text-[13px] {{ $type === 'performance' ? 'border-navy-900 bg-navy-900 text-white' : 'border-slate-200' }}">Performance</a>
+                <a href="{{ route('monthly-visits.report', ['fy' => $plan->fy_label, 'month' => $monthIndex, 'type' => 'workload']) }}" class="rounded-lg border px-2 py-1 text-[13px] {{ $type === 'workload' ? 'border-navy-900 bg-navy-900 text-white' : 'border-slate-200' }}">Workload</a>
+                <button type="button" onclick="window.print()" class="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[13px] font-medium text-emerald-800">Print / PDF</button>
             </div>
         </div>
 
@@ -35,7 +35,7 @@
                 <div class="overflow-x-auto">
                     <table class="min-w-full text-left">
                         <thead class="border-b border-slate-200 bg-slate-50">
-                            <tr class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                            <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
                                 <th class="px-3 py-2">SL</th>
                                 <th class="px-3 py-2">Visitor</th>
                                 <th class="px-3 py-2">Last Audit Upto</th>
@@ -57,7 +57,7 @@
                                     <td class="px-3 py-2 text-slate-700">
                                         {{ $item->entity_label }}
                                         @if ($item->isSpecial())
-                                            <span class="text-[10px] text-amber-700">(Additional / Special)</span>
+                                            <span class="text-xs text-amber-700">(Additional / Special)</span>
                                         @endif
                                     </td>
                                     <td class="px-3 py-2 text-slate-600">{{ $a?->visitDateRangeLabel() }}</td>
@@ -67,7 +67,7 @@
                                     <td class="px-3 py-2 capitalize text-slate-600">{{ str_replace('_', ' ', $a?->execution?->status ?? 'planned') }}</td>
                                 </tr>
                             @empty
-                                <tr><td colspan="9" class="px-4 py-8 text-center text-[12px] text-slate-400">No assigned visits for this report.</td></tr>
+                                <tr><td colspan="9" class="px-4 py-8 text-center text-[13px] text-slate-500">No assigned visits for this report.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -77,7 +77,7 @@
             <div class="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-card">
                 <table class="min-w-full text-left">
                     <thead class="border-b border-slate-200 bg-slate-50">
-                        <tr class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                        <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
                             <th class="px-3 py-2">Category</th>
                             <th class="px-3 py-2 text-right">Planned</th>
                             <th class="px-3 py-2 text-right">Assigned</th>
@@ -115,7 +115,7 @@
             <div class="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-card">
                 <table class="min-w-full text-left">
                     <thead class="border-b border-slate-200 bg-slate-50">
-                        <tr class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                        <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
                             <th class="px-3 py-2">Person</th>
                             <th class="px-3 py-2">Designation</th>
                             <th class="px-3 py-2 text-right">Activities</th>
@@ -131,7 +131,7 @@
                                 <td class="px-3 py-2 text-right">{{ $row['total_days'] }}</td>
                             </tr>
                         @empty
-                            <tr><td colspan="4" class="px-4 py-8 text-center text-[12px] text-slate-400">No assignments yet.</td></tr>
+                            <tr><td colspan="4" class="px-4 py-8 text-center text-[13px] text-slate-500">No assignments yet.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

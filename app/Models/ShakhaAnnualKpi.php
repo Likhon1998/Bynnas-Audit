@@ -43,4 +43,16 @@ class ShakhaAnnualKpi extends Model
     {
         return $this->belongsTo(Shakha::class);
     }
+
+    /**
+     * KPI is risk-ready only when core operational figures exist (not an empty/demo stub row).
+     * Risk scoring needs loan outstanding, recoverable, and a member base to be meaningful.
+     */
+    public function isReadyForRisk(): bool
+    {
+        return (int) $this->total_members > 0
+            && (float) $this->loan_outstanding > 0
+            && (float) $this->recoverable > 0
+            && (float) $this->current_recovery >= 0;
+    }
 }

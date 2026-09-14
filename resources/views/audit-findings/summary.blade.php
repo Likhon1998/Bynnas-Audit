@@ -5,7 +5,7 @@
         {{-- Header --}}
         <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
             <div class="min-w-0">
-                <h1 class="text-[16px] font-semibold tracking-tight text-navy-900">Findings Summary</h1>
+                <h1 class="text-lg font-semibold tracking-tight text-navy-900">Findings Summary</h1>
                 <p class="mt-0.5 text-[12px] text-slate-500">{{ $periodLabel }}</p>
                 @include('audit-findings.partials.view-tabs', ['activeTab' => 'summary', 'month' => $month, 'year' => $year])
             </div>
@@ -34,7 +34,7 @@
             @foreach ($monthStrip as $chip)
                 <a
                     href="{{ $chip['url'] }}"
-                    class="rounded-md px-1 py-1.5 text-center text-[11px] font-semibold transition
+                    class="rounded-md px-1 py-1.5 text-center text-[13px] font-semibold transition
                         {{ $chip['active'] ? 'bg-navy-900 text-white' : ($chip['has_data'] ? 'bg-sky-50 text-sky-900 hover:bg-sky-100' : 'text-slate-400 hover:bg-slate-50') }}"
                 >{{ $chip['label'] }}</a>
             @endforeach
@@ -45,7 +45,7 @@
             <div class="max-h-[calc(100vh-11rem)] overflow-auto">
                 <table class="min-w-full border-separate border-spacing-0 text-left text-[12px]">
                     <thead>
-                        <tr class="text-[10px] font-semibold uppercase tracking-wide text-slate-200">
+                        <tr class="text-xs font-semibold uppercase tracking-wide text-slate-200">
                             <th class="sticky top-0 z-20 whitespace-nowrap border-b border-slate-700 bg-[#0B1F36] px-3 py-2.5">#</th>
                             <th class="sticky top-0 z-20 min-w-[140px] border-b border-slate-700 bg-[#0B1F36] px-3 py-2.5">Heading</th>
                             <th class="sticky top-0 z-20 whitespace-nowrap border-b border-slate-700 bg-[#0B1F36] px-3 py-2.5">Code</th>
@@ -78,10 +78,10 @@
                                         <td class="px-3 py-2.5 align-top" rowspan="{{ $rowSpan }}">
                                             <p class="font-medium text-slate-800">{{ $row['category'] }}</p>
                                             @if (($row['sub_category'] ?? '') !== '' && ($row['sub_category'] ?? '') !== '—')
-                                                <p class="text-[10px] text-slate-400">{{ $row['sub_category'] }}</p>
+                                                <p class="text-xs text-slate-500">{{ $row['sub_category'] }}</p>
                                             @endif
                                         </td>
-                                        <td class="px-3 py-2.5 align-top whitespace-nowrap font-mono text-[11px] text-sky-700" rowspan="{{ $rowSpan }}">{{ $row['code'] }}</td>
+                                        <td class="px-3 py-2.5 align-top whitespace-nowrap font-mono text-[13px] text-sky-700" rowspan="{{ $rowSpan }}">{{ $row['code'] }}</td>
                                         <td class="px-3 py-2.5 align-top" rowspan="{{ $rowSpan }}">
                                             <a href="{{ $row['url'] }}" class="font-semibold text-[#2b579a] hover:underline">{{ $row['title'] }}</a>
                                         </td>
@@ -89,14 +89,14 @@
                                         <td class="px-3 py-2.5 text-right align-top tabular-nums" rowspan="{{ $rowSpan }}">{{ number_format($row['samples']) }}</td>
                                         <td class="px-3 py-2.5 text-right align-top text-[13px] font-semibold tabular-nums text-rose-700" rowspan="{{ $rowSpan }}">{{ number_format($row['irregularities']) }}</td>
                                         <td class="px-3 py-2.5 text-right align-top" rowspan="{{ $rowSpan }}">
-                                            <span class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold {{ $rateClass }}">{{ $row['percentage_fmt'] }}</span>
+                                            <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-semibold {{ $rateClass }}">{{ $row['percentage_fmt'] }}</span>
                                         </td>
                                         <td class="px-3 py-2.5 text-right align-top font-semibold tabular-nums" rowspan="{{ $rowSpan }}">{{ number_format($row['branch_count']) }}</td>
                                     @endif
-                                    <td class="border-t border-slate-100 px-3 py-2.5 align-top text-[11px] text-slate-700">
+                                    <td class="border-t border-slate-100 px-3 py-2.5 align-top text-[13px] text-slate-700">
                                         {{ $branch['label'] ?? '—' }}
                                     </td>
-                                    <td class="border-t border-slate-100 px-3 py-2.5 align-top text-[11px] font-medium text-violet-900">
+                                    <td class="border-t border-slate-100 px-3 py-2.5 align-top text-[13px] font-medium text-violet-900">
                                         @php
                                             $people = array_values((array) ($branch['accused_people'] ?? []));
                                         @endphp
@@ -113,7 +113,7 @@
                                                         @endif
                                                         @if ((int) ($person['report_count'] ?? 0) >= 2)
                                                             <span
-                                                                class="inline-flex rounded-full bg-rose-100 px-1.5 py-0.5 text-[9px] font-bold text-rose-800"
+                                                                class="inline-flex rounded-full bg-rose-100 px-1.5 py-0.5 text-xs font-bold text-rose-800"
                                                                 title="{{ (int) $person['report_count'] }} বার আর্থিক রিপোর্ট (সব বছর)"
                                                             >{{ (int) $person['report_count'] }} বার</span>
                                                         @endif
@@ -126,7 +126,7 @@
                             @endforeach
                         @empty
                             <tr>
-                                <td colspan="11" class="px-3 py-12 text-center text-[12px] text-slate-400">
+                                <td colspan="11" class="px-3 py-12 text-center text-[13px] text-slate-500">
                                     No report findings for {{ $periodLabel }}. Complete an audit report first.
                                 </td>
                             </tr>

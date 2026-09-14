@@ -127,7 +127,7 @@
             const escaped = holder.innerHTML;
             const inline = (text) => text
                 .replace(/\*\*(.+?)\*\*/g, '<strong class=&quot;font-semibold text-slate-900&quot;>$1</strong>')
-                .replace(/`([^`]+)`/g, '<code class=&quot;rounded bg-slate-100 px-1 py-0.5 text-[10px] text-slate-700&quot;>$1</code>');
+                .replace(/`([^`]+)`/g, '<code class=&quot;rounded bg-slate-100 px-1 py-0.5 text-xs text-slate-700&quot;>$1</code>');
             const lines = escaped.split(/\r?\n/);
             let html = '';
             let listType = null;
@@ -184,7 +184,7 @@
                 </span>
                 <div class="min-w-0 flex-1">
                     <p class="text-[13px] font-semibold">Bynnas Audit Assistant</p>
-                    <p class="mt-0.5 flex items-center gap-1.5 text-[10px] text-cyan-100">
+                    <p class="mt-0.5 flex items-center gap-1.5 text-xs text-cyan-100">
                         <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 ring-2 ring-emerald-300/20"></span>
                         Secure audit assistance
                     </p>
@@ -206,7 +206,7 @@
         </div>
 
         <div x-ref="chatMessages" class="min-h-0 flex-1 space-y-3 overflow-y-auto bg-gradient-to-b from-slate-50 to-white px-3.5 py-4">
-            <div x-show="error && !loaded" x-cloak class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[10px] text-rose-700">
+            <div x-show="error && !loaded" x-cloak class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs text-rose-700">
                 <p x-text="error"></p>
                 <button type="button" @click="loadHistory()" class="mt-1 font-semibold underline underline-offset-2">Try again</button>
             </div>
@@ -215,10 +215,10 @@
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3a.75.75 0 01.75.75V5h3V3.75a.75.75 0 011.5 0V5h1.25A2.75 2.75 0 0119 7.75v8.5A2.75 2.75 0 0116.25 19h-8.5A2.75 2.75 0 015 16.25v-8.5A2.75 2.75 0 017.75 5H9V3.75A.75.75 0 019.75 3z"/><path stroke-linecap="round" d="M9 11h.01M15 11h.01M9 15h6"/></svg>
                 </span>
                 <p class="mt-3 text-[13px] font-semibold text-navy-900">How can I assist you?</p>
-                <p class="mx-auto mt-1 max-w-[280px] text-[10px] leading-relaxed text-slate-500">I understand Bangla, English, mixed language, and common spelling mistakes.</p>
+                <p class="mx-auto mt-1 max-w-[280px] text-xs leading-relaxed text-slate-500">I understand Bangla, English, mixed language, and common spelling mistakes.</p>
                 <div class="mt-4 grid gap-1.5 text-left">
                     <template x-for="suggestion in suggestions" :key="suggestion">
-                        <button type="button" @click="useSuggestion(suggestion)" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-[10px] font-medium text-slate-600 shadow-sm hover:border-cyan-200 hover:bg-cyan-50/50 hover:text-cyan-800" x-text="suggestion"></button>
+                        <button type="button" @click="useSuggestion(suggestion)" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-xs font-medium text-slate-600 shadow-sm hover:border-cyan-200 hover:bg-cyan-50/50 hover:text-cyan-800" x-text="suggestion"></button>
                     </template>
                 </div>
             </div>
@@ -231,7 +231,7 @@
                             : message.failed
                                 ? 'max-w-[90%] rounded-2xl rounded-bl-md border border-rose-200 bg-rose-50 text-rose-800'
                                 : 'max-w-[90%] rounded-2xl rounded-bl-md border border-slate-200 bg-white text-slate-700 shadow-sm'"
-                        class="px-3 py-2.5 text-[11px] leading-relaxed"
+                        class="px-3 py-2.5 text-[13px] leading-relaxed"
                     >
                         <template x-if="message.role === 'user'">
                             <span class="whitespace-pre-wrap" x-text="message.text"></span>
@@ -261,7 +261,7 @@
                     rows="1"
                     maxlength="1500"
                     placeholder="Ask about audits, reports, risks, or employees..."
-                    class="max-h-28 min-h-[34px] flex-1 resize-none border-0 bg-transparent px-2 py-2 text-[11px] leading-relaxed text-slate-700 placeholder:text-slate-400 focus:ring-0"
+                    class="max-h-28 min-h-[34px] flex-1 resize-none border-0 bg-transparent px-2 py-2 text-[13px] leading-relaxed text-slate-700 placeholder:text-slate-400 focus:ring-0"
                 ></textarea>
                 <button
                     type="submit"
@@ -272,7 +272,7 @@
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
                 </button>
             </div>
-            <p class="mt-1.5 text-center text-[9px] text-slate-400">Super Admin only · Secure assistance · Conversation audited</p>
+            <p class="mt-1.5 text-center text-xs text-slate-500">Super Admin only · Secure assistance · Conversation audited</p>
         </form>
     </div>
 

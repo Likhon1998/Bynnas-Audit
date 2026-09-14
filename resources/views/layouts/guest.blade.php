@@ -15,7 +15,7 @@
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="auth-canvas font-sans antialiased text-slate-800 h-screen overflow-hidden">
+    <body class="auth-canvas font-sans text-sm antialiased text-slate-800 h-screen overflow-hidden">
         <x-app-loader />
         <a href="{{ url('/') }}" class="absolute left-5 top-4 z-10 flex items-center gap-2">
             <img

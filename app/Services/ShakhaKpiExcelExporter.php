@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\KpiLaw;
 use App\Support\FinancialYear;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
@@ -170,6 +171,10 @@ class ShakhaKpiExcelExporter
         $priorJune = 'June-'.$fy->startYear();
         $endJun = 'Jun-'.$fy->endDate->format('Y');
 
+        $lawLabels = KpiLaw::ordered()->keyBy('key');
+        $lawLabel = fn (string $key, string $fallback) => (string) ($lawLabels->get($key)?->label ?: $fallback);
+        $lawFormat = fn (string $key, string $fallback) => (string) ($lawLabels->get($key)?->format ?: $fallback);
+
         return [
             ['key' => 'serial', 'label' => '#', 'format' => 'int'],
             ['key' => 'code', 'label' => 'Code'],
@@ -181,17 +186,17 @@ class ShakhaKpiExcelExporter
             ['key' => 'total_members', 'label' => 'Total Members', 'format' => 'int'],
             ['key' => 'fy_savings_collection', 'label' => 'Fiscal year Savings Collection', 'fill' => $yellow, 'format' => 'money'],
             ['key' => 'fy_savings_withdrawal', 'label' => 'Fiscal year Savings withdrawal', 'fill' => $yellow, 'format' => 'money'],
-            ['key' => 'fy_savings_increase', 'label' => 'Fiscal year Savings Increase', 'fill' => $yellow, 'pink' => true, 'format' => 'money'],
+            ['key' => 'fy_savings_increase', 'label' => $lawLabel('fy_savings_increase', 'Fiscal year Savings Increase'), 'fill' => $yellow, 'pink' => true, 'format' => $lawFormat('fy_savings_increase', 'money')],
             ['key' => 'savings_balance', 'label' => 'Savings Balance', 'fill' => $grey, 'format' => 'money'],
             ['key' => 'fy_members_admission', 'label' => 'Fiscal year Members Admission', 'fill' => $yellow, 'format' => 'int'],
             ['key' => 'fy_members_dropout', 'label' => 'Fiscal year Members Dropout', 'fill' => $yellow, 'format' => 'int'],
-            ['key' => 'fy_members_increase', 'label' => 'Fiscal year Members Increase', 'fill' => $yellow, 'pink' => true, 'format' => 'int'],
+            ['key' => 'fy_members_increase', 'label' => $lawLabel('fy_members_increase', 'Fiscal year Members Increase'), 'fill' => $yellow, 'pink' => true, 'format' => $lawFormat('fy_members_increase', 'int')],
             ['key' => 'fy_disbursement_borrowers', 'label' => 'Fiscal year Disbursement Borrowers', 'fill' => $yellow, 'format' => 'int'],
             ['key' => 'fy_fully_repayment_borrowers', 'label' => 'Fiscal year Fully Repayment Borrowers', 'fill' => $yellow, 'format' => 'int'],
-            ['key' => 'fy_borrowers_increase', 'label' => 'Fiscal year Borrowers Increase', 'fill' => $yellow, 'pink' => true, 'format' => 'int'],
+            ['key' => 'fy_borrowers_increase', 'label' => $lawLabel('fy_borrowers_increase', 'Fiscal year Borrowers Increase'), 'fill' => $yellow, 'pink' => true, 'format' => $lawFormat('fy_borrowers_increase', 'int')],
             ['key' => 'fy_disbursement_amount', 'label' => 'Fiscal year Disbursement Amount', 'fill' => $yellow, 'format' => 'money'],
             ['key' => 'fy_loan_recovery', 'label' => 'Fiscal year Loan Recovery', 'fill' => $yellow, 'format' => 'money'],
-            ['key' => 'fy_loan_outstanding_increase', 'label' => 'Fiscal year Loan Outstanding Increase', 'fill' => $yellow, 'pink' => true, 'format' => 'money'],
+            ['key' => 'fy_loan_outstanding_increase', 'label' => $lawLabel('fy_loan_outstanding_increase', 'Fiscal year Loan Outstanding Increase'), 'fill' => $yellow, 'pink' => true, 'format' => $lawFormat('fy_loan_outstanding_increase', 'money')],
             ['key' => 'total_borrowers', 'label' => 'Total Borrowers', 'fill' => $grey, 'format' => 'int'],
             ['key' => 'loan_outstanding', 'label' => 'Loan Outstanding', 'fill' => $grey, 'format' => 'money'],
             ['key' => 'recoverable', 'label' => 'Recoverable', 'fill' => $grey, 'format' => 'money'],
@@ -202,27 +207,27 @@ class ShakhaKpiExcelExporter
             ['key' => 'due_loanee_loan_outstanding', 'label' => 'Due Loanee Loan Outstanding', 'format' => 'money'],
             ['key' => 'own_fund_until_prior_june', 'label' => 'Own Fund Until '.$priorJune, 'format' => 'money'],
             ['key' => 'surplus_deficit_fy', 'label' => 'Surplus/Deficit (FY '.$fy->label.')', 'format' => 'money'],
-            ['key' => 'total_surplus_deficit', 'label' => 'Total Surplus/Deficit '.$endJun, 'pink' => true, 'format' => 'money'],
+            ['key' => 'total_surplus_deficit', 'label' => $lawLabel('total_surplus_deficit', 'Total Surplus/Deficit '.$endJun), 'pink' => true, 'format' => $lawFormat('total_surplus_deficit', 'money')],
             ['key' => 'new_due', 'label' => 'New Due', 'pink' => true, 'format' => 'money'],
             ['key' => 'due_increase_this_month', 'label' => 'Due Increase This Month', 'pink' => true, 'format' => 'money'],
-            ['key' => 'otr', 'label' => 'OTR', 'format' => 'pct'],
-            ['key' => 'dr_borrowers', 'label' => 'DR (Borrowers)', 'pink' => true, 'format' => 'pct'],
-            ['key' => 'dr_taka', 'label' => 'DR (Taka)', 'pink' => true, 'format' => 'pct'],
-            ['key' => 'par', 'label' => 'PAR', 'pink' => true, 'format' => 'pct'],
-            ['key' => 'overdue_growth_vs_outstanding', 'label' => 'Overdue Growth Rate vs. Outstanding Loans', 'format' => 'pct'],
-            ['key' => 'due_recovery_pct', 'label' => 'Due Recovery %', 'format' => 'pct'],
-            ['key' => 'member_loanee', 'label' => 'Member : Loanee', 'format' => 'pct'],
-            ['key' => 'savings_loan', 'label' => 'Savings : Loan Outstanding', 'format' => 'pct'],
-            ['key' => 'dropout_pct', 'label' => 'Dropout %', 'format' => 'pct'],
-            ['key' => 'savings_withdrawal_pct', 'label' => 'Savings Withdrawal %', 'format' => 'pct'],
-            ['key' => 'samities_member', 'label' => 'Samities : Member', 'format' => 'ratio'],
-            ['key' => 'samities_borrowers', 'label' => 'Samities : Borrowers', 'format' => 'ratio'],
-            ['key' => 'fo_member', 'label' => 'FO : Member', 'format' => 'ratio'],
-            ['key' => 'fo_borrowers', 'label' => 'FO : Borrowers', 'format' => 'ratio'],
-            ['key' => 'fo_savings', 'label' => 'FO : Savings Balance', 'format' => 'money'],
-            ['key' => 'fo_loan', 'label' => 'FO : Loan Outstanding', 'format' => 'money'],
-            ['key' => 'member_savings', 'label' => 'Member : Savings Balance', 'format' => 'money'],
-            ['key' => 'borrowers_loan', 'label' => 'Borrowers : Loan Outstanding', 'format' => 'money'],
+            ['key' => 'otr', 'label' => $lawLabel('otr', 'OTR'), 'format' => $lawFormat('otr', 'pct')],
+            ['key' => 'dr_borrowers', 'label' => $lawLabel('dr_borrowers', 'DR (Borrowers)'), 'pink' => true, 'format' => $lawFormat('dr_borrowers', 'pct')],
+            ['key' => 'dr_taka', 'label' => $lawLabel('dr_taka', 'DR (Taka)'), 'pink' => true, 'format' => $lawFormat('dr_taka', 'pct')],
+            ['key' => 'par', 'label' => $lawLabel('par', 'PAR'), 'pink' => true, 'format' => $lawFormat('par', 'pct')],
+            ['key' => 'overdue_growth_vs_outstanding', 'label' => $lawLabel('overdue_growth_vs_outstanding', 'Overdue Growth Rate vs. Outstanding Loans'), 'format' => $lawFormat('overdue_growth_vs_outstanding', 'pct')],
+            ['key' => 'due_recovery_pct', 'label' => $lawLabel('due_recovery_pct', 'Due Recovery %'), 'format' => $lawFormat('due_recovery_pct', 'pct')],
+            ['key' => 'member_loanee', 'label' => $lawLabel('member_loanee', 'Member : Loanee'), 'format' => $lawFormat('member_loanee', 'pct')],
+            ['key' => 'savings_loan', 'label' => $lawLabel('savings_loan', 'Savings : Loan Outstanding'), 'format' => $lawFormat('savings_loan', 'pct')],
+            ['key' => 'dropout_pct', 'label' => $lawLabel('dropout_pct', 'Dropout %'), 'format' => $lawFormat('dropout_pct', 'pct')],
+            ['key' => 'savings_withdrawal_pct', 'label' => $lawLabel('savings_withdrawal_pct', 'Savings Withdrawal %'), 'format' => $lawFormat('savings_withdrawal_pct', 'pct')],
+            ['key' => 'samities_member', 'label' => $lawLabel('samities_member', 'Samities : Member'), 'format' => $lawFormat('samities_member', 'ratio')],
+            ['key' => 'samities_borrowers', 'label' => $lawLabel('samities_borrowers', 'Samities : Borrowers'), 'format' => $lawFormat('samities_borrowers', 'ratio')],
+            ['key' => 'fo_member', 'label' => $lawLabel('fo_member', 'FO : Member'), 'format' => $lawFormat('fo_member', 'ratio')],
+            ['key' => 'fo_borrowers', 'label' => $lawLabel('fo_borrowers', 'FO : Borrowers'), 'format' => $lawFormat('fo_borrowers', 'ratio')],
+            ['key' => 'fo_savings', 'label' => $lawLabel('fo_savings', 'FO : Savings Balance'), 'format' => $lawFormat('fo_savings', 'money')],
+            ['key' => 'fo_loan', 'label' => $lawLabel('fo_loan', 'FO : Loan Outstanding'), 'format' => $lawFormat('fo_loan', 'money')],
+            ['key' => 'member_savings', 'label' => $lawLabel('member_savings', 'Member : Savings Balance'), 'format' => $lawFormat('member_savings', 'money')],
+            ['key' => 'borrowers_loan', 'label' => $lawLabel('borrowers_loan', 'Borrowers : Loan Outstanding'), 'format' => $lawFormat('borrowers_loan', 'money')],
             ['key' => 'today_date', 'label' => 'Today date'],
             ['key' => 'opening_year', 'label' => 'Year', 'format' => 'int'],
             ['key' => 'opening_month', 'label' => 'Month', 'format' => 'int'],

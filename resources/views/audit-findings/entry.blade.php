@@ -149,16 +149,16 @@
         <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
             <div>
                 @can('findings.view_all')
-                    <a href="{{ route('audit-findings.index', ['month' => $month, 'year' => $year]) }}" class="mb-1 inline-flex items-center gap-1 text-[11px] font-medium text-[#2b579a] hover:underline">
+                    <a href="{{ route('audit-findings.index', ['month' => $month, 'year' => $year]) }}" class="mb-1 inline-flex items-center gap-1 text-[13px] font-medium text-[#2b579a] hover:underline">
                         ← Consolidated totals
                     </a>
                 @else
-                    <a href="{{ route('dashboard') }}" class="mb-1 inline-flex items-center gap-1 text-[11px] font-medium text-[#2b579a] hover:underline">
+                    <a href="{{ route('dashboard') }}" class="mb-1 inline-flex items-center gap-1 text-[13px] font-medium text-[#2b579a] hover:underline">
                         ← Dashboard
                     </a>
                 @endcan
                 <h1 class="text-[16px] font-semibold text-navy-900">Enter findings</h1>
-                <p class="mt-0.5 text-[11px] text-slate-500">
+                <p class="mt-0.5 text-[13px] text-slate-500">
                     {{ $shakha->name }}{{ $shakha->code ? ' ('.$shakha->code.')' : '' }}
                     · {{ $shakha->area?->name }}
                     · {{ date('F', mktime(0, 0, 0, $month, 1)) }} {{ $year }}
@@ -177,11 +177,11 @@
 
         <div class="mb-3 flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
             <div class="min-w-[160px] flex-1">
-                <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Search</label>
+                <label class="mb-0.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Search</label>
                 <input type="search" x-model="q" @input="page = 1" class="h-8 w-full rounded-lg border-slate-200 py-0 text-[12px]" placeholder="Code / title…" autocomplete="off">
             </div>
             <div class="w-[180px]">
-                <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Category</label>
+                <label class="mb-0.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Category</label>
                 <select x-model="category" @change="onCategoryChange()" class="h-8 w-full rounded-lg border-slate-200 py-0 text-[12px]">
                     <option value="">All</option>
                     <template x-for="c in categories" :key="c">
@@ -190,7 +190,7 @@
                 </select>
             </div>
             <div class="w-[180px]">
-                <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Sub-category</label>
+                <label class="mb-0.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Sub-category</label>
                 <select x-model="subCategory" @change="page = 1" class="h-8 w-full rounded-lg border-slate-200 py-0 text-[12px]">
                     <option value="">All</option>
                     <template x-for="s in subCategories" :key="s">
@@ -199,7 +199,7 @@
                 </select>
             </div>
             <div class="w-[120px]">
-                <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Risk</label>
+                <label class="mb-0.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Risk</label>
                 <select x-model="risk" @change="page = 1" class="h-8 w-full rounded-lg border-slate-200 py-0 text-[12px]">
                     <option value="">All</option>
                     <template x-for="r in risks" :key="r">
@@ -208,7 +208,7 @@
                 </select>
             </div>
             <div class="w-[90px]">
-                <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Per page</label>
+                <label class="mb-0.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Per page</label>
                 <select x-model.number="perPage" @change="page = 1" class="h-8 w-full rounded-lg border-slate-200 py-0 text-[12px]">
                     <option :value="25">25</option>
                     <option :value="50">50</option>
@@ -216,7 +216,7 @@
                 </select>
             </div>
             <button type="button" @click="resetFilters()" class="h-8 rounded-lg border border-slate-200 px-3 text-[12px] text-slate-600 hover:bg-slate-50">Reset</button>
-            <p class="ml-auto self-center text-[11px] text-slate-400">
+            <p class="ml-auto self-center text-[13px] text-slate-400">
                 <span class="font-semibold tabular-nums text-slate-700" x-text="fromRow + '–' + toRow"></span>
                 of <span x-text="filtered.length"></span>
             </p>
@@ -236,7 +236,7 @@
                 <div class="overflow-x-auto">
                     <table class="min-w-full text-left text-[12px]">
                         <thead>
-                            <tr class="bg-slate-50 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                            <tr class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
                                 <th class="border-b border-slate-200 px-2 py-2">Code</th>
                                 <th class="border-b border-slate-200 px-2 py-2 min-w-[180px]">Indicator</th>
                                 <th class="border-b border-slate-200 px-2 py-2">Amount</th>
@@ -249,10 +249,10 @@
                         <tbody>
                             <template x-for="row in rows" :key="row.id">
                                 <tr class="border-b border-slate-50 align-top hover:bg-sky-50/30" x-show="rowVisible(row)" x-cloak>
-                                    <td class="px-2 py-1.5 font-mono text-[11px] text-slate-600" x-text="row.indicator_code"></td>
+                                    <td class="px-2 py-1.5 font-mono text-[13px] text-slate-600" x-text="row.indicator_code"></td>
                                     <td class="px-2 py-1.5">
                                         <p class="font-medium text-navy-900" x-text="row.title"></p>
-                                        <p class="text-[10px] text-slate-400">
+                                        <p class="text-xs text-slate-500">
                                             <span x-text="row.category || '—'"></span>
                                             <span x-show="row.sub_category"> · <span x-text="row.sub_category"></span></span>
                                             · <span x-text="row.risk_rating || '—'"></span>
@@ -294,7 +294,7 @@
                                                     @mousedown.prevent
                                                 >
                                                     <template x-if="employees.length === 0">
-                                                        <p class="px-2.5 py-2 text-[11px] text-amber-700">No employees for this shakha. Add staff under Shakha Employees.</p>
+                                                        <p class="px-2.5 py-2 text-[13px] text-amber-700">No employees for this shakha. Add staff under Shakha Employees.</p>
                                                     </template>
                                                     <template x-for="(emp, idx) in filterEmployees(staffQ)" :key="emp.id">
                                                         <button
@@ -304,14 +304,14 @@
                                                             @mousedown.prevent="pickStaff(row, emp)"
                                                         >
                                                             <span class="text-[12px] font-semibold text-navy-900" x-text="emp.name"></span>
-                                                            <span class="text-[10px] text-slate-500">
+                                                            <span class="text-xs text-slate-500">
                                                                 <span class="font-mono" x-text="emp.code"></span>
                                                                 <span x-show="emp.designation"> · <span x-text="emp.designation"></span></span>
                                                             </span>
                                                         </button>
                                                     </template>
                                                     <p
-                                                        class="px-2.5 py-2 text-[11px] text-slate-400"
+                                                        class="px-2.5 py-2 text-[13px] text-slate-400"
                                                         x-show="employees.length > 0 && filterEmployees(staffQ).length === 0"
                                                     >No match — keep typing a free-text name if needed.</p>
                                                 </div>
@@ -321,7 +321,7 @@
                                 </tr>
                             </template>
                             <tr x-show="filtered.length === 0">
-                                <td colspan="7" class="px-3 py-10 text-center text-[12px] text-slate-400">
+                                <td colspan="7" class="px-3 py-10 text-center text-[13px] text-slate-500">
                                     <span x-show="rows.length === 0">No indicators. Seed or import the catalog first.</span>
                                     <span x-show="rows.length > 0">No rows match these filters.</span>
                                 </td>
@@ -331,15 +331,15 @@
                 </div>
 
                 <div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-3 py-2.5" x-show="filtered.length > 0">
-                    <p class="text-[11px] text-slate-500">
+                    <p class="text-[13px] text-slate-500">
                         Page <span class="font-semibold tabular-nums text-slate-700" x-text="page"></span>
                         / <span class="tabular-nums" x-text="totalPages"></span>
                     </p>
                     <div class="flex items-center gap-1">
-                        <button type="button" @click="go(1)" :disabled="page <= 1" class="h-7 rounded-md border border-slate-200 px-2 text-[11px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">First</button>
-                        <button type="button" @click="go(page - 1)" :disabled="page <= 1" class="h-7 rounded-md border border-slate-200 px-2 text-[11px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">Prev</button>
-                        <button type="button" @click="go(page + 1)" :disabled="page >= totalPages" class="h-7 rounded-md border border-slate-200 px-2 text-[11px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">Next</button>
-                        <button type="button" @click="go(totalPages)" :disabled="page >= totalPages" class="h-7 rounded-md border border-slate-200 px-2 text-[11px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">Last</button>
+                        <button type="button" @click="go(1)" :disabled="page <= 1" class="h-7 rounded-md border border-slate-200 px-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">First</button>
+                        <button type="button" @click="go(page - 1)" :disabled="page <= 1" class="h-7 rounded-md border border-slate-200 px-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">Prev</button>
+                        <button type="button" @click="go(page + 1)" :disabled="page >= totalPages" class="h-7 rounded-md border border-slate-200 px-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">Next</button>
+                        <button type="button" @click="go(totalPages)" :disabled="page >= totalPages" class="h-7 rounded-md border border-slate-200 px-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">Last</button>
                     </div>
                 </div>
             </div>

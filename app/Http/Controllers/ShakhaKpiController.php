@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreShakhaAnnualKpiRequest;
+use App\Models\KpiLaw;
 use App\Models\Shakha;
 use App\Models\ShakhaAnnualKpi;
 use App\Services\KpiReportService;
@@ -10,6 +11,7 @@ use App\Services\ShakhaKpiExcelExporter;
 use App\Support\FinancialYear;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -80,6 +82,74 @@ class ShakhaKpiController extends Controller
         $fyLabel = $this->resolveFy($request->string('fy')->toString() ?: null);
 
         return $this->excelExporter->download($fyLabel);
+    }
+
+    public function laws(): View
+    {
+        $laws = KpiLaw::ordered();
+
+        return view('kpis.laws', [
+            'laws' => $laws,
+            'operandOptions' => KpiLaw::operandOptions(),
+            'categoryLabels' => [
+                'increase' => 'Increases',
+                'fund' => 'Funds',
+                'percentage' => 'Percentages',
+                'ratio' => 'Ratios',
+            ],
+        ]);
+    }
+
+    public function updateLaws(Request $request): RedirectResponse
+    {
+        KpiLaw::ensureDefaults();
+
+        $operandKeys = array_keys(KpiLaw::operandOptions());
+        $validated = $request->validate([
+            'laws' => ['required', 'array'],
+            'laws.*.id' => ['required', 'integer', 'exists:kpi_laws,id'],
+            'laws.*.label' => ['required', 'string', 'max:120'],
+            'laws.*.operation' => ['required', Rule::in([
+                KpiLaw::OPERATION_ADD,
+                KpiLaw::OPERATION_SUBTRACT,
+                KpiLaw::OPERATION_DIVIDE,
+            ])],
+            'laws.*.left_operand' => ['required', Rule::in($operandKeys)],
+            'laws.*.right_operand' => ['required', Rule::in($operandKeys)],
+            'laws.*.description' => ['nullable', 'string', 'max:1000'],
+            'laws.*.format' => ['required', Rule::in(['money', 'int', 'pct', 'ratio'])],
+            'laws.*.is_active' => ['nullable', 'boolean'],
+            'laws.*.sort_order' => ['nullable', 'integer', 'min:0', 'max:9999'],
+        ]);
+
+        foreach ($validated['laws'] as $row) {
+            $law = KpiLaw::query()->findOrFail($row['id']);
+            $law->fill([
+                'label' => $row['label'],
+                'operation' => $row['operation'],
+                'left_operand' => $row['left_operand'],
+                'right_operand' => $row['right_operand'],
+                'description' => $row['description'] ?? null,
+                'format' => $row['format'],
+                'is_active' => (bool) ($row['is_active'] ?? false),
+                'sort_order' => (int) ($row['sort_order'] ?? $law->sort_order),
+            ]);
+            $law->formula_display = $law->rebuildFormulaDisplay();
+            $law->save();
+        }
+
+        return redirect()
+            ->route('kpis.laws')
+            ->with('status', 'KPI laws saved. Excel export and calculated ratios now use these rules.');
+    }
+
+    public function resetLaws(): RedirectResponse
+    {
+        KpiLaw::resetToDefaults();
+
+        return redirect()
+            ->route('kpis.laws')
+            ->with('status', 'KPI laws restored to the standard formulas.');
     }
 
     protected function resolveFy(?string $fyLabel): string

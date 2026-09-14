@@ -7,7 +7,7 @@
 
 <div class="overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm">
     <div class="border-b border-slate-200 bg-slate-50 px-4 py-3 text-center">
-        <p class="text-[11px] font-semibold text-slate-500">Format: {{ $formatModel?->format_number }}</p>
+        <p class="text-[13px] font-semibold text-slate-500">Format: {{ $formatModel?->format_number }}</p>
         <p class="text-[15px] font-bold text-navy-900">{{ $formatModel?->org_name }}</p>
         <p class="text-[12px] font-semibold text-slate-700">{{ $formatModel?->dept_name }}</p>
         <p class="mt-1 text-[13px] font-bold text-navy-900">“{{ $formatModel?->heading }}”</p>
@@ -15,21 +15,21 @@
 
     <div class="grid gap-3 border-b border-slate-200 px-4 py-3 sm:grid-cols-2">
         <div>
-            <label class="mb-0.5 block text-[11px] font-semibold text-slate-600">শাখার নাম :</label>
+            <label class="mb-0.5 block text-[13px] font-semibold text-slate-600">শাখার নাম :</label>
             <input type="text" wire:model.live="shakha_name" class="h-9 w-full rounded-md border-slate-200 text-[12px] focus:border-[#2b579a] focus:ring-[#2b579a]">
         </div>
         <div>
-            <label class="mb-0.5 block text-[11px] font-semibold text-slate-600">নিরীক্ষা কাল :</label>
+            <label class="mb-0.5 block text-[13px] font-semibold text-slate-600">নিরীক্ষা কাল :</label>
             <input type="text" wire:model.live="audit_period" class="h-9 w-full rounded-md border-slate-200 text-[12px] focus:border-[#2b579a] focus:ring-[#2b579a]">
         </div>
     </div>
 
     <div class="flex items-center justify-end gap-2 border-b border-slate-100 px-3 py-2">
-        <button type="button" wire:click="addRow" class="rounded border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-[#2b579a] hover:bg-sky-100">+ Row</button>
+        <button type="button" wire:click="addRow" class="rounded border border-sky-200 bg-sky-50 px-2.5 py-1 text-[13px] font-semibold text-[#2b579a] hover:bg-sky-100">+ Row</button>
     </div>
 
     <div class="overflow-x-auto px-2 py-3">
-        <table class="min-w-[1100px] w-full border-collapse text-[11px]">
+        <table class="min-w-[1100px] w-full border-collapse text-[13px]">
             <thead>
                 <tr class="bg-slate-100 text-center font-semibold text-slate-700">
                     <th class="border border-slate-300 px-1 py-1.5 w-10">ক্রঃ নং</th>
@@ -48,13 +48,13 @@
                     <tr wire:key="f2-row-{{ $ri }}">
                         <td class="border border-slate-300 px-1 py-1 text-center tabular-nums">{{ $ri + 1 }}</td>
                         <td class="border border-slate-300 p-0.5">
-                            <input type="text" wire:model.live="payload.rows.{{ $ri }}.society_name" class="h-8 w-full border-0 bg-transparent px-1 text-[11px] focus:ring-1 focus:ring-[#2b579a]">
+                            <input type="text" wire:model.live="payload.rows.{{ $ri }}.society_name" class="h-8 w-full border-0 bg-transparent px-1 text-[13px] focus:ring-1 focus:ring-[#2b579a]">
                         </td>
                         <td class="border border-slate-300 p-0.5">
-                            <input type="text" wire:model.live="payload.rows.{{ $ri }}.fo_name" class="h-8 w-full border-0 bg-transparent px-1 text-[11px] focus:ring-1 focus:ring-[#2b579a]">
+                            <input type="text" wire:model.live="payload.rows.{{ $ri }}.fo_name" class="h-8 w-full border-0 bg-transparent px-1 text-[13px] focus:ring-1 focus:ring-[#2b579a]">
                         </td>
                         <td class="border border-slate-300 p-0.5">
-                            <input type="text" wire:model.live="payload.rows.{{ $ri }}.member_name" class="h-8 w-full border-0 bg-transparent px-1 text-[11px] focus:ring-1 focus:ring-[#2b579a]">
+                            <input type="text" wire:model.live="payload.rows.{{ $ri }}.member_name" class="h-8 w-full border-0 bg-transparent px-1 text-[13px] focus:ring-1 focus:ring-[#2b579a]">
                         </td>
                         @for ($c = 0; $c < $checkCount; $c++)
                             <td class="border border-slate-300 p-0.5 text-center">
@@ -65,10 +65,10 @@
                             </td>
                         @endfor
                         <td class="border border-slate-300 p-0.5">
-                            <input type="text" wire:model.live="payload.rows.{{ $ri }}.wp_ref" class="h-8 w-full border-0 bg-transparent px-1 text-[11px] focus:ring-1 focus:ring-[#2b579a]">
+                            <input type="text" wire:model.live="payload.rows.{{ $ri }}.wp_ref" class="h-8 w-full border-0 bg-transparent px-1 text-[13px] focus:ring-1 focus:ring-[#2b579a]">
                         </td>
                         <td class="border border-slate-300 p-0.5 text-center">
-                            <button type="button" wire:click="removeRow({{ $ri }})" class="text-[11px] text-rose-500 hover:text-rose-700">×</button>
+                            <button type="button" wire:click="removeRow({{ $ri }})" class="text-[13px] text-rose-500 hover:text-rose-700">×</button>
                         </td>
                     </tr>
                 @endforeach
@@ -78,7 +78,7 @@
 
     <div class="border-t border-slate-200 px-4 py-3">
         <p class="mb-2 text-[12px] font-bold text-navy-900">চেকলিস্ট পয়েন্ট (১–{{ $checkCount }})</p>
-        <ol class="columns-1 gap-x-6 space-y-1 text-[11px] leading-snug text-slate-700 md:columns-2">
+        <ol class="columns-1 gap-x-6 space-y-1 text-[13px] leading-snug text-slate-700 md:columns-2">
             @foreach ($questions as $qi => $q)
                 <li class="break-inside-avoid pl-1"><span class="font-semibold text-slate-800">{{ $qi + 1 }}.</span> {{ $q }}</li>
             @endforeach
@@ -94,14 +94,14 @@
                     wire:click="generateFormatSummary"
                     wire:loading.attr="disabled"
                     wire:target="generateFormatSummary"
-                    class="rounded border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-800 hover:bg-violet-100 disabled:opacity-60"
+                    class="rounded border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-semibold text-violet-800 hover:bg-violet-100 disabled:opacity-60"
                 >
                     <span wire:loading.remove wire:target="generateFormatSummary">AI লিখুন</span>
                     <span wire:loading wire:target="generateFormatSummary">AI লিখছে…</span>
                 </button>
             @endif
         </div>
-        <p class="mb-2 text-[10px] text-slate-500">Unusual (✗ / না) marks are emphasized for the audit report. Edit after AI writes.</p>
+        <p class="mb-2 text-xs text-slate-500">Unusual (✗ / না) marks are emphasized for the audit report. Edit after AI writes.</p>
         <textarea
             wire:model.live="summary"
             rows="4"

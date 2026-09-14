@@ -53,7 +53,7 @@
 
         @if (Route::has('password.request'))
             <div>
-                <a class="text-[12px] text-slate-400 hover:text-blue-600" href="{{ route('password.request') }}">
+                <a class="text-[13px] text-slate-500 hover:text-blue-600" href="{{ route('password.request') }}">
                     Forgot your password?
                 </a>
             </div>
@@ -64,7 +64,7 @@
         </button>
     </form>
 
-    <p class="mt-4 text-center text-[11px] leading-snug text-slate-500">
+    <p class="mt-4 text-center text-[13px] leading-snug text-slate-500">
         Need an account? Ask your Super Admin to create a login under Users &amp; Access.
     </p>
 </x-guest-layout>

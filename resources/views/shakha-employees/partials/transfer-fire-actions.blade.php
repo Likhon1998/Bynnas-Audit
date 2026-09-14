@@ -20,12 +20,12 @@
         <button
             type="button"
             @click="transferOpen = true"
-            class="text-[11px] font-semibold text-sky-700 hover:underline"
+            class="text-[13px] font-semibold text-sky-700 hover:underline"
         >Transfer</button>
         <button
             type="button"
             @click="fireOpen = true"
-            class="text-[11px] font-semibold text-rose-600 hover:underline"
+            class="text-[13px] font-semibold text-rose-600 hover:underline"
         >Fire</button>
 
         {{-- Transfer popup --}}
@@ -38,7 +38,7 @@
             <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-4 shadow-xl" @click.stop>
                 <div class="mb-3">
                     <p class="text-[14px] font-semibold text-navy-900">Transfer (স্থানান্তর)</p>
-                    <p class="mt-0.5 text-[11px] text-slate-500">
+                    <p class="mt-0.5 text-[13px] text-slate-500">
                         {{ $employee->name }} · {{ $employee->employee_code }}
                     </p>
                 </div>
@@ -46,7 +46,7 @@
                     @csrf
                     <input type="hidden" name="return_to" value="{{ $returnTo }}">
                     <div>
-                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Target shakha</label>
+                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Target shakha</label>
                         <select name="target_shakha_id" required class="h-9 w-full rounded-lg border-slate-200 text-[12px]">
                             <option value="">Select shakha…</option>
                             @foreach ($targets as $target)
@@ -57,11 +57,11 @@
                         </select>
                     </div>
                     <div>
-                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Joined new shakha</label>
+                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Joined new shakha</label>
                         <input type="date" name="joined_shakha_at" value="{{ bd_today() }}" class="h-9 w-full rounded-lg border-slate-200 text-[12px]">
                     </div>
                     <div>
-                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Note (optional)</label>
+                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Note (optional)</label>
                         <input type="text" name="note" class="h-9 w-full rounded-lg border-slate-200 text-[12px]" placeholder="Reason / order no.">
                     </div>
                     <div class="flex items-center justify-end gap-2 pt-1">
@@ -82,7 +82,7 @@
             <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-4 shadow-xl" @click.stop>
                 <div class="mb-3">
                     <p class="text-[14px] font-semibold text-navy-900">Fire (চাকরিচ্যুত)</p>
-                    <p class="mt-0.5 text-[11px] text-slate-500">
+                    <p class="mt-0.5 text-[13px] text-slate-500">
                         {{ $employee->name }} · {{ $employee->employee_code }} — will leave audit name suggestions
                     </p>
                 </div>
@@ -90,7 +90,7 @@
                     @csrf
                     <input type="hidden" name="return_to" value="{{ $returnTo }}">
                     <div>
-                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Note (optional)</label>
+                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Note (optional)</label>
                         <input type="text" name="note" class="h-9 w-full rounded-lg border-slate-200 text-[12px]" placeholder="Reason">
                     </div>
                     <div class="flex items-center justify-end gap-2 pt-1">

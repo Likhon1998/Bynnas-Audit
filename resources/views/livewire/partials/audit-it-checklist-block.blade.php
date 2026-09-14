@@ -6,7 +6,7 @@
     $cellPad = $compact ? 'border border-slate-800 px-1 py-1' : 'border border-slate-800 px-1.5 py-1.5';
     $tableClass = $compact
         ? 'a4-table a4-table-compact text-[9.5px]'
-        : 'w-full border-collapse text-[11px] leading-snug';
+        : 'w-full border-collapse text-[13px] leading-snug';
     $hItR1 = array_values((array) ($block['headers_r1'] ?? \App\Support\AuditTableHeaders::defaults()['it_r1']));
     $hItR2 = array_values((array) ($block['headers_r2'] ?? \App\Support\AuditTableHeaders::defaults()['it_r2']));
     $extraHeaders = array_values((array) ($block['extra_headers'] ?? []));
@@ -20,8 +20,8 @@
     @if ($editable)
         <div class="mb-2 flex flex-wrap items-center gap-2">
             <p class="text-[12px] font-semibold text-blue-900">আইটি (সফটওয়্যার) চেকলিস্ট</p>
-            <button type="button" wire:click="addItChecklistBlockRow({{ $blockIndex }})" class="rounded bg-blue-700 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-blue-800">+ সারি</button>
-            <button type="button" wire:click="addItChecklistBlockColumn({{ $blockIndex }})" class="rounded bg-blue-700 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-blue-800">+ কলাম</button>
+            <button type="button" wire:click="addItChecklistBlockRow({{ $blockIndex }})" class="rounded bg-blue-700 px-2.5 py-1 text-[13px] font-semibold text-white hover:bg-blue-800">+ সারি</button>
+            <button type="button" wire:click="addItChecklistBlockColumn({{ $blockIndex }})" class="rounded bg-blue-700 px-2.5 py-1 text-[13px] font-semibold text-white hover:bg-blue-800">+ কলাম</button>
             <button type="button" wire:click="moveBlock({{ $blockIndex }}, 'up')" class="ml-auto text-[12px] text-slate-600 hover:underline">↑</button>
             <button type="button" wire:click="moveBlock({{ $blockIndex }}, 'down')" class="text-[12px] text-slate-600 hover:underline">↓</button>
             <button type="button" wire:click="removeBlock({{ $blockIndex }})" class="text-[12px] text-rose-600 hover:underline">মুছুন</button>
@@ -87,7 +87,7 @@
                         <th class="{{ $cellPad }} font-bold text-center align-middle" rowspan="2">
                             @if ($editable)
                                 <div class="flex items-start gap-1">
-                                    <input type="text" wire:model.blur="reportBlocks.{{ $blockIndex }}.extra_headers.{{ $ei }}" class="w-full border-0 bg-transparent text-center text-[11px] font-bold">
+                                    <input type="text" wire:model.blur="reportBlocks.{{ $blockIndex }}.extra_headers.{{ $ei }}" class="w-full border-0 bg-transparent text-center text-[13px] font-bold">
                                     <button type="button" wire:click="removeItChecklistBlockColumn({{ $blockIndex }}, {{ $ei }})" class="text-rose-600">×</button>
                                 </div>
                             @else
@@ -112,7 +112,7 @@
                         <td class="{{ $cellPad }} text-center align-middle font-semibold" style="font-size:{{ $bodySize }};">{{ $row['sl_no'] ?? '' }}</td>
                         <td class="{{ $cellPad }} align-top" style="font-size:{{ $bodySize }};">
                             @if ($editable && trim((string) ($row['description'] ?? '')) === '')
-                                <textarea wire:model.blur="reportBlocks.{{ $blockIndex }}.rows.{{ $rowIndex }}.description" rows="2" class="w-full border-0 bg-sky-50/50 p-1 text-[11px]" placeholder="নতুন বিবরণ…"></textarea>
+                                <textarea wire:model.blur="reportBlocks.{{ $blockIndex }}.rows.{{ $rowIndex }}.description" rows="2" class="w-full border-0 bg-sky-50/50 p-1 text-[13px]" placeholder="নতুন বিবরণ…"></textarea>
                             @else
                                 <span class="whitespace-pre-wrap">{{ $row['description'] ?? '' }}</span>
                             @endif
@@ -142,21 +142,21 @@
                         @endif
                         <td class="{{ $cellPad }} align-top" style="font-size:{{ $bodySize }};">
                             @if ($editable)
-                                <input type="text" wire:model.blur="reportBlocks.{{ $blockIndex }}.rows.{{ $rowIndex }}.action_owner" class="w-full border-0 bg-sky-50/40 px-1 text-[11px]">
+                                <input type="text" wire:model.blur="reportBlocks.{{ $blockIndex }}.rows.{{ $rowIndex }}.action_owner" class="w-full border-0 bg-sky-50/40 px-1 text-[13px]">
                             @else
                                 {{ $row['action_owner'] ?? '' }}
                             @endif
                         </td>
                         <td class="{{ $cellPad }} align-top" style="font-size:{{ $bodySize }};">
                             @if ($editable)
-                                <textarea wire:model.blur="reportBlocks.{{ $blockIndex }}.rows.{{ $rowIndex }}.management_comments" rows="2" class="w-full border-0 bg-sky-50/40 p-1 text-[11px]"></textarea>
+                                <textarea wire:model.blur="reportBlocks.{{ $blockIndex }}.rows.{{ $rowIndex }}.management_comments" rows="2" class="w-full border-0 bg-sky-50/40 p-1 text-[13px]"></textarea>
                             @else
                                 <span class="whitespace-pre-wrap">{{ $row['management_comments'] ?? '' }}</span>
                             @endif
                         </td>
                         <td class="{{ $cellPad }} align-top" style="font-size:{{ $bodySize }};">
                             @if ($editable)
-                                <textarea wire:model.blur="reportBlocks.{{ $blockIndex }}.rows.{{ $rowIndex }}.recommendation" rows="2" class="w-full border-0 bg-sky-50/40 p-1 text-[11px]"></textarea>
+                                <textarea wire:model.blur="reportBlocks.{{ $blockIndex }}.rows.{{ $rowIndex }}.recommendation" rows="2" class="w-full border-0 bg-sky-50/40 p-1 text-[13px]"></textarea>
                             @else
                                 <span class="whitespace-pre-wrap">{{ $row['recommendation'] ?? '' }}</span>
                             @endif
@@ -164,7 +164,7 @@
                         @foreach ($extraHeaders as $ei => $unused)
                             <td class="{{ $cellPad }} align-top" style="font-size:{{ $bodySize }};">
                                 @if ($editable)
-                                    <textarea wire:model.blur="reportBlocks.{{ $blockIndex }}.rows.{{ $rowIndex }}.extra.{{ $ei }}" rows="2" class="w-full border-0 bg-sky-50/40 p-1 text-[11px]"></textarea>
+                                    <textarea wire:model.blur="reportBlocks.{{ $blockIndex }}.rows.{{ $rowIndex }}.extra.{{ $ei }}" rows="2" class="w-full border-0 bg-sky-50/40 p-1 text-[13px]"></textarea>
                                 @else
                                     <span class="whitespace-pre-wrap">{{ $row['extra'][$ei] ?? '' }}</span>
                                 @endif

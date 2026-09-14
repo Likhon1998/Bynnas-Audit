@@ -8,7 +8,7 @@
 
 <a
     href="{{ $href }}"
-    {{ $attributes->merge(['class' => 'sidebar-link group relative flex items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] tracking-tight transition '.$classes]) }}
+    {{ $attributes->merge(['class' => 'sidebar-link group relative flex items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] tracking-tight transition '.$classes]) }}
     :class="sidebarCollapsed && 'lg:justify-center lg:px-1.5 lg:gap-0'"
 >
     @if ($active)

@@ -2,8 +2,8 @@
     /** @var \App\Models\ShakhaEmployee|null $employee */
     $size = $size ?? 'md';
     $sizes = [
-        'sm' => 'h-8 w-8 text-[10px]',
-        'md' => 'h-10 w-10 text-[11px]',
+        'sm' => 'h-8 w-8 text-xs',
+        'md' => 'h-10 w-10 text-[13px]',
         'lg' => 'h-16 w-16 text-[14px]',
     ];
     $class = $sizes[$size] ?? $sizes['md'];

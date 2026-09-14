@@ -949,4 +949,89 @@ class AuditReportReviewTest extends TestCase
         $report->refresh();
         $this->assertNotNull($report->review_ready_at);
     }
+
+    public function test_annotation_cannot_be_deleted_after_return_to_maker(): void
+    {
+        $admin = User::query()->where('email', 'admin@bynnasaudit.com')->firstOrFail();
+        $auditor = User::factory()->create(['email_verified_at' => now()]);
+        $auditor->assignRole('audit_officer');
+        $reviewer = User::factory()->create(['email_verified_at' => now()]);
+        $reviewer->assignRole('senior_officer');
+
+        AuditReviewerAssignment::query()->create([
+            'auditor_user_id' => $auditor->id,
+            'reviewer_user_id' => $reviewer->id,
+            'assigned_by' => $admin->id,
+        ]);
+
+        $area = Area::query()->create(['name' => 'Lock Area', 'division' => 'Dhaka', 'status' => 'active']);
+        $shakha = Shakha::query()->create([
+            'area_id' => $area->id,
+            'name' => 'Lock Branch',
+            'code' => 'LK-1',
+            'status' => 'active',
+        ]);
+
+        $report = AuditReport::query()->create([
+            'user_id' => $auditor->id,
+            'shakha_id' => $shakha->id,
+            'report_month' => 9,
+            'report_year' => 2026,
+            'status' => AuditReport::STATUS_COMPLETED,
+            'progress_pct' => 100,
+            'completed_at' => now(),
+            'pages_data' => [],
+        ]);
+
+        app(AuditReportReviewService::class)->submitForReview($report, $auditor, false);
+        $report->refresh();
+
+        $annotation = $report->reviewAnnotations()->create([
+            'user_id' => $reviewer->id,
+            'review_round' => 1,
+            'type' => \App\Models\AuditReportReviewAnnotation::TYPE_TEXT,
+            'color' => 'yellow',
+            'quote' => 'Sample text',
+            'body' => 'Please fix',
+        ]);
+
+        $this->actingAs($reviewer)
+            ->post(route('audit-review.request-changes', $report), ['body' => 'Needs fixes'])
+            ->assertRedirect();
+
+        $report->refresh();
+        $this->assertSame(AuditReport::STATUS_CHANGES_REQUESTED, $report->status);
+
+        $this->actingAs($reviewer)
+            ->delete(route('audit-review.annotations.destroy', [$report, $annotation]))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('audit_report_review_annotations', ['id' => $annotation->id]);
+    }
+
+    public function test_assignment_rejects_users_without_review_permission(): void
+    {
+        $admin = User::query()->where('email', 'admin@bynnasaudit.com')->firstOrFail();
+        $auditor = User::factory()->create(['email_verified_at' => now()]);
+        $auditor->assignRole('audit_officer');
+        $nonReviewer = User::factory()->create(['email_verified_at' => now()]);
+        $nonReviewer->assignRole('audit_officer');
+
+        $this->actingAs($admin)
+            ->post(route('audit-review.assignments.save'), [
+                'assignments' => [
+                    [
+                        'auditor_user_id' => $auditor->id,
+                        'reviewer_user_id' => $nonReviewer->id,
+                    ],
+                ],
+            ])
+            ->assertRedirect(route('audit-review.assignments'))
+            ->assertSessionHas('status', fn ($s) => str_contains((string) $s, 'without review access'));
+
+        $this->assertDatabaseMissing('audit_reviewer_assignments', [
+            'auditor_user_id' => $auditor->id,
+            'reviewer_user_id' => $nonReviewer->id,
+        ]);
+    }
 }

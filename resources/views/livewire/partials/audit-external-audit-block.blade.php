@@ -13,7 +13,7 @@
     $cellPad = $compact ? 'border border-slate-800 px-1 py-1' : 'border border-slate-800 px-1.5 py-1.5';
     $tableClass = $compact
         ? 'a4-table a4-table-compact text-[9.5px] external-audit-table'
-        : 'w-full border-collapse text-[11px] leading-snug external-audit-table';
+        : 'w-full border-collapse text-[13px] leading-snug external-audit-table';
     $titleSize = $compact ? '12px' : '14px';
     $metaSize = $compact ? '10.5px' : '12px';
 @endphp
@@ -22,8 +22,8 @@
     @if ($editable)
         <div class="mb-2 flex flex-wrap items-center gap-2">
             <p class="text-[12px] font-semibold text-amber-900">বহিঃ নিরীক্ষা কমপ্লায়েন্স</p>
-            <button type="button" wire:click="addExternalAuditBlockRow({{ $blockIndex }})" class="rounded bg-amber-700 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-amber-800">+ সারি</button>
-            <button type="button" wire:click="addExternalAuditBlockColumn({{ $blockIndex }})" class="rounded bg-amber-700 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-amber-800">+ কলাম</button>
+            <button type="button" wire:click="addExternalAuditBlockRow({{ $blockIndex }})" class="rounded bg-amber-700 px-2.5 py-1 text-[13px] font-semibold text-white hover:bg-amber-800">+ সারি</button>
+            <button type="button" wire:click="addExternalAuditBlockColumn({{ $blockIndex }})" class="rounded bg-amber-700 px-2.5 py-1 text-[13px] font-semibold text-white hover:bg-amber-800">+ কলাম</button>
             <button type="button" wire:click="moveBlock({{ $blockIndex }}, 'up')" class="ml-auto text-[12px] text-slate-600 hover:underline">↑</button>
             <button type="button" wire:click="moveBlock({{ $blockIndex }}, 'down')" class="text-[12px] text-slate-600 hover:underline">↓</button>
             <button type="button" wire:click="removeBlock({{ $blockIndex }})" class="text-[12px] text-rose-600 hover:underline">মুছুন</button>
@@ -74,7 +74,7 @@
                         <th class="{{ $cellPad }} font-bold text-center align-middle" style="background:#f0e4d4;">
                             @if ($editable)
                                 <div class="flex items-start gap-1">
-                                    <input type="text" wire:model.blur="reportBlocks.{{ $blockIndex }}.headers.{{ $hi }}" class="w-full border-0 bg-transparent text-center text-[11px] font-bold">
+                                    <input type="text" wire:model.blur="reportBlocks.{{ $blockIndex }}.headers.{{ $hi }}" class="w-full border-0 bg-transparent text-center text-[13px] font-bold">
                                     @if ($hi >= 5)
                                         <button type="button" wire:click="removeExternalAuditBlockColumn({{ $blockIndex }}, {{ $hi }})" class="shrink-0 text-rose-600" title="কলাম মুছুন">×</button>
                                     @endif
@@ -96,9 +96,9 @@
                             <td class="{{ $cellPad }} align-top {{ in_array($field, ['area_of_observation', 'year_of_reporting', 'internal_index_no'], true) ? 'text-center' : 'text-left' }}">
                                 @if ($editable)
                                     @if (in_array($field, ['external_observation', 'compliance'], true))
-                                        <textarea wire:model.blur="reportBlocks.{{ $blockIndex }}.rows.{{ $rowIndex }}.{{ $field }}" rows="2" class="w-full border-0 bg-sky-50/40 p-1 text-[11px]"></textarea>
+                                        <textarea wire:model.blur="reportBlocks.{{ $blockIndex }}.rows.{{ $rowIndex }}.{{ $field }}" rows="2" class="w-full border-0 bg-sky-50/40 p-1 text-[13px]"></textarea>
                                     @else
-                                        <input type="text" wire:model.blur="reportBlocks.{{ $blockIndex }}.rows.{{ $rowIndex }}.{{ $field }}" class="w-full border-0 bg-sky-50/40 px-1 text-center text-[11px]">
+                                        <input type="text" wire:model.blur="reportBlocks.{{ $blockIndex }}.rows.{{ $rowIndex }}.{{ $field }}" class="w-full border-0 bg-sky-50/40 px-1 text-center text-[13px]">
                                     @endif
                                 @else
                                     <span class="whitespace-pre-wrap">{{ $row[$field] ?? '' }}</span>
@@ -108,7 +108,7 @@
                         @for ($ei = 0; $ei < $extraCount; $ei++)
                             <td class="{{ $cellPad }} align-top">
                                 @if ($editable)
-                                    <textarea wire:model.blur="reportBlocks.{{ $blockIndex }}.rows.{{ $rowIndex }}.extra.{{ $ei }}" rows="2" class="w-full border-0 bg-sky-50/40 p-1 text-[11px]"></textarea>
+                                    <textarea wire:model.blur="reportBlocks.{{ $blockIndex }}.rows.{{ $rowIndex }}.extra.{{ $ei }}" rows="2" class="w-full border-0 bg-sky-50/40 p-1 text-[13px]"></textarea>
                                 @else
                                     <span class="whitespace-pre-wrap">{{ $row['extra'][$ei] ?? '' }}</span>
                                 @endif

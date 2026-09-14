@@ -2,9 +2,9 @@
     <div class="px-4 py-5 lg:px-6">
         <div class="mb-4 flex flex-wrap items-start justify-between gap-2.5">
             <div>
-                <a href="{{ route('projects.index') }}" class="text-[11px] font-medium text-brand-600 hover:underline">← All projects</a>
-                <h1 class="mt-1 text-[15px] font-semibold tracking-tight text-navy-900">{{ $project->name }}</h1>
-                <p class="mt-0.5 text-[11px] text-slate-500">
+                <a href="{{ route('projects.index') }}" class="text-[13px] font-medium text-brand-600 hover:underline">← All projects</a>
+                <h1 class="mt-1 text-lg font-semibold tracking-tight text-navy-900">{{ $project->name }}</h1>
+                <p class="mt-0.5 text-[13px] text-slate-500">
                     {{ $project->donor ?: 'No donor' }}
                     <span class="mx-1 text-slate-300">·</span>
                     <span class="capitalize">{{ $project->status }}</span>
@@ -23,16 +23,16 @@
 
         <div class="mb-4 flex flex-wrap gap-1.5">
             @if ($project->is_pksf)
-                <span class="rounded bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-700">PKSF</span>
+                <span class="rounded bg-sky-50 px-2 py-0.5 text-[13px] font-medium text-sky-700">PKSF</span>
             @endif
             @if ($project->is_maternity)
-                <span class="rounded bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700">Maternity</span>
+                <span class="rounded bg-violet-50 px-2 py-0.5 text-[13px] font-medium text-violet-700">Maternity</span>
             @endif
             @if ($project->has_project_audit)
-                <span class="rounded bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">Project Audit</span>
+                <span class="rounded bg-emerald-50 px-2 py-0.5 text-[13px] font-medium text-emerald-700">Project Audit</span>
             @endif
             @if ($project->has_project_monitoring)
-                <span class="rounded bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">Project Monitoring</span>
+                <span class="rounded bg-amber-50 px-2 py-0.5 text-[13px] font-medium text-amber-700">Project Monitoring</span>
             @endif
         </div>
 
@@ -40,12 +40,12 @@
             <div class="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-card lg:col-span-3">
                 <div class="border-b border-slate-100 px-4 py-3">
                     <p class="text-[13px] font-medium text-navy-900">Locations</p>
-                    <p class="mt-0.5 text-[11px] text-slate-500">Each active location can be scheduled in Annual Audit</p>
+                    <p class="mt-0.5 text-[13px] text-slate-500">Each active location can be scheduled in Annual Audit</p>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-full text-left">
                         <thead class="border-b border-slate-100 bg-slate-50/80">
-                            <tr class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                            <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
                                 <th class="px-4 py-2.5">Division</th>
                                 <th class="px-4 py-2.5">Location</th>
                                 <th class="px-4 py-2.5">Status</th>
@@ -63,14 +63,14 @@
                                             <form method="POST" action="{{ route('projects.locations.destroy', [$project, $location]) }}" data-bynnas-confirm="Remove this location?" data-bynnas-confirm-title="Remove location?" data-bynnas-confirm-ok="Remove" data-bynnas-confirm-tone="rose">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="text-[11px] font-medium text-rose-500 hover:underline">Remove</button>
+                                                <button type="submit" class="text-[13px] font-medium text-rose-500 hover:underline">Remove</button>
                                             </form>
                                         @endcan
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="px-4 py-8 text-center text-[12px] text-slate-400">No locations yet.</td>
+                                    <td colspan="4" class="px-4 py-8 text-center text-[13px] text-slate-500">No locations yet.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -86,7 +86,7 @@
                     <form method="POST" action="{{ route('projects.locations.store', $project) }}" class="space-y-3 px-4 py-4">
                         @csrf
                         <div>
-                            <label for="division" class="mb-1 block text-[11px] font-medium text-slate-600">Division</label>
+                            <label for="division" class="mb-1 block text-[13px] font-medium text-slate-600">Division</label>
                             <select id="division" name="division" required class="block w-full rounded-lg border-slate-200 text-[13px]">
                                 <option value="">Select division</option>
                                 @foreach ($divisions as $division)
@@ -96,12 +96,12 @@
                             <x-input-error :messages="$errors->get('division')" class="mt-1" />
                         </div>
                         <div>
-                            <label for="name" class="mb-1 block text-[11px] font-medium text-slate-600">Location / site</label>
+                            <label for="name" class="mb-1 block text-[13px] font-medium text-slate-600">Location / site</label>
                             <x-text-input id="name" name="name" type="text" class="block w-full rounded-lg text-[13px]" :value="old('name')" required placeholder="e.g. Savar Unit Office" />
                             <x-input-error :messages="$errors->get('name')" class="mt-1" />
                         </div>
                         <div>
-                            <label for="status" class="mb-1 block text-[11px] font-medium text-slate-600">Status</label>
+                            <label for="status" class="mb-1 block text-[13px] font-medium text-slate-600">Status</label>
                             <select id="status" name="status" required class="block w-full rounded-lg border-slate-200 text-[13px]">
                                 <option value="active" @selected(old('status', 'active') === 'active')>Active</option>
                                 <option value="inactive" @selected(old('status') === 'inactive')>Inactive</option>

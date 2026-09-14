@@ -8,15 +8,15 @@
     <div class="px-4 py-5 lg:px-6">
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
-                <div class="mb-1 flex items-center gap-1.5 text-[11px] text-slate-400">
+                <div class="mb-1 flex items-center gap-1.5 text-[13px] text-slate-400">
                     <a href="{{ route('shakha-employees.index') }}" class="hover:text-brand-600">Shakha Employees</a>
                     <span>/</span>
                     <span class="text-slate-600">{{ $shakha->name }}</span>
                 </div>
-                <h1 class="text-[15px] font-semibold tracking-tight text-navy-900">
+                <h1 class="text-lg font-semibold tracking-tight text-navy-900">
                     {{ $isEdit ? 'Edit employee' : 'Shakha staff' }}
                 </h1>
-                <p class="mt-0.5 text-[11px] text-slate-500">
+                <p class="mt-0.5 text-[13px] text-slate-500">
                     {{ $shakha->area?->name ?: '—' }} · {{ $shakha->code ?: 'No code' }} · {{ $employees->count() }} on roster
                 </p>
             </div>
@@ -39,12 +39,12 @@
             <div class="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-card">
                 <div class="border-b border-slate-100 px-3.5 py-2.5">
                     <p class="text-[12px] font-semibold text-navy-900">Roster</p>
-                    <p class="text-[10px] text-slate-500">Photo · employee ID · name · designation</p>
+                    <p class="text-xs text-slate-500">Photo · employee ID · name · designation</p>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-full text-left">
                         <thead class="border-b border-slate-100 bg-slate-50/80">
-                            <tr class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                            <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
                                 <th class="px-3.5 py-2.5">Photo</th>
                                 <th class="px-3.5 py-2.5">ID</th>
                                 <th class="px-3.5 py-2.5">Name</th>
@@ -64,7 +64,7 @@
                                     <td class="px-3.5 py-2.5">
                                         <p class="font-medium text-slate-800">{{ $row->name }}</p>
                                         @if ($row->phone || $row->email)
-                                            <p class="text-[10px] text-slate-400">
+                                            <p class="text-xs text-slate-500">
                                                 {{ collect([$row->phone, $row->email])->filter()->implode(' · ') }}
                                             </p>
                                         @endif
@@ -75,22 +75,22 @@
                                     </td>
                                     <td class="px-3.5 py-2.5">
                                         @if ($row->isActive())
-                                            <span class="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">Active</span>
+                                            <span class="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Active</span>
                                         @elseif ($row->isFired())
-                                            <span class="inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-medium text-rose-700">Fired</span>
+                                            <span class="inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700">Fired</span>
                                         @elseif ($row->isTransferred())
-                                            <span class="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-800">Transferred</span>
+                                            <span class="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">Transferred</span>
                                         @else
-                                            <span class="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">Inactive</span>
+                                            <span class="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">Inactive</span>
                                         @endif
                                     </td>
                                     @if ($canManage)
                                         <td class="px-3.5 py-2.5 text-right whitespace-nowrap">
                                             @php $count = (int) (($reportCounts[$row->id] ?? 0)); @endphp
-                                            <a href="{{ route('shakha-employees.dossier', $row) }}" class="mr-2 text-[11px] font-semibold text-rose-700 hover:underline">
+                                            <a href="{{ route('shakha-employees.dossier', $row) }}" class="mr-2 text-[13px] font-semibold text-rose-700 hover:underline">
                                                 রিপোর্ট{{ $count > 0 ? ' ('.$count.')' : '' }}
                                             </a>
-                                            <a href="{{ route('shakha-employees.edit', $row) }}" class="text-[11px] font-semibold text-[#2b579a] hover:underline">Edit</a>
+                                            <a href="{{ route('shakha-employees.edit', $row) }}" class="text-[13px] font-semibold text-[#2b579a] hover:underline">Edit</a>
                                             <span class="ml-2 inline-block align-middle">
                                                 @include('shakha-employees.partials.transfer-fire-actions', [
                                                     'employee' => $row,
@@ -101,13 +101,13 @@
                                             <form method="POST" action="{{ route('shakha-employees.destroy', $row) }}" class="ml-2 inline" onsubmit="return confirm('Remove this employee from the roster?')">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="text-[11px] font-semibold text-rose-600 hover:underline">Remove</button>
+                                                <button type="submit" class="text-[13px] font-semibold text-rose-600 hover:underline">Remove</button>
                                             </form>
                                         </td>
                                     @else
                                         <td class="px-3.5 py-2.5 text-right whitespace-nowrap">
                                             @php $count = (int) (($reportCounts[$row->id] ?? 0)); @endphp
-                                            <a href="{{ route('shakha-employees.dossier', $row) }}" class="text-[11px] font-semibold text-rose-700 hover:underline">
+                                            <a href="{{ route('shakha-employees.dossier', $row) }}" class="text-[13px] font-semibold text-rose-700 hover:underline">
                                                 রিপোর্ট{{ $count > 0 ? ' ('.$count.')' : '' }}
                                             </a>
                                         </td>
@@ -115,7 +115,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-3.5 py-10 text-center text-[12px] text-slate-400">
+                                    <td colspan="7" class="px-3.5 py-10 text-center text-[13px] text-slate-500">
                                         No employees on this shakha yet.
                                     </td>
                                 </tr>
@@ -140,7 +140,7 @@
                 >
                     <div class="border-b border-slate-100 px-3.5 py-2.5">
                         <p class="text-[12px] font-semibold text-navy-900">{{ $isEdit ? 'Edit employee' : 'Add employee' }}</p>
-                        <p class="text-[10px] text-slate-500">Required: photo preferred · ID, name, designation</p>
+                        <p class="text-xs text-slate-500">Required: photo preferred · ID, name, designation</p>
                     </div>
                     <form
                         method="POST"
@@ -154,7 +154,7 @@
                         @endif
 
                         <div class="rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-3">
-                            <label class="mb-2 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Employee photo</label>
+                            <label class="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">Employee photo</label>
                             <div class="flex items-center gap-3">
                                 <div class="relative">
                                     <template x-if="preview">
@@ -171,12 +171,12 @@
                                         type="file"
                                         name="photo"
                                         accept="image/jpeg,image/png,image/webp"
-                                        class="block w-full text-[11px] text-slate-600 file:mr-2 file:rounded-md file:border-0 file:bg-navy-900 file:px-2.5 file:py-1.5 file:text-[11px] file:font-semibold file:text-white hover:file:bg-navy-800"
+                                        class="block w-full text-[13px] text-slate-600 file:mr-2 file:rounded-md file:border-0 file:bg-navy-900 file:px-2.5 file:py-1.5 file:text-[13px] file:font-semibold file:text-white hover:file:bg-navy-800"
                                         @change="onFile($event)"
                                     >
-                                    <p class="mt-1 text-[10px] text-slate-400">JPG, PNG or WebP · max 2 MB</p>
+                                    <p class="mt-1 text-xs text-slate-500">JPG, PNG or WebP · max 2 MB</p>
                                     @if ($isEdit && $currentPhotoUrl)
-                                        <label class="mt-1.5 inline-flex items-center gap-1.5 text-[11px] text-rose-600">
+                                        <label class="mt-1.5 inline-flex items-center gap-1.5 text-[13px] text-rose-600">
                                             <input type="checkbox" name="remove_photo" value="1" class="rounded border-slate-300 text-rose-600 focus:ring-rose-500">
                                             Remove current photo
                                         </label>
@@ -187,24 +187,24 @@
                         </div>
 
                         <div>
-                            <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Employee ID</label>
+                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Employee ID</label>
                             <input type="text" name="employee_code" value="{{ old('employee_code', $formEmployee?->employee_code) }}" required class="h-8 w-full rounded-lg border-slate-200 text-[12px]" placeholder="e.g. EMP-001">
                         </div>
                         <div>
-                            <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Employee name</label>
+                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Employee name</label>
                             <input type="text" name="name" value="{{ old('name', $formEmployee?->name) }}" required class="h-8 w-full rounded-lg border-slate-200 text-[12px]">
                         </div>
                         <div>
-                            <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Designation</label>
+                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Designation</label>
                             <input type="text" name="designation" value="{{ old('designation', $formEmployee?->designation) }}" required class="h-8 w-full rounded-lg border-slate-200 text-[12px]" placeholder="e.g. Branch Manager">
                         </div>
                         <div class="grid grid-cols-2 gap-2">
                             <div>
-                                <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Phone</label>
+                                <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Phone</label>
                                 <input type="text" name="phone" value="{{ old('phone', $formEmployee?->phone) }}" class="h-8 w-full rounded-lg border-slate-200 text-[12px]">
                             </div>
                             <div>
-                                <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Status</label>
+                                <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Status</label>
                                 <select name="status" class="h-8 w-full rounded-lg border-slate-200 text-[12px]">
                                     <option value="active" @selected(old('status', $formEmployee?->status ?? 'active') === 'active')>Active (কর্মরত)</option>
                                     <option value="transferred" @selected(old('status', $formEmployee?->status ?? 'active') === 'transferred')>Transferred (স্থানান্তরিত)</option>
@@ -214,25 +214,25 @@
                             </div>
                         </div>
                         <div>
-                            <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Email</label>
+                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Email</label>
                             <input type="email" name="email" value="{{ old('email', $formEmployee?->email) }}" class="h-8 w-full rounded-lg border-slate-200 text-[12px]">
                         </div>
                         <div class="grid grid-cols-2 gap-2">
                             <div>
-                                <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Joined org</label>
+                                <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Joined org</label>
                                 <input type="date" name="joined_organization_at" value="{{ old('joined_organization_at', $formEmployee?->joined_organization_at?->format('Y-m-d')) }}" class="h-8 w-full rounded-lg border-slate-200 text-[12px]">
                             </div>
                             <div>
-                                <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Joined shakha</label>
+                                <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Joined shakha</label>
                                 <input type="date" name="joined_shakha_at" value="{{ old('joined_shakha_at', $formEmployee?->joined_shakha_at?->format('Y-m-d')) }}" class="h-8 w-full rounded-lg border-slate-200 text-[12px]">
                             </div>
                         </div>
                         <div>
-                            <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Sort order</label>
+                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Sort order</label>
                             <input type="number" min="0" name="sort_order" value="{{ old('sort_order', $formEmployee?->sort_order ?? 0) }}" class="h-8 w-full rounded-lg border-slate-200 text-[12px]">
                         </div>
                         <div>
-                            <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Notes</label>
+                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Notes</label>
                             <textarea name="notes" rows="2" class="w-full rounded-lg border-slate-200 text-[12px]">{{ old('notes', $formEmployee?->notes) }}</textarea>
                         </div>
 
@@ -241,7 +241,7 @@
                                 {{ $isEdit ? 'Save changes' : 'Add employee' }}
                             </button>
                             @if ($isEdit)
-                                <a href="{{ route('shakha-employees.manage', $shakha) }}" class="text-[11px] font-semibold text-slate-500 hover:underline">Cancel</a>
+                                <a href="{{ route('shakha-employees.manage', $shakha) }}" class="text-[13px] font-semibold text-slate-500 hover:underline">Cancel</a>
                             @endif
                         </div>
                     </form>

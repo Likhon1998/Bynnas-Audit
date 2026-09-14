@@ -13,7 +13,7 @@
     $widths = CustomTableSchema::leafWidths($columns);
     $headerMatrix = CustomTableSchema::headerMatrix($columns);
     $paint = CustomTableSchema::bodyPaintPlan($table);
-    $tableClass = ($compact ?? false) ? 'a4-table a4-table-compact text-[9px]' : 'a4-table text-[10.5px]';
+    $tableClass = ($compact ?? false) ? 'a4-table a4-table-compact text-xs' : 'a4-table text-[10.5px]';
 @endphp
 
 <table class="{{ $tableClass }} mb-[2mm] w-full border-collapse" style="table-layout: fixed;" wire:key="ct-table-{{ $blockIndex }}-{{ $leafCount }}-{{ count($rows) }}">
@@ -70,7 +70,7 @@
                                 type="text"
                                 wire:key="ct-cell-{{ $blockIndex }}-{{ $rIndex }}-{{ $c }}"
                                 wire:model.blur="reportBlocks.{{ $blockIndex }}.rows.{{ $rIndex }}.cells.{{ $c }}"
-                                class="w-full border-0 bg-transparent {{ $textAlign }} text-[11px] {{ $isTotal ? 'font-bold' : '' }}"
+                                class="w-full border-0 bg-transparent {{ $textAlign }} text-[13px] {{ $isTotal ? 'font-bold' : '' }}"
                                 @if ($alpineSelect || $selectable) @click.stop @endif
                             >
                         @else

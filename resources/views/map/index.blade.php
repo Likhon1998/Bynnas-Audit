@@ -63,9 +63,9 @@
                     <img src="{{ asset('images/bynnas-logo.png') }}?v=3" alt="" class="h-8 w-8 rounded-lg object-contain">
                     <div class="min-w-0 flex-1">
                         <p class="truncate text-[13px] font-semibold">Bynnas <span class="text-sky-300">Map</span></p>
-                        <p class="text-[10px] text-slate-400">Voronoi territories · risk fill</p>
+                        <p class="text-xs text-slate-500">Voronoi territories · risk fill</p>
                     </div>
-                    <span class="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
+                    <span class="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs font-semibold text-emerald-300">
                         <span class="h-1.5 w-1.5 rounded-full" :class="live ? 'animate-pulse bg-emerald-400' : 'bg-slate-500'"></span>
                         <span x-text="live ? 'Live' : 'Off'"></span>
                     </span>
@@ -73,15 +73,15 @@
 
                 <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-3 py-3">
                     <div>
-                        <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Search</label>
+                        <label class="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Search</label>
                         <input type="search" x-model="query" @input.debounce.200ms="search()" placeholder="Find a place or shakha" class="h-9 w-full rounded-lg border-white/10 bg-white/10 text-[12px] text-white placeholder:text-slate-400 focus:border-sky-400 focus:ring-sky-400">
                         <div x-show="results.length" x-cloak class="mt-1.5 overflow-hidden rounded-lg border border-white/10 bg-slate-900/80 backdrop-blur-md">
                             <template x-for="item in results" :key="item.key">
                                 <button type="button" class="flex w-full items-start gap-2 px-2.5 py-1.5 text-left hover:bg-white/10" @click="goTo(item)">
-                                    <span class="mt-0.5 rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase text-sky-200" :style="'background:' + item.color + '33'" x-text="item.typeLabel"></span>
+                                    <span class="mt-0.5 rounded px-1.5 py-0.5 text-xs font-semibold uppercase text-sky-200" :style="'background:' + item.color + '33'" x-text="item.typeLabel"></span>
                                     <span class="min-w-0">
                                         <span class="block truncate text-[12px]" x-text="item.label"></span>
-                                        <span class="block truncate text-[10px] text-slate-400" x-text="item.meta"></span>
+                                        <span class="block truncate text-xs text-slate-500" x-text="item.meta"></span>
                                     </span>
                                 </button>
                             </template>
@@ -89,26 +89,26 @@
                     </div>
 
                     <div>
-                        <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Separate section</label>
+                        <label class="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Separate section</label>
                         <div class="grid grid-cols-2 gap-1.5">
                             <template x-for="mode in sectionOptions" :key="mode.key">
-                                <button type="button" class="rounded-lg border px-2 py-2 text-[11px] font-semibold" :class="section === mode.key ? 'border-sky-300/60 bg-sky-400/20 text-white' : 'border-white/10 bg-white/5 text-slate-300'" @click="setSection(mode.key)" x-text="mode.label"></button>
+                                <button type="button" class="rounded-lg border px-2 py-2 text-[13px] font-semibold" :class="section === mode.key ? 'border-sky-300/60 bg-sky-400/20 text-white' : 'border-white/10 bg-white/5 text-slate-300'" @click="setSection(mode.key)" x-text="mode.label"></button>
                             </template>
                         </div>
                     </div>
 
                     <div>
-                        <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Division</label>
+                        <label class="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Division</label>
                         <div class="grid grid-cols-2 gap-1.5">
-                            <button type="button" class="rounded-lg border px-2 py-2 text-[11px] font-semibold" :class="!selectedDivision ? 'border-sky-300/60 bg-sky-400/20 text-white' : 'border-white/10 bg-white/5 text-slate-300'" @click="selectDivision('')">All</button>
+                            <button type="button" class="rounded-lg border px-2 py-2 text-[13px] font-semibold" :class="!selectedDivision ? 'border-sky-300/60 bg-sky-400/20 text-white' : 'border-white/10 bg-white/5 text-slate-300'" @click="selectDivision('')">All</button>
                             <template x-for="name in mapDivisionNames" :key="name">
-                                <button type="button" class="rounded-lg border px-2 py-2 text-[11px] font-semibold" :class="selectedDivision === name ? 'border-sky-300/60 bg-sky-400/20 text-white' : 'border-white/10 bg-white/5 text-slate-300'" @click="selectDivision(name)" x-text="name"></button>
+                                <button type="button" class="rounded-lg border px-2 py-2 text-[13px] font-semibold" :class="selectedDivision === name ? 'border-sky-300/60 bg-sky-400/20 text-white' : 'border-white/10 bg-white/5 text-slate-300'" @click="selectDivision(name)" x-text="name"></button>
                             </template>
                         </div>
                     </div>
 
                     <div x-show="section === 'all' || section === 'district' || section === 'pouroshova'">
-                        <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">District</label>
+                        <label class="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">District</label>
                         <select x-model="selectedDistrict" @change="onDistrictChange()" class="map-select h-9 w-full rounded-lg py-0 text-[12px]">
                             <option value="">All districts</option>
                             <template x-for="name in districtNames" :key="name">
@@ -118,7 +118,7 @@
                     </div>
 
                     <div x-show="section === 'all' || section === 'pouroshova'">
-                        <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Pouroshova</label>
+                        <label class="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Pouroshova</label>
                         <select x-model="selectedPouroshova" @change="applyFilters()" class="map-select h-9 w-full rounded-lg py-0 text-[12px]">
                             <option value="">All pouroshova</option>
                             <template x-for="name in pouroshovaNames" :key="name">
@@ -128,34 +128,34 @@
                     </div>
 
                     <div>
-                        <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Map layer</label>
+                        <label class="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Map layer</label>
                         <div class="grid grid-cols-3 gap-1.5">
-                            <button type="button" class="rounded-lg border px-2 py-1.5 text-[10px] font-semibold" :class="basemap === 'osm' ? 'border-sky-300/60 bg-sky-400/20 text-white' : 'border-white/10 text-slate-300'" @click="setBasemap('osm')">OpenStreet</button>
-                            <button type="button" class="rounded-lg border px-2 py-1.5 text-[10px] font-semibold" :class="basemap === 'hybrid' ? 'border-sky-300/60 bg-sky-400/20 text-white' : 'border-white/10 text-slate-300'" @click="setBasemap('hybrid')">Hybrid</button>
-                            <button type="button" class="rounded-lg border px-2 py-1.5 text-[10px] font-semibold" :class="basemap === 'satellite' ? 'border-sky-300/60 bg-sky-400/20 text-white' : 'border-white/10 text-slate-300'" @click="setBasemap('satellite')">Satellite</button>
+                            <button type="button" class="rounded-lg border px-2 py-1.5 text-xs font-semibold" :class="basemap === 'osm' ? 'border-sky-300/60 bg-sky-400/20 text-white' : 'border-white/10 text-slate-300'" @click="setBasemap('osm')">OpenStreet</button>
+                            <button type="button" class="rounded-lg border px-2 py-1.5 text-xs font-semibold" :class="basemap === 'hybrid' ? 'border-sky-300/60 bg-sky-400/20 text-white' : 'border-white/10 text-slate-300'" @click="setBasemap('hybrid')">Hybrid</button>
+                            <button type="button" class="rounded-lg border px-2 py-1.5 text-xs font-semibold" :class="basemap === 'satellite' ? 'border-sky-300/60 bg-sky-400/20 text-white' : 'border-white/10 text-slate-300'" @click="setBasemap('satellite')">Satellite</button>
                         </div>
                     </div>
 
                     <div>
-                        <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Risk legend</label>
+                        <label class="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Risk legend</label>
                         <div class="space-y-1">
                             <button type="button" class="flex w-full items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-left" @click="toggleRisk('low')">
                                 <span class="h-2.5 w-2.5 rounded-sm bg-emerald-500 ring-1 ring-emerald-300" :class="risks.low ? '' : 'opacity-30'"></span>
-                                <span class="text-[11px] text-slate-200">Low</span>
+                                <span class="text-[13px] text-slate-200">Low</span>
                             </button>
                             <button type="button" class="flex w-full items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-left" @click="toggleRisk('medium')">
                                 <span class="h-2.5 w-2.5 rounded-sm bg-amber-500 ring-1 ring-amber-300" :class="risks.medium ? '' : 'opacity-30'"></span>
-                                <span class="text-[11px] text-slate-200">Medium</span>
+                                <span class="text-[13px] text-slate-200">Medium</span>
                             </button>
                             <button type="button" class="flex w-full items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-left" @click="toggleRisk('high')">
                                 <span class="h-2.5 w-2.5 rounded-sm bg-rose-500 ring-1 ring-rose-300" :class="risks.high && risks.significant ? '' : 'opacity-30'"></span>
-                                <span class="text-[11px] text-slate-200">High / significant</span>
+                                <span class="text-[13px] text-slate-200">High / significant</span>
                             </button>
                         </div>
                     </div>
 
                     <div>
-                        <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Area</label>
+                        <label class="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Area</label>
                         <select x-model="selectedArea" @change="zoomToArea(selectedArea)" class="map-select h-9 w-full rounded-lg py-0 text-[12px]">
                             <option value="">All areas</option>
                             <template x-for="area in areaLegend" :key="area.name">
@@ -166,21 +166,21 @@
 
                     <div>
                         <div class="mb-1.5 flex items-center justify-between">
-                            <label class="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Areas</label>
-                            <button type="button" class="text-[10px] font-semibold text-sky-300" @click="showShakhas = !showShakhas; renderTerritories()" x-text="showShakhas ? 'Hide territories' : 'Show territories'"></button>
+                            <label class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Areas</label>
+                            <button type="button" class="text-xs font-semibold text-sky-300" @click="showShakhas = !showShakhas; renderTerritories()" x-text="showShakhas ? 'Hide territories' : 'Show territories'"></button>
                         </div>
                         <div class="max-h-48 space-y-1 overflow-y-auto pr-0.5">
                             <template x-for="area in areaLegend" :key="area.name">
                                 <button type="button" class="flex w-full items-center gap-2 rounded-lg border px-2 py-1.5 text-left" :class="!selectedArea || selectedArea === area.name ? 'border-white/15 bg-white/5' : 'border-white/5 opacity-35'" @click="zoomToArea(selectedArea === area.name ? '' : area.name)">
                                     <span class="h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white/40" :style="'background:' + area.color"></span>
-                                    <span class="min-w-0 flex-1 truncate text-[11px] text-slate-200" x-text="area.name"></span>
-                                    <span class="text-[11px] text-slate-400" x-text="area.count"></span>
+                                    <span class="min-w-0 flex-1 truncate text-[13px] text-slate-200" x-text="area.name"></span>
+                                    <span class="text-[13px] text-slate-400" x-text="area.count"></span>
                                 </button>
                             </template>
                         </div>
                     </div>
 
-                    <p class="text-[10px] leading-relaxed text-slate-400" x-text="statusText"></p>
+                    <p class="text-xs leading-relaxed text-slate-400" x-text="statusText"></p>
                 </div>
 
                 <div class="border-t border-white/10 px-3 py-2.5">
@@ -199,15 +199,15 @@
             </button>
             <div class="absolute bottom-3 left-3 z-[500] overflow-hidden rounded-lg border border-white/40 bg-slate-900/80 shadow-lg backdrop-blur-md">
                 <div class="flex">
-                    <button type="button" class="map-layer-btn px-3 py-2 text-[11px] font-semibold" :class="basemap === 'osm' ? 'is-on' : ''" @click="setBasemap('osm')">OpenStreet</button>
-                    <button type="button" class="map-layer-btn px-3 py-2 text-[11px] font-semibold" :class="basemap === 'hybrid' ? 'is-on' : ''" @click="setBasemap('hybrid')">Hybrid</button>
-                    <button type="button" class="map-layer-btn px-3 py-2 text-[11px] font-semibold" :class="basemap === 'satellite' ? 'is-on' : ''" @click="setBasemap('satellite')">Satellite</button>
+                    <button type="button" class="map-layer-btn px-3 py-2 text-[13px] font-semibold" :class="basemap === 'osm' ? 'is-on' : ''" @click="setBasemap('osm')">OpenStreet</button>
+                    <button type="button" class="map-layer-btn px-3 py-2 text-[13px] font-semibold" :class="basemap === 'hybrid' ? 'is-on' : ''" @click="setBasemap('hybrid')">Hybrid</button>
+                    <button type="button" class="map-layer-btn px-3 py-2 text-[13px] font-semibold" :class="basemap === 'satellite' ? 'is-on' : ''" @click="setBasemap('satellite')">Satellite</button>
                 </div>
             </div>
             <div class="absolute bottom-3 right-3 z-[500] rounded-xl border border-white/10 bg-slate-900/80 px-3 py-2 text-white shadow-lg backdrop-blur-md">
-                <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400" x-text="sectionLabel"></p>
+                <p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500" x-text="sectionLabel"></p>
                 <p class="text-[18px] font-semibold text-white" x-text="visibleCount"></p>
-                <p class="text-[10px] text-slate-400">risk territories</p>
+                <p class="text-xs text-slate-500">risk territories</p>
             </div>
         </div>
     </div>

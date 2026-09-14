@@ -112,8 +112,8 @@ class OrganogramTest extends TestCase
             ->get(route('dashboard'))
             ->assertOk()
             ->assertSee('Hello, Dashboard')
-            ->assertSee('Visits today')
-            ->assertSee('Monthly visits')
+            ->assertSee('Where to go today')
+            ->assertSee('My monthly visits')
             ->assertDontSee('Audit organogram ranks');
     }
 }

@@ -42,20 +42,20 @@
                 x-text="tone === 'rose' ? '✕' : (tone === 'amber' ? '!' : '✓')"
             ></span>
             <div class="min-w-0 pt-0.5">
-                <p class="text-[13px] font-semibold tracking-tight text-navy-900" x-text="title"></p>
-                <p class="mt-1 text-[12px] leading-relaxed text-slate-500" x-text="message"></p>
+                <p class="text-sm font-semibold tracking-tight text-navy-900" x-text="title"></p>
+                <p class="mt-1 text-[13px] leading-relaxed text-slate-600" x-text="message"></p>
             </div>
         </div>
         <div class="flex items-center justify-end gap-1.5">
             <button
                 type="button"
-                class="inline-flex h-8 items-center rounded-lg px-2.5 text-[12px] font-medium text-slate-600 hover:bg-slate-50"
+                class="inline-flex h-8 items-center rounded-lg px-2.5 text-[13px] font-medium text-slate-600 hover:bg-slate-50"
                 @click="cancel()"
                 x-text="cancelLabel"
             ></button>
             <button
                 type="button"
-                class="inline-flex h-8 items-center rounded-lg px-3 text-[12px] font-semibold text-white shadow-sm"
+                class="inline-flex h-8 items-center rounded-lg px-3 text-[13px] font-semibold text-white shadow-sm"
                 :class="{
                     'bg-rose-600 hover:bg-rose-700': tone === 'rose',
                     'bg-amber-600 hover:bg-amber-700': tone === 'amber',

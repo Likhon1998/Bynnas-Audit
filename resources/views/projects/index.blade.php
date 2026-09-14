@@ -2,8 +2,8 @@
     <div class="px-4 py-5 lg:px-6">
         <div class="mb-4 flex flex-wrap items-center justify-between gap-2.5">
             <div>
-                <h1 class="text-[15px] font-semibold tracking-tight text-navy-900">Projects</h1>
-                <p class="mt-0.5 text-[11px] text-slate-500">Master list — flags decide which Annual Audit tabs get schedules</p>
+                <h1 class="text-lg font-semibold tracking-tight text-navy-900">Projects</h1>
+                <p class="mt-0.5 text-[13px] text-slate-500">Master list — flags decide which Annual Audit tabs get schedules</p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
                 @canany(['annual_audit.view', 'annual_audit.manage'])
@@ -28,7 +28,7 @@
             <div class="overflow-x-auto">
                 <table class="min-w-full text-left">
                     <thead class="border-b border-slate-100 bg-slate-50/80">
-                        <tr class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                        <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
                             <th class="px-4 py-2.5">Project</th>
                             <th class="px-4 py-2.5">Donor</th>
                             <th class="px-4 py-2.5">Flags</th>
@@ -45,25 +45,25 @@
                                 <td class="px-4 py-2.5">
                                     <div class="flex flex-wrap gap-1">
                                         @if ($project->is_pksf)
-                                            <span class="rounded bg-sky-50 px-1.5 py-0.5 text-[10px] font-medium text-sky-700">PKSF</span>
+                                            <span class="rounded bg-sky-50 px-1.5 py-0.5 text-xs font-medium text-sky-700">PKSF</span>
                                         @endif
                                         @if ($project->is_maternity)
-                                            <span class="rounded bg-violet-50 px-1.5 py-0.5 text-[10px] font-medium text-violet-700">Maternity</span>
+                                            <span class="rounded bg-violet-50 px-1.5 py-0.5 text-xs font-medium text-violet-700">Maternity</span>
                                         @endif
                                         @if ($project->has_project_audit)
-                                            <span class="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">Audit</span>
+                                            <span class="rounded bg-emerald-50 px-1.5 py-0.5 text-xs font-medium text-emerald-700">Audit</span>
                                         @endif
                                         @if ($project->has_project_monitoring)
-                                            <span class="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">Monitoring</span>
+                                            <span class="rounded bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-700">Monitoring</span>
                                         @endif
                                     </div>
                                 </td>
                                 <td class="px-4 py-2.5 text-slate-600">{{ $project->locations_count }}</td>
                                 <td class="px-4 py-2.5">
                                     @if ($project->isActive())
-                                        <span class="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">Active</span>
+                                        <span class="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Active</span>
                                     @else
-                                        <span class="inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-medium text-rose-600">Inactive</span>
+                                        <span class="inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-600">Inactive</span>
                                     @endif
                                 </td>
                                 <td class="px-4 py-2.5 text-right">
@@ -76,7 +76,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="px-4 py-10 text-center text-[12px] text-slate-400">
+                                <td colspan="6" class="px-4 py-10 text-center text-[13px] text-slate-500">
                                     No projects yet.
                                     @can('projects.manage')
                                         <a href="{{ route('projects.create') }}" class="font-medium text-brand-600 hover:underline">Add the first one</a>

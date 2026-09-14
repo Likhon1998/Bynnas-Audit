@@ -21,10 +21,10 @@
         {{-- Header --}}
         <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
             <div class="min-w-0">
-                <h1 class="text-[15px] font-semibold tracking-tight text-navy-900">
+                <h1 class="text-lg font-semibold tracking-tight text-navy-900">
                     {{ ($officerView ?? false) ? 'My monthly visits' : 'Monthly Field Visits' }}
                 </h1>
-                <p class="text-[11px] text-slate-500">
+                <p class="text-[13px] text-slate-500">
                     FY {{ $plan->fy_label }} · {{ $monthLabel }}
                     @if ($officerView ?? false)
                         · only shakhas allocated to you
@@ -65,13 +65,6 @@
             </div>
         @endunless
 
-        <div class="mb-3">
-            @include('calendar.partials.source-banner', [
-                'weekendLabels' => $calendarPayload['weekend_labels'] ?? [],
-                'calendarManageUrl' => $calendarPayload['manage_url'] ?? route('calendar.index'),
-            ])
-        </div>
-
         {{-- Controls: period · search · actions --}}
         <div class="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-2">
             <form method="GET" action="{{ route('monthly-visits.index') }}" class="flex flex-wrap items-center gap-2">
@@ -101,7 +94,7 @@
                     x-show="listQuery"
                     x-cloak
                     @click="listQuery = ''"
-                    class="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-slate-400 hover:text-slate-600"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 text-[13px] text-slate-400 hover:text-slate-600"
                 >Clear</button>
             </div>
 
@@ -159,7 +152,7 @@
                 <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-3 py-2">
                     <div>
                         <h2 class="text-[13px] font-semibold text-navy-900">Unassigned</h2>
-                        <p class="text-[11px] text-slate-500">
+                        <p class="text-[13px] text-slate-500">
                             <span x-text="visibleUnassignedCount"></span> / {{ $unassigned->count() }}
                             <span x-show="listQuery" x-cloak> · filtered</span>
                         </p>
@@ -167,7 +160,7 @@
                     <button
                         type="button"
                         @click="showSpecial = !showSpecial"
-                        class="h-7 rounded-md border border-slate-200 px-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
+                        class="h-7 rounded-md border border-slate-200 px-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50"
                         x-text="showSpecial ? 'Cancel special' : '+ Special'"
                     ></button>
                 </div>
@@ -178,7 +171,7 @@
                         <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
                         <input type="hidden" name="month" value="{{ $monthIndex }}">
                         <div>
-                            <label class="mb-0.5 block text-[10px] font-medium text-slate-500">Type</label>
+                            <label class="mb-0.5 block text-xs font-medium text-slate-500">Type</label>
                             <select name="activity_type_id" required class="h-8 w-full rounded-md border-slate-200 text-[12px]">
                                 @foreach ($activityTypes as $type)
                                     <option value="{{ $type->id }}">{{ $type->name }}</option>
@@ -186,11 +179,11 @@
                             </select>
                         </div>
                         <div>
-                            <label class="mb-0.5 block text-[10px] font-medium text-slate-500">Branch / entity</label>
+                            <label class="mb-0.5 block text-xs font-medium text-slate-500">Branch / entity</label>
                             <input type="text" name="entity_label" required placeholder="e.g. Special audit — Uttara" class="h-8 w-full rounded-md border-slate-200 text-[12px]">
                         </div>
                         <div class="sm:col-span-2">
-                            <label class="mb-0.5 block text-[10px] font-medium text-slate-500">Notes</label>
+                            <label class="mb-0.5 block text-xs font-medium text-slate-500">Notes</label>
                             <div class="flex gap-2">
                                 <input type="text" name="notes" placeholder="Optional" class="h-8 min-w-0 flex-1 rounded-md border-slate-200 text-[12px]">
                                 <button type="submit" class="h-8 shrink-0 rounded-md bg-navy-900 px-3 text-[12px] font-medium text-white hover:bg-navy-800">Add</button>
@@ -202,7 +195,7 @@
                 <div class="max-h-[28rem] overflow-auto">
                     <table class="min-w-full text-left">
                         <thead class="sticky top-0 border-b border-slate-100 bg-slate-50">
-                            <tr class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                            <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
                                 <th class="px-3 py-2 w-8">#</th>
                                 <th class="px-3 py-2">Branch / Entity</th>
                                 <th class="px-3 py-2">Type</th>
@@ -235,7 +228,7 @@
                                         @else
                                             <p class="font-medium text-navy-900">{{ $item->entity_label }}</p>
                                         @endif
-                                        <p class="text-[10px] text-slate-400">
+                                        <p class="text-xs text-slate-500">
                                             {{ $item->isSpecial() ? 'Special' : 'Yearly' }}
                                             · {{ str_replace('_', ' ', $item->category) }}
                                         </p>
@@ -245,13 +238,13 @@
                                         <button
                                             type="button"
                                             @click="openAllocate({{ $item->id }})"
-                                            class="rounded-md bg-navy-900 px-2 py-1 text-[11px] font-medium text-white hover:bg-navy-800"
+                                            class="rounded-md bg-navy-900 px-2 py-1 text-[13px] font-medium text-white hover:bg-navy-800"
                                         >Allocate</button>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="px-3 py-8 text-center text-[12px] text-slate-400">
+                                    <td colspan="4" class="px-3 py-8 text-center text-[13px] text-slate-500">
                                         @if ($items->isEmpty())
                                             @if ($plan->generated_at)
                                                 No yearly schedules for {{ $monthLabel }}.
@@ -266,7 +259,7 @@
                             @endforelse
                             @if ($unassigned->isNotEmpty())
                                 <tr x-show="visibleUnassignedCount === 0 && listQuery" x-cloak>
-                                    <td colspan="4" class="px-3 py-6 text-center text-[12px] text-slate-400">No matches.</td>
+                                    <td colspan="4" class="px-3 py-6 text-center text-[13px] text-slate-500">No matches.</td>
                                 </tr>
                             @endif
                         </tbody>
@@ -279,7 +272,7 @@
             <section class="overflow-hidden rounded-lg border border-slate-200 bg-white {{ ($officerView ?? false) ? '' : 'xl:col-span-7' }}">
                 <div class="border-b border-slate-100 px-3 py-2">
                     <h2 class="text-[13px] font-semibold text-navy-900">{{ ($officerView ?? false) ? 'My allocated shakhas' : 'Allocated schedule' }}</h2>
-                    <p class="text-[11px] text-slate-500">
+                    <p class="text-[13px] text-slate-500">
                         <span x-text="visibleAssignedCount"></span> / {{ $assigned->count() }}
                         <span x-show="listQuery" x-cloak> · filtered</span>
                     </p>
@@ -287,7 +280,7 @@
                 <div class="max-h-[28rem] overflow-auto">
                     <table class="min-w-full text-left">
                         <thead class="sticky top-0 border-b border-slate-100 bg-slate-50">
-                            <tr class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                            <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
                                 <th class="px-3 py-2 w-8">#</th>
                                 <th class="px-3 py-2">Visitor</th>
                                 <th class="px-3 py-2">Branch / Entity</th>
@@ -331,7 +324,7 @@
                                         @else
                                             <p class="font-semibold text-navy-900">{{ $item->entity_label }}</p>
                                         @endif
-                                        <p class="mt-0.5 text-[10px] text-slate-400">
+                                        <p class="mt-0.5 text-xs text-slate-500">
                                             {{ $a?->purpose ?? $item->activityType?->name }}
                                             @if ($item->isSpecial()) · Special @endif
                                             @if ($a?->last_audit_upto) · Last {{ $a->last_audit_upto->format('M-Y') }} @endif
@@ -342,13 +335,13 @@
                                     <td class="px-3 py-2 capitalize text-slate-600">
                                         <span>{{ $status }}</span>
                                         @if ($a?->is_locked)
-                                            <span class="ml-1 inline-flex rounded bg-amber-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-800 ring-1 ring-amber-200">Locked</span>
+                                            <span class="ml-1 inline-flex rounded bg-amber-50 px-1.5 py-0.5 text-xs font-bold uppercase tracking-wide text-amber-800 ring-1 ring-amber-200">Locked</span>
                                         @endif
                                     </td>
                                     <td class="px-3 py-2 text-right whitespace-nowrap">
                                         @php $work = $visitWorkLinks[$a->id] ?? null; @endphp
                                         @if ($work && ($work['supports_audit_work'] ?? $work['is_shakha'] ?? false) && ($work['checklist_url'] ?? null))
-                                            <span class="mr-1 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold {{ ($work['checklist_ready'] ?? false) ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' : 'bg-amber-50 text-amber-800 ring-1 ring-amber-100' }}">
+                                            <span class="mr-1 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-xs font-semibold {{ ($work['checklist_ready'] ?? false) ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' : 'bg-amber-50 text-amber-800 ring-1 ring-amber-100' }}">
                                                 CL {{ $work['checklist_done'] }}/{{ $work['checklist_required'] }}
                                             </span>
                                             <a href="{{ $work['checklist_url'] }}" class="font-medium text-teal-700 hover:underline">Checklist</a>
@@ -362,7 +355,7 @@
                                         @endif
                                         @can('monthly_visits.manage')
                                             @if ($a?->is_locked && ! $a->canBeModifiedBy(auth()->user()))
-                                                <span class="text-[11px] text-amber-700" title="Locked by {{ $a->lockedBy?->name ?? 'admin' }}">Locked</span>
+                                                <span class="text-[13px] text-amber-700" title="Locked by {{ $a->lockedBy?->name ?? 'admin' }}">Locked</span>
                                             @else
                                                 <button type="button" @click="openAllocate({{ $item->id }})" class="font-medium text-brand-600 hover:underline">Edit</button>
                                                 @if ($a)
@@ -396,7 +389,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-3 py-8 text-center text-[12px] text-slate-400">
+                                    <td colspan="7" class="px-3 py-8 text-center text-[13px] text-slate-500">
                                         @if ($officerView ?? false)
                                             No visits allocated to you for {{ $monthLabel }}.
                                         @else
@@ -407,7 +400,7 @@
                             @endforelse
                             @if ($assigned->isNotEmpty())
                                 <tr x-show="visibleAssignedCount === 0 && listQuery" x-cloak>
-                                    <td colspan="7" class="px-3 py-6 text-center text-[12px] text-slate-400">No matches.</td>
+                                    <td colspan="7" class="px-3 py-6 text-center text-[13px] text-slate-500">No matches.</td>
                                 </tr>
                             @endif
                         </tbody>
@@ -430,7 +423,7 @@
                     <div>
                         <p class="text-[14px] font-semibold text-navy-900" x-text="current ? (current.status === 'assigned' ? 'Edit allocation' : 'Allocate visit') : 'Allocate visit'"></p>
                         <p class="mt-0.5 text-[12px] text-slate-600" x-text="current ? (current.entity_label + ' · ' + (current.activity || current.category)) : ''"></p>
-                        <p class="mt-1 text-[10px] text-slate-500">
+                        <p class="mt-1 text-xs text-slate-500">
                             Working days follow
                             <a href="{{ route('calendar.index') }}" class="font-semibold text-sky-700 underline hover:text-sky-900">Working Calendar</a>
                             (weekly offs + holidays + internal offs) · one person cannot cover overlapping dates
@@ -447,8 +440,8 @@
                     class="shrink-0 border-b border-rose-200 bg-rose-50 px-4 py-2.5 text-[12px] text-rose-950"
                 >
                     <p class="font-semibold">Cannot save — same person at two places</p>
-                    <p class="mt-0.5 text-[11px]" x-show="hasConflict" x-text="conflictWarning"></p>
-                    <ul class="mt-1 list-disc pl-4 text-[11px]" x-show="hasLiveConflict && liveConflictLines.length">
+                    <p class="mt-0.5 text-[13px]" x-show="hasConflict" x-text="conflictWarning"></p>
+                    <ul class="mt-1 list-disc pl-4 text-[13px]" x-show="hasLiveConflict && liveConflictLines.length">
                         <template x-for="line in liveConflictLines" :key="line">
                             <li x-text="line"></li>
                         </template>
@@ -463,15 +456,15 @@
 
                         <div class="grid min-h-0 flex-1 gap-0 overflow-y-auto lg:grid-cols-5">
                             <div class="space-y-3 border-b border-slate-100 p-4 lg:col-span-2 lg:border-b-0 lg:border-r">
-                                <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Visit window</p>
+                                <p class="text-[13px] font-semibold uppercase tracking-wide text-slate-500">Visit window</p>
                                 <input type="hidden" name="start_date" required :value="form.start_date">
                                 <input type="hidden" name="end_date" required :value="form.end_date">
                                 @include('calendar.partials.working-range-picker')
 
                                 <div class="flex items-baseline justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
                                     <div>
-                                        <p class="text-[11px] font-medium text-slate-600">Working days</p>
-                                        <p class="text-[10px] text-slate-500" x-text="durationHint"></p>
+                                        <p class="text-[13px] font-medium text-slate-600">Working days</p>
+                                        <p class="text-xs text-slate-500" x-text="durationHint"></p>
                                     </div>
                                     <p class="text-[18px] font-semibold tabular-nums text-navy-900" x-text="autoDays"></p>
                                 </div>
@@ -480,7 +473,7 @@
                                     <input type="checkbox" name="count_off_days" value="1" x-model="form.count_off_days" class="mt-0.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
                                     <span>
                                         <span class="block text-[12px] font-medium text-slate-800">Count off days</span>
-                                        <span class="block text-[10px] text-slate-500">Include weekly offs &amp; calendar holidays in duration</span>
+                                        <span class="block text-xs text-slate-500">Include weekly offs &amp; calendar holidays in duration</span>
                                     </span>
                                 </label>
                                 <label class="mt-2 flex cursor-pointer items-start gap-2 rounded-lg border border-amber-100 bg-amber-50/60 px-3 py-2">
@@ -488,13 +481,13 @@
                                     <input type="checkbox" value="1" x-model="form.lock_schedule" class="mt-0.5 rounded border-slate-300 text-amber-600 focus:ring-amber-500">
                                     <span>
                                         <span class="block text-[12px] font-medium text-amber-950">Lock schedule</span>
-                                        <span class="block text-[10px] text-amber-800/80">Others cannot edit or move this visit after save</span>
+                                        <span class="block text-xs text-amber-800/80">Others cannot edit or move this visit after save</span>
                                     </span>
                                 </label>
 
                                 <div x-show="rangeHolidays.length || rangeWeekends.length" class="rounded-md border border-slate-100 bg-slate-50 px-3 py-2">
-                                    <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Off days in range (from Working Calendar)</p>
-                                    <ul class="mt-1 max-h-24 space-y-0.5 overflow-y-auto text-[11px] text-slate-600">
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Off days in range (from Working Calendar)</p>
+                                    <ul class="mt-1 max-h-24 space-y-0.5 overflow-y-auto text-[13px] text-slate-600">
                                         <template x-for="h in rangeHolidays" :key="h.date + h.type">
                                             <li>
                                                 <span class="tabular-nums" x-text="h.date"></span>
@@ -509,17 +502,17 @@
                                 </div>
 
                                 <div>
-                                    <label class="mb-1 block text-[11px] font-medium text-slate-600">Last audit upto</label>
+                                    <label class="mb-1 block text-[13px] font-medium text-slate-600">Last audit upto</label>
                                     <input type="hidden" name="last_audit_upto" :value="form.last_audit_upto">
                                     <div class="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] font-medium text-navy-900" x-text="form.last_audit_upto_label || 'No prior audit on record'"></div>
                                 </div>
                                 <div>
-                                    <label class="mb-1 block text-[11px] font-medium text-slate-600">Purpose</label>
+                                    <label class="mb-1 block text-[13px] font-medium text-slate-600">Purpose</label>
                                     <input type="hidden" name="purpose" :value="form.purpose">
                                     <div class="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] font-medium text-navy-900" x-text="form.purpose || '—'"></div>
                                 </div>
                                 <div>
-                                    <label class="mb-1 block text-[11px] font-medium text-slate-600">Remarks</label>
+                                    <label class="mb-1 block text-[13px] font-medium text-slate-600">Remarks</label>
                                     <textarea name="remarks" rows="2" x-model="form.remarks" class="block w-full rounded-md border-slate-200 text-[13px]"></textarea>
                                 </div>
                             </div>
@@ -527,13 +520,13 @@
                             <div class="flex min-h-0 flex-col p-4 lg:col-span-3">
                                 <div class="mb-2 flex flex-wrap items-end justify-between gap-2">
                                     <div>
-                                        <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Staff</p>
-                                        <p class="text-[10px] text-slate-500">Free working days this month (Working Calendar) · select one or more</p>
+                                        <p class="text-[13px] font-semibold uppercase tracking-wide text-slate-500">Staff</p>
+                                        <p class="text-xs text-slate-500">Free working days this month (Working Calendar) · select one or more</p>
                                     </div>
                                     <input type="search" x-model="staffQuery" placeholder="Search staff…" class="h-8 w-full max-w-[180px] rounded-md border-slate-200 py-0 text-[12px]">
                                 </div>
 
-                                <div class="mb-2 flex flex-wrap gap-1.5 text-[10px]">
+                                <div class="mb-2 flex flex-wrap gap-1.5 text-xs">
                                     <span class="rounded bg-emerald-50 px-2 py-0.5 font-medium text-emerald-700" x-text="selectedCountLabel"></span>
                                     <span class="rounded bg-slate-100 px-2 py-0.5 text-slate-600" x-text="employees.length + ' employees'"></span>
                                 </div>
@@ -551,32 +544,32 @@
                                             <div class="min-w-0 flex-1">
                                                 <div class="flex flex-wrap items-center gap-x-2">
                                                     <span class="truncate text-[12px] font-semibold text-navy-900" x-text="emp.name"></span>
-                                                    <span class="truncate text-[10px] text-slate-400" x-text="emp.title || ''"></span>
+                                                    <span class="truncate text-xs text-slate-500" x-text="emp.title || ''"></span>
                                                 </div>
-                                                <p class="mt-0.5 text-[10px] text-rose-600" x-show="isBusyInRange(emp)" x-text="busyLabel(emp)"></p>
+                                                <p class="mt-0.5 text-xs text-rose-600" x-show="isBusyInRange(emp)" x-text="busyLabel(emp)"></p>
                                             </div>
                                             <div class="shrink-0 text-right">
                                                 <p class="text-[13px] font-bold tabular-nums" :class="emp.free_days > 0 ? 'text-emerald-700' : 'text-rose-600'" x-text="emp.free_days"></p>
-                                                <p class="text-[9px] uppercase text-slate-400">free</p>
+                                                <p class="text-xs uppercase text-slate-400">free</p>
                                             </div>
                                         </label>
                                     </template>
                                 </div>
-                                <p class="mt-1.5 text-[10px] text-rose-600" x-show="visitorIds.length === 0">Select at least one visitor.</p>
-                                <p class="mt-1 text-[10px] text-amber-700" x-show="hasLiveConflict">Selected staff have an overlapping visit in this date range.</p>
+                                <p class="mt-1.5 text-xs text-rose-600" x-show="visitorIds.length === 0">Select at least one visitor.</p>
+                                <p class="mt-1 text-xs text-amber-700" x-show="hasLiveConflict">Selected staff have an overlapping visit in this date range.</p>
                             </div>
                         </div>
 
                         <div x-show="hasConflict || hasLiveConflict" class="shrink-0 border-t border-rose-200 bg-rose-50 px-4 py-3 text-[12px] text-rose-950">
                             <p class="font-semibold">Cannot allocate — same person at two places</p>
-                            <p class="mt-1 text-[11px]" x-show="hasConflict" x-text="conflictWarning"></p>
-                            <ul class="mt-1 list-disc pl-4 text-[11px] text-rose-900" x-show="hasLiveConflict && liveConflictLines.length">
+                            <p class="mt-1 text-[13px]" x-show="hasConflict" x-text="conflictWarning"></p>
+                            <ul class="mt-1 list-disc pl-4 text-[13px] text-rose-900" x-show="hasLiveConflict && liveConflictLines.length">
                                 <template x-for="line in liveConflictLines" :key="line">
                                     <li x-text="line"></li>
                                 </template>
                             </ul>
                             @if ($conflictFlash)
-                                <ul class="mt-1 list-disc pl-4 text-[11px] text-rose-900">
+                                <ul class="mt-1 list-disc pl-4 text-[13px] text-rose-900">
                                     @foreach ($conflictFlash as $c)
                                         <li>
                                             <strong>{{ is_array($c) ? ($c['names'] ?? 'Staff') : '' }}</strong>
@@ -587,7 +580,7 @@
                                     @endforeach
                                 </ul>
                             @endif
-                            <p class="mt-2 text-[11px] font-medium">Change visitors or dates. Overlap is never allowed.</p>
+                            <p class="mt-2 text-[13px] font-medium">Change visitors or dates. Overlap is never allowed.</p>
                         </div>
 
                         <div class="flex shrink-0 justify-end gap-2 border-t border-slate-100 px-4 py-3">

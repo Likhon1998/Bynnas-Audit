@@ -35,12 +35,12 @@
     >
         <header class="flex items-start gap-3 border-b border-white/10 px-5 py-4">
             <div class="min-w-0 flex-1">
-                <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">Shakha territory</p>
+                <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Shakha territory</p>
                 <h2 :id="titleId" class="mt-1 truncate text-[18px] font-semibold text-white" x-text="shakha.name || 'Shakha'"></h2>
-                <p :id="descId" class="mt-0.5 truncate text-[12px] text-slate-400" x-text="metaLine"></p>
+                <p :id="descId" class="mt-0.5 truncate text-[13px] text-slate-500" x-text="metaLine"></p>
             </div>
             <span
-                class="mt-1 inline-flex shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide"
+                class="mt-1 inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wide"
                 :class="riskChipClass"
                 x-text="shakha.risk_label || 'Not assessed'"
             ></span>
@@ -59,36 +59,36 @@
         <div class="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5">
             <dl class="grid grid-cols-2 gap-3">
                 <div class="rounded-xl border border-white/10 bg-white/5 px-3 py-3">
-                    <dt class="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Assigned auditor</dt>
+                    <dt class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Assigned auditor</dt>
                     <dd class="mt-1 text-[13px] font-medium text-white" x-text="shakha.auditor || shakha.focal || 'Unassigned'"></dd>
                 </div>
                 <div class="rounded-xl border border-white/10 bg-white/5 px-3 py-3">
-                    <dt class="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Compliance score</dt>
+                    <dt class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Compliance score</dt>
                     <dd class="mt-1 text-[18px] font-semibold tabular-nums text-white">
                         <span x-text="shakha.compliance_score == null ? '—' : shakha.compliance_score"></span>
-                        <span class="text-[11px] font-medium text-slate-400" x-show="shakha.compliance_score != null"> / 100</span>
+                        <span class="text-[13px] font-medium text-slate-400" x-show="shakha.compliance_score != null"> / 100</span>
                     </dd>
                 </div>
                 <div class="rounded-xl border border-white/10 bg-white/5 px-3 py-3">
-                    <dt class="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Total findings</dt>
+                    <dt class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Total findings</dt>
                     <dd class="mt-1 text-[18px] font-semibold tabular-nums text-white" x-text="shakha.findings_count ?? 0"></dd>
                 </div>
                 <div class="rounded-xl border border-white/10 bg-white/5 px-3 py-3">
-                    <dt class="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Completed reports</dt>
+                    <dt class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Completed reports</dt>
                     <dd class="mt-1 text-[18px] font-semibold tabular-nums text-white" x-text="shakha.completed ?? 0"></dd>
                 </div>
             </dl>
 
             <section aria-labelledby="priority-issues-heading">
-                <h3 id="priority-issues-heading" class="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Priority issues</h3>
+                <h3 id="priority-issues-heading" class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Priority issues</h3>
                 <ul class="mt-2 space-y-2" x-show="issues.length">
                     <template x-for="(issue, index) in issues" :key="index">
                         <li class="rounded-xl border border-white/10 bg-white/5 px-3 py-3">
                             <div class="flex items-start justify-between gap-2">
                                 <p class="text-[13px] font-medium text-white" x-text="issue.title"></p>
-                                <span class="shrink-0 rounded-full bg-rose-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-rose-200" x-text="issue.severity || 'issue'"></span>
+                                <span class="shrink-0 rounded-full bg-rose-500/15 px-2 py-0.5 text-xs font-semibold uppercase text-rose-200" x-text="issue.severity || 'issue'"></span>
                             </div>
-                            <p class="mt-1 text-[11px] text-slate-400" x-show="issue.amount != null">
+                            <p class="mt-1 text-[13px] text-slate-400" x-show="issue.amount != null">
                                 Amount <span class="tabular-nums text-slate-200" x-text="formatAmount(issue.amount)"></span>
                                 <span x-show="issue.count"> · <span class="tabular-nums" x-text="issue.count"></span> irregularities</span>
                             </p>
@@ -96,7 +96,7 @@
                         </li>
                     </template>
                 </ul>
-                <p class="mt-2 rounded-xl border border-dashed border-white/10 px-3 py-4 text-[12px] text-slate-400" x-show="!issues.length">
+                <p class="mt-2 rounded-xl border border-dashed border-white/10 px-3 py-4 text-[13px] text-slate-500" x-show="!issues.length">
                     No priority issues recorded for this shakha.
                 </p>
             </section>

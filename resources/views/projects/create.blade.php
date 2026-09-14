@@ -45,11 +45,11 @@
             <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50/70 px-3 py-2.5 sm:px-4">
                 <div class="min-w-0">
                     <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                        <a href="{{ route('projects.index') }}" class="text-[11px] font-medium text-[#2b579a] hover:underline">Projects</a>
-                        <span class="text-[11px] text-slate-300">/</span>
-                        <h1 class="text-[14px] font-semibold tracking-tight text-navy-900">Add project</h1>
+                        <a href="{{ route('projects.index') }}" class="text-[13px] font-medium text-[#2b579a] hover:underline">Projects</a>
+                        <span class="text-[13px] text-slate-300">/</span>
+                        <h1 class="text-base font-semibold tracking-tight text-navy-900">Add project</h1>
                     </div>
-                    <p class="mt-0.5 text-[11px] text-slate-500">Master data for Annual Audit tabs &amp; schedules</p>
+                    <p class="mt-0.5 text-[13px] text-slate-500">Master data for Annual Audit tabs &amp; schedules</p>
                 </div>
                 <div class="flex shrink-0 items-center gap-1.5">
                     <a href="{{ route('projects.index') }}" class="inline-flex h-8 items-center rounded-md px-2.5 text-[12px] font-medium text-slate-600 hover:bg-slate-200/60">Cancel</a>
@@ -68,7 +68,7 @@
             {{-- Identity + flags in one dense band --}}
             <div class="grid gap-x-4 gap-y-3 border-b border-slate-100 px-3 py-3 sm:px-4 lg:grid-cols-12">
                 <div class="lg:col-span-5">
-                    <label for="name" class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Project name</label>
+                    <label for="name" class="mb-0.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Project name</label>
                     <input
                         id="name"
                         name="name"
@@ -81,7 +81,7 @@
                     <x-input-error :messages="$errors->get('name')" class="mt-0.5" />
                 </div>
                 <div class="lg:col-span-4">
-                    <label for="donor" class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Donor</label>
+                    <label for="donor" class="mb-0.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Donor</label>
                     <input
                         id="donor"
                         name="donor"
@@ -93,7 +93,7 @@
                     <x-input-error :messages="$errors->get('donor')" class="mt-0.5" />
                 </div>
                 <div class="lg:col-span-3">
-                    <label for="status" class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Status</label>
+                    <label for="status" class="mb-0.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Status</label>
                     <select id="status" name="status" required class="block w-full rounded-md border-slate-200 py-1.5 text-[13px] leading-5 text-slate-800">
                         <option value="active" @selected(old('status', 'active') === 'active')>Active</option>
                         <option value="inactive" @selected(old('status') === 'inactive')>Inactive</option>
@@ -102,8 +102,8 @@
 
                 <div class="lg:col-span-12">
                     <div class="mb-1.5 flex flex-wrap items-baseline justify-between gap-1">
-                        <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Annual Audit tabs</p>
-                        <p class="text-[10px] text-slate-400">PKSF / Maternity replace standard tabs</p>
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Annual Audit tabs</p>
+                        <p class="text-xs text-slate-500">PKSF / Maternity replace standard tabs</p>
                     </div>
                     <div class="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
                         <label
@@ -141,7 +141,7 @@
                             Monitoring
                         </label>
                     </div>
-                    <p class="mt-1 text-[10px] text-sky-700" x-show="isSpecial" x-cloak>Schedules go to the PKSF &amp; Maternity work plan.</p>
+                    <p class="mt-1 text-xs text-sky-700" x-show="isSpecial" x-cloak>Schedules go to the PKSF &amp; Maternity work plan.</p>
                 </div>
             </div>
 
@@ -149,20 +149,20 @@
             <div class="flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/50 px-3 py-2 sm:px-4">
                 <div class="flex items-center gap-2">
                     <p class="text-[12px] font-semibold text-navy-900">Locations</p>
-                    <span class="rounded bg-slate-200/80 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-slate-600" x-text="locations.length"></span>
-                    <p class="hidden text-[11px] text-slate-400 sm:inline">Each site becomes a schedule row on generate / sync</p>
+                    <span class="rounded bg-slate-200/80 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-slate-600" x-text="locations.length"></span>
+                    <p class="hidden text-[13px] text-slate-400 sm:inline">Each site becomes a schedule row on generate / sync</p>
                 </div>
                 <button
                     type="button"
                     @click="addLocation()"
-                    class="inline-flex h-7 items-center rounded-md border border-slate-200 bg-white px-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
+                    class="inline-flex h-7 items-center rounded-md border border-slate-200 bg-white px-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50"
                 >+ Location</button>
             </div>
 
             <div class="overflow-x-auto">
                 <table class="min-w-full text-left">
                     <thead class="border-b border-slate-100 bg-white">
-                        <tr class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                        <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
                             <th class="w-10 px-3 py-1.5 sm:px-4">#</th>
                             <th class="px-2 py-1.5">Division</th>
                             <th class="px-2 py-1.5">Location / site</th>
@@ -173,7 +173,7 @@
                     <tbody class="divide-y divide-slate-100">
                         <template x-for="(loc, index) in locations" :key="index">
                             <tr class="bg-white hover:bg-slate-50/80">
-                                <td class="px-3 py-2 align-middle text-[11px] tabular-nums text-slate-400 sm:px-4" x-text="index + 1"></td>
+                                <td class="px-3 py-2 align-middle text-[13px] tabular-nums text-slate-400 sm:px-4" x-text="index + 1"></td>
                                 <td class="px-2 py-2 align-middle">
                                     <select :name="'locations['+index+'][division]'" x-model="loc.division" required class="block w-full min-w-[9rem] rounded-md border-slate-200 py-1.5 text-[12px] leading-5">
                                         <option value="">Division…</option>
@@ -202,7 +202,7 @@
                                     <button
                                         type="button"
                                         @click="removeLocation(index)"
-                                        class="inline-flex items-center text-[11px] font-medium leading-5 text-rose-600 hover:underline disabled:cursor-not-allowed disabled:opacity-25"
+                                        class="inline-flex items-center text-[13px] font-medium leading-5 text-rose-600 hover:underline disabled:cursor-not-allowed disabled:opacity-25"
                                         :disabled="locations.length <= 1"
                                     >Remove</button>
                                 </td>

@@ -82,7 +82,7 @@
             <div>
                 <div class="mb-1 flex items-center gap-2">
                     <span class="h-2 w-8 rounded-full bg-gradient-to-r from-[#ff2d9b] via-[#7c3aed] to-[#2563eb]"></span>
-                    <p class="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Bynnas Audit</p>
+                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Bynnas Audit</p>
                 </div>
                 <h1 class="text-[18px] font-semibold tracking-tight text-navy-900">
                     {{ $viewerName ? 'Hello, '.explode(' ', trim($viewerName))[0] : 'Dashboard' }}
@@ -129,7 +129,7 @@
             <div class="mb-4">
                 <div class="mb-3 flex items-center gap-2">
                     <span class="h-2 w-2 rounded-full bg-gradient-to-br from-sky-500 to-violet-500 shadow-sm shadow-sky-300"></span>
-                    <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">My field visits</p>
+                    <p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">My field visits</p>
                     <span class="h-px flex-1 bg-gradient-to-r from-sky-200/80 to-transparent"></span>
                 </div>
                 @include('partials.my-field-visits', [
@@ -149,7 +149,7 @@
             <div class="rounded-2xl border border-slate-200/80 bg-gradient-to-br from-white via-slate-50/60 to-rose-50/40 p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
                 <div class="mb-3 flex items-center gap-2">
                     <span class="h-2 w-2 rounded-full bg-gradient-to-br from-rose-500 to-orange-400 shadow-sm shadow-rose-300"></span>
-                    <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Shakha risk</p>
+                    <p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Shakha risk</p>
                     <span class="h-px flex-1 bg-gradient-to-r from-rose-200/80 to-transparent"></span>
                 </div>
                 @include('partials.dashboard-metric-cards', ['cards' => $row1, 'columns' => 5])
@@ -157,7 +157,7 @@
             <div class="rounded-2xl border border-slate-200/80 bg-gradient-to-br from-white via-blue-50/30 to-violet-50/50 p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
                 <div class="mb-3 flex items-center gap-2">
                     <span class="h-2 w-2 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 shadow-sm shadow-blue-300"></span>
-                    <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Plan · target · Key Performance Indicator (KPI)</p>
+                    <p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Plan · target · Key Performance Indicator (KPI)</p>
                     <span class="h-px flex-1 bg-gradient-to-r from-blue-200/80 to-transparent"></span>
                 </div>
                 @include('partials.dashboard-metric-cards', ['cards' => $row2, 'columns' => 3])

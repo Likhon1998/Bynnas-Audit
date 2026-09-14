@@ -7,12 +7,12 @@
     {{-- Header --}}
     <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50/70 px-3 py-2 sm:px-4">
         <div class="min-w-0">
-            <h1 class="text-[14px] font-semibold tracking-tight text-navy-900">Audit Reports</h1>
-            <p class="mt-0.5 text-[11px] text-slate-500">
+            <h1 class="text-base font-semibold tracking-tight text-navy-900">Audit Reports</h1>
+            <p class="mt-0.5 text-[13px] text-slate-500">
                 Max {{ $maxConcurrentDrafts }} drafts · Joint visit auditors share one report · Auto-save
             </p>
         </div>
-        <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
+        <div class="flex flex-wrap items-center gap-1.5 text-[13px]">
             {{-- Hidden for now: Send by Gmail / send history
             <a
                 href="{{ route('audits.send-history', ['month' => $listFilterMonth ?: bd_now()->month, 'year' => $listFilterYear ?: bd_now()->year]) }}"
@@ -32,11 +32,11 @@
     </div>
 
     @if (session('status'))
-        <div class="border-b border-emerald-100 bg-emerald-50 px-3 py-1.5 text-[11px] text-emerald-800 sm:px-4">{{ session('status') }}</div>
+        <div class="border-b border-emerald-100 bg-emerald-50 px-3 py-1.5 text-[13px] text-emerald-800 sm:px-4">{{ session('status') }}</div>
     @endif
 
     @unless ($canStartNewReport)
-        <div class="border-b border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] text-amber-900 sm:px-4">
+        <div class="border-b border-amber-200 bg-amber-50 px-3 py-1.5 text-[13px] text-amber-900 sm:px-4">
             Draft limit reached ({{ $maxConcurrentDrafts }}). Continue or delete a draft to start another.
         </div>
     @endunless
@@ -44,12 +44,12 @@
     {{-- Start new --}}
     <div class="border-b border-slate-100 px-3 py-2.5 sm:px-4 {{ $canStartNewReport ? '' : 'pointer-events-none opacity-55' }}">
         <div class="mb-1.5 flex items-baseline justify-between gap-2">
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Start new</p>
-            <p class="text-[10px] text-slate-400">Allocated shakha & project visits · month · year</p>
+            <p class="text-[13px] font-semibold uppercase tracking-wide text-slate-500">Start new</p>
+            <p class="text-xs text-slate-500">Allocated shakha & project visits · month · year</p>
         </div>
         <div class="grid gap-2 lg:grid-cols-[minmax(0,1fr)_118px_88px_auto] lg:items-end">
             <div class="relative min-w-0" @mousedown.outside="open = false">
-                <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Branch / Project</label>
+                <label class="mb-0.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Branch / Project</label>
                 <div class="relative">
                     <svg class="pointer-events-none absolute left-2.5 top-1/2 z-[1] h-3.5 w-3.5 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"/></svg>
                     <input
@@ -76,7 +76,7 @@
                         x-show="q || selectedId"
                         x-cloak
                         @click="clear()"
-                        class="absolute right-2.5 top-1/2 z-[1] -translate-y-1/2 text-[10px] font-medium text-slate-400 hover:text-slate-600"
+                        class="absolute right-2.5 top-1/2 z-[1] -translate-y-1/2 text-xs font-medium text-slate-400 hover:text-slate-600"
                     >Clear</button>
 
                     <div
@@ -96,31 +96,31 @@
                                 <span class="min-w-0 flex-1">
                                     <span class="block truncate text-[12px] font-semibold leading-tight" :class="b.risk_text || 'text-navy-900'" x-text="b.name"></span>
                                     <span class="mt-0.5 flex flex-wrap items-center gap-1">
-                                        <span class="truncate text-[10px] leading-tight text-slate-500">
+                                        <span class="truncate text-xs leading-tight text-slate-500">
                                             <span x-text="b.code || '—'"></span>
                                             <span x-show="b.area"> · </span>
                                             <span x-text="b.area || ''"></span>
                                         </span>
                                         <span
-                                            class="inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-semibold"
+                                            class="inline-flex rounded-full px-1.5 py-0.5 text-xs font-semibold"
                                             :class="b.risk_badge || 'bg-slate-50 text-slate-500 ring-1 ring-slate-200'"
                                             x-text="b.risk_short || 'N/A'"
                                         ></span>
                                         <span
                                             x-show="b.kind_label"
-                                            class="inline-flex rounded-full bg-slate-50 px-1.5 py-0.5 text-[9px] font-semibold text-slate-500 ring-1 ring-slate-200"
+                                            class="inline-flex rounded-full bg-slate-50 px-1.5 py-0.5 text-xs font-semibold text-slate-500 ring-1 ring-slate-200"
                                             x-text="b.kind_label"
                                         ></span>
                                     </span>
                                 </span>
                                 <span
-                                    class="shrink-0 rounded px-1.5 py-0.5 text-[9px] font-semibold"
+                                    class="shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold"
                                     :class="b.active ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'"
                                     x-text="b.active ? 'Active' : 'Inactive'"
                                 ></span>
                             </button>
                         </template>
-                        <p x-show="filtered.length === 0" class="px-2.5 py-2 text-[11px] text-slate-500">
+                        <p x-show="filtered.length === 0" class="px-2.5 py-2 text-[13px] text-slate-500">
                             @if (($shakhaCount ?? 0) === 0)
                                 @if (! empty($nonShakhaVisitLabels ?? []))
                                     No reportable visit for this month ({{ implode(', ', $nonShakhaVisitLabels) }}).
@@ -134,12 +134,12 @@
                     </div>
                 </div>
                 @error('shakha_id')
-                    <p class="absolute left-0 top-full z-10 mt-0.5 text-[11px] font-medium text-rose-600">{{ $message }}</p>
+                    <p class="absolute left-0 top-full z-10 mt-0.5 text-[13px] font-medium text-rose-600">{{ $message }}</p>
                 @enderror
             </div>
 
             <div>
-                <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Month</label>
+                <label class="mb-0.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Month</label>
                 <select wire:model.live="report_month" class="block w-full rounded-md border-slate-200 py-1.5 text-[12px] leading-5" @disabled(! $canStartNewReport)>
                     @for ($m = 1; $m <= 12; $m++)
                         <option value="{{ $m }}">{{ date('F', mktime(0, 0, 0, $m, 1)) }}</option>
@@ -147,7 +147,7 @@
                 </select>
             </div>
             <div>
-                <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Year</label>
+                <label class="mb-0.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Year</label>
                 <select wire:model.live="report_year" class="block w-full rounded-md border-slate-200 py-1.5 text-[12px] leading-5" @disabled(! $canStartNewReport)>
                     @for ($y = bd_now()->year + 1; $y >= bd_now()->year - 6; $y--)
                         <option value="{{ $y }}">{{ $y }}</option>
@@ -173,7 +173,7 @@
     {{-- Filters --}}
     <div class="flex flex-wrap items-end gap-2 border-b border-slate-100 bg-slate-50/40 px-3 py-2 sm:px-4">
         <div class="min-w-[10rem] flex-1 basis-[12rem]">
-            <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Find</label>
+            <label class="mb-0.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Find</label>
             <input
                 type="search"
                 wire:model.live.debounce.300ms="listFilterQ"
@@ -182,7 +182,7 @@
             >
         </div>
         <div class="w-[7.5rem]">
-            <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Month</label>
+            <label class="mb-0.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Month</label>
             <select wire:model.live="listFilterMonth" class="block w-full rounded-md border-slate-200 py-1.5 text-[12px] leading-5">
                 <option value="0">All</option>
                 @for ($m = 1; $m <= 12; $m++)
@@ -191,7 +191,7 @@
             </select>
         </div>
         <div class="w-[5.5rem]">
-            <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Year</label>
+            <label class="mb-0.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Year</label>
             <select wire:model.live="listFilterYear" class="block w-full rounded-md border-slate-200 py-1.5 text-[12px] leading-5">
                 <option value="0">All</option>
                 @for ($y = bd_now()->year + 1; $y >= bd_now()->year - 6; $y--)
@@ -200,7 +200,7 @@
             </select>
         </div>
         <div>
-            <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Status</label>
+            <label class="mb-0.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Status</label>
             <div class="inline-flex h-[34px] overflow-hidden rounded-md border border-slate-200 bg-white">
                 @foreach ([
                     'all' => 'All',
@@ -210,7 +210,7 @@
                     <button
                         type="button"
                         wire:click="$set('listFilterStatus', '{{ $value }}')"
-                        class="px-2.5 text-[11px] font-semibold transition
+                        class="px-2.5 text-[13px] font-semibold transition
                             {{ ($listFilterStatus ?? 'all') === $value
                                 ? 'bg-navy-900 text-white'
                                 : 'text-slate-600 hover:bg-slate-50' }}"
@@ -219,8 +219,8 @@
             </div>
         </div>
         <div class="flex items-end gap-1.5 pb-px">
-            <button type="button" wire:click="showCurrentMonthReports" class="inline-flex h-[34px] items-center rounded-md border border-sky-200 bg-sky-50 px-2.5 text-[11px] font-semibold text-sky-800 hover:bg-sky-100">This month</button>
-            <button type="button" wire:click="clearReportListFilters" class="inline-flex h-[34px] items-center rounded-md border border-slate-200 bg-white px-2.5 text-[11px] font-medium text-slate-600 hover:bg-slate-50">Clear</button>
+            <button type="button" wire:click="showCurrentMonthReports" class="inline-flex h-[34px] items-center rounded-md border border-sky-200 bg-sky-50 px-2.5 text-[13px] font-semibold text-sky-800 hover:bg-sky-100">This month</button>
+            <button type="button" wire:click="clearReportListFilters" class="inline-flex h-[34px] items-center rounded-md border border-slate-200 bg-white px-2.5 text-[13px] font-medium text-slate-600 hover:bg-slate-50">Clear</button>
         </div>
     </div>
 
@@ -228,7 +228,7 @@
     <div class="overflow-x-auto">
         <table class="min-w-full text-left">
             <thead class="border-b border-slate-100 bg-white">
-                <tr class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
                     <th class="px-3 py-2 sm:px-4">Branch</th>
                     <th class="px-2 py-2">Period</th>
                     <th class="px-2 py-2">Status</th>
@@ -250,13 +250,13 @@
                                 class="text-[12px]"
                             />
                             @if ($report->isProjectLocationReport())
-                                <p class="truncate text-[10px] font-medium text-violet-700">Project audit</p>
+                                <p class="truncate text-xs font-medium text-violet-700">Project audit</p>
                             @endif
                             @if ($report->memo_no)
-                                <p class="truncate text-[10px] text-slate-400">{{ $report->memo_no }}</p>
+                                <p class="truncate text-xs text-slate-500">{{ $report->memo_no }}</p>
                             @endif
                             @if ($report->relationLoaded('collaborators') && $report->collaborators->isNotEmpty())
-                                <p class="mt-0.5 truncate text-[10px] font-medium text-violet-700">
+                                <p class="mt-0.5 truncate text-xs font-medium text-violet-700">
                                     Shared · {{ $report->collaboratorNamesLabel() }}
                                 </p>
                             @endif
@@ -266,24 +266,24 @@
                         </td>
                         <td class="px-2 py-2 align-middle">
                             @if ($isDraft)
-                                <span class="inline-flex rounded bg-sky-50 px-1.5 py-0.5 text-[10px] font-semibold text-sky-800">Ongoing</span>
+                                <span class="inline-flex rounded bg-sky-50 px-1.5 py-0.5 text-xs font-semibold text-sky-800">Ongoing</span>
                             @elseif ($report->isInReview())
-                                <span class="inline-flex rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">In review</span>
+                                <span class="inline-flex rounded bg-amber-50 px-1.5 py-0.5 text-xs font-semibold text-amber-800">In review</span>
                             @elseif ($report->isChangesRequested())
-                                <span class="inline-flex rounded bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700">Changes requested</span>
+                                <span class="inline-flex rounded bg-rose-50 px-1.5 py-0.5 text-xs font-semibold text-rose-700">Changes requested</span>
                             @elseif ($report->isReviewed())
                                 @if ($report->isMakerDone())
-                                    <span class="inline-flex items-center gap-1 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800">
+                                    <span class="inline-flex items-center gap-1 rounded bg-emerald-50 px-1.5 py-0.5 text-xs font-semibold text-emerald-800">
                                         <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                                         Done · 100%
                                     </span>
                                 @elseif ($report->review_perfect)
-                                    <span class="inline-flex rounded bg-teal-50 px-1.5 py-0.5 text-[10px] font-semibold text-teal-800">Totally fixed · 100%</span>
+                                    <span class="inline-flex rounded bg-teal-50 px-1.5 py-0.5 text-xs font-semibold text-teal-800">Totally fixed · 100%</span>
                                 @else
-                                    <span class="inline-flex rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800">Reviewed</span>
+                                    <span class="inline-flex rounded bg-emerald-50 px-1.5 py-0.5 text-xs font-semibold text-emerald-800">Reviewed</span>
                                 @endif
                             @else
-                                <span class="inline-flex rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-700">Completed</span>
+                                <span class="inline-flex rounded bg-slate-100 px-1.5 py-0.5 text-xs font-semibold text-slate-700">Completed</span>
                             @endif
                         </td>
                         <td class="hidden px-2 py-2 align-middle md:table-cell">
@@ -292,13 +292,13 @@
                                     <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
                                         <div class="h-full rounded-full bg-[#2b579a]" style="width: {{ min(100, (int) $report->progress_pct) }}%"></div>
                                     </div>
-                                    <span class="w-8 text-right text-[10px] font-medium tabular-nums text-slate-500">{{ $report->progress_pct }}%</span>
+                                    <span class="w-8 text-right text-xs font-medium tabular-nums text-slate-500">{{ $report->progress_pct }}%</span>
                                 </div>
                             @else
-                                <span class="text-[11px] text-slate-400">—</span>
+                                <span class="text-[13px] text-slate-400">—</span>
                             @endif
                         </td>
-                        <td class="hidden whitespace-nowrap px-2 py-2 align-middle text-[11px] text-slate-500 lg:table-cell">
+                        <td class="hidden whitespace-nowrap px-2 py-2 align-middle text-[13px] text-slate-500 lg:table-cell">
                             @if ($isDraft && $report->last_saved_at)
                                 {{ bd_datetime($report->last_saved_at, \App\Support\AppTime::DATETIME_SHORT) }}
                             @elseif (! $isDraft && $report->completed_at)
@@ -315,43 +315,43 @@
                                 @if ($isDraft && ! $clProgress['ready'])
                                     <a
                                         href="{{ route('audits.checklist', $report) }}"
-                                        class="inline-flex h-7 items-center rounded-md border border-amber-300 bg-amber-50 px-2.5 text-[11px] font-semibold text-amber-900 hover:bg-amber-100"
+                                        class="inline-flex h-7 items-center rounded-md border border-amber-300 bg-amber-50 px-2.5 text-[13px] font-semibold text-amber-900 hover:bg-amber-100"
                                     >Checklist {{ $clProgress['done'] }}/{{ $clProgress['required'] }}</a>
                                     <button
                                         type="button"
                                         wire:click="resumeReport({{ $report->id }})"
-                                        class="inline-flex h-7 items-center rounded-md border border-slate-200 bg-white px-2.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-50"
+                                        class="inline-flex h-7 items-center rounded-md border border-slate-200 bg-white px-2.5 text-[13px] font-semibold text-slate-600 hover:bg-slate-50"
                                         title="Open report"
                                     >Report</button>
                                 @elseif ($isDraft)
                                     <button
                                         type="button"
                                         wire:click="resumeReport({{ $report->id }})"
-                                        class="inline-flex h-7 items-center rounded-md bg-[#2b579a] px-2.5 text-[11px] font-semibold text-white hover:bg-[#204072]"
+                                        class="inline-flex h-7 items-center rounded-md bg-[#2b579a] px-2.5 text-[13px] font-semibold text-white hover:bg-[#204072]"
                                     >Continue</button>
                                     <a
                                         href="{{ route('audits.checklist', $report) }}"
-                                        class="inline-flex h-7 items-center rounded-md border border-teal-200 bg-teal-50 px-2 text-[11px] font-medium text-teal-800 hover:bg-teal-100"
+                                        class="inline-flex h-7 items-center rounded-md border border-teal-200 bg-teal-50 px-2 text-[13px] font-medium text-teal-800 hover:bg-teal-100"
                                     >Checklist</a>
                                 @else
                                     @if ($report->isChangesRequested())
                                         <a
                                             href="{{ route('audits.index', ['report' => $report->id]) }}"
-                                            class="inline-flex h-7 items-center rounded-md bg-[#2b579a] px-2.5 text-[11px] font-semibold text-white hover:bg-[#204072]"
+                                            class="inline-flex h-7 items-center rounded-md bg-[#2b579a] px-2.5 text-[13px] font-semibold text-white hover:bg-[#204072]"
                                         >Edit report</a>
                                         <a
                                             href="{{ route('audit-review.show', $report) }}"
-                                            class="inline-flex h-7 items-center rounded-md border border-rose-200 bg-rose-50 px-2.5 text-[11px] font-semibold text-rose-800 hover:bg-rose-100"
+                                            class="inline-flex h-7 items-center rounded-md border border-rose-200 bg-rose-50 px-2.5 text-[13px] font-semibold text-rose-800 hover:bg-rose-100"
                                         >Comments</a>
                                     @else
                                     <button
                                         type="button"
                                         wire:click="resumeReport({{ $report->id }})"
-                                        class="inline-flex h-7 items-center rounded-md border border-slate-200 bg-white px-2.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
+                                        class="inline-flex h-7 items-center rounded-md border border-slate-200 bg-white px-2.5 text-[13px] font-semibold text-slate-700 hover:bg-slate-50"
                                     >Open</button>
                                     <a
                                         href="{{ route('audits.checklist', $report) }}"
-                                        class="inline-flex h-7 items-center rounded-md border border-slate-200 px-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
+                                        class="inline-flex h-7 items-center rounded-md border border-slate-200 px-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50"
                                     >Checklist</a>
                                     @endif
                                 @endif
@@ -393,15 +393,26 @@
                                                     if (! btn) return;
                                                     const r = btn.getBoundingClientRect();
                                                     const pw = Math.min(320, window.innerWidth - 16);
-                                                    // Always open directly under the button (normal dropdown).
-                                                    const top = r.bottom + 8;
+                                                    const gap = 8;
+                                                    const edge = 12;
+                                                    const spaceBelow = window.innerHeight - r.bottom - edge;
+                                                    const spaceAbove = r.top - edge;
+                                                    // Prefer below; flip above when near the bottom of the screen.
+                                                    const openAbove = spaceBelow < 240 && spaceAbove > spaceBelow;
+                                                    const available = openAbove ? spaceAbove : spaceBelow;
+                                                    const maxH = Math.max(160, Math.min(360, available - gap));
                                                     let left = r.right - pw;
-                                                    if (left < 12) left = 12;
-                                                    if (left + pw > window.innerWidth - 12) {
-                                                        left = window.innerWidth - pw - 12;
+                                                    if (left < edge) left = edge;
+                                                    if (left + pw > window.innerWidth - edge) {
+                                                        left = window.innerWidth - pw - edge;
                                                     }
-                                                    const maxH = Math.max(200, Math.min(420, window.innerHeight - top - 16));
-                                                    this.panelStyle = 'position:fixed;top:' + top + 'px;left:' + left + 'px;width:' + pw + 'px;z-index:80;max-height:' + maxH + 'px;transform-origin:top right;';
+                                                    if (openAbove) {
+                                                        const bottom = Math.max(edge, window.innerHeight - r.top + gap);
+                                                        this.panelStyle = 'position:fixed;top:auto;bottom:' + bottom + 'px;left:' + left + 'px;width:' + pw + 'px;z-index:80;max-height:' + maxH + 'px;transform-origin:bottom right;';
+                                                    } else {
+                                                        const top = r.bottom + gap;
+                                                        this.panelStyle = 'position:fixed;bottom:auto;top:' + top + 'px;left:' + left + 'px;width:' + pw + 'px;z-index:80;max-height:' + maxH + 'px;transform-origin:top right;';
+                                                    }
                                                 }
                                             }"
                                             x-on:resize.window="open && place()"
@@ -412,7 +423,7 @@
                                                 type="button"
                                                 x-ref="trigger"
                                                 @click="toggle()"
-                                                class="inline-flex h-7 items-center gap-1 rounded-md border border-violet-200 bg-violet-50 px-2 text-[11px] font-semibold text-violet-900 transition hover:bg-violet-100"
+                                                class="inline-flex h-7 items-center gap-1 rounded-md border border-violet-200 bg-violet-50 px-2 text-[13px] font-semibold text-violet-900 transition hover:bg-violet-100"
                                                 :class="open ? 'ring-2 ring-violet-200' : ''"
                                             >
                                                 <span>Send for review</span>
@@ -453,39 +464,40 @@
                                                         class="origin-top-right overflow-y-auto rounded-xl border border-slate-200 bg-white text-left shadow-2xl will-change-transform"
                                                         @click.stop
                                                     >
-                                                        <div class="border-b border-slate-100 bg-slate-50/80 px-3 py-2">
-                                                            <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Send to</p>
-                                                            <p class="mt-0.5 text-[11px] text-slate-600">Choose who should review this report</p>
+                                                        <div class="border-b border-slate-100 bg-slate-50/80 px-3.5 py-2.5">
+                                                            <p class="text-[13px] font-semibold text-navy-900">Send to</p>
+                                                            <p class="mt-0.5 text-[13px] leading-snug text-slate-600">Choose who should review this report</p>
                                                         </div>
-                                                        <form method="POST" action="{{ route('audit-review.submit', $report) }}" class="space-y-3 p-3">
+                                                        <form method="POST" action="{{ route('audit-review.submit', $report) }}" class="space-y-3 p-3.5">
                                                             @csrf
-                                                            <div class="space-y-1.5">
+                                                            <div class="space-y-2">
                                                                 @if ($assignedName)
                                                                     <label
-                                                                        class="flex cursor-pointer items-start gap-2.5 rounded-lg border px-2.5 py-2 transition"
+                                                                        class="flex cursor-pointer items-start gap-2.5 rounded-lg border px-3 py-2.5 transition"
                                                                         :class="dest === 'assigned' ? 'border-violet-300 bg-violet-50/70' : 'border-slate-200 hover:bg-slate-50'"
                                                                     >
-                                                                        <input type="radio" name="destination" value="assigned" class="mt-0.5 border-slate-300 text-violet-700 focus:ring-violet-500" x-model="dest">
+                                                                        <input type="radio" name="destination" value="assigned" class="mt-1 border-slate-300 text-violet-700 focus:ring-violet-500" x-model="dest">
                                                                         <span class="min-w-0">
-                                                                            <span class="block text-[12px] font-semibold text-navy-900">{{ $assignedName }}</span>
-                                                                            <span class="mt-0.5 block text-[10px] text-slate-500">Your assigned reviewer</span>
+                                                                            <span class="block text-sm font-semibold text-navy-900">{{ $assignedName }}</span>
+                                                                            <span class="mt-0.5 block text-[13px] text-slate-600">Your assigned reviewer</span>
                                                                         </span>
                                                                     </label>
                                                                 @else
-                                                                    <div class="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-[11px] text-amber-900">
-                                                                        No assigned reviewer yet. You can still send to Super Admin.
+                                                                    <div class="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 text-[13px] leading-snug text-amber-950">
+                                                                        <p class="font-semibold text-amber-950">No assigned reviewer yet</p>
+                                                                        <p class="mt-0.5 text-amber-900">You can still send this report to Super Admin.</p>
                                                                     </div>
                                                                 @endif
 
                                                                 @if (! empty($reviewSuperadmin))
                                                                     <label
-                                                                        class="flex cursor-pointer items-start gap-2.5 rounded-lg border px-2.5 py-2 transition"
+                                                                        class="flex cursor-pointer items-start gap-2.5 rounded-lg border px-3 py-2.5 transition"
                                                                         :class="dest === 'superadmin' ? 'border-sky-300 bg-sky-50/70' : 'border-slate-200 hover:bg-slate-50'"
                                                                     >
-                                                                        <input type="radio" name="destination" value="superadmin" class="mt-0.5 border-slate-300 text-sky-700 focus:ring-sky-500" x-model="dest">
+                                                                        <input type="radio" name="destination" value="superadmin" class="mt-1 border-slate-300 text-sky-700 focus:ring-sky-500" x-model="dest">
                                                                         <span class="min-w-0">
-                                                                            <span class="block text-[12px] font-semibold text-navy-900">Super Admin</span>
-                                                                            <span class="mt-0.5 block truncate text-[10px] text-slate-500">{{ $superName }} · always available</span>
+                                                                            <span class="block text-sm font-semibold text-navy-900">Super Admin</span>
+                                                                            <span class="mt-0.5 block truncate text-[13px] text-slate-600">{{ $superName }} · always available</span>
                                                                         </span>
                                                                     </label>
                                                                 @endif
@@ -500,20 +512,21 @@
                                                                 x-transition:leave="transition ease-in duration-100"
                                                                 x-transition:leave-start="opacity-100"
                                                                 x-transition:leave-end="opacity-0"
-                                                                class="flex items-center gap-2 rounded-md bg-slate-50 px-2 py-1.5 text-[11px] text-slate-700"
+                                                                class="flex items-center gap-2 rounded-md bg-slate-50 px-2.5 py-2 text-[13px] text-slate-700"
                                                             >
                                                                 <input type="checkbox" name="cc_superadmin" value="1" class="rounded border-slate-300 text-violet-700 focus:ring-violet-500" x-model="cc">
-                                                                Also notify Super Admin
+                                                                Flag for Super Admin visibility
+                                                                <span class="font-normal text-slate-500">(no email yet)</span>
                                                             </label>
 
                                                             <div>
-                                                                <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Note</label>
-                                                                <textarea name="note" rows="2" class="w-full rounded-md border-slate-200 text-[11px] shadow-sm focus:border-[#2b579a] focus:ring-[#2b579a]" placeholder="Optional message to the reviewer"></textarea>
+                                                                <label class="mb-1 block text-[13px] font-medium text-slate-700">Note <span class="font-normal text-slate-500">(optional)</span></label>
+                                                                <textarea name="note" rows="2" class="w-full rounded-md border-slate-200 text-sm shadow-sm focus:border-[#2b579a] focus:ring-[#2b579a]" placeholder="Optional message to the reviewer"></textarea>
                                                             </div>
 
                                                             <button
                                                                 type="submit"
-                                                                class="inline-flex h-8 w-full items-center justify-center rounded-md bg-[#2b579a] text-[11px] font-semibold text-white transition hover:bg-[#204072]"
+                                                                class="inline-flex h-9 w-full items-center justify-center rounded-md bg-[#2b579a] text-sm font-semibold text-white transition hover:bg-[#204072]"
                                                                 x-text="submitLabel"
                                                             >{{ $report->isChangesRequested() ? 'Send for re-review' : 'Send for 1st review' }}</button>
                                                         </form>
@@ -525,7 +538,7 @@
                                     @if ($report->isInReview() || $report->isChangesRequested() || $report->isReviewed())
                                         <a
                                             href="{{ route('audit-review.show', $report) }}"
-                                            class="inline-flex h-7 items-center rounded-md border border-amber-200 bg-amber-50 px-2 text-[11px] font-semibold text-amber-900 hover:bg-amber-100"
+                                            class="inline-flex h-7 items-center rounded-md border border-amber-200 bg-amber-50 px-2 text-[13px] font-semibold text-amber-900 hover:bg-amber-100"
                                         >Review status</a>
                                     @endif
                                     @if ($report->canMakerAcknowledgeDone(auth()->user()))
@@ -540,20 +553,20 @@
                                                 });
                                                 if (ok) $wire.acknowledgeReportDone({{ $report->id }});
                                             }"
-                                            class="inline-flex h-7 items-center gap-1 rounded-md bg-teal-600 px-2.5 text-[11px] font-semibold text-white hover:bg-teal-700"
+                                            class="inline-flex h-7 items-center gap-1 rounded-md bg-teal-600 px-2.5 text-[13px] font-semibold text-white hover:bg-teal-700"
                                             title="Reviewer granted 100% perfect"
                                         >
                                             <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                                             Mark done
                                         </button>
                                     @elseif ($report->isPerfectReview() && $report->isMakerDone())
-                                        <span class="inline-flex h-7 items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 text-[11px] font-semibold text-emerald-800">
+                                        <span class="inline-flex h-7 items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 text-[13px] font-semibold text-emerald-800">
                                             <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                                             Done
                                         </span>
                                     @endif
                                     @if ($report->isInReview() && $report->reviewer)
-                                        <span class="inline-flex h-7 max-w-[9rem] items-center truncate rounded-md border border-slate-200 bg-white px-2 text-[10px] font-medium text-slate-600" title="Reviewer: {{ $report->reviewer->name }}">
+                                        <span class="inline-flex h-7 max-w-[9rem] items-center truncate rounded-md border border-slate-200 bg-white px-2 text-xs font-medium text-slate-600" title="Reviewer: {{ $report->reviewer->name }}">
                                             → {{ $report->reviewer->name }}
                                         </span>
                                     @endif
@@ -562,7 +575,7 @@
                                     <button
                                         type="button"
                                         wire:click="openSendMailModal({{ $report->id }})"
-                                        class="inline-flex h-7 items-center gap-1 rounded-md border border-[#ea4335]/30 bg-[#ea4335] px-2 text-[11px] font-semibold text-white hover:bg-[#d33426]"
+                                        class="inline-flex h-7 items-center gap-1 rounded-md border border-[#ea4335]/30 bg-[#ea4335] px-2 text-[13px] font-semibold text-white hover:bg-[#d33426]"
                                     >
                                         <svg class="h-3 w-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg>
                                         Send by Gmail
@@ -575,7 +588,7 @@
                                         type="button"
                                         wire:click="deleteDraft({{ $report->id }})"
                                         wire:confirm="Delete this draft?"
-                                        class="inline-flex h-7 items-center rounded-md px-2 text-[11px] font-medium text-rose-600 hover:bg-rose-50"
+                                        class="inline-flex h-7 items-center rounded-md px-2 text-[13px] font-medium text-rose-600 hover:bg-rose-50"
                                     >Delete</button>
                                 @endif
                             </div>
@@ -585,7 +598,7 @@
                     <tr>
                         <td colspan="6" class="px-4 py-10 text-center">
                             <p class="text-[13px] font-semibold text-slate-700">No reports match</p>
-                            <p class="mt-1 text-[11px] text-slate-500">Change filters or clear them to see everything</p>
+                            <p class="mt-1 text-[13px] text-slate-500">Change filters or clear them to see everything</p>
                             <button type="button" wire:click="clearReportListFilters" class="mt-3 inline-flex h-8 items-center rounded-md border border-slate-200 bg-white px-3 text-[12px] font-medium text-slate-700 hover:bg-slate-50">Clear filters</button>
                         </td>
                     </tr>
@@ -595,7 +608,7 @@
     </div>
 
     @if ($allReports->isNotEmpty())
-        <div class="border-t border-slate-100 bg-slate-50/50 px-3 py-3 text-[10px] text-slate-500 sm:px-4">
+        <div class="border-t border-slate-100 bg-slate-50/50 px-3 py-3 text-xs text-slate-500 sm:px-4">
             Showing {{ $allReports->count() }}
             · {{ $ongoingReports->count() }} ongoing
             · {{ $completedReports->count() }} done
@@ -610,52 +623,52 @@
             <div class="flex items-center justify-between border-b border-slate-200 bg-[#f8fafc] px-4 py-3">
                 <div>
                     <p class="text-[13px] font-semibold text-navy-900">Send by Gmail</p>
-                    <p class="text-[11px] text-slate-500">{{ $mailReportLabel }}</p>
+                    <p class="text-[13px] text-slate-500">{{ $mailReportLabel }}</p>
                 </div>
                 <button type="button" wire:click="closeSendMailModal" class="rounded-md px-2 py-1 text-[12px] font-medium text-slate-500 hover:bg-slate-100">Close</button>
             </div>
 
             <div class="space-y-3 px-4 py-4">
                 @if ($mailError !== '')
-                    <div class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-800">{{ $mailError }}</div>
+                    <div class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-[13px] text-rose-800">{{ $mailError }}</div>
                 @endif
 
                 <div class="grid gap-3 sm:grid-cols-2">
                     <div>
-                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Sender name</label>
+                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Sender name</label>
                         <input type="text" wire:model="mailFromName" class="h-9 w-full rounded-md border-slate-200 text-[12px]" placeholder="Sender name">
-                        @error('mailFromName') <p class="mt-1 text-[10px] text-rose-600">{{ $message }}</p> @enderror
+                        @error('mailFromName') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Sender email</label>
+                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Sender email</label>
                         <input type="email" wire:model="mailFromEmail" class="h-9 w-full rounded-md border-slate-200 text-[12px]" placeholder="sender@example.com">
-                        @error('mailFromEmail') <p class="mt-1 text-[10px] text-rose-600">{{ $message }}</p> @enderror
+                        @error('mailFromEmail') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                     </div>
                 </div>
 
                 <div class="grid gap-3 sm:grid-cols-2">
                     <div>
-                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">To (receiver)</label>
+                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">To (receiver)</label>
                         <input type="email" wire:model="mailToEmail" class="h-9 w-full rounded-md border-slate-200 text-[12px]" placeholder="receiver@example.com">
-                        @error('mailToEmail') <p class="mt-1 text-[10px] text-rose-600">{{ $message }}</p> @enderror
+                        @error('mailToEmail') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">CC <span class="font-normal normal-case text-slate-400">(optional)</span></label>
+                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">CC <span class="font-normal normal-case text-slate-400">(optional)</span></label>
                         <input type="email" wire:model="mailCcEmail" class="h-9 w-full rounded-md border-slate-200 text-[12px]" placeholder="cc@example.com">
-                        @error('mailCcEmail') <p class="mt-1 text-[10px] text-rose-600">{{ $message }}</p> @enderror
+                        @error('mailCcEmail') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                     </div>
                 </div>
 
                 <div>
-                    <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Subject</label>
+                    <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Subject</label>
                     <input type="text" wire:model="mailSubject" class="h-9 w-full rounded-md border-slate-200 text-[12px]">
-                    @error('mailSubject') <p class="mt-1 text-[10px] text-rose-600">{{ $message }}</p> @enderror
+                    @error('mailSubject') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
-                    <label class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Message</label>
+                    <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Message</label>
                     <textarea wire:model="mailBody" rows="8" class="w-full rounded-md border-slate-200 text-[12px] leading-relaxed" placeholder="Write your email…"></textarea>
-                    @error('mailBody') <p class="mt-1 text-[10px] text-rose-600">{{ $message }}</p> @enderror
+                    @error('mailBody') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
 
                 <label class="inline-flex items-center gap-2 text-[12px] text-slate-700">

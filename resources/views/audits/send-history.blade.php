@@ -4,8 +4,8 @@
 
         <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
             <div class="min-w-0">
-                <a href="{{ route('audits.index') }}" class="text-[11px] font-medium text-[#2b579a] hover:underline">← Back to Audit Reports</a>
-                <h1 class="mt-1 text-[16px] font-semibold tracking-tight text-navy-900">Report send history</h1>
+                <a href="{{ route('audits.index') }}" class="text-[13px] font-medium text-[#2b579a] hover:underline">← Back to Audit Reports</a>
+                <h1 class="mt-1 text-lg font-semibold tracking-tight text-navy-900">Report send history</h1>
                 <p class="mt-0.5 text-[12px] text-slate-500">Emails sent for reports in {{ $periodLabel }}</p>
             </div>
             <div class="ml-auto flex flex-wrap items-center justify-end gap-1.5">
@@ -21,10 +21,10 @@
                         @endforeach
                     </select>
                 </form>
-                <span class="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-800">
+                <span class="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-[13px] font-semibold text-emerald-800">
                     Sent <span class="tabular-nums">{{ $sentCount }}</span>
                 </span>
-                <span class="inline-flex items-center gap-1 rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-[11px] font-semibold text-rose-800">
+                <span class="inline-flex items-center gap-1 rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-[13px] font-semibold text-rose-800">
                     Failed <span class="tabular-nums">{{ $failedCount }}</span>
                 </span>
             </div>
@@ -34,7 +34,7 @@
             @foreach ($monthStrip as $chip)
                 <a
                     href="{{ $chip['url'] }}"
-                    class="rounded-md px-1 py-1.5 text-center text-[11px] font-semibold transition
+                    class="rounded-md px-1 py-1.5 text-center text-[13px] font-semibold transition
                         {{ $chip['active'] ? 'bg-navy-900 text-white' : ($chip['has_data'] ? 'bg-sky-50 text-sky-900 hover:bg-sky-100' : 'text-slate-400 hover:bg-slate-50') }}"
                 >{{ $chip['label'] }}</a>
             @endforeach
@@ -44,7 +44,7 @@
             <div class="overflow-x-auto">
                 <table class="min-w-full text-left text-[12px]">
                     <thead>
-                        <tr class="bg-[#0B1F36] text-[10px] font-semibold uppercase tracking-wide text-slate-200">
+                        <tr class="bg-[#0B1F36] text-xs font-semibold uppercase tracking-wide text-slate-200">
                             <th class="px-3 py-2.5">When</th>
                             <th class="px-3 py-2.5">Report</th>
                             <th class="px-3 py-2.5">From</th>
@@ -66,16 +66,16 @@
                                 </td>
                                 <td class="px-3 py-2.5 align-top">
                                     <p class="font-medium text-slate-800">{{ $reportLabel }}</p>
-                                    <p class="text-[10px] text-slate-400">{{ $period }}</p>
+                                    <p class="text-xs text-slate-500">{{ $period }}</p>
                                 </td>
                                 <td class="px-3 py-2.5 align-top">
                                     <p class="text-slate-700">{{ $send->from_name }}</p>
-                                    <p class="text-[10px] text-slate-400">{{ $send->from_email }}</p>
+                                    <p class="text-xs text-slate-500">{{ $send->from_email }}</p>
                                 </td>
                                 <td class="px-3 py-2.5 align-top">
                                     <p class="text-slate-700">{{ $send->to_email }}</p>
                                     @if ($send->cc_email)
-                                        <p class="text-[10px] text-slate-400">CC: {{ $send->cc_email }}</p>
+                                        <p class="text-xs text-slate-500">CC: {{ $send->cc_email }}</p>
                                     @endif
                                 </td>
                                 <td class="px-3 py-2.5 align-top text-slate-600">
@@ -83,25 +83,25 @@
                                 </td>
                                 <td class="px-3 py-2.5 align-top">
                                     @if ($send->attached_pdf)
-                                        <span class="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Yes</span>
+                                        <span class="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">Yes</span>
                                     @else
-                                        <span class="inline-flex rounded-full bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-500">No</span>
+                                        <span class="inline-flex rounded-full bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-500">No</span>
                                     @endif
                                 </td>
                                 <td class="px-3 py-2.5 align-top">
                                     @if ($send->status === 'sent')
-                                        <span class="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Sent</span>
+                                        <span class="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">Sent</span>
                                     @else
-                                        <span class="inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-700" title="{{ $send->error_message }}">Failed</span>
+                                        <span class="inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700" title="{{ $send->error_message }}">Failed</span>
                                         @if ($send->error_message)
-                                            <p class="mt-1 max-w-[180px] text-[10px] leading-snug text-rose-500">{{ \Illuminate\Support\Str::limit($send->error_message, 80) }}</p>
+                                            <p class="mt-1 max-w-[180px] text-xs leading-snug text-rose-500">{{ \Illuminate\Support\Str::limit($send->error_message, 80) }}</p>
                                         @endif
                                     @endif
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-3 py-12 text-center text-[12px] text-slate-400">
+                                <td colspan="7" class="px-3 py-12 text-center text-[13px] text-slate-500">
                                     No emails sent for {{ $periodLabel }}. Complete a report, then use <span class="font-semibold text-slate-600">Send by Gmail</span>.
                                 </td>
                             </tr>
@@ -110,7 +110,7 @@
                 </table>
             </div>
             @if ($sends->isNotEmpty())
-                <div class="border-t border-slate-100 bg-slate-50/50 px-3 py-1.5 text-[10px] text-slate-500 sm:px-4">
+                <div class="border-t border-slate-100 bg-slate-50/50 px-3 py-1.5 text-xs text-slate-500 sm:px-4">
                     Showing {{ $sends->count() }} · {{ $sentCount }} sent · {{ $failedCount }} failed
                 </div>
             @endif

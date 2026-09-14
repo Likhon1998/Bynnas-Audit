@@ -3,10 +3,10 @@
         <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div>
                 <h1 class="text-[16px] font-semibold text-navy-900">Checklists</h1>
-                <p class="mt-0.5 text-[11px] text-slate-500">ফরম্যাট স্টোরহাউস · শিরোনাম দিয়ে খুঁজুন · পূর্ণ টেমপ্লেট দেখুন</p>
+                <p class="mt-0.5 text-[13px] text-slate-500">ফরম্যাট স্টোরহাউস · শিরোনাম দিয়ে খুঁজুন · পূর্ণ টেমপ্লেট দেখুন</p>
             </div>
             <div class="w-full max-w-sm">
-                <label class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Search by heading</label>
+                <label class="mb-0.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Search by heading</label>
                 <input
                     type="search"
                     wire:model.live.debounce.250ms="search"
@@ -19,17 +19,17 @@
         <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <div class="border-b border-slate-100 px-3 py-2">
                 <p class="text-[13px] font-semibold text-navy-900">Format storehouse</p>
-                <p class="text-[10px] text-slate-500">{{ $formats->count() }} format(s) · full template view</p>
+                <p class="text-xs text-slate-500">{{ $formats->count() }} format(s) · full template view</p>
             </div>
             <div class="divide-y divide-slate-100">
                 @forelse ($formats as $format)
                     <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
-                        <span class="inline-flex h-7 items-center rounded-md bg-slate-100 px-2 text-[10px] font-bold tabular-nums text-slate-600">
+                        <span class="inline-flex h-7 items-center rounded-md bg-slate-100 px-2 text-xs font-bold tabular-nums text-slate-600">
                             Format {{ $format->format_number }}
                         </span>
                         <div class="min-w-0 flex-1">
                             <p class="text-[13px] font-semibold text-navy-900">{{ $format->heading }}</p>
-                            <p class="text-[10px] text-slate-500">{{ $format->org_name }} · {{ $format->dept_name }}</p>
+                            <p class="text-xs text-slate-500">{{ $format->org_name }} · {{ $format->dept_name }}</p>
                         </div>
                         <button
                             type="button"
@@ -38,7 +38,7 @@
                         >View full template</button>
                     </div>
                 @empty
-                    <div class="px-4 py-10 text-center text-[12px] text-slate-400">কোনো ফরম্যাট পাওয়া যায়নি</div>
+                    <div class="px-4 py-10 text-center text-[13px] text-slate-500">কোনো ফরম্যাট পাওয়া যায়নি</div>
                 @endforelse
             </div>
         </div>
@@ -49,10 +49,10 @@
                 Storehouse
             </button>
             <div class="min-w-0 flex-1">
-                <p class="text-[11px] font-semibold text-slate-500">Format {{ $formatModel?->format_number }} · Full template</p>
+                <p class="text-[13px] font-semibold text-slate-500">Format {{ $formatModel?->format_number }} · Full template</p>
                 <p class="truncate text-[13px] font-semibold text-navy-900">{{ $formatModel?->heading }}</p>
             </div>
-            <span class="inline-flex h-8 items-center rounded-md bg-slate-100 px-3 text-[11px] font-medium text-slate-600">View only</span>
+            <span class="inline-flex h-8 items-center rounded-md bg-slate-100 px-3 text-[13px] font-medium text-slate-600">View only</span>
         </div>
 
         @if (($definition['layout'] ?? '') === 'savings_refund' || ($definition['code'] ?? '') === 'format-5')
@@ -82,7 +82,7 @@
             ])
         @endif
 
-        <p class="mt-3 text-[11px] text-slate-500">
+        <p class="mt-3 text-[13px] text-slate-500">
             পূরণ ও evidence সেভ করতে Audit Report → <span class="font-semibold text-slate-700">Check List</span> ব্যবহার করুন।
         </p>
     @endif

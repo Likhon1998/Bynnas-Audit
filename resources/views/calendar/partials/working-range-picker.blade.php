@@ -9,7 +9,7 @@
 --}}
 <div class="grid grid-cols-2 gap-2">
     <div>
-        <label class="mb-1 block text-[11px] font-medium text-slate-600">Start</label>
+        <label class="mb-1 block text-[13px] font-medium text-slate-600">Start</label>
         <button
             type="button"
             x-ref="startDateBtn"
@@ -25,7 +25,7 @@
     </div>
 
     <div>
-        <label class="mb-1 block text-[11px] font-medium text-slate-600">End</label>
+        <label class="mb-1 block text-[13px] font-medium text-slate-600">End</label>
         <button
             type="button"
             x-ref="endDateBtn"

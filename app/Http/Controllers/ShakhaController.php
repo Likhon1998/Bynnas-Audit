@@ -31,7 +31,8 @@ class ShakhaController extends Controller
 
         $rows = $shakhas->values()->map(function (Shakha $shakha, int $index) use ($fyLabel) {
             $risk = $shakha->latestRiskAssessment;
-            $kpiReady = $shakha->annualKpis->isNotEmpty();
+            $kpi = $shakha->annualKpis->first();
+            $kpiReady = $kpi?->isReadyForRisk() ?? false;
 
             return [
                 'serial' => $index + 1,
@@ -46,6 +47,7 @@ class ShakhaController extends Controller
                 'risk' => $risk?->risk_category ?: 'Not assessed',
                 'risk_score' => $risk?->total_weighted_score,
                 'risk_period' => $risk?->periodLabel(),
+                'risk_calculated' => $risk !== null,
                 'added_on' => $shakha->created_at?->format('d M Y') ?: '—',
                 'edit_url' => route('shakhas.edit', $shakha),
                 'staff_url' => route('shakha-employees.manage', $shakha),

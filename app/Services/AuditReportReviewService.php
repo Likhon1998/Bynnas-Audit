@@ -1112,7 +1112,7 @@ class AuditReportReviewService
         } else {
             $parts[] = 'Assigned reviewer: '.($assignment?->reviewer?->name ?: '#'.($assignment?->reviewer_user_id ?? '?'));
             if ($ccSuperadmin) {
-                $parts[] = 'Also notified: Super Admin';
+                $parts[] = 'Flagged for Super Admin visibility (no email yet)';
             }
         }
         if (trim((string) $note) !== '') {

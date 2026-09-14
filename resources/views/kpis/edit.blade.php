@@ -7,18 +7,22 @@
     <div class="px-4 py-5 lg:px-6">
         <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
             <div>
-                <div class="flex items-center gap-1.5 text-[11px] text-slate-400">
+                <div class="flex items-center gap-1.5 text-[13px] text-slate-400">
                     <a href="{{ route('kpis.index', ['fy' => $fyLabel]) }}" class="hover:text-brand-600">Annual Key Performance Indicator (KPI)</a>
                     <span>/</span>
                     <span class="text-slate-600">{{ $existing ? 'Edit' : 'Enter' }}</span>
                 </div>
-                <h1 class="mt-1 text-[16px] font-semibold tracking-tight text-navy-900">{{ $shakha->name }}</h1>
-                <p class="mt-0.5 text-[11px] text-slate-500">
+                <h1 class="mt-1 text-lg font-semibold tracking-tight text-navy-900">{{ $shakha->name }}</h1>
+                <p class="mt-0.5 text-[13px] text-slate-500">
                     {{ $shakha->area?->name }} · FY {{ $fyLabel }}
-                    · Raw figures only (ratios calculated on Excel export)
+                    · Raw figures only ·
+                    <a href="{{ route('kpis.laws') }}" class="font-medium text-brand-600 hover:underline">ratios follow KPI laws</a>
                 </p>
             </div>
-            <a href="{{ route('kpis.index', ['fy' => $fyLabel]) }}" class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-medium text-slate-600 hover:bg-slate-50">Back to list</a>
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ route('kpis.laws') }}" class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 hover:bg-slate-50">KPI laws</a>
+                <a href="{{ route('kpis.index', ['fy' => $fyLabel]) }}" class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-medium text-slate-600 hover:bg-slate-50">Back to list</a>
+            </div>
         </div>
 
         @if ($errors->any())
@@ -35,11 +39,11 @@
                 </div>
                 <div class="grid gap-4 px-5 py-5 sm:grid-cols-2 lg:grid-cols-3">
                     <div>
-                        <label class="mb-1.5 block text-[11px] font-medium text-slate-600">Opening date</label>
+                        <label class="mb-1.5 block text-[13px] font-medium text-slate-600">Opening date</label>
                         <input type="date" name="opening_date" value="{{ old('opening_date', optional($shakha->opening_date ?? $shakha->opened_at)->format('Y-m-d')) }}" class="block w-full rounded-lg border-slate-200 text-[13px]">
                     </div>
                     <div class="sm:col-span-2">
-                        <label class="mb-1.5 block text-[11px] font-medium text-slate-600">Focal person name</label>
+                        <label class="mb-1.5 block text-[13px] font-medium text-slate-600">Focal person name</label>
                         <input type="text" name="focal_person_name" value="{{ old('focal_person_name', $shakha->focal_person_name) }}" class="block w-full rounded-lg border-slate-200 text-[13px]" placeholder="e.g. Md. Rafiqul Islam">
                     </div>
                 </div>
@@ -48,7 +52,7 @@
             <div class="rounded-2xl border border-slate-100 bg-white shadow-card">
                 <div class="border-b border-slate-100 px-5 py-3.5">
                     <p class="text-[13px] font-semibold text-navy-900">Snapshot</p>
-                    <p class="mt-0.5 text-[11px] text-slate-500">Month-end / year-end stock figures</p>
+                    <p class="mt-0.5 text-[13px] text-slate-500">Month-end / year-end stock figures</p>
                 </div>
                 <div class="grid gap-4 px-5 py-5 sm:grid-cols-2 lg:grid-cols-3">
                     @foreach ([
@@ -66,7 +70,7 @@
                         'due_loanee_loan_outstanding' => 'Due Loanee Loan Outstanding (Tk)',
                     ] as $name => $label)
                         <div>
-                            <label class="mb-1.5 block text-[11px] font-medium text-slate-600">{{ $label }}</label>
+                            <label class="mb-1.5 block text-[13px] font-medium text-slate-600">{{ $label }}</label>
                             <input type="number" name="{{ $name }}" min="0" step="{{ str_contains($name, 'count') || str_contains($name, 'samities') || str_contains($name, 'members') || str_contains($name, 'borrowers') ? '1' : '0.01' }}" required value="{{ $val($name) }}" class="block w-full rounded-lg border-slate-200 text-[13px]">
                         </div>
                     @endforeach
@@ -76,7 +80,7 @@
             <div class="rounded-2xl border border-slate-100 bg-white shadow-card">
                 <div class="border-b border-slate-100 px-5 py-3.5">
                     <p class="text-[13px] font-semibold text-navy-900">Fiscal year activity</p>
-                    <p class="mt-0.5 text-[11px] text-slate-500">Yellow columns in your Excel — increases are calculated automatically</p>
+                    <p class="mt-0.5 text-[13px] text-slate-500">Yellow columns in your Excel — increases are calculated automatically</p>
                 </div>
                 <div class="grid gap-4 px-5 py-5 sm:grid-cols-2 lg:grid-cols-3">
                     @foreach ([
@@ -90,7 +94,7 @@
                         'fy_loan_recovery' => 'FY Loan Recovery',
                     ] as $name => $label)
                         <div>
-                            <label class="mb-1.5 block text-[11px] font-medium text-slate-600">{{ $label }}</label>
+                            <label class="mb-1.5 block text-[13px] font-medium text-slate-600">{{ $label }}</label>
                             <input type="number" name="{{ $name }}" min="0" step="{{ str_contains($name, 'borrowers') || str_contains($name, 'admission') || str_contains($name, 'dropout') ? '1' : '0.01' }}" required value="{{ $val($name) }}" class="block w-full rounded-lg border-slate-200 text-[13px]">
                         </div>
                     @endforeach
@@ -109,16 +113,16 @@
                         'due_increase_this_month' => 'Due Increase This Month',
                     ] as $name => $label)
                         <div>
-                            <label class="mb-1.5 block text-[11px] font-medium text-slate-600">{{ $label }}</label>
+                            <label class="mb-1.5 block text-[13px] font-medium text-slate-600">{{ $label }}</label>
                             <input type="number" name="{{ $name }}" step="0.01" required value="{{ $val($name) }}" class="block w-full rounded-lg border-slate-200 text-[13px]">
-                            <p class="mt-1 text-[10px] text-slate-400">Negative values allowed where applicable</p>
+                            <p class="mt-1 text-xs text-slate-500">Negative values allowed where applicable</p>
                         </div>
                     @endforeach
                 </div>
             </div>
 
             <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-card">
-                <p class="text-[11px] text-slate-500">After saving you return to the KPI list. Use <strong>Export Excel</strong> when ready for all branches.</p>
+                <p class="text-[13px] text-slate-500">After saving you return to the KPI list. Use <strong>Export Excel</strong> when ready for all branches.</p>
                 <div class="flex gap-2">
                     <a href="{{ route('kpis.index', ['fy' => $fyLabel]) }}" class="rounded-lg px-3 py-1.5 text-[12px] font-medium text-slate-500 hover:bg-slate-50">Cancel</a>
                     <button type="submit" class="rounded-lg bg-navy-900 px-4 py-1.5 text-[12px] font-semibold text-white hover:bg-navy-800">Save KPI</button>
