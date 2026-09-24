@@ -173,6 +173,7 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
 
     Route::middleware('permission:annual_audit.view|annual_audit.manage')->group(function () {
         Route::get('/annual-audit', [AnnualAuditController::class, 'index'])->name('annual-audit.index');
+        Route::get('/annual-audit/panel', [AnnualAuditController::class, 'panel'])->name('annual-audit.panel');
         Route::get('/annual-audit/export', [AnnualAuditController::class, 'export'])->name('annual-audit.export');
     });
     Route::middleware('permission:annual_audit.manage')->group(function () {

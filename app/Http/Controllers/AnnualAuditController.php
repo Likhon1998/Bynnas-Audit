@@ -35,96 +35,23 @@ class AnnualAuditController extends Controller
     {
         $plan = $this->resolvePlan($request);
         $builder = new AnnualAuditReportBuilder($plan);
-        // Policies first when the yearly plan has not been generated yet.
         $defaultTab = $plan->generated_at ? 'total' : 'policies';
-        $tab = $request->filled('tab') ? $request->string('tab')->toString() : $defaultTab;
-        $allowed = [
-            'policies',
-            'total',
-            'shakha',
-            'area',
-            'pksf',
-            'hq',
-            'project_audit',
-            'project_monitoring',
-        ];
-        if (! in_array($tab, $allowed, true)) {
-            $tab = $defaultTab;
-        }
+        $tab = $this->resolveTab($request, $defaultTab);
 
-        $division = $request->string('division')->toString() ?: null;
-        $areaId = $request->integer('area_id') ?: null;
+        return view('annual-audit.index', $this->pageData($request, $plan, $builder, $tab));
+    }
 
-        $availablePlans = AuditPlan::query()->orderByDesc('start_date')->get(['id', 'fy_label', 'status', 'start_date']);
-        $nextFyLabel = FinancialYear::fromLabel($plan->fy_label)->next()->label;
-        $nextPlanExists = $availablePlans->contains(fn ($p) => $p->fy_label === $nextFyLabel);
-        $highlightProjectId = $request->integer('project') ?: null;
+    /**
+     * HTML fragment for one tab panel (used for instant client-side switching).
+     */
+    public function panel(Request $request): View
+    {
+        $plan = $this->resolvePlan($request);
+        $builder = new AnnualAuditReportBuilder($plan);
+        $defaultTab = $plan->generated_at ? 'total' : 'policies';
+        $tab = $this->resolveTab($request, $defaultTab);
 
-        $data = [
-            'plan' => $plan,
-            'tab' => $tab,
-            'months' => $builder->months(),
-            'kpis' => $builder->kpis(),
-            'divisions' => Divisions::all(),
-            'areas' => Area::query()->where('status', 'active')->orderBy('name')->get(),
-            'filters' => [
-                'division' => $division,
-                'area_id' => $areaId,
-            ],
-            'canEditSchedule' => true,
-            'availablePlans' => $availablePlans,
-            'nextFyLabel' => $nextFyLabel,
-            'nextPlanExists' => $nextPlanExists,
-            'canDeletePlan' => (bool) $request->user()?->isSuperAdmin(),
-            'highlightProjectId' => $highlightProjectId,
-        ];
-
-        $canManageAnnual = (bool) $request->user()?->can('annual_audit.manage');
-        $data['canEditSchedule'] = $canManageAnnual;
-        $data['canManageAnnual'] = $canManageAnnual;
-
-        return match ($tab) {
-            'shakha' => view('annual-audit.index', $data + [
-                'shakhaGroups' => ($shakhaGroups = $builder->shakhaGroups()),
-                'rows' => ($shakhaRows = $shakhaGroups->flatMap(fn ($g) => $g['rows'])),
-                'shakhaTotals' => $builder->shakhaTotals($shakhaRows),
-                'categoryTotals' => null,
-            ]),
-            'area' => view('annual-audit.index', $data + [
-                'rows' => ($areaRows = $builder->areaMatrix()),
-                'areaTotals' => $builder->areaTotals($areaRows),
-                'categoryTotals' => null,
-            ]),
-            'pksf' => view('annual-audit.index', $data + [
-                'rows' => ($pksfRows = $builder->pksfMatrix()),
-                'pksfTotals' => $builder->pksfTotals($pksfRows),
-                'categoryTotals' => null,
-            ]),
-            'hq' => view('annual-audit.index', $data + [
-                'rows' => ($hqRows = $builder->hqMatrix()),
-                'hqTotals' => $builder->hqTotals($hqRows),
-                'categoryTotals' => null,
-            ]),
-            'project_audit' => view('annual-audit.index', $data + [
-                'projectGroups' => $builder->projectAuditGroups(),
-                'rows' => collect(),
-                'categoryTotals' => null,
-            ]),
-            'project_monitoring' => view('annual-audit.index', $data + [
-                'projectGroups' => $builder->projectMonitoringGroups(),
-                'rows' => collect(),
-                'categoryTotals' => null,
-            ]),
-            'policies' => view('annual-audit.index', $data + [
-                'policies' => $plan->policies()->orderBy('category')->get(),
-                'rows' => collect(),
-                'categoryTotals' => null,
-            ]),
-            default => view('annual-audit.index', $data + [
-                'categoryTotals' => $builder->totalsByCategory(),
-                'rows' => collect(),
-            ]),
-        };
+        return view('annual-audit.partials.tab-content', $this->tabPayload($request, $plan, $builder, $tab));
     }
 
     public function createYear(Request $request): RedirectResponse
@@ -453,5 +380,115 @@ class AnnualAuditController extends Controller
             ['fy' => $plan->fy_label] + $extra,
             fn ($v) => $v !== null && $v !== ''
         );
+    }
+
+    protected function resolveTab(Request $request, string $defaultTab): string
+    {
+        $tab = $request->filled('tab') ? $request->string('tab')->toString() : $defaultTab;
+        $allowed = [
+            'policies',
+            'total',
+            'shakha',
+            'area',
+            'pksf',
+            'hq',
+            'project_audit',
+            'project_monitoring',
+        ];
+
+        return in_array($tab, $allowed, true) ? $tab : $defaultTab;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function pageData(Request $request, AuditPlan $plan, AnnualAuditReportBuilder $builder, string $tab): array
+    {
+        $division = $request->string('division')->toString() ?: null;
+        $areaId = $request->integer('area_id') ?: null;
+        $availablePlans = AuditPlan::query()->orderByDesc('start_date')->get(['id', 'fy_label', 'status', 'start_date']);
+        $nextFyLabel = FinancialYear::fromLabel($plan->fy_label)->next()->label;
+        $nextPlanExists = $availablePlans->contains(fn ($p) => $p->fy_label === $nextFyLabel);
+        $canManageAnnual = (bool) $request->user()?->can('annual_audit.manage');
+
+        return $this->tabPayload($request, $plan, $builder, $tab) + [
+            'plan' => $plan,
+            'tab' => $tab,
+            'months' => $builder->months(),
+            'kpis' => $builder->kpis(),
+            'divisions' => Divisions::all(),
+            'areas' => Area::query()->where('status', 'active')->orderBy('name')->get(),
+            'filters' => [
+                'division' => $division,
+                'area_id' => $areaId,
+            ],
+            'availablePlans' => $availablePlans,
+            'nextFyLabel' => $nextFyLabel,
+            'nextPlanExists' => $nextPlanExists,
+            'canDeletePlan' => (bool) $request->user()?->isSuperAdmin(),
+            'highlightProjectId' => $request->integer('project') ?: null,
+            'canEditSchedule' => $canManageAnnual,
+            'canManageAnnual' => $canManageAnnual,
+            'panelUrl' => route('annual-audit.panel'),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function tabPayload(Request $request, AuditPlan $plan, AnnualAuditReportBuilder $builder, string $tab): array
+    {
+        $canManageAnnual = (bool) $request->user()?->can('annual_audit.manage');
+        $base = [
+            'plan' => $plan,
+            'tab' => $tab,
+            'months' => $builder->months(),
+            'divisions' => Divisions::all(),
+            'areas' => Area::query()->where('status', 'active')->orderBy('name')->get(),
+            'canEditSchedule' => $canManageAnnual,
+            'canManageAnnual' => $canManageAnnual,
+            'highlightProjectId' => $request->integer('project') ?: null,
+            'rows' => collect(),
+            'categoryTotals' => null,
+            'policies' => collect(),
+            'shakhaGroups' => collect(),
+            'shakhaTotals' => null,
+            'areaTotals' => null,
+            'pksfTotals' => null,
+            'hqTotals' => null,
+            'projectGroups' => collect(),
+        ];
+
+        return match ($tab) {
+            'shakha' => array_merge($base, [
+                'shakhaGroups' => ($shakhaGroups = $builder->shakhaGroups()),
+                'rows' => ($shakhaRows = $shakhaGroups->flatMap(fn ($g) => $g['rows'])),
+                'shakhaTotals' => $builder->shakhaTotals($shakhaRows),
+            ]),
+            'area' => array_merge($base, [
+                'rows' => ($areaRows = $builder->areaMatrix()),
+                'areaTotals' => $builder->areaTotals($areaRows),
+            ]),
+            'pksf' => array_merge($base, [
+                'rows' => ($pksfRows = $builder->pksfMatrix()),
+                'pksfTotals' => $builder->pksfTotals($pksfRows),
+            ]),
+            'hq' => array_merge($base, [
+                'rows' => ($hqRows = $builder->hqMatrix()),
+                'hqTotals' => $builder->hqTotals($hqRows),
+            ]),
+            'project_audit' => array_merge($base, [
+                'projectGroups' => $builder->projectAuditGroups(),
+            ]),
+            'project_monitoring' => array_merge($base, [
+                'projectGroups' => $builder->projectMonitoringGroups(),
+            ]),
+            'policies' => array_merge($base, [
+                'policies' => $plan->policies()->orderBy('category')->get(),
+            ]),
+            default => array_merge($base, [
+                'categoryTotals' => $builder->totalsByCategory(),
+            ]),
+        };
     }
 }

@@ -1,6 +1,6 @@
 <x-app-layout>
     <div
-        class="px-4 py-4 lg:px-6"
+        class="px-3 py-3 lg:px-5"
         x-data="monthlyAllocate({
             items: @js($allocatePayload),
             employees: @js($employeeAvailability),
@@ -94,7 +94,7 @@
                     x-show="listQuery"
                     x-cloak
                     @click="listQuery = ''"
-                    class="absolute right-2 top-1/2 -translate-y-1/2 text-[13px] text-slate-400 hover:text-slate-600"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 text-[13px] text-slate-500 hover:text-slate-600"
                 >Clear</button>
             </div>
 
@@ -145,7 +145,7 @@
             <span class="text-slate-500">Overdue <strong class="text-orange-700">{{ number_format($performance['totals']['overdue']) }}</strong></span>
         </div>
 
-        <div class="grid gap-3 {{ ($officerView ?? false) ? '' : 'xl:grid-cols-12' }}">
+        <div class="grid gap-2 {{ ($officerView ?? false) ? '' : 'xl:grid-cols-12' }}">
             {{-- Unassigned --}}
             @can('monthly_visits.manage')
             <section class="overflow-hidden rounded-lg border border-slate-200 bg-white xl:col-span-5">
@@ -244,7 +244,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="px-3 py-8 text-center text-[13px] text-slate-500">
+                                    <td colspan="4" class="px-3 py-3 text-center text-[13px] text-slate-500">
                                         @if ($items->isEmpty())
                                             @if ($plan->generated_at)
                                                 No yearly schedules for {{ $monthLabel }}.
@@ -389,7 +389,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-3 py-8 text-center text-[13px] text-slate-500">
+                                    <td colspan="7" class="px-3 py-3 text-center text-[13px] text-slate-500">
                                         @if ($officerView ?? false)
                                             No visits allocated to you for {{ $monthLabel }}.
                                         @else
@@ -419,7 +419,7 @@
         >
             <div class="absolute inset-0 bg-slate-900/50" @click="close()"></div>
             <div class="relative z-10 flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl" @click.stop>
-                <div class="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 px-4 py-3">
+                <div class="flex shrink-0 items-start justify-between gap-2 border-b border-slate-100 px-3 py-2.5">
                     <div>
                         <p class="text-[14px] font-semibold text-navy-900" x-text="current ? (current.status === 'assigned' ? 'Edit allocation' : 'Allocate visit') : 'Allocate visit'"></p>
                         <p class="mt-0.5 text-[12px] text-slate-600" x-text="current ? (current.entity_label + ' · ' + (current.activity || current.category)) : ''"></p>
@@ -437,7 +437,7 @@
                 <div
                     x-show="hasConflict || hasLiveConflict"
                     x-cloak
-                    class="shrink-0 border-b border-rose-200 bg-rose-50 px-4 py-2.5 text-[12px] text-rose-950"
+                    class="shrink-0 border-b border-rose-200 bg-rose-50 px-3 py-2 text-[12px] text-rose-950"
                 >
                     <p class="font-semibold">Cannot save — same person at two places</p>
                     <p class="mt-0.5 text-[13px]" x-show="hasConflict" x-text="conflictWarning"></p>
@@ -560,7 +560,7 @@
                             </div>
                         </div>
 
-                        <div x-show="hasConflict || hasLiveConflict" class="shrink-0 border-t border-rose-200 bg-rose-50 px-4 py-3 text-[12px] text-rose-950">
+                        <div x-show="hasConflict || hasLiveConflict" class="shrink-0 border-t border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] text-rose-950">
                             <p class="font-semibold">Cannot allocate — same person at two places</p>
                             <p class="mt-1 text-[13px]" x-show="hasConflict" x-text="conflictWarning"></p>
                             <ul class="mt-1 list-disc pl-4 text-[13px] text-rose-900" x-show="hasLiveConflict && liveConflictLines.length">
@@ -583,7 +583,7 @@
                             <p class="mt-2 text-[13px] font-medium">Change visitors or dates. Overlap is never allowed.</p>
                         </div>
 
-                        <div class="flex shrink-0 justify-end gap-2 border-t border-slate-100 px-4 py-3">
+                        <div class="flex shrink-0 justify-end gap-2 border-t border-slate-100 px-3 py-2.5">
                             <button type="button" @click="close()" class="rounded-md px-3 py-2 text-[12px] font-medium text-slate-500 hover:bg-slate-50">Cancel</button>
                             <button
                                 type="submit"

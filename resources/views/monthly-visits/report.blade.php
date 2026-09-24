@@ -1,6 +1,6 @@
 <x-app-layout>
-    <div class="px-4 py-5 lg:px-6 print:px-0">
-        <div class="mb-4 flex flex-wrap items-start justify-between gap-2 print:hidden">
+    <div class="px-3 py-3 lg:px-5 print:px-0">
+        <div class="mb-3 flex flex-wrap items-start justify-between gap-2 print:hidden">
             <div>
                 <a href="{{ route('monthly-visits.index', ['fy' => $plan->fy_label, 'month' => $monthIndex]) }}" class="text-[13px] font-medium text-brand-600 hover:underline">← Monthly visits</a>
                 <h1 class="mt-1 text-lg font-semibold tracking-tight text-navy-900">
@@ -25,7 +25,7 @@
             </div>
         </div>
 
-        <div class="hidden print:mb-4 print:block">
+        <div class="hidden print:mb-3 print:block">
             <p class="text-[16px] font-semibold text-navy-900">Field Visit &amp; Inspection — {{ $monthLabel }}</p>
             <p class="text-[12px] text-slate-600">Financial Year {{ $plan->fy_label }}</p>
         </div>
@@ -67,7 +67,7 @@
                                     <td class="px-3 py-2 capitalize text-slate-600">{{ str_replace('_', ' ', $a?->execution?->status ?? 'planned') }}</td>
                                 </tr>
                             @empty
-                                <tr><td colspan="9" class="px-4 py-8 text-center text-[13px] text-slate-500">No assigned visits for this report.</td></tr>
+                                <tr><td colspan="9" class="px-3 py-3 text-center text-[13px] text-slate-500">No assigned visits for this report.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -131,7 +131,7 @@
                                 <td class="px-3 py-2 text-right">{{ $row['total_days'] }}</td>
                             </tr>
                         @empty
-                            <tr><td colspan="4" class="px-4 py-8 text-center text-[13px] text-slate-500">No assignments yet.</td></tr>
+                            <tr><td colspan="4" class="px-3 py-3 text-center text-[13px] text-slate-500">No assignments yet.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

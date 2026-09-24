@@ -5,7 +5,7 @@
     };
 @endphp
 
-<div class="border-b border-slate-200 bg-slate-100 px-3 py-5 lg:px-6">
+<div class="border-b border-slate-200 bg-slate-100 px-3 py-3 lg:px-5">
     <div class="mb-2 flex items-center justify-between gap-2">
         <p class="text-[12px] font-semibold text-slate-800">২. এক নজরে + সূচিপত্র</p>
         <span class="text-[13px] text-slate-500">Row/Column যোগ-বাদ করতে পারবেন · Preview এও দেখাবে</span>
@@ -47,7 +47,7 @@
             <button
                 type="button"
                 wire:click="removeGlanceColumn"
-                class="h-7 rounded border border-slate-300 px-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                class="h-7 rounded border border-slate-300 px-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-55"
                 @disabled($glancePairCount <= 1)
             >− Column</button>
         </div>

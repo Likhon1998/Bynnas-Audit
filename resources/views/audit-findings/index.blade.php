@@ -4,7 +4,7 @@
     @endphp
 
     <div
-        class="px-4 py-4 lg:px-6"
+        class="px-3 py-3 lg:px-5"
         style="font-family:'Hind Siliguri', 'Nirmala UI', Arial, sans-serif;"
         x-data="{
             q: '',
@@ -74,7 +74,7 @@
                 this.onlyNew = true;
                 this.page = 1;
                 this.$nextTick(() => {
-                    document.getElementById('findings-matrix-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    document.getElementById('findings-matrix-table')?.scrollIntoView({ behavior: 'auto', block: 'start' });
                 });
             },
             onCategoryChange() {
@@ -89,7 +89,7 @@
     >
         <link href="https://fonts.bunny.net/css?family=hind-siliguri:400,500,600,700&display=swap" rel="stylesheet" />
 
-        <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
+        <div class="mb-3 flex flex-wrap items-start justify-between gap-2">
             <div class="min-w-0">
                 <h1 class="text-lg font-semibold tracking-tight text-navy-900">Findings Matrix</h1>
                 <p class="mt-0.5 text-[13px] text-slate-500">Monthly summary · indicators × shakhas</p>
@@ -266,7 +266,7 @@
                 :class="onlyNew ? 'border-violet-300 bg-violet-50 font-semibold text-violet-800' : 'border-slate-200 text-slate-600 hover:bg-slate-50'"
             >নতুন only</button>
             <button type="button" @click="resetFilters()" class="h-8 rounded-lg border border-slate-200 px-3 text-[12px] text-slate-600 hover:bg-slate-50">Reset</button>
-            <p class="ml-auto self-center text-[13px] text-slate-400">
+            <p class="ml-auto self-center text-[13px] text-slate-500">
                 <span class="font-semibold tabular-nums text-slate-700" x-text="fromRow + '–' + toRow"></span>
                 of <span class="tabular-nums" x-text="filtered.length"></span>
                 <span class="text-slate-300">·</span>
@@ -320,7 +320,7 @@
                             </tr>
                         </template>
                         <tr x-show="filtered.length === 0">
-                            <td colspan="10" class="px-3 py-10 text-center text-[13px] text-slate-500">
+                            <td colspan="10" class="px-3 py-6 text-center text-[13px] text-slate-500">
                                 <span x-show="rows.length === 0">
                                     No indicators yet. Import with
                                     <span class="font-medium text-navy-800">php artisan audit:import-indicators path/to/file.xlsx</span>
@@ -338,10 +338,10 @@
                     / <span class="tabular-nums" x-text="totalPages"></span>
                 </p>
                 <div class="flex items-center gap-1">
-                    <button type="button" @click="go(1)" :disabled="page <= 1" class="h-7 rounded-md border border-slate-200 px-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">First</button>
-                    <button type="button" @click="go(page - 1)" :disabled="page <= 1" class="h-7 rounded-md border border-slate-200 px-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">Prev</button>
-                    <button type="button" @click="go(page + 1)" :disabled="page >= totalPages" class="h-7 rounded-md border border-slate-200 px-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">Next</button>
-                    <button type="button" @click="go(totalPages)" :disabled="page >= totalPages" class="h-7 rounded-md border border-slate-200 px-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">Last</button>
+                    <button type="button" @click="go(1)" :disabled="page <= 1" class="h-7 rounded-md border border-slate-200 px-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55">First</button>
+                    <button type="button" @click="go(page - 1)" :disabled="page <= 1" class="h-7 rounded-md border border-slate-200 px-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55">Prev</button>
+                    <button type="button" @click="go(page + 1)" :disabled="page >= totalPages" class="h-7 rounded-md border border-slate-200 px-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55">Next</button>
+                    <button type="button" @click="go(totalPages)" :disabled="page >= totalPages" class="h-7 rounded-md border border-slate-200 px-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55">Last</button>
                 </div>
             </div>
         </div>

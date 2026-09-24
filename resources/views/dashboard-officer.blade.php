@@ -11,8 +11,8 @@
         : null;
 @endphp
 
-<div class="px-4 py-5 lg:px-6">
-    <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+<div class="px-3 py-3 lg:px-5">
+    <div class="mb-3 flex flex-wrap items-end justify-between gap-2">
         <div>
             <div class="mb-1 flex items-center gap-2">
                 <span class="h-2 w-8 rounded-full bg-gradient-to-r from-[#ff2d9b] via-[#7c3aed] to-[#2563eb]"></span>
@@ -50,7 +50,7 @@
     </div>
 
     @unless (auth()->user()->employee_id)
-        <div class="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-[12px] text-amber-900">
+        <div class="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-[12px] text-amber-900">
             Your login is not linked to an organogram employee — visit allocations cannot appear until Super Admin links you.
         </div>
     @endunless

@@ -35,7 +35,7 @@
             class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
             @click.self="transferOpen = false"
         >
-            <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-4 shadow-xl" @click.stop>
+            <div class="w-full max-w-md rounded-xl border border-slate-200 bg-white p-4 shadow-xl" @click.stop>
                 <div class="mb-3">
                     <p class="text-[14px] font-semibold text-navy-900">Transfer (স্থানান্তর)</p>
                     <p class="mt-0.5 text-[13px] text-slate-500">
@@ -79,7 +79,7 @@
             class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
             @click.self="fireOpen = false"
         >
-            <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-4 shadow-xl" @click.stop>
+            <div class="w-full max-w-md rounded-xl border border-slate-200 bg-white p-4 shadow-xl" @click.stop>
                 <div class="mb-3">
                     <p class="text-[14px] font-semibold text-navy-900">Fire (চাকরিচ্যুত)</p>
                     <p class="mt-0.5 text-[13px] text-slate-500">

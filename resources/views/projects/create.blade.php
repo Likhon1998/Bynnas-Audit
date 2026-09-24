@@ -10,7 +10,7 @@
             : [['name' => '', 'division' => '', 'status' => 'active']];
     @endphp
 
-    <div class="px-4 py-3 lg:px-6">
+    <div class="px-3 py-2.5 lg:px-6">
         <form
             method="POST"
             action="{{ route('projects.store') }}"
@@ -150,7 +150,7 @@
                 <div class="flex items-center gap-2">
                     <p class="text-[12px] font-semibold text-navy-900">Locations</p>
                     <span class="rounded bg-slate-200/80 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-slate-600" x-text="locations.length"></span>
-                    <p class="hidden text-[13px] text-slate-400 sm:inline">Each site becomes a schedule row on generate / sync</p>
+                    <p class="hidden text-[13px] text-slate-500 sm:inline">Each site becomes a schedule row on generate / sync</p>
                 </div>
                 <button
                     type="button"
@@ -173,7 +173,7 @@
                     <tbody class="divide-y divide-slate-100">
                         <template x-for="(loc, index) in locations" :key="index">
                             <tr class="bg-white hover:bg-slate-50/80">
-                                <td class="px-3 py-2 align-middle text-[13px] tabular-nums text-slate-400 sm:px-4" x-text="index + 1"></td>
+                                <td class="px-3 py-2 align-middle text-[13px] tabular-nums text-slate-500 sm:px-4" x-text="index + 1"></td>
                                 <td class="px-2 py-2 align-middle">
                                     <select :name="'locations['+index+'][division]'" x-model="loc.division" required class="block w-full min-w-[9rem] rounded-md border-slate-200 py-1.5 text-[12px] leading-5">
                                         <option value="">Division…</option>

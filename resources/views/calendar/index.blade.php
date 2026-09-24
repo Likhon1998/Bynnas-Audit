@@ -9,10 +9,10 @@
         })"
     >
         {{-- Hero --}}
-        <div class="relative mb-4 overflow-hidden rounded-2xl border border-teal-200/70 bg-gradient-to-br from-teal-600 via-cyan-600 to-sky-700 px-4 py-4 text-white shadow-sm sm:px-5 sm:py-5">
+        <div class="relative mb-3 overflow-hidden rounded-xl border border-teal-200/70 bg-gradient-to-br from-teal-600 via-cyan-600 to-sky-700 px-3 py-3 text-white shadow-sm sm:px-5 sm:py-5">
             <div class="pointer-events-none absolute -right-8 -top-10 h-40 w-40 rounded-full bg-amber-300/20 blur-2xl"></div>
             <div class="pointer-events-none absolute -bottom-12 left-1/3 h-36 w-36 rounded-full bg-emerald-300/20 blur-2xl"></div>
-            <div class="relative flex flex-wrap items-start justify-between gap-3">
+            <div class="relative flex flex-wrap items-start justify-between gap-2">
                 <div class="min-w-0">
                     <div class="mb-2 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-teal-50 ring-1 ring-white/20">
                         <span class="h-1.5 w-1.5 rounded-full bg-amber-300"></span>
@@ -70,8 +70,8 @@
             <div class="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-[12px] text-rose-700">{{ $errors->first() }}</div>
         @endif
 
-        <div class="mb-3 grid gap-3 lg:grid-cols-[1fr_300px]">
-            <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div class="mb-3 grid gap-2 lg:grid-cols-[1fr_300px]">
+            <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                 <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-gradient-to-r from-slate-50 via-white to-amber-50/40 px-3 py-3">
                     <div>
                         <p class="text-[15px] font-semibold text-navy-900">{{ $periodLabel }}</p>
@@ -149,7 +149,7 @@
             </section>
 
             <aside class="space-y-3">
-                <div class="overflow-hidden rounded-2xl border border-teal-100 bg-gradient-to-b from-teal-50 to-white p-3 shadow-sm">
+                <div class="overflow-hidden rounded-xl border border-teal-100 bg-gradient-to-b from-teal-50 to-white p-3 shadow-sm">
                     <p class="text-[12px] font-semibold text-teal-900">Weekly off days</p>
                     <p class="mt-0.5 text-xs text-teal-700/80">Tap weekdays your organisation does not work</p>
 
@@ -189,7 +189,7 @@
                     @endif
                 </div>
 
-                <div class="overflow-hidden rounded-2xl border border-amber-100 bg-gradient-to-b from-amber-50 to-white p-3 shadow-sm">
+                <div class="overflow-hidden rounded-xl border border-amber-100 bg-gradient-to-b from-amber-50 to-white p-3 shadow-sm">
                     <p class="text-[12px] font-semibold text-amber-950">This month’s marked offs</p>
                     <p class="mt-0.5 text-xs text-amber-800/70">Manual entries & holidays</p>
                     <div class="mt-2 max-h-[360px] space-y-2 overflow-y-auto">
@@ -253,12 +253,12 @@
             class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4"
             @keydown.escape.window="modalOpen = false"
         >
-            <div class="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl" @click.outside="modalOpen = false">
-                <div class="bg-gradient-to-r from-teal-700 to-cyan-700 px-4 py-3 text-white">
+            <div class="w-full max-w-md overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl" @click.outside="modalOpen = false">
+                <div class="bg-gradient-to-r from-teal-700 to-cyan-700 px-3 py-2.5 text-white">
                     <p class="text-[13px] font-semibold" x-text="editingId ? 'Edit off day' : 'Add manual off day'"></p>
                     <p class="text-xs text-teal-100">Saved to Working Calendar for visits & free days</p>
                 </div>
-                <form method="POST" :action="formAction" class="space-y-3 px-4 py-4">
+                <form method="POST" :action="formAction" class="space-y-3 px-3 py-3">
                     @csrf
                     <template x-if="editingId">
                         <input type="hidden" name="_method" value="PUT">

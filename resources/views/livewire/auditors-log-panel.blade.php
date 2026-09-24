@@ -22,9 +22,9 @@
 @endphp
 
 <div style="font-family:'Hind Siliguri','Nirmala UI',system-ui,sans-serif;" wire:loading.class="opacity-70">
-    <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
+    <div class="mb-3 flex flex-wrap items-start justify-between gap-2">
         <div>
-            <div class="mb-1 flex items-center gap-1.5 text-[13px] text-slate-400">
+            <div class="mb-1 flex items-center gap-1.5 text-[13px] text-slate-500">
                 <a href="{{ route('audit-review.index') }}" class="hover:text-brand-600">Review Panel</a>
                 <span>/</span>
                 <a href="{{ route('audit-review.log') }}" class="hover:text-brand-600">Auditors log</a>
@@ -105,11 +105,11 @@
         </div>
         <div class="mt-2 flex flex-wrap items-center gap-1.5">
             <button type="button" wire:click="clearFilters" class="inline-flex h-8 items-center rounded-md border border-slate-200 bg-white px-3 text-[13px] font-medium text-slate-600 hover:bg-slate-50">Clear</button>
-            <span class="inline-flex items-center gap-1.5 text-[13px] text-slate-400" wire:loading>
+            <span class="inline-flex items-center gap-1.5 text-[13px] text-slate-500" wire:loading>
                 <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-sky-500"></span>
                 Updating…
             </span>
-            <span class="ml-auto text-[13px] text-slate-400" wire:loading.remove>
+            <span class="ml-auto text-[13px] text-slate-500" wire:loading.remove>
                 @if ($mode === 'pipeline')
                     {{ $log['filtered_total'] ?? 0 }} report(s)
                     @if ($position !== '' && ($summary['total'] ?? 0) !== ($log['filtered_total'] ?? 0))
@@ -146,7 +146,7 @@
 
         <div class="space-y-3" wire:key="pipeline-{{ $month }}-{{ $year }}-{{ $auditorId }}-{{ $reviewerId }}-{{ $position }}-{{ $q }}">
             @forelse ($log['auditors'] as $auditor)
-                <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" wire:key="auditor-{{ $auditor['id'] }}">
+                <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm" wire:key="auditor-{{ $auditor['id'] }}">
                     <div class="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 bg-slate-50/70 px-3 py-2">
                         <div>
                             <h2 class="text-[13px] font-semibold text-navy-900">{{ $auditor['name'] }}</h2>
@@ -197,13 +197,13 @@
                     </div>
                 </section>
             @empty
-                <div class="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-10 text-center text-[13px] text-slate-400">
+                <div class="rounded-xl border border-dashed border-slate-200 bg-white px-3 py-6 text-center text-[13px] text-slate-500">
                     No auditor reports match these filters.
                 </div>
             @endforelse
         </div>
     @else
-        <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" wire:key="activity-{{ $month }}-{{ $year }}-{{ $auditorId }}-{{ $reviewerId }}-{{ $q }}">
+        <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm" wire:key="activity-{{ $month }}-{{ $year }}-{{ $auditorId }}-{{ $reviewerId }}-{{ $q }}">
             <ul class="divide-y divide-slate-100">
                 @forelse ($log['events'] as $event)
                     <li class="px-3 py-2.5" wire:key="event-{{ $event['id'] }}">
@@ -224,7 +224,7 @@
                                     @endif
                                 </p>
                                 @if ($event['body'])
-                                    <p class="mt-1 line-clamp-2 text-[13px] text-slate-400">{{ $event['body'] }}</p>
+                                    <p class="mt-1 line-clamp-2 text-[13px] text-slate-500">{{ $event['body'] }}</p>
                                 @endif
                             </div>
                             <div class="shrink-0 text-right">
@@ -237,7 +237,7 @@
                         </div>
                     </li>
                 @empty
-                    <li class="px-3 py-10 text-center text-[13px] text-slate-500">No review events yet.</li>
+                    <li class="px-3 py-6 text-center text-[13px] text-slate-500">No review events yet.</li>
                 @endforelse
             </ul>
         </section>

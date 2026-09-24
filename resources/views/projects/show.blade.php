@@ -1,6 +1,6 @@
 <x-app-layout>
-    <div class="px-4 py-5 lg:px-6">
-        <div class="mb-4 flex flex-wrap items-start justify-between gap-2.5">
+    <div class="px-3 py-3 lg:px-5">
+        <div class="mb-3 flex flex-wrap items-start justify-between gap-2.5">
             <div>
                 <a href="{{ route('projects.index') }}" class="text-[13px] font-medium text-brand-600 hover:underline">← All projects</a>
                 <h1 class="mt-1 text-lg font-semibold tracking-tight text-navy-900">{{ $project->name }}</h1>
@@ -21,7 +21,7 @@
             <div class="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-[12px] text-emerald-700">{{ session('status') }}</div>
         @endif
 
-        <div class="mb-4 flex flex-wrap gap-1.5">
+        <div class="mb-3 flex flex-wrap gap-1.5">
             @if ($project->is_pksf)
                 <span class="rounded bg-sky-50 px-2 py-0.5 text-[13px] font-medium text-sky-700">PKSF</span>
             @endif
@@ -36,9 +36,9 @@
             @endif
         </div>
 
-        <div class="grid gap-4 lg:grid-cols-5">
+        <div class="grid gap-2 lg:grid-cols-5">
             <div class="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-card lg:col-span-3">
-                <div class="border-b border-slate-100 px-4 py-3">
+                <div class="border-b border-slate-100 px-3 py-2.5">
                     <p class="text-[13px] font-medium text-navy-900">Locations</p>
                     <p class="mt-0.5 text-[13px] text-slate-500">Each active location can be scheduled in Annual Audit</p>
                 </div>
@@ -46,19 +46,19 @@
                     <table class="min-w-full text-left">
                         <thead class="border-b border-slate-100 bg-slate-50/80">
                             <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                <th class="px-4 py-2.5">Division</th>
-                                <th class="px-4 py-2.5">Location</th>
-                                <th class="px-4 py-2.5">Status</th>
-                                <th class="px-4 py-2.5"></th>
+                                <th class="px-3 py-2">Division</th>
+                                <th class="px-3 py-2">Location</th>
+                                <th class="px-3 py-2">Status</th>
+                                <th class="px-3 py-2"></th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             @forelse ($project->locations as $location)
                                 <tr class="text-[12px]">
-                                    <td class="px-4 py-2.5 font-medium text-navy-900">{{ $location->division ?: '—' }}</td>
-                                    <td class="px-4 py-2.5 text-slate-600">{{ $location->name }}</td>
-                                    <td class="px-4 py-2.5 capitalize text-slate-600">{{ $location->status }}</td>
-                                    <td class="px-4 py-2.5 text-right">
+                                    <td class="px-3 py-2 font-medium text-navy-900">{{ $location->division ?: '—' }}</td>
+                                    <td class="px-3 py-2 text-slate-600">{{ $location->name }}</td>
+                                    <td class="px-3 py-2 capitalize text-slate-600">{{ $location->status }}</td>
+                                    <td class="px-3 py-2 text-right">
                                         @can('projects.manage')
                                             <form method="POST" action="{{ route('projects.locations.destroy', [$project, $location]) }}" data-bynnas-confirm="Remove this location?" data-bynnas-confirm-title="Remove location?" data-bynnas-confirm-ok="Remove" data-bynnas-confirm-tone="rose">
                                                 @csrf
@@ -70,7 +70,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="px-4 py-8 text-center text-[13px] text-slate-500">No locations yet.</td>
+                                    <td colspan="4" class="px-3 py-3 text-center text-[13px] text-slate-500">No locations yet.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -80,10 +80,10 @@
 
             <div class="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-card lg:col-span-2">
                 @can('projects.manage')
-                    <div class="border-b border-slate-100 px-4 py-3">
+                    <div class="border-b border-slate-100 px-3 py-2.5">
                         <p class="text-[13px] font-medium text-navy-900">Add location</p>
                     </div>
-                    <form method="POST" action="{{ route('projects.locations.store', $project) }}" class="space-y-3 px-4 py-4">
+                    <form method="POST" action="{{ route('projects.locations.store', $project) }}" class="space-y-3 px-3 py-3">
                         @csrf
                         <div>
                             <label for="division" class="mb-1 block text-[13px] font-medium text-slate-600">Division</label>

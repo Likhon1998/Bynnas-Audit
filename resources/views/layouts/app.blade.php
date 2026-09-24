@@ -25,7 +25,7 @@
         @stack('styles')
     </head>
         <body
-            class="font-sans text-sm font-normal leading-relaxed antialiased text-slate-700"
+            class="bynnas-dense font-sans text-sm font-normal leading-normal antialiased text-slate-700"
             x-data="{
                 sidebarOpen: false,
                 sidebarCollapsed: false,
@@ -72,7 +72,7 @@
                     </svg>
                 </button>
 
-                <main class="flex min-h-0 flex-1 flex-col overflow-hidden pt-11 lg:pt-0">
+                <main class="flex min-h-0 flex-1 flex-col overflow-hidden pt-10 lg:pt-0">
                     <div class="h-full min-h-0 flex-1 overflow-y-auto">
                         {{ $slot }}
                     </div>

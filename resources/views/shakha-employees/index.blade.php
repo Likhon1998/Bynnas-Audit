@@ -16,7 +16,7 @@
     @endphp
 
     <div
-        class="px-4 py-5 lg:px-6"
+        class="px-3 py-3 lg:px-5"
         x-data="{
             addOpen: false,
             division: @js((string) ($filters['division'] ?? '')),
@@ -52,7 +52,7 @@
             }
         }"
     >
-        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
             <div class="min-w-0">
                 <h1 class="text-lg font-semibold tracking-tight text-navy-900">Shakha Employees</h1>
                 <p class="mt-0.5 text-[13px] text-slate-500">
@@ -93,7 +93,7 @@
             class="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 p-4"
             @keydown.escape.window="addOpen = false"
         >
-            <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-4 shadow-xl" @click.outside="addOpen = false">
+            <div class="w-full max-w-md rounded-xl border border-slate-200 bg-white p-4 shadow-xl" @click.outside="addOpen = false">
                 <div class="mb-3">
                     <p class="text-[14px] font-semibold text-navy-900">Add employee</p>
                     <p class="mt-0.5 text-[13px] text-slate-500">Choose division, area, then shakha.</p>
@@ -133,13 +133,13 @@
                         type="button"
                         @click="goAdd()"
                         :disabled="!shakhaId"
-                        class="inline-flex h-8 items-center rounded-lg bg-navy-900 px-3 text-[12px] font-semibold text-white hover:bg-navy-800 disabled:cursor-not-allowed disabled:opacity-40"
+                        class="inline-flex h-8 items-center rounded-lg bg-navy-900 px-3 text-[12px] font-semibold text-white hover:bg-navy-800 disabled:cursor-not-allowed disabled:opacity-55"
                     >Continue</button>
                 </div>
             </div>
         </div>
 
-        <form method="GET" action="{{ route('shakha-employees.index') }}" class="mb-4 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
+        <form method="GET" action="{{ route('shakha-employees.index') }}" class="mb-3 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
             <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-3 py-2">
                 <div class="flex items-center gap-2">
                     <span class="flex h-6 w-6 items-center justify-center rounded-md bg-white text-slate-500 shadow-sm ring-1 ring-slate-200">
@@ -160,7 +160,7 @@
                     <a href="{{ route('shakha-employees.index') }}" class="rounded-md px-2 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50">Clear filters</a>
                 @endif
             </div>
-            <div class="grid grid-cols-1 gap-3 p-3 sm:grid-cols-2 xl:grid-cols-5 xl:items-end">
+            <div class="grid grid-cols-1 gap-2 p-3 sm:grid-cols-2 xl:grid-cols-5 xl:items-end">
                 <div>
                     <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Division</label>
                     <select name="division" class="h-9 w-full rounded-lg border-slate-200 bg-white text-[12px] shadow-sm focus:border-[#2b579a] focus:ring-[#2b579a]" onchange="this.form.area_id.value=''; this.form.shakha_id.value=''; this.form.submit()">
@@ -219,7 +219,7 @@
             </div>
         </form>
 
-        <div class="mb-4 grid gap-3 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <div class="mb-3 grid gap-2 lg:grid-cols-[280px_minmax(0,1fr)]">
             <div
                 class="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-card"
                 x-data="{
@@ -264,7 +264,7 @@
                             type="search"
                             x-model="branchQ"
                             placeholder="Search shakha, area, division…"
-                            class="h-8 w-full rounded-lg border-slate-200 pl-8 text-[12px] placeholder:text-slate-400"
+                            class="h-8 w-full rounded-lg border-slate-200 pl-8 text-[12px] placeholder:text-slate-500"
                         >
                     </div>
                 </div>
@@ -287,7 +287,7 @@
                             </div>
                         </a>
                     </template>
-                    <p x-show="filteredBranches.length === 0" class="px-3.5 py-8 text-center text-[13px] text-slate-500">
+                    <p x-show="filteredBranches.length === 0" class="px-3.5 py-5 text-center text-[13px] text-slate-500">
                         No shakhas match your search.
                     </p>
                 </div>
@@ -380,7 +380,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="7" class="px-3.5 py-10 text-center text-[13px] text-slate-500">
+                                        <td colspan="7" class="px-3.5 py-6 text-center text-[13px] text-slate-500">
                                             <p>No employees on this shakha yet.</p>
                                             @if ($canManage)
                                                 <a href="{{ route('shakha-employees.manage', $selectedShakha) }}" class="mt-2 inline-block font-semibold text-[#2b579a] hover:underline">

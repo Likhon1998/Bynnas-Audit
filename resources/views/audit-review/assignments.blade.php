@@ -1,8 +1,8 @@
 <x-app-layout>
     <div class="px-3 py-3 lg:px-5" style="font-family:'Hind Siliguri','Nirmala UI',system-ui,sans-serif;">
-        <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
+        <div class="mb-3 flex flex-wrap items-start justify-between gap-2">
             <div>
-                <div class="mb-1 flex items-center gap-1.5 text-[13px] text-slate-400">
+                <div class="mb-1 flex items-center gap-1.5 text-[13px] text-slate-500">
                     <a href="{{ route('audit-review.index') }}" class="hover:text-brand-600">Review Panel</a>
                     <span>/</span>
                     <span class="text-slate-600">Assignments</span>
@@ -21,7 +21,7 @@
             <div class="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-[12px] text-emerald-700">{{ session('status') }}</div>
         @endif
 
-        <form method="POST" action="{{ route('audit-review.assignments.save') }}" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <form method="POST" action="{{ route('audit-review.assignments.save') }}" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             @csrf
             <div class="overflow-x-auto">
                 <table class="min-w-full text-left text-[12px]">
@@ -57,7 +57,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="3" class="px-3 py-10 text-center text-slate-400">No auditors with audits.create permission.</td>
+                                <td colspan="3" class="px-3 py-6 text-center text-slate-500">No auditors with audits.create permission.</td>
                             </tr>
                         @endforelse
                     </tbody>

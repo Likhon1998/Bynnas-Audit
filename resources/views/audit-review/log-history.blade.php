@@ -12,9 +12,9 @@
 @endphp
 <x-app-layout>
     <div class="px-3 py-3 lg:px-5" style="font-family:'Hind Siliguri','Nirmala UI',system-ui,sans-serif;">
-        <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
+        <div class="mb-3 flex flex-wrap items-start justify-between gap-2">
             <div class="min-w-0">
-                <div class="mb-1 flex items-center gap-1.5 text-[13px] text-slate-400">
+                <div class="mb-1 flex items-center gap-1.5 text-[13px] text-slate-500">
                     <a href="{{ route('audit-review.index') }}" class="hover:text-brand-600">Review Panel</a>
                     <span>/</span>
                     <a href="{{ route('audit-review.log') }}" class="hover:text-brand-600">Auditors log</a>
@@ -59,8 +59,8 @@
             @endif
         </div>
 
-        <div class="grid gap-3 lg:grid-cols-2">
-            <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div class="grid gap-2 lg:grid-cols-2">
+            <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                 <div class="border-b border-slate-100 bg-slate-50/70 px-3 py-2.5">
                     <h2 class="text-[13px] font-semibold text-navy-900">Timeline</h2>
                     <p class="text-[13px] text-slate-500">Every review event on this report</p>
@@ -73,19 +73,19 @@
                                     <p class="text-[12px] font-semibold text-slate-800">{{ $event['label'] }}</p>
                                     <p class="mt-0.5 text-[13px] text-slate-500">{{ $event['round_label'] ?? '' }} · {{ $event['actor'] ?? 'System' }}</p>
                                     @if (! empty($event['body']))
-                                        <p class="mt-1 text-[13px] text-slate-400">{{ $event['body'] }}</p>
+                                        <p class="mt-1 text-[13px] text-slate-500">{{ $event['body'] }}</p>
                                     @endif
                                 </div>
                                 <p class="shrink-0 text-[13px] text-slate-500">{{ $event['at'] ?? '' }}</p>
                             </div>
                         </li>
                     @empty
-                        <li class="px-3 py-10 text-center text-[13px] text-slate-500">No review events yet.</li>
+                        <li class="px-3 py-6 text-center text-[13px] text-slate-500">No review events yet.</li>
                     @endforelse
                 </ul>
             </section>
 
-            <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                 <div class="border-b border-slate-100 bg-slate-50/70 px-3 py-2.5">
                     <h2 class="text-[13px] font-semibold text-navy-900">Marks &amp; comments</h2>
                     <p class="text-[13px] text-slate-500">Read-only · current and earlier rounds</p>
@@ -107,7 +107,7 @@
                             </p>
                         </div>
                     @empty
-                        <p class="py-8 text-center text-[13px] text-slate-500">No marks recorded yet.</p>
+                        <p class="py-5 text-center text-[13px] text-slate-500">No marks recorded yet.</p>
                     @endforelse
                 </div>
             </section>

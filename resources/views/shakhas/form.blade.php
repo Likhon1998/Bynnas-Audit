@@ -16,7 +16,7 @@
     @endphp
 
     <div
-        class="px-4 py-4 lg:px-6"
+        class="px-3 py-3 lg:px-5"
         x-data="{
             name: @js((string) old('name', $shakha?->name ?? '')),
             code: @js((string) old('code', $shakha?->code ?? '')),
@@ -28,8 +28,8 @@
             }
         }"
     >
-        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div class="flex items-center gap-1.5 text-[13px] text-slate-400">
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-1.5 text-[13px] text-slate-500">
                 <a href="{{ route('shakhas.index') }}" class="hover:text-brand-600">All Shakha</a>
                 <span>/</span>
                 <span class="text-slate-600">{{ $isEdit ? 'Edit Shakha' : 'Add Shakha' }}</span>
@@ -55,24 +55,24 @@
         <form
             method="POST"
             action="{{ $isEdit ? route('shakhas.update', $shakha) : route('shakhas.store') }}"
-            class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]"
+            class="grid gap-2 xl:grid-cols-[minmax(0,1fr)_320px]"
         >
             @csrf
             @if ($isEdit)
                 @method('PUT')
             @endif
 
-            <div class="rounded-2xl border border-slate-100 bg-white shadow-card">
-                <div class="border-b border-slate-100 px-5 py-3.5">
+            <div class="rounded-xl border border-slate-100 bg-white shadow-card">
+                <div class="border-b border-slate-100 px-3 py-2.5">
                     <p class="text-[13px] font-semibold text-navy-900">Shakha information</p>
                     <p class="mt-0.5 text-[13px] text-slate-500">
                         {{ $isEdit ? 'Update the branch record below.' : 'Complete the fields below to create a branch record.' }}
                     </p>
                 </div>
 
-                <div class="space-y-5 px-5 py-5">
+                <div class="space-y-3 px-3 py-3">
                     @if ($areas->isEmpty())
-                        <div class="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-[12px] text-amber-800">
+                        <div class="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2.5 text-[12px] text-amber-800">
                             <p class="font-medium">No areas available</p>
                             @can('areas.manage')
                                 <p class="mt-0.5 text-amber-700">Create an area first, then return here to add a shakha.</p>
@@ -88,11 +88,11 @@
                             <span class="flex h-6 w-6 items-center justify-center rounded-md bg-brand-50 text-xs font-semibold text-brand-600">1</span>
                             <div>
                                 <p class="text-[12px] font-semibold text-navy-900">Basic details</p>
-                                <p class="text-[13px] text-slate-400">Name and optional branch code</p>
+                                <p class="text-[13px] text-slate-500">Name and optional branch code</p>
                             </div>
                         </div>
 
-                        <div class="grid gap-4 sm:grid-cols-2">
+                        <div class="grid gap-2 sm:grid-cols-2">
                             <div class="sm:col-span-2">
                                 <label for="name" class="mb-1.5 block text-[13px] font-medium text-slate-600">
                                     Shakha name <span class="text-rose-500">*</span>
@@ -187,7 +187,7 @@
                             <span class="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-50 text-xs font-semibold text-emerald-600">2</span>
                             <div>
                                 <p class="text-[12px] font-semibold text-navy-900">Location</p>
-                                <p class="text-[13px] text-slate-400">Assign this shakha to an area</p>
+                                <p class="text-[13px] text-slate-500">Assign this shakha to an area</p>
                             </div>
                         </div>
 
@@ -219,8 +219,8 @@
                     </section>
                 </div>
 
-                <div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/70 px-5 py-3.5">
-                    <p class="text-[13px] text-slate-400">Fields marked with <span class="text-rose-500">*</span> are required.</p>
+                <div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/70 px-3 py-2.5">
+                    <p class="text-[13px] text-slate-500">Fields marked with <span class="text-rose-500">*</span> are required.</p>
                     <div class="flex items-center gap-1.5">
                         <a href="{{ route('shakhas.index') }}" class="rounded-lg px-3 py-1.5 text-[12px] font-medium text-slate-500 hover:bg-white">Cancel</a>
                         <button
@@ -237,8 +237,8 @@
                 </div>
             </div>
 
-            <aside class="flex flex-col gap-3">
-                <div class="rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
+            <aside class="flex flex-col gap-2">
+                <div class="rounded-xl border border-slate-100 bg-white p-4 shadow-card">
                     <p class="text-[13px] font-semibold uppercase tracking-wide text-slate-500">Live preview</p>
                     <div class="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-3.5">
                         <div class="flex items-start justify-between gap-2">
@@ -266,18 +266,18 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="rounded-2xl border border-slate-100 bg-white p-3.5 shadow-card">
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="rounded-xl border border-slate-100 bg-white p-3.5 shadow-card">
                         <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Areas</p>
                         <p class="mt-1 text-[18px] font-semibold tracking-tight text-navy-900">{{ $areaCount }}</p>
                     </div>
-                    <div class="rounded-2xl border border-slate-100 bg-white p-3.5 shadow-card">
+                    <div class="rounded-xl border border-slate-100 bg-white p-3.5 shadow-card">
                         <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Shakhas</p>
                         <p class="mt-1 text-[18px] font-semibold tracking-tight text-navy-900">{{ $shakhaCount }}</p>
                     </div>
                 </div>
 
-                <div class="rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
+                <div class="rounded-xl border border-slate-100 bg-white p-4 shadow-card">
                     <p class="text-[12px] font-semibold text-navy-900">Guidelines</p>
                     <ul class="mt-2 space-y-2 text-[13px] leading-relaxed text-slate-500">
                         <li class="flex gap-2">
@@ -295,7 +295,7 @@
                     </ul>
                 </div>
 
-                <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 p-4">
+                <div class="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 p-4">
                     @can('areas.manage')
                         <p class="text-[12px] font-medium text-navy-900">Need a new area?</p>
                         <p class="mt-1 text-[13px] text-slate-500">If the target area is missing, create it first then continue here.</p>

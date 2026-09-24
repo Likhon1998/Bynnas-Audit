@@ -1,8 +1,8 @@
 <x-app-layout>
-    <div class="px-4 py-4 lg:px-6">
-        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div class="px-3 py-3 lg:px-5">
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
             <div>
-                <div class="flex items-center gap-1.5 text-[13px] text-slate-400">
+                <div class="flex items-center gap-1.5 text-[13px] text-slate-500">
                     <a href="{{ route('shakhas.index') }}" class="hover:text-brand-600">All Shakha</a>
                     <span>/</span>
                     <span class="text-slate-600">Risk Branch Analysis</span>
@@ -25,7 +25,7 @@
             </div>
         </div>
 
-        <div class="mb-4 rounded-xl border border-sky-100 bg-sky-50 px-4 py-3 text-[12px] text-sky-900">
+        <div class="mb-3 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2.5 text-[12px] text-sky-900">
             <p class="font-semibold">How risk is calculated</p>
             <p class="mt-0.5 text-sky-800">
                 Most points come from annual KPI (OTR, Surplus/Deficit, OD → NPLR/DR), plus the flags below (distance, BM/ABM, special audit).
@@ -36,7 +36,7 @@
         </div>
 
         @if ($existing)
-            <div class="mb-4 rounded-xl border border-amber-100 bg-amber-50/80 px-4 py-3 text-[12px] text-amber-950">
+            <div class="mb-3 rounded-xl border border-amber-100 bg-amber-50/80 px-3 py-2.5 text-[12px] text-amber-950">
                 <p class="font-semibold">
                     Saved score for {{ date('F', mktime(0, 0, 0, $month, 1)) }} {{ $year }}:
                     {{ $existing->total_weighted_score }} points · {{ \App\Support\ShakhaRiskTone::label($existing->risk_category) }}
@@ -46,7 +46,7 @@
                 </p>
             </div>
         @elseif ($latest)
-            <div class="mb-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[12px] text-slate-700">
+            <div class="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[12px] text-slate-700">
                 <p class="font-semibold text-navy-900">
                     List shows {{ \App\Support\ShakhaRiskTone::label($latest->risk_category) }}
                     from {{ date('F', mktime(0, 0, 0, (int) $latest->assessment_month, 1)) }} {{ $latest->assessment_year }}
@@ -59,7 +59,7 @@
         @endif
 
         @unless ($kpi)
-            <div class="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[12px] text-amber-950">
+            <div class="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12px] text-amber-950">
                 <p class="font-semibold">Annual KPI is required first</p>
                 <p class="mt-0.5 text-amber-900">
                     There is no KPI for <span class="font-medium">{{ $shakha->name }}</span> in FY {{ $fy->label }}.
@@ -70,7 +70,7 @@
                 </a>
             </div>
         @elseunless ($kpiReady)
-            <div class="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[12px] text-amber-950">
+            <div class="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12px] text-amber-950">
                 <p class="font-semibold">KPI data is incomplete for risk scoring</p>
                 <p class="mt-0.5 text-amber-900">
                     Risk needs real KPI figures: members, loan outstanding, and recoverable must be greater than zero.
@@ -88,7 +88,7 @@
             </div>
         @endif
 
-        <form method="GET" action="{{ route('shakhas.risk.create', $shakha) }}" class="mb-4 flex flex-wrap items-end gap-2 rounded-xl border border-slate-100 bg-white p-4 shadow-card">
+        <form method="GET" action="{{ route('shakhas.risk.create', $shakha) }}" class="mb-3 flex flex-wrap items-end gap-2 rounded-xl border border-slate-100 bg-white p-4 shadow-card">
             <div>
                 <label for="month" class="mb-1 block text-[13px] font-medium text-slate-600">Assessment month</label>
                 <select id="month" name="month" class="h-9 rounded-lg border-slate-200 text-[13px]">
@@ -131,13 +131,13 @@
         <form
             method="POST"
             action="{{ route('shakhas.risk.store', $shakha) }}"
-            class="rounded-2xl border border-slate-100 bg-white shadow-card"
+            class="rounded-xl border border-slate-100 bg-white shadow-card"
         >
             @csrf
             <input type="hidden" name="assessment_month" value="{{ $month }}">
             <input type="hidden" name="assessment_year" value="{{ $year }}">
 
-            <div class="border-b border-slate-100 px-5 py-3.5">
+            <div class="border-b border-slate-100 px-3 py-2.5">
                 <p class="text-[13px] font-semibold text-navy-900">Operational &amp; audit inputs</p>
                 <p class="mt-0.5 text-[13px] text-slate-500">
                     Total OD Taka and Surplus/Deficit come from KPI. Enter income, expenditure, and other operational fields.
@@ -148,7 +148,7 @@
             </div>
 
             @if ($preview)
-                <div class="border-b border-slate-100 bg-slate-50/60 px-5 py-4">
+                <div class="border-b border-slate-100 bg-slate-50/60 px-3 py-3">
                     <div class="mb-3 flex flex-wrap items-end justify-between gap-2">
                         <div>
                             <p class="text-[13px] font-semibold uppercase tracking-wide text-slate-500">Live score preview</p>
@@ -188,7 +188,7 @@
             @endif
 
             <div
-                class="grid gap-4 px-5 py-5 sm:grid-cols-2"
+                class="grid gap-2 px-3 py-3 sm:grid-cols-2"
                 x-data="{
                     income: @js((float) old('total_income', $existing?->total_income ?? 0)),
                     expenditure: @js((float) old('total_expenditure', $existing?->total_expenditure ?? 0)),
@@ -197,7 +197,7 @@
                     }
                 }"
             >
-                <div class="sm:col-span-2 grid gap-3 rounded-xl border border-slate-100 bg-slate-50/80 p-3 sm:grid-cols-3">
+                <div class="sm:col-span-2 grid gap-2 rounded-xl border border-slate-100 bg-slate-50/80 p-3 sm:grid-cols-3">
                     <div>
                         <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Surplus/Deficit (KPI)</p>
                         <p class="mt-1 text-[13px] font-semibold tabular-nums text-navy-900">{{ number_format((float) ($surplus ?? 0), 2) }}</p>
@@ -281,8 +281,8 @@
                     <x-input-error :messages="$errors->get('distance_from_area_office_km')" class="mt-1" />
                 </div>
 
-                <div class="sm:col-span-2 grid gap-3 sm:grid-cols-2">
-                    <label class="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/70 px-4 py-3 text-[12px] text-slate-700">
+                <div class="sm:col-span-2 grid gap-2 sm:grid-cols-2">
+                    <label class="flex items-start gap-2 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 text-[12px] text-slate-700">
                         <input type="hidden" name="has_both_bm_and_abm" value="0">
                         <input
                             type="checkbox"
@@ -297,7 +297,7 @@
                         </span>
                     </label>
 
-                    <label class="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/70 px-4 py-3 text-[12px] text-slate-700">
+                    <label class="flex items-start gap-2 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 text-[12px] text-slate-700">
                         <input type="hidden" name="special_audit_last_two_years" value="0">
                         <input
                             type="checkbox"
@@ -314,8 +314,8 @@
                 </div>
             </div>
 
-            <div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/70 px-5 py-3.5">
-                <p class="text-[13px] text-slate-400">Score bands: 0–25 Low · 26–45 Medium · 46–65 High · 66+ Significant</p>
+            <div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/70 px-3 py-2.5">
+                <p class="text-[13px] text-slate-500">Score bands: 0–25 Low · 26–45 Medium · 46–65 High · 66+ Significant</p>
                 <div class="flex items-center gap-1.5">
                     <a href="{{ route('shakhas.index') }}" class="rounded-lg px-3 py-1.5 text-[12px] font-medium text-slate-500 hover:bg-white">Cancel</a>
                     <button

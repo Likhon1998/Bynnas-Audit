@@ -1,6 +1,6 @@
 <x-app-layout>
-    <div class="px-4 py-5 lg:px-6">
-        <div class="mb-4 flex flex-wrap items-center justify-between gap-2.5">
+    <div class="px-3 py-3 lg:px-5">
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2.5">
             <div>
                 <h1 class="text-lg font-semibold tracking-tight text-navy-900">All Areas</h1>
                 <p class="mt-0.5 text-[13px] text-slate-500">
@@ -32,10 +32,10 @@
             @endif
         </form>
 
-        <div class="space-y-4">
+        <div class="space-y-3">
             @forelse ($groupedAreas as $divisionName => $divisionAreas)
                 <div class="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-card">
-                    <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-4 py-2.5">
+                    <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-3 py-2">
                         <div>
                             <p class="text-[12px] font-semibold text-navy-900">{{ $divisionName ?: 'Unassigned division' }}</p>
                             <p class="text-xs text-slate-500">{{ $divisionAreas->count() }} area{{ $divisionAreas->count() === 1 ? '' : 's' }}</p>
@@ -45,25 +45,25 @@
                         <table class="min-w-full text-left">
                             <thead class="border-b border-slate-100">
                                 <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                    <th class="px-4 py-2.5">Area Name</th>
-                                    <th class="px-4 py-2.5">Shakhas</th>
-                                    <th class="px-4 py-2.5">Status</th>
-                                    <th class="px-4 py-2.5">Added On</th>
+                                    <th class="px-3 py-2">Area Name</th>
+                                    <th class="px-3 py-2">Shakhas</th>
+                                    <th class="px-3 py-2">Status</th>
+                                    <th class="px-3 py-2">Added On</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100">
                                 @foreach ($divisionAreas as $area)
                                     <tr class="text-[12px]">
-                                        <td class="px-4 py-2.5 font-medium text-navy-900">{{ $area->name }}</td>
-                                        <td class="px-4 py-2.5 text-slate-600">{{ $area->shakhas_count }}</td>
-                                        <td class="px-4 py-2.5">
+                                        <td class="px-3 py-2 font-medium text-navy-900">{{ $area->name }}</td>
+                                        <td class="px-3 py-2 text-slate-600">{{ $area->shakhas_count }}</td>
+                                        <td class="px-3 py-2">
                                             @if ($area->isActive())
                                                 <span class="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Active</span>
                                             @else
                                                 <span class="inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-600">Inactive</span>
                                             @endif
                                         </td>
-                                        <td class="px-4 py-2.5 text-slate-500">{{ bd_date($area->created_at) }}</td>
+                                        <td class="px-3 py-2 text-slate-500">{{ bd_date($area->created_at) }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -71,7 +71,7 @@
                     </div>
                 </div>
             @empty
-                <div class="rounded-xl border border-slate-100 bg-white px-4 py-10 text-center text-[13px] text-slate-500 shadow-card">
+                <div class="rounded-xl border border-slate-100 bg-white px-3 py-6 text-center text-[13px] text-slate-500 shadow-card">
                     No areas yet.
                     <a href="{{ route('areas.create') }}" class="font-medium text-brand-600 hover:underline">Add the first one</a>
                 </div>

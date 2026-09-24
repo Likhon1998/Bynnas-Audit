@@ -6,8 +6,8 @@
         $checked = collect(old('permissions', $selectedPermissions))->all();
     @endphp
 
-    <div class="px-4 py-4 lg:px-6">
-        <div class="mb-4">
+    <div class="px-3 py-3 lg:px-5">
+        <div class="mb-3">
             <a href="{{ route('roles.index') }}" class="text-[13px] font-medium text-[#2b579a] hover:underline">← Back to roles</a>
             <h1 class="mt-1 text-lg font-semibold tracking-tight text-navy-900">
                 {{ $editing ? 'Edit role' : 'Create role' }}
@@ -30,7 +30,7 @@
         <form
             method="POST"
             action="{{ $editing ? route('roles.update', $role) : route('roles.store') }}"
-            class="mx-auto max-w-3xl space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+            class="mx-auto max-w-3xl space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
             x-data="{
                 label: @js($defaultLabel),
                 name: @js($defaultName),
@@ -49,7 +49,7 @@
                 @method('PUT')
             @endif
 
-            <div class="grid gap-3 sm:grid-cols-2">
+            <div class="grid gap-2 sm:grid-cols-2">
                 <div>
                     <label class="mb-1 block text-[13px] font-semibold uppercase tracking-wide text-slate-500">Display name</label>
                     <input

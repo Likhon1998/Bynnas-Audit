@@ -21,15 +21,15 @@
     x-init="
         $nextTick(() => {
             const el = document.getElementById('highlighted-project');
-            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (el) el.scrollIntoView({ behavior: 'auto', block: 'center' });
         })
     "
 >
-    <div class="border-b border-slate-200 bg-slate-50/80 px-4 py-3">
-        <div class="flex flex-wrap items-start justify-between gap-3">
+    <div class="border-b border-slate-200 bg-slate-50/80 px-3 py-2.5">
+        <div class="flex flex-wrap items-start justify-between gap-2">
             <div>
-                <p class="text-[13px] font-semibold text-navy-900">{{ $title }}</p>
-                <p class="text-[13px] text-slate-500">
+                <p class="text-[12px] font-semibold text-navy-900">{{ $title }}</p>
+                <p class="text-[12px] text-slate-500">
                     July {{ $fyParts[0] ?? '' }} to June {{ $fyParts[1] ?? '' }}
                     · same projects master as
                     @can('projects.manage')
@@ -59,7 +59,7 @@
                     @click="showAddProject = !showAddProject"
                     class="inline-flex items-center gap-1 rounded-lg bg-navy-900 px-2.5 py-1.5 text-[12px] font-medium text-white hover:bg-navy-800"
                 >
-                    <span class="text-[13px] leading-none">+</span>
+                    <span class="text-[12px] leading-none">+</span>
                     Add Project
                 </button>
             </div>
@@ -72,7 +72,7 @@
                 <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
                 <input type="hidden" name="return_tab" value="{{ $tabKey }}">
                 <input type="hidden" name="status" value="active">
-                <div class="grid gap-3 sm:grid-cols-2">
+                <div class="grid gap-2 sm:grid-cols-2">
                     <div class="sm:col-span-2">
                         <label class="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">Name of the Project</label>
                         <input type="text" name="name" required placeholder="e.g. DSK-WASH Water Aid Project" class="block w-full rounded-lg border-slate-200 text-[12px]" value="{{ old('name') }}">
@@ -92,8 +92,8 @@
 
                 <div class="mt-3 border-t border-slate-100 pt-3">
                     <div class="mb-2 flex items-center justify-between">
-                        <p class="text-[13px] font-medium text-slate-600">Locations of the Project</p>
-                        <button type="button" @click="locations.push({ name: '', division: '' })" class="text-[13px] font-medium text-brand-600 hover:underline">+ Location</button>
+                        <p class="text-[12px] font-medium text-slate-600">Locations of the Project</p>
+                        <button type="button" @click="locations.push({ name: '', division: '' })" class="text-[12px] font-medium text-brand-600 hover:underline">+ Location</button>
                     </div>
                     <div class="space-y-2">
                         <template x-for="(loc, index) in locations" :key="index">
@@ -105,7 +105,7 @@
                                     @endforeach
                                 </select>
                                 <input type="text" :name="'locations['+index+'][name]'" x-model="loc.name" required placeholder="Location / site e.g. Savar Unit Office" class="sm:col-span-7 rounded-lg border-slate-200 text-[12px]">
-                                <button type="button" @click="if (locations.length > 1) locations.splice(index, 1)" class="sm:col-span-1 text-[13px] text-rose-500">×</button>
+                                <button type="button" @click="if (locations.length > 1) locations.splice(index, 1)" class="sm:col-span-1 text-[12px] text-rose-500">×</button>
                             </div>
                         </template>
                     </div>
@@ -155,7 +155,7 @@
                             <td class="border border-slate-200 px-3 py-2 align-top">
                                 <p class="font-medium text-navy-900">{{ $group['project'] }}</p>
                                 @if ($group['donor'])
-                                    <p class="mt-0.5 text-[13px] text-slate-500">{{ $group['donor'] }}</p>
+                                    <p class="mt-0.5 text-[12px] text-slate-500">{{ $group['donor'] }}</p>
                                 @endif
                             </td>
                             <td colspan="{{ count($months) + 1 }}" class="border border-slate-200 px-3 py-3 text-slate-400">
@@ -204,7 +204,7 @@
                                     <td rowspan="{{ $group['rows']->count() }}" class="border border-slate-200 px-3 py-2 align-top">
                                         <p class="font-medium leading-snug text-navy-900">{{ $group['project'] }}</p>
                                         @if ($group['donor'])
-                                            <p class="mt-1 text-[13px] text-slate-500">{{ $group['donor'] }}</p>
+                                            <p class="mt-1 text-[12px] text-slate-500">{{ $group['donor'] }}</p>
                                         @endif
                                     </td>
                                 @endif
@@ -277,7 +277,7 @@
                     @endif
                 @empty
                     <tr>
-                        <td colspan="{{ count($months) + 5 }}" class="border border-slate-200 px-4 py-10 text-center text-[13px] text-slate-500">
+                        <td colspan="{{ count($months) + 5 }}" class="border border-slate-200 px-3 py-6 text-center text-[12px] text-slate-500">
                             No {{ $isAudit ? 'audit' : 'monitoring' }} projects yet. Click <span class="font-medium text-navy-800">Add Project</span> to match your Excel work plan.
                         </td>
                     </tr>
@@ -286,7 +286,7 @@
         </table>
     </div>
 
-    <p class="border-t border-slate-100 px-4 py-2 text-[13px] text-slate-500">
+    <p class="border-t border-slate-100 px-4 py-2 text-[12px] text-slate-500">
         Green cells = planned {{ $isAudit ? 'audit' : 'monitoring' }} visit (like Excel). Click to add/remove. Use <span class="font-medium text-slate-700">Remove</span> on a location to drop it individually.
     </p>
 </div>

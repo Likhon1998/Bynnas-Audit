@@ -63,6 +63,10 @@ html.dark [class~='text-slate-500'] {
     color: #cbd5e1 !important;
 }
 
+html.dark [class~='text-slate-400'] {
+    color: #94a3b8 !important;
+}
+
 html.dark input,
 html.dark textarea,
 html.dark select {
@@ -229,10 +233,133 @@ html.dark [class*='from-slate-50'] {
 }
 
 .ui-page-title {
-    @apply text-lg font-semibold tracking-tight text-navy-900;
+    @apply text-base font-semibold tracking-tight text-navy-900;
 }
 
 .ui-page-sub {
-    @apply mt-1 text-[13px] text-slate-600;
+    @apply mt-0.5 text-[13px] text-slate-600;
+}
+
+/*
+ * Dense + snappy admin chrome:
+ * less empty padding feel, faster hover/click response everywhere.
+ */
+.bynnas-dense {
+    --bynnas-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.bynnas-dense .shadow-card {
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+/* Faster motion for Tailwind duration utilities */
+.bynnas-dense [class*='duration-300'],
+.bynnas-dense [class*='duration-200'] {
+    transition-duration: 120ms !important;
+}
+
+.bynnas-dense [class*='duration-150'] {
+    transition-duration: 90ms !important;
+}
+
+/* Instant-feeling controls */
+.bynnas-dense button,
+.bynnas-dense [type='button'],
+.bynnas-dense [type='submit'],
+.bynnas-dense [type='reset'],
+.bynnas-dense a.inline-flex,
+.bynnas-dense label.inline-flex,
+.bynnas-dense .sidebar-link {
+    transition-property: color, background-color, border-color, box-shadow, opacity, transform, filter;
+    transition-duration: 90ms;
+    transition-timing-function: var(--bynnas-ease);
+}
+
+.bynnas-dense button:not(:disabled):active,
+.bynnas-dense [type='button']:not(:disabled):active,
+.bynnas-dense [type='submit']:not(:disabled):active,
+.bynnas-dense a.inline-flex:active {
+    transform: translateY(0.5px);
+}
+
+.bynnas-dense button:disabled,
+.bynnas-dense [type='submit']:disabled {
+    transform: none;
+}
+
+/* Slightly denser default form controls */
+.bynnas-dense input:not([type='checkbox']):not([type='radio']):not([type='range']),
+.bynnas-dense select,
+.bynnas-dense textarea {
+    transition-duration: 90ms;
+}
+
+.app-loader.is-active .app-loader__bar {
+    animation-duration: 0.75s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bynnas-dense button,
+    .bynnas-dense [type='button'],
+    .bynnas-dense [type='submit'],
+    .bynnas-dense a.inline-flex,
+    .bynnas-dense .sidebar-link {
+        transition: none !important;
+        transform: none !important;
+    }
+}
+
+/*
+ * Visibility safeguards — keep labels, helpers, and focus states readable
+ * without fighting intentional dark sidebar / map chrome.
+ */
+.bynnas-dense main [class~='text-slate-400'] {
+    color: #64748b !important; /* slate-500 floor on light content */
+}
+
+.bynnas-dense main [class~='text-slate-300'] {
+    color: #64748b !important;
+}
+
+.bynnas-dense main ::placeholder {
+    color: #64748b !important;
+    opacity: 1;
+}
+
+.bynnas-dense main :focus-visible {
+    outline: 2px solid #2b579a;
+    outline-offset: 2px;
+}
+
+.bynnas-dense main button:disabled,
+.bynnas-dense main [type='submit']:disabled,
+.bynnas-dense main [type='button']:disabled,
+.bynnas-dense main a[aria-disabled='true'] {
+    opacity: 0.55;
+}
+
+/* Dark mode: keep muted helpers readable on dark cards */
+html.dark main [class~='text-slate-400'] {
+    color: #94a3b8 !important;
+}
+
+html.dark main ::placeholder {
+    color: #94a3b8 !important;
+    opacity: 1;
+}
+
+/* Tables: header row contrast */
+.bynnas-dense thead {
+    color: #475569;
+}
+
+.bynnas-dense tbody td {
+    color: inherit;
+}
+
+/* Selection should always be obvious */
+.bynnas-dense ::selection {
+    background: #bfdbfe;
+    color: #0f172a;
 }
 

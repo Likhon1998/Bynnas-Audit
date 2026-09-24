@@ -1,6 +1,6 @@
 <x-app-layout>
     <div
-        class="px-4 py-4 lg:px-6"
+        class="px-3 py-3 lg:px-5"
         style="font-family:'Hind Siliguri', 'Nirmala UI', Arial, sans-serif;"
         x-data="{
             employeesByShakha: @js($employeesByShakha ?? []),
@@ -247,7 +247,7 @@
                             </tr>
                         </template>
                         <tr x-show="rows.length === 0">
-                                <td colspan="7" class="px-3 py-10 text-center text-[13px] text-slate-500">No branch findings for this indicator in the selected period.</td>
+                                <td colspan="7" class="px-3 py-6 text-center text-[13px] text-slate-500">No branch findings for this indicator in the selected period.</td>
                             </tr>
                     </tbody>
                 </table>

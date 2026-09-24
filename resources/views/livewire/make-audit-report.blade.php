@@ -245,14 +245,14 @@
         @if ($reportSearchOpen)
             <div class="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/40 px-3 py-10 sm:px-6" wire:key="report-search-modal">
                 <div class="flex max-h-[85vh] w-full max-w-xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl" @keydown.escape.window="$wire.closeReportSearch()">
-                    <div class="flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-3">
+                    <div class="flex items-start justify-between gap-2 border-b border-slate-100 px-3 py-2.5">
                         <div>
                             <p class="text-[14px] font-semibold text-navy-900">Report search</p>
                             <p class="text-[13px] text-slate-500">Count how many times a name or word appears anywhere in this report.</p>
                         </div>
                         <button type="button" wire:click="closeReportSearch" class="rounded-md px-2 py-1 text-[12px] text-slate-500 hover:bg-slate-50">✕</button>
                     </div>
-                    <div class="space-y-2 border-b border-slate-100 px-4 py-3">
+                    <div class="space-y-2 border-b border-slate-100 px-3 py-2.5">
                         <div class="flex gap-2">
                             <input
                                 type="search"
@@ -341,7 +341,7 @@
         >
             {{-- Left: outline — collapses fully to a thin side rail --}}
             <aside
-                class="z-[5] hidden h-full shrink-0 overflow-hidden border-r border-slate-200 bg-white transition-[width] duration-200 ease-out lg:flex lg:flex-col"
+                class="z-[5] hidden h-full shrink-0 overflow-hidden border-r border-slate-200 bg-white transition-[width] duration-100 ease-out lg:flex lg:flex-col"
                 :class="open ? 'w-[200px]' : 'w-8'"
                 :title="open ? '' : 'শিরোনাম খুলুন'"
             >
@@ -374,7 +374,7 @@
                     x-show="! open"
                     x-cloak
                     @click="open = true"
-                    class="flex h-full w-full flex-col items-center gap-3 bg-slate-50 py-3 text-slate-500 hover:bg-sky-50 hover:text-[#2b579a]"
+                    class="flex h-full w-full flex-col items-center gap-2 bg-slate-50 py-3 text-slate-500 hover:bg-sky-50 hover:text-[#2b579a]"
                     aria-label="সাইডবার খুলুন"
                     title="শিরোনাম খুলুন"
                 >
@@ -441,7 +441,7 @@
         @endif
 
         @if ($activeTab === 'cover')
-        <div id="audit-cover" class="border-b border-slate-200 bg-slate-100 px-3 py-5 lg:px-6">
+        <div id="audit-cover" class="border-b border-slate-200 bg-slate-100 px-3 py-3 lg:px-5">
             <div class="mb-2 flex items-center justify-between">
                 <p class="text-[12px] font-semibold text-slate-800">১. Cover Page — ইনপুট ফর্ম</p>
                 <span class="text-[13px] text-slate-500">নীল ঘরগুলো পূরণ করুন · Preview দিয়ে ডাউনলোড দেখুন</span>
@@ -537,7 +537,7 @@
                         <ol class="ml-0 list-none space-y-1">
                             @foreach ($copyRecipients as $idx => $recipient)
                                 <li class="flex items-center gap-1.5">
-                                    <span class="w-4 shrink-0 text-right text-[13px] text-slate-400">{{ $idx + 1 }}.</span>
+                                    <span class="w-4 shrink-0 text-right text-[13px] text-slate-500">{{ $idx + 1 }}.</span>
                                     <input
                                         type="text"
                                         wire:model.live.debounce.400ms="copyRecipients.{{ $idx }}"
@@ -742,7 +742,7 @@
                                 <p class="mt-2 text-xs text-slate-500">{{ $c['author'] ?? 'Reviewer' }}@if (! empty($c['created'])) · {{ $c['created'] }}@endif</p>
                             </div>
                         @empty
-                            <div class="rounded-lg border border-dashed border-rose-200 bg-white px-3 py-8 text-center text-[12px] text-slate-500">
+                            <div class="rounded-lg border border-dashed border-rose-200 bg-white px-3 py-3 text-center text-[12px] text-slate-500">
                                 No marks on the document. Follow the reviewer note above (if any), then resubmit.
                             </div>
                         @endforelse
@@ -801,7 +801,7 @@
                             x-transition:enter-end="opacity-100 translate-y-0 scale-100"
                             @click.stop
                         >
-                            <div class="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 px-4 py-3">
+                            <div class="flex shrink-0 items-start justify-between gap-2 border-b border-slate-100 px-3 py-2.5">
                                 <div class="min-w-0">
                                     <p class="text-[13px] font-semibold text-navy-900" x-text="previewTitle || 'Marked place'"></p>
                                     <p class="mt-0.5 text-[13px] text-slate-500">Reviewer mark — zoomed so you can see what to fix</p>
@@ -822,7 +822,7 @@
                                     class="mx-auto max-h-[70vh] w-auto max-w-full rounded-md border border-slate-200 bg-white object-contain shadow-sm"
                                 >
                             </div>
-                            <div class="shrink-0 border-t border-slate-100 bg-white px-4 py-3" x-show="previewBody">
+                            <div class="shrink-0 border-t border-slate-100 bg-white px-3 py-2.5" x-show="previewBody">
                                 <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">What to change</p>
                                 <p class="mt-1 text-[13px] font-medium leading-snug text-slate-900" x-text="previewBody"></p>
                             </div>
@@ -845,7 +845,7 @@
                 @keydown.escape.window="if (open) { open = false; $wire.closePreview() }"
             >
                 <div class="mx-auto w-full max-w-[236mm] shrink-0 px-3 pt-4">
-                    <div class="flex items-center justify-between rounded-lg bg-white px-4 py-2.5 shadow-lg ring-1 ring-black/5">
+                    <div class="flex items-center justify-between rounded-lg bg-white px-3 py-2 shadow-lg ring-1 ring-black/5">
                         <div>
                             <p class="text-[13px] font-semibold text-navy-900">Preview</p>
                             <p class="text-[13px] text-slate-500">A4 · Cover আলাদা · বাকি অংশ একসাথে বসে (ফাঁকা পৃষ্ঠা নয়)</p>
@@ -1093,7 +1093,7 @@
         const run = () => {
             const el = id ? document.getElementById(id) : null;
             if (!el) return false;
-            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            el.scrollIntoView({ behavior: 'auto', block: 'start' });
             el.classList.add('ring-2', 'ring-violet-500', 'ring-offset-2');
             setTimeout(() => el.classList.remove('ring-2', 'ring-violet-500', 'ring-offset-2'), 1800);
             if (!q) return true;

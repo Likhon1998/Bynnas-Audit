@@ -3,7 +3,7 @@
         <link href="https://fonts.bunny.net/css?family=hind-siliguri:400,500,600,700&display=swap" rel="stylesheet" />
 
         {{-- Header --}}
-        <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
+        <div class="mb-3 flex flex-wrap items-start justify-between gap-2">
             <div class="min-w-0">
                 <h1 class="text-lg font-semibold tracking-tight text-navy-900">Findings Summary</h1>
                 <p class="mt-0.5 text-[12px] text-slate-500">{{ $periodLabel }}</p>
@@ -41,7 +41,7 @@
         </div>
 
         {{-- Indicator table — sticky column headers stay visible while scrolling --}}
-        <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <div class="max-h-[calc(100vh-11rem)] overflow-auto">
                 <table class="min-w-full border-separate border-spacing-0 text-left text-[12px]">
                     <thead>
@@ -74,7 +74,7 @@
                             @foreach ($branchRows as $bIndex => $branch)
                                 <tr class="{{ $rowBg }} hover:bg-sky-50/40">
                                     @if ($bIndex === 0)
-                                        <td class="px-3 py-2.5 align-top tabular-nums text-slate-400" rowspan="{{ $rowSpan }}">{{ $index + 1 }}</td>
+                                        <td class="px-3 py-2.5 align-top tabular-nums text-slate-500" rowspan="{{ $rowSpan }}">{{ $index + 1 }}</td>
                                         <td class="px-3 py-2.5 align-top" rowspan="{{ $rowSpan }}">
                                             <p class="font-medium text-slate-800">{{ $row['category'] }}</p>
                                             @if (($row['sub_category'] ?? '') !== '' && ($row['sub_category'] ?? '') !== '—')

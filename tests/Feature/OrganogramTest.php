@@ -8,6 +8,8 @@ use App\Models\User;
 use Database\Seeders\OrganogramSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class OrganogramTest extends TestCase
@@ -50,6 +52,7 @@ class OrganogramTest extends TestCase
 
     public function test_authenticated_users_can_add_an_officer_to_a_rank(): void
     {
+        Storage::fake('public');
         $this->seed(OrganogramSeeder::class);
         $user = User::factory()->create();
         $user->assignRole('audit_manager');
@@ -60,13 +63,18 @@ class OrganogramTest extends TestCase
                 'name' => 'New Audit Officer',
                 'email' => 'new.officer@bynnasaudit.com',
                 'position_id' => $position->id,
+                'photo' => UploadedFile::fake()->image('auditor.jpg', 200, 200),
             ])
             ->assertRedirect();
 
-        $this->assertDatabaseHas('employees', [
-            'name' => 'New Audit Officer',
-            'position_id' => $position->id,
-        ]);
+        $employee = Employee::query()
+            ->where('name', 'New Audit Officer')
+            ->where('position_id', $position->id)
+            ->first();
+
+        $this->assertNotNull($employee);
+        $this->assertNotNull($employee->photo_path);
+        Storage::disk('public')->assertExists($employee->photo_path);
     }
 
     public function test_authenticated_users_can_add_a_position(): void

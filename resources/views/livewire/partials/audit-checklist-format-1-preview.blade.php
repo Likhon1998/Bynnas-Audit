@@ -5,14 +5,14 @@
 @endphp
 
 <div class="pointer-events-none select-none overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm opacity-95">
-    <div class="border-b border-slate-200 bg-slate-50 px-4 py-3 text-center">
+    <div class="border-b border-slate-200 bg-slate-50 px-3 py-2.5 text-center">
         <p class="text-[13px] font-semibold text-slate-500">Format: {{ $formatModel?->format_number }}</p>
         <p class="text-[15px] font-bold text-navy-900">{{ $formatModel?->org_name }}</p>
         <p class="text-[12px] font-semibold text-slate-700">{{ $formatModel?->dept_name }}</p>
         <p class="mt-1 text-[13px] font-bold text-navy-900">“{{ $formatModel?->heading }}”</p>
     </div>
 
-    <div class="grid gap-3 border-b border-slate-200 px-4 py-3 sm:grid-cols-2">
+    <div class="grid gap-2 border-b border-slate-200 px-3 py-2.5 sm:grid-cols-2">
         <div>
             <label class="mb-0.5 block text-[13px] font-semibold text-slate-600">শাখার নাম :</label>
             <div class="flex h-9 items-center rounded-md border border-slate-200 bg-white px-3 text-[13px] text-slate-500">…………………………</div>
@@ -79,7 +79,7 @@
         </table>
     </div>
 
-    <div class="grid gap-3 border-t border-slate-200 px-4 py-3 lg:grid-cols-3">
+    <div class="grid gap-2 border-t border-slate-200 px-3 py-2.5 lg:grid-cols-3">
         @foreach ($sections as $section)
             <div class="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
                 <p class="mb-2 text-[12px] font-bold text-navy-900">{{ $section['label'] }}</p>

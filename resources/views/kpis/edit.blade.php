@@ -4,10 +4,10 @@
         $priorJune = 'June-'.$fy->startYear();
     @endphp
 
-    <div class="px-4 py-5 lg:px-6">
-        <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+    <div class="px-3 py-3 lg:px-5">
+        <div class="mb-3 flex flex-wrap items-start justify-between gap-2">
             <div>
-                <div class="flex items-center gap-1.5 text-[13px] text-slate-400">
+                <div class="flex items-center gap-1.5 text-[13px] text-slate-500">
                     <a href="{{ route('kpis.index', ['fy' => $fyLabel]) }}" class="hover:text-brand-600">Annual Key Performance Indicator (KPI)</a>
                     <span>/</span>
                     <span class="text-slate-600">{{ $existing ? 'Edit' : 'Enter' }}</span>
@@ -29,15 +29,15 @@
             <div class="mb-3 rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-[12px] text-rose-700">{{ $errors->first() }}</div>
         @endif
 
-        <form method="POST" action="{{ route('kpis.store', $shakha) }}" class="space-y-4">
+        <form method="POST" action="{{ route('kpis.store', $shakha) }}" class="space-y-3">
             @csrf
             <input type="hidden" name="fy_label" value="{{ $fyLabel }}">
 
-            <div class="rounded-2xl border border-slate-100 bg-white shadow-card">
-                <div class="border-b border-slate-100 px-5 py-3.5">
+            <div class="rounded-xl border border-slate-100 bg-white shadow-card">
+                <div class="border-b border-slate-100 px-3 py-2.5">
                     <p class="text-[13px] font-semibold text-navy-900">Branch info</p>
                 </div>
-                <div class="grid gap-4 px-5 py-5 sm:grid-cols-2 lg:grid-cols-3">
+                <div class="grid gap-2 px-3 py-3 sm:grid-cols-2 lg:grid-cols-3">
                     <div>
                         <label class="mb-1.5 block text-[13px] font-medium text-slate-600">Opening date</label>
                         <input type="date" name="opening_date" value="{{ old('opening_date', optional($shakha->opening_date ?? $shakha->opened_at)->format('Y-m-d')) }}" class="block w-full rounded-lg border-slate-200 text-[13px]">
@@ -49,12 +49,12 @@
                 </div>
             </div>
 
-            <div class="rounded-2xl border border-slate-100 bg-white shadow-card">
-                <div class="border-b border-slate-100 px-5 py-3.5">
+            <div class="rounded-xl border border-slate-100 bg-white shadow-card">
+                <div class="border-b border-slate-100 px-3 py-2.5">
                     <p class="text-[13px] font-semibold text-navy-900">Snapshot</p>
                     <p class="mt-0.5 text-[13px] text-slate-500">Month-end / year-end stock figures</p>
                 </div>
-                <div class="grid gap-4 px-5 py-5 sm:grid-cols-2 lg:grid-cols-3">
+                <div class="grid gap-2 px-3 py-3 sm:grid-cols-2 lg:grid-cols-3">
                     @foreach ([
                         'fo_count' => 'FO #',
                         'total_samities' => 'Total Samities',
@@ -77,12 +77,12 @@
                 </div>
             </div>
 
-            <div class="rounded-2xl border border-slate-100 bg-white shadow-card">
-                <div class="border-b border-slate-100 px-5 py-3.5">
+            <div class="rounded-xl border border-slate-100 bg-white shadow-card">
+                <div class="border-b border-slate-100 px-3 py-2.5">
                     <p class="text-[13px] font-semibold text-navy-900">Fiscal year activity</p>
                     <p class="mt-0.5 text-[13px] text-slate-500">Yellow columns in your Excel — increases are calculated automatically</p>
                 </div>
-                <div class="grid gap-4 px-5 py-5 sm:grid-cols-2 lg:grid-cols-3">
+                <div class="grid gap-2 px-3 py-3 sm:grid-cols-2 lg:grid-cols-3">
                     @foreach ([
                         'fy_savings_collection' => 'FY Savings Collection',
                         'fy_savings_withdrawal' => 'FY Savings Withdrawal',
@@ -101,11 +101,11 @@
                 </div>
             </div>
 
-            <div class="rounded-2xl border border-slate-100 bg-white shadow-card">
-                <div class="border-b border-slate-100 px-5 py-3.5">
+            <div class="rounded-xl border border-slate-100 bg-white shadow-card">
+                <div class="border-b border-slate-100 px-3 py-2.5">
                     <p class="text-[13px] font-semibold text-navy-900">Funds & dues</p>
                 </div>
-                <div class="grid gap-4 px-5 py-5 sm:grid-cols-2 lg:grid-cols-3">
+                <div class="grid gap-2 px-3 py-3 sm:grid-cols-2 lg:grid-cols-3">
                     @foreach ([
                         'own_fund_until_prior_june' => "Own Fund Until {$priorJune}",
                         'surplus_deficit_fy' => "Surplus/Deficit (FY {$fyLabel})",
@@ -121,7 +121,7 @@
                 </div>
             </div>
 
-            <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-card">
+            <div class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-100 bg-white px-3 py-3 shadow-card">
                 <p class="text-[13px] text-slate-500">After saving you return to the KPI list. Use <strong>Export Excel</strong> when ready for all branches.</p>
                 <div class="flex gap-2">
                     <a href="{{ route('kpis.index', ['fy' => $fyLabel]) }}" class="rounded-lg px-3 py-1.5 text-[12px] font-medium text-slate-500 hover:bg-slate-50">Cancel</a>

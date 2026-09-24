@@ -1,12 +1,12 @@
 <x-app-layout>
     @php
-        $openEmployeeModal = $errors->hasAny(['name', 'email', 'position_id']);
+        $openEmployeeModal = $errors->hasAny(['name', 'email', 'position_id', 'photo']);
         $openPositionModal = $errors->hasAny(['title', 'serial']);
         $officerCount = $positions->sum(fn ($position) => $position->employees->count());
     @endphp
 
     <div
-        class="flex h-full min-h-0 flex-col px-4 py-3 lg:px-5"
+        class="flex h-full min-h-0 flex-col px-3 py-2.5 lg:px-5"
         x-data="{ zoom: 1, addOpen: {{ $openEmployeeModal ? 'true' : 'false' }}, positionOpen: {{ $openPositionModal ? 'true' : 'false' }}, showOpen: false }"
         @keydown.escape.window="showOpen = false; addOpen = false; positionOpen = false"
     >
@@ -57,7 +57,7 @@
 
         <div class="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-100 bg-white shadow-card">
             <div class="dot-grid absolute inset-0 overflow-auto">
-                <div class="flex min-h-full min-w-max origin-top justify-center px-4 py-5" :style="`transform: scale(${zoom});`">
+                <div class="flex min-h-full min-w-max origin-top justify-center px-3 py-3" :style="`transform: scale(${zoom});`">
                     <div class="flex flex-col items-center">
                         @if ($positions->isEmpty())
                             <div class="my-auto flex max-w-sm flex-col items-center rounded-xl border border-dashed border-slate-200 bg-white/90 px-5 py-6 text-center shadow-sm">
@@ -91,18 +91,23 @@
                                         <button
                                             type="button"
                                             @click="addOpen = true"
-                                            class="rounded-lg border border-dashed border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-400 transition hover:border-brand-200 hover:bg-brand-50 hover:text-brand-600"
+                                            class="rounded-lg border border-dashed border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-500 transition hover:border-brand-200 hover:bg-brand-50 hover:text-brand-600"
                                         >
                                             + Add officer to this rank
                                         </button>
                                     @else
-                                        <span class="text-[13px] text-slate-400">No officers assigned</span>
+                                        <span class="text-[13px] text-slate-500">No officers assigned</span>
                                     @endcan
                                 @else
                                     <div class="flex flex-wrap justify-center gap-2">
                                         @foreach ($position->employees as $employee)
                                             <div class="group relative">
-                                                <x-org-node :name="$employee->name" :title="$position->title" :accent="$position->color" />
+                                                <x-org-node
+                                                    :name="$employee->name"
+                                                    :title="$position->title"
+                                                    :accent="$position->color"
+                                                    :photo-url="$employee->photoUrl()"
+                                                />
                                                 @can('organogram.manage')
                                                     <form method="POST" action="{{ route('organogram.employees.destroy', $employee) }}" class="absolute -right-1 -top-1 hidden group-hover:block" onsubmit="return confirm('Remove this officer from the organogram?')">
                                                         @csrf
@@ -136,11 +141,11 @@
             @click.self="showOpen = false"
         >
             <div
-                class="flex w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-2xl"
+                class="flex w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-slate-100 bg-white shadow-2xl"
                 x-transition
                 @click.stop
             >
-                <div class="flex items-start gap-3 border-b border-slate-100 px-4 py-3.5">
+                <div class="flex items-start gap-2 border-b border-slate-100 px-3 py-2.5">
                     <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -160,9 +165,9 @@
                     </button>
                 </div>
 
-                <div class="px-4 py-3.5">
+                <div class="px-3 py-2.5">
                     @if ($positions->isEmpty())
-                        <p class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-[13px] text-slate-500">
+                        <p class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-3 text-center text-[13px] text-slate-500">
                             No positions to preview yet.
                         </p>
                     @else
@@ -194,9 +199,13 @@
                                                         $hasLogin = (bool) $employee->user;
                                                     @endphp
                                                     <span class="inline-flex max-w-full items-center gap-1 rounded-md border border-slate-100 bg-white px-1.5 py-1 shadow-sm">
-                                                        <span class="flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white" style="background-color: {{ $position->color }}">
-                                                            {{ $initials }}
-                                                        </span>
+                                                        @if ($employee->photoUrl())
+                                                            <img src="{{ $employee->photoUrl() }}" alt="{{ $employee->name }}" class="h-5 w-5 shrink-0 rounded-full object-cover ring-1 ring-slate-200">
+                                                        @else
+                                                            <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white" style="background-color: {{ $position->color }}">
+                                                                {{ $initials }}
+                                                            </span>
+                                                        @endif
                                                         <span class="truncate text-xs font-medium text-slate-700">{{ $employee->name }}</span>
                                                         @if ($hasLogin)
                                                             <span class="rounded bg-emerald-50 px-1 text-xs font-semibold text-emerald-700" title="{{ $employee->user->roleLabel() }}">login</span>
@@ -228,11 +237,11 @@
             @click.self="positionOpen = false"
         >
             <div
-                class="w-full max-w-sm overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-2xl"
+                class="w-full max-w-sm overflow-hidden rounded-xl border border-slate-100 bg-white shadow-2xl"
                 x-transition
                 @click.stop
             >
-                <div class="flex items-start gap-3 border-b border-slate-100 px-4 py-3.5">
+                <div class="flex items-start gap-2 border-b border-slate-100 px-3 py-2.5">
                     <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -249,7 +258,7 @@
                     </button>
                 </div>
 
-                <form method="POST" action="{{ route('organogram.positions.store') }}" class="px-4 py-4">
+                <form method="POST" action="{{ route('organogram.positions.store') }}" class="px-3 py-3">
                     @csrf
                     <div class="space-y-3">
                         <div>
@@ -286,7 +295,7 @@
                     @endcan
                 </p>
 
-                <form method="POST" action="{{ route('organogram.employees.store') }}" class="mt-4 space-y-3">
+                <form method="POST" action="{{ route('organogram.employees.store') }}" enctype="multipart/form-data" class="mt-4 space-y-3" x-data="{ photoPreview: null }">
                     @csrf
                     <div>
                         <label for="name" class="block text-[13px] font-medium text-slate-600">Name</label>
@@ -309,6 +318,30 @@
                                 @endforeach
                             @endif
                         </select>
+                    </div>
+                    <div>
+                        <label for="photo" class="block text-[13px] font-medium text-slate-600">Profile picture <span class="text-rose-500">*</span></label>
+                        <div class="mt-1 flex items-center gap-3">
+                            <div class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-400">
+                                <template x-if="photoPreview">
+                                    <img :src="photoPreview" alt="Preview" class="h-full w-full object-cover">
+                                </template>
+                                <span x-show="!photoPreview">Photo</span>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <input
+                                    id="photo"
+                                    name="photo"
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    required
+                                    class="block w-full text-[13px] text-slate-600 file:mr-2 file:rounded-md file:border-0 file:bg-slate-100 file:px-2.5 file:py-1.5 file:text-[12px] file:font-semibold file:text-slate-700 hover:file:bg-slate-200"
+                                    @change="photoPreview = $event.target.files[0] ? URL.createObjectURL($event.target.files[0]) : null"
+                                >
+                                <p class="mt-1 text-xs text-slate-500">JPG, PNG or WebP · max 2 MB</p>
+                            </div>
+                        </div>
+                        <x-input-error :messages="$errors->get('photo')" class="mt-1" />
                     </div>
                     <div class="flex justify-end gap-1.5 pt-1">
                         <button type="button" class="rounded-lg px-3 py-1.5 text-[12px] font-medium text-slate-500 hover:bg-slate-50" @click="addOpen = false">Cancel</button>

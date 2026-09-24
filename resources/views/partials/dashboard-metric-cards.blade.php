@@ -23,15 +23,15 @@
     };
 @endphp
 
-<div class="grid grid-cols-2 gap-3 sm:grid-cols-3 {{ $lgCols }}">
+<div class="grid grid-cols-2 gap-2 sm:grid-cols-3 {{ $lgCols }}">
     @foreach ($cards as $card)
         @php
             $tone = $tones[$card['tone'] ?? 'violet'] ?? $tones['violet'];
             $href = $card['href'] ?? null;
-            $cardClass = 'group relative min-h-[118px] overflow-hidden rounded-2xl border bg-gradient-to-br px-4 py-3.5 shadow-[0_6px_20px_rgba(15,23,42,0.06)] '.$tone['surface'];
+            $cardClass = 'group relative min-h-[118px] overflow-hidden rounded-xl border bg-gradient-to-br px-3 py-2.5 shadow-[0_6px_20px_rgba(15,23,42,0.06)] '.$tone['surface'];
         @endphp
         @if ($href)
-            <a href="{{ $href }}" class="{{ $cardClass }} transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(15,23,42,0.11)]">
+            <a href="{{ $href }}" class="{{ $cardClass }} transition duration-100 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(15,23,42,0.11)]">
         @else
             <div class="{{ $cardClass }}">
         @endif

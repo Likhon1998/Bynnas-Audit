@@ -1,6 +1,6 @@
 <x-app-layout>
     <div
-        class="px-4 py-5 lg:px-6"
+        class="px-3 py-3 lg:px-5"
         x-data="rescheduleCalendar({
             calendar: @js($calendarPayload),
             start: @js(old('start_date', $assignment->start_date?->toDateString())),
@@ -8,7 +8,7 @@
             countOff: @js((bool) old('count_off_days', $assignment->count_off_days)),
         })"
     >
-        <div class="mb-4">
+        <div class="mb-3">
             <a href="{{ route('monthly-visits.index', ['fy' => $assignment->workItem->fy_label, 'month' => $assignment->workItem->month_index]) }}" class="text-[13px] font-medium text-brand-600 hover:underline">← Back</a>
             <h1 class="mt-1 text-lg font-semibold tracking-tight text-navy-900">Reschedule visit</h1>
             <p class="mt-0.5 text-[13px] text-slate-500">
@@ -26,8 +26,8 @@
             <div class="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-[12px] text-rose-700">{{ $errors->first() }}</div>
         @endif
 
-        <div class="max-w-xl overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-card">
-            <form method="POST" action="{{ route('monthly-visits.reschedule.store', $assignment) }}" class="space-y-3 px-4 py-4">
+        <div class="max-w-xl overflow-hidden rounded-xl border border-slate-100 bg-white shadow-card">
+            <form method="POST" action="{{ route('monthly-visits.reschedule.store', $assignment) }}" class="space-y-3 px-3 py-3">
                 @csrf
                 <div>
                     <label class="mb-1 block text-[13px] font-medium text-slate-600">Visitor(s) — one or more</label>

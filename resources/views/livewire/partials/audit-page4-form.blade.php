@@ -1,4 +1,4 @@
-<div class="border-b border-slate-200 bg-slate-100 px-3 py-5 lg:px-6">
+<div class="border-b border-slate-200 bg-slate-100 px-3 py-3 lg:px-5">
     <div class="mb-2 flex items-center justify-between gap-2">
         <p class="text-[12px] font-semibold text-slate-800">৪. রিপোর্ট বিষয়বস্তু</p>
         <span class="text-[13px] text-slate-500">পৃষ্ঠা ৪ · + → কমপ্লায়েন্স / আইটি চেকলিস্ট / টেবিল</span>

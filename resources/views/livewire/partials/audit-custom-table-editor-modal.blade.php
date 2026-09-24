@@ -76,7 +76,7 @@
         class="flex max-h-[92vh] w-full max-w-[1180px] flex-col overflow-hidden rounded-lg bg-white shadow-2xl"
         @click.stop
     >
-        <div class="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-2.5">
+        <div class="flex items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2">
             <div class="min-w-0">
                 <p class="text-[13px] font-semibold text-slate-900">Customize Table</p>
                 <p class="text-[13px] text-slate-500">বাম = কাঠামো · ডান = ক্লিক/টাইপ (তাত্ক্ষণিক, লোডার ছাড়া)</p>

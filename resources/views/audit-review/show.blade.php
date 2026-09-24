@@ -9,9 +9,9 @@
         ];
     @endphp
     <div class="px-3 py-3 lg:px-5" style="font-family:'Hind Siliguri','Nirmala UI',system-ui,sans-serif;">
-        <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
+        <div class="mb-3 flex flex-wrap items-start justify-between gap-2">
             <div class="min-w-0">
-                <div class="mb-1 flex items-center gap-1.5 text-[13px] text-slate-400">
+                <div class="mb-1 flex items-center gap-1.5 text-[13px] text-slate-500">
                     <a href="{{ route('audit-review.index') }}" class="hover:text-brand-600">Review Panel</a>
                     <span>/</span>
                     <span class="text-slate-600">#{{ $report->id }}</span>
@@ -123,7 +123,7 @@
         @endif
 
         <div
-            class="grid gap-3 {{ count($annotations) || $canAnnotate || $canAct ? 'xl:grid-cols-[minmax(0,1fr)_300px]' : '' }}"
+            class="grid gap-2 {{ count($annotations) || $canAnnotate || $canAct ? 'xl:grid-cols-[minmax(0,1fr)_300px]' : '' }}"
             x-data="reviewAnnotator({
                 canAnnotate: @js((bool) $canAnnotate),
                 storeUrl: @js($storeAnnotationUrl),
@@ -139,8 +139,8 @@
             <div class="xl:col-span-full" x-show="uiError" x-cloak>
                 <div class="mb-1 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] text-rose-800" x-text="uiError"></div>
             </div>
-            <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/80 px-4 py-2.5">
+            <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/80 px-3 py-2">
                     <div>
                         <p class="text-[13px] font-semibold text-navy-900">Full report</p>
                         @if ($canAnnotate)
@@ -173,12 +173,12 @@
                 </div>
                 <div class="relative max-h-[min(82vh,980px)] overflow-y-auto bg-[#8d8d8d] p-3 sm:p-4" x-ref="scroller" @scroll.passive="onScroll()">
                     @if ($previewError)
-                        <div class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-[12px] text-rose-800">
+                        <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] text-rose-800">
                             {{ $previewError }}
                             <a href="{{ $documentUrl }}" target="_blank" class="ml-1 font-semibold underline">Open PDF instead</a>
                         </div>
                     @elseif ($preview === [])
-                        <div class="rounded-lg border border-slate-200 bg-white px-4 py-8 text-center text-[12px] text-slate-500">
+                        <div class="rounded-lg border border-slate-200 bg-white px-3 py-3 text-center text-[12px] text-slate-500">
                             No report content available yet.
                         </div>
                     @else
@@ -309,7 +309,7 @@
             </section>
 
             <aside class="space-y-2 xl:sticky xl:top-3 xl:self-start" x-show="annotations.length || canAnnotate || {{ $canAct ? 'true' : 'false' }}" x-cloak>
-                <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                     <div class="border-b border-slate-100 px-3 py-2.5">
                         <div>
                             <p class="text-[12px] font-semibold text-navy-900">1. Marks and comments</p>
@@ -355,7 +355,7 @@
                                     ></textarea>
                                 </div>
 
-                                <div class="mt-1 flex items-center gap-3" x-show="canAnnotate">
+                                <div class="mt-1 flex items-center gap-2" x-show="canAnnotate">
                                     <button
                                         type="button"
                                         class="text-xs font-semibold text-[#2b579a] hover:underline"
@@ -370,7 +370,7 @@
                                 </div>
                             </li>
                         </template>
-                        <li x-show="!annotations.length" class="px-3 py-8 text-center text-[13px] text-slate-500">
+                        <li x-show="!annotations.length" class="px-3 py-3 text-center text-[13px] text-slate-500">
                             No marks yet. Select text or draw an area on the report.
                         </li>
                     </ul>
@@ -1067,7 +1067,7 @@
                     const target = mark || box;
                     if (target) {
                         target.classList.add('is-active');
-                        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        target.scrollIntoView({ behavior: 'auto', block: 'center' });
                     }
                 },
 

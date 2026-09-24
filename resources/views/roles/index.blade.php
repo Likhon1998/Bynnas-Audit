@@ -1,6 +1,6 @@
 <x-app-layout>
-    <div class="px-4 py-4 lg:px-6">
-        <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+    <div class="px-3 py-3 lg:px-5">
+        <div class="mb-3 flex flex-wrap items-end justify-between gap-2">
             <div>
                 <h1 class="text-lg font-semibold tracking-tight text-navy-900">Roles</h1>
                 <p class="mt-0.5 text-[12px] text-slate-500">Create roles · set permissions on the role · assign that role on Users &amp; Access</p>
@@ -64,7 +64,7 @@
                             <td class="px-3 py-2.5">
                                 <div class="flex flex-wrap items-center justify-end gap-2">
                                     @if ($role->name === 'superadmin')
-                                        <span class="text-[13px] text-slate-400">Locked</span>
+                                        <span class="text-[13px] text-slate-500">Locked</span>
                                     @else
                                         <a href="{{ route('roles.edit', $role) }}" class="text-[13px] font-semibold text-[#2b579a] hover:underline">Edit</a>
                                     @endif

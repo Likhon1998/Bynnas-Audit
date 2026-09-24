@@ -52,13 +52,13 @@
             Shakha Work Plan
             <span class="ml-1.5 font-normal text-slate-400">FY {{ $fy }}</span>
         </p>
-        <select x-model="division" @change="areaId = ''" class="h-7 rounded-md border-slate-200 py-0 text-[13px]" title="Division">
+        <select x-model="division" @change="areaId = ''" class="h-7 rounded-md border-slate-200 py-0 text-[11px]" title="Division">
             <option value="">All divisions</option>
             @foreach ($divisions as $divisionOption)
                 <option value="{{ $divisionOption }}">{{ $divisionOption }}</option>
             @endforeach
         </select>
-        <select x-model="areaId" class="h-7 max-w-[160px] rounded-md border-slate-200 py-0 text-[13px]" title="Area">
+        <select x-model="areaId" class="h-7 max-w-[160px] rounded-md border-slate-200 py-0 text-[11px]" title="Area">
             <option value="">All areas</option>
             <template x-for="area in filteredAreas" :key="area.id">
                 <option :value="String(area.id)" x-text="area.name"></option>
@@ -69,13 +69,13 @@
             x-model="shakhaCode"
             placeholder="Code…"
             title="Shakha code"
-            class="h-7 w-24 rounded-md border-slate-200 py-0 text-[13px]"
+            class="h-7 w-24 rounded-md border-slate-200 py-0 text-[11px]"
         >
-        <span class="text-[13px] text-slate-400" x-show="visibleCount > 0"><span x-text="visibleCount" class="font-medium text-slate-600"></span> branches</span>
-        <span x-show="visibleCount === 0 && rowMeta.length > 0" class="text-[13px] text-amber-600">No match</span>
+        <span class="text-[12px] text-slate-500" x-show="visibleCount > 0"><span x-text="visibleCount" class="font-medium text-slate-600"></span> branches</span>
+        <span x-show="visibleCount === 0 && rowMeta.length > 0" class="text-[12px] text-amber-600">No match</span>
         <a
             href="{{ route('annual-audit.export', ['mode' => 'shakha', 'fy' => $plan->fy_label]) }}"
-            class="inline-flex h-7 items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 text-[13px] font-medium text-emerald-800 hover:bg-emerald-100"
+            class="inline-flex h-7 items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 text-[12px] font-medium text-emerald-800 hover:bg-emerald-100"
         >
             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -127,12 +127,12 @@
                                 if (cell) cell.textContent = Number(cell.textContent || 0) + Number($event.detail.delta || 0);
                             "
                         >
-                            <td class="border border-slate-200 px-1.5 py-0.5 text-center text-[13px] text-slate-500">{{ $row['sl'] }}</td>
-                            <td class="border border-slate-200 px-1.5 py-0.5 text-center font-mono text-[13px] text-slate-700">{{ $row['code'] ?: '—' }}</td>
+                            <td class="border border-slate-200 px-1.5 py-0.5 text-center text-[12px] text-slate-500">{{ $row['sl'] }}</td>
+                            <td class="border border-slate-200 px-1.5 py-0.5 text-center font-mono text-[12px] text-slate-700">{{ $row['code'] ?: '—' }}</td>
                             @if ($index === 0)
                                 <td
                                     rowspan="{{ $rowCount }}"
-                                    class="border border-slate-200 bg-slate-50/50 px-2 py-1 text-center align-middle text-[13px] font-semibold text-navy-900"
+                                    class="border border-slate-200 bg-slate-50/50 px-2 py-1 text-center align-middle text-[12px] font-semibold text-navy-900"
                                 >
                                     {{ $group['area'] ?: '—' }}
                                     @if ($group['division'])
@@ -170,7 +170,7 @@
             @empty
                 <tbody>
                     <tr>
-                        <td colspan="17" class="border border-slate-200 px-4 py-10 text-center text-[13px] text-slate-500">
+                        <td colspan="17" class="border border-slate-200 px-3 py-6 text-center text-[12px] text-slate-500">
                             No schedule rows yet. Set frequency in <span class="font-medium text-navy-800">Policies</span>, then click <span class="font-medium text-navy-800">Generate Annual Plan</span>.
                         </td>
                     </tr>

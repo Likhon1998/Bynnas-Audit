@@ -19,16 +19,16 @@
     @endphp
 
     <div
-        class="flex h-full min-h-0 flex-col overflow-hidden px-4 py-4 lg:px-6"
+        class="flex h-full min-h-0 flex-col overflow-hidden px-3 py-3 lg:px-5"
         x-data="{
             section: @js($firstGroup),
             sections: @js($glanceSections),
         }"
     >
         <div class="shrink-0 border-b border-slate-200/80 pb-3">
-            <div class="flex flex-wrap items-start justify-between gap-3">
+            <div class="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                    <div class="flex items-center gap-1.5 text-[13px] text-slate-400">
+                    <div class="flex items-center gap-1.5 text-[13px] text-slate-500">
                         <a href="{{ route('shakhas.index') }}" class="hover:text-brand-600">All Shakha</a>
                         <span>/</span>
                         <span class="text-slate-600">Risk laws</span>
@@ -65,13 +65,13 @@
             @endif
         </div>
 
-        <form method="POST" action="{{ route('shakhas.risk.laws.update') }}" class="mt-4 flex min-h-0 flex-1 flex-col gap-4 overflow-hidden lg:flex-row">
+        <form method="POST" action="{{ route('shakhas.risk.laws.update') }}" class="mt-4 flex min-h-0 flex-1 flex-col gap-2 overflow-hidden lg:flex-row">
             @csrf
             @method('PUT')
 
             <aside class="w-full shrink-0 lg:w-[200px]">
-                <div class="rounded-2xl border border-slate-100 bg-white shadow-card">
-                    <div class="border-b border-slate-100 px-4 py-3">
+                <div class="rounded-xl border border-slate-100 bg-white shadow-card">
+                    <div class="border-b border-slate-100 px-3 py-2.5">
                         <p class="text-[12px] font-semibold text-navy-900">At a glance</p>
                     </div>
                     <nav class="p-2" aria-label="Risk laws at a glance">
@@ -95,15 +95,15 @@
             </aside>
 
             <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-                <div class="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+                <div class="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
                     @foreach ($orderedGroups as $group)
                         @php $rows = $grouped->get($group); @endphp
                         <div
-                            class="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-card"
+                            class="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-card"
                             x-show="section === @js($group)"
                             x-cloak
                         >
-                            <div class="border-b border-slate-100 px-5 py-3.5">
+                            <div class="border-b border-slate-100 px-3 py-2.5">
                                 <p class="text-[13px] font-semibold text-navy-900">{{ $groupLabels[$group] ?? ucfirst($group) }}</p>
                                 <p class="mt-0.5 text-[13px] text-slate-500">{{ $rows->count() }} law{{ $rows->count() === 1 ? '' : 's' }}</p>
                             </div>
@@ -114,7 +114,7 @@
                                         $prefix = 'laws.'.$law->id;
                                         $bands = old($prefix.'.bands', $law->bands);
                                     @endphp
-                                    <div class="px-5 py-4">
+                                    <div class="px-3 py-3">
                                         <input type="hidden" name="laws[{{ $law->id }}][id]" value="{{ $law->id }}">
 
                                         <div class="mb-3 flex flex-wrap items-start justify-between gap-2">
@@ -136,7 +136,7 @@
                                             </label>
                                         </div>
 
-                                        <div class="grid gap-3 lg:grid-cols-12">
+                                        <div class="grid gap-2 lg:grid-cols-12">
                                             <div class="lg:col-span-6">
                                                 <label class="mb-1 block text-[13px] font-medium text-slate-600">Display label</label>
                                                 <input
@@ -172,7 +172,7 @@
                                             <p class="mb-2 text-[13px] font-semibold uppercase tracking-wide text-slate-500">Scoring bands</p>
 
                                             @if ($law->unit === 'boolean')
-                                                <div class="grid gap-3 sm:grid-cols-2">
+                                                <div class="grid gap-2 sm:grid-cols-2">
                                                     <div>
                                                         <label class="mb-1 block text-[13px] font-medium text-slate-600">When true</label>
                                                         <input type="text" name="laws[{{ $law->id }}][true_label]" value="{{ old($prefix.'.true_label', $bands['true_label'] ?? '') }}" class="mb-2 block w-full rounded-lg border-slate-200 text-[13px]">
@@ -238,7 +238,7 @@
                                                                         >
                                                                     </div>
                                                                 </div>
-                                                                <div class="sm:col-span-3 text-[13px] text-slate-400">
+                                                                <div class="sm:col-span-3 text-[13px] text-slate-500">
                                                                     {{ $law->unit === 'percent' ? '% of ratio' : 'raw ratio' }}
                                                                 </div>
                                                             @endif

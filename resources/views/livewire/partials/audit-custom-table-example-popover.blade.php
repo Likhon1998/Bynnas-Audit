@@ -134,19 +134,19 @@
                                     </td>
                                 @endif
                                 <td class="border border-slate-600 px-1 py-0.5 text-left">{{ $desc }}</td>
-                                <td class="border border-slate-600 px-0.5 py-0.5 text-center text-slate-400">—</td>
-                                <td class="border border-slate-600 px-0.5 py-0.5 text-center text-slate-400">—</td>
-                                <td class="border border-slate-600 px-0.5 py-0.5 text-center text-slate-400">—</td>
-                                <td class="border border-slate-600 px-0.5 py-0.5 text-center text-slate-400">—</td>
-                                <td class="border border-slate-600 px-0.5 py-0.5 text-center text-slate-400">—</td>
-                                <td class="border border-slate-600 px-0.5 py-0.5 text-center text-slate-400">—</td>
-                                <td class="border border-slate-600 px-0.5 py-0.5 text-center text-slate-400">—</td>
+                                <td class="border border-slate-600 px-0.5 py-0.5 text-center text-slate-500">—</td>
+                                <td class="border border-slate-600 px-0.5 py-0.5 text-center text-slate-500">—</td>
+                                <td class="border border-slate-600 px-0.5 py-0.5 text-center text-slate-500">—</td>
+                                <td class="border border-slate-600 px-0.5 py-0.5 text-center text-slate-500">—</td>
+                                <td class="border border-slate-600 px-0.5 py-0.5 text-center text-slate-500">—</td>
+                                <td class="border border-slate-600 px-0.5 py-0.5 text-center text-slate-500">—</td>
+                                <td class="border border-slate-600 px-0.5 py-0.5 text-center text-slate-500">—</td>
                             </tr>
                         @endforeach
                         <tr class="font-bold">
                             <td class="border border-slate-600 bg-slate-50 px-1 py-0.5 text-center" colspan="3">মোট</td>
                             @for ($i = 0; $i < 7; $i++)
-                                <td class="border border-slate-600 bg-slate-50 px-0.5 py-0.5 text-center text-slate-400">—</td>
+                                <td class="border border-slate-600 bg-slate-50 px-0.5 py-0.5 text-center text-slate-500">—</td>
                             @endfor
                         </tr>
                     </tbody>

@@ -1,6 +1,6 @@
 <x-app-layout>
-    <div class="px-4 py-5 lg:px-6">
-        <div class="mb-4">
+    <div class="px-3 py-3 lg:px-5">
+        <div class="mb-3">
             <a href="{{ route('monthly-visits.index', ['fy' => $item->fy_label, 'month' => $item->month_index]) }}" class="text-[13px] font-medium text-brand-600 hover:underline">← Back to monthly worklist</a>
             <h1 class="mt-1 text-lg font-semibold tracking-tight text-navy-900">Assign visitor</h1>
             <p class="mt-0.5 text-[13px] text-slate-500">
@@ -22,8 +22,8 @@
             <div class="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-[12px] text-rose-700">{{ $errors->first() }}</div>
         @endif
 
-        <div class="max-w-xl overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-card">
-            <form method="POST" action="{{ route('monthly-visits.assign.store', $item) }}" class="space-y-3 px-4 py-4">
+        <div class="max-w-xl overflow-hidden rounded-xl border border-slate-100 bg-white shadow-card">
+            <form method="POST" action="{{ route('monthly-visits.assign.store', $item) }}" class="space-y-3 px-3 py-3">
                 @csrf
                 <div>
                     <label class="mb-1 block text-[13px] font-medium text-slate-600">Assigned person (Organogram)</label>
@@ -37,7 +37,7 @@
                     </select>
                 </div>
 
-                <div class="grid gap-3 sm:grid-cols-2">
+                <div class="grid gap-2 sm:grid-cols-2">
                     <div>
                         <label class="mb-1 block text-[13px] font-medium text-slate-600">Start date</label>
                         <input type="date" name="start_date" required value="{{ old('start_date', $defaultStart) }}" class="block w-full rounded-lg border-slate-200 text-[13px]">
@@ -48,7 +48,7 @@
                     </div>
                 </div>
 
-                <div class="grid gap-3 sm:grid-cols-2">
+                <div class="grid gap-2 sm:grid-cols-2">
                     <div>
                         <label class="mb-1 block text-[13px] font-medium text-slate-600">Start time (optional)</label>
                         <input type="time" name="start_time" value="{{ old('start_time') }}" class="block w-full rounded-lg border-slate-200 text-[13px]">
@@ -59,7 +59,7 @@
                     </div>
                 </div>
 
-                <div class="grid gap-3 sm:grid-cols-2">
+                <div class="grid gap-2 sm:grid-cols-2">
                     <div>
                         <label class="mb-1 block text-[13px] font-medium text-slate-600">Duration mode</label>
                         <select name="duration_mode" class="block w-full rounded-lg border-slate-200 text-[13px]">

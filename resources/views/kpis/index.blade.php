@@ -25,7 +25,7 @@
     @endphp
 
     <div
-        class="px-4 py-5 lg:px-6"
+        class="px-3 py-3 lg:px-5"
         x-data="{
             q: '',
             area: '',
@@ -51,9 +51,9 @@
                 this.$nextTick(() => {
                     const el = document.getElementById('kpi-row-' + b.id);
                     if (el) {
-                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        el.scrollIntoView({ behavior: 'auto', block: 'center' });
                         el.classList.add('ring-2', 'ring-brand-500');
-                        setTimeout(() => el.classList.remove('ring-2', 'ring-brand-500'), 1600);
+                        setTimeout(() => el.classList.remove('ring-2', 'ring-brand-500'), 900);
                     }
                 });
             },
@@ -79,7 +79,7 @@
         }"
         @click.outside="open = false"
     >
-        <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div class="mb-3 flex flex-wrap items-start justify-between gap-2">
             <div>
                 <h1 class="text-lg font-semibold tracking-tight text-navy-900">Annual Shakha Key Performance Indicator (KPI)</h1>
                 <p class="mt-0.5 text-[13px] text-slate-600">Enter once per financial year for each branch · export one consolidated Excel like your template</p>
@@ -114,22 +114,22 @@
             <div class="mb-3 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-800">{{ session('status') }}</div>
         @endif
 
-        <div class="mb-4 grid gap-3 sm:grid-cols-3">
-            <div class="rounded-xl border border-slate-100 bg-white px-4 py-3 shadow-card">
+        <div class="mb-3 grid gap-2 sm:grid-cols-3">
+            <div class="rounded-xl border border-slate-100 bg-white px-3 py-2.5 shadow-card">
                 <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Fiscal year</p>
                 <p class="mt-1 text-[18px] font-semibold text-navy-900">{{ $fyLabel }}</p>
             </div>
-            <div class="rounded-xl border border-slate-100 bg-white px-4 py-3 shadow-card">
+            <div class="rounded-xl border border-slate-100 bg-white px-3 py-2.5 shadow-card">
                 <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Branches entered</p>
                 <p class="mt-1 text-[18px] font-semibold text-navy-900">{{ $progress['entered'] }} / {{ $progress['total'] }}</p>
             </div>
-            <div class="rounded-xl border border-slate-100 bg-white px-4 py-3 shadow-card">
+            <div class="rounded-xl border border-slate-100 bg-white px-3 py-2.5 shadow-card">
                 <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Showing now</p>
                 <p class="mt-1 text-[18px] font-semibold text-navy-900"><span x-text="visibleCount"></span> / {{ $progress['total'] }}</p>
             </div>
         </div>
 
-        <div class="mb-4 grid gap-2 rounded-2xl border border-slate-100 bg-white p-3 shadow-card sm:grid-cols-[1fr_180px_150px]">
+        <div class="mb-3 grid gap-2 rounded-xl border border-slate-100 bg-white p-3 shadow-card sm:grid-cols-[1fr_180px_150px]">
             <div class="relative">
                 <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Find branch</label>
                 <div class="relative">
@@ -166,7 +166,7 @@
                             class="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-sky-50"
                             :class="highlight === idx ? 'bg-sky-50' : ''"
                         >
-                            <span class="mt-0.5 w-6 shrink-0 text-[13px] tabular-nums text-slate-400" x-text="b.serial"></span>
+                            <span class="mt-0.5 w-6 shrink-0 text-[13px] tabular-nums text-slate-500" x-text="b.serial"></span>
                             <span class="min-w-0 flex-1">
                                 <span class="block truncate text-[12px] font-semibold" :class="b.risk_text || 'text-navy-900'" x-text="b.name"></span>
                                 <span class="mt-0.5 inline-flex items-center gap-1">
@@ -218,19 +218,19 @@
             </div>
         </div>
 
-        <div class="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-card">
+        <div class="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-card">
             <div class="overflow-x-auto">
                 <table class="min-w-full text-left text-[12px]">
                     <thead class="border-b border-slate-100 bg-slate-50/90 text-xs font-semibold uppercase tracking-wide text-slate-500">
                         <tr>
-                            <th class="w-14 px-4 py-2.5">#</th>
-                            <th class="px-4 py-2.5">Area</th>
-                            <th class="px-4 py-2.5">Branch</th>
-                            <th class="px-4 py-2.5">Code</th>
-                            <th class="px-4 py-2.5">Opening date</th>
-                            <th class="px-4 py-2.5">Focal person</th>
-                            <th class="px-4 py-2.5">Status</th>
-                            <th class="px-4 py-2.5 text-right">Action</th>
+                            <th class="w-14 px-3 py-2">#</th>
+                            <th class="px-3 py-2">Area</th>
+                            <th class="px-3 py-2">Branch</th>
+                            <th class="px-3 py-2">Code</th>
+                            <th class="px-3 py-2">Opening date</th>
+                            <th class="px-3 py-2">Focal person</th>
+                            <th class="px-3 py-2">Status</th>
+                            <th class="px-3 py-2 text-right">Action</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -239,36 +239,36 @@
                                 :id="'kpi-row-' + b.id"
                                 class="scroll-mt-24 hover:bg-sky-50/40"
                             >
-                                <td class="px-4 py-2.5 tabular-nums text-slate-400" x-text="b.serial"></td>
-                                <td class="px-4 py-2.5 text-slate-600" x-text="b.area || '—'"></td>
-                                <td class="px-4 py-2.5 font-medium" :class="(b.risk_text || 'text-navy-900') + ' ' + (b.risk_soft || '')">
+                                <td class="px-3 py-2 tabular-nums text-slate-500" x-text="b.serial"></td>
+                                <td class="px-3 py-2 text-slate-600" x-text="b.area || '—'"></td>
+                                <td class="px-3 py-2 font-medium" :class="(b.risk_text || 'text-navy-900') + ' ' + (b.risk_soft || '')">
                                     <div class="flex flex-wrap items-center gap-1.5">
                                         <span x-text="b.name"></span>
                                         <span class="inline-flex rounded-full px-1.5 py-0.5 text-xs font-semibold" :class="b.risk_badge" x-text="b.risk_short"></span>
                                     </div>
                                 </td>
-                                <td class="px-4 py-2.5 text-slate-500" x-text="b.code || '—'"></td>
-                                <td class="px-4 py-2.5 text-slate-500" x-text="b.opening || '—'"></td>
-                                <td class="px-4 py-2.5 text-slate-500" x-text="b.focal || '—'"></td>
-                                <td class="px-4 py-2.5">
+                                <td class="px-3 py-2 text-slate-500" x-text="b.code || '—'"></td>
+                                <td class="px-3 py-2 text-slate-500" x-text="b.opening || '—'"></td>
+                                <td class="px-3 py-2 text-slate-500" x-text="b.focal || '—'"></td>
+                                <td class="px-3 py-2">
                                     <span
                                         class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
                                         :class="b.has ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'"
                                         x-text="b.has ? 'Entered' : 'Pending'"
                                     ></span>
                                 </td>
-                                <td class="px-4 py-2.5 text-right">
+                                <td class="px-3 py-2 text-right">
                                     <a :href="b.editUrl" class="font-semibold text-brand-600 hover:underline" x-text="b.has ? 'Edit' : 'Enter data'"></a>
                                 </td>
                             </tr>
                         </template>
                     </tbody>
                 </table>
-                <p x-show="!filtered.length" x-cloak class="px-4 py-10 text-center text-[13px] text-slate-500">
+                <p x-show="!filtered.length" x-cloak class="px-3 py-6 text-center text-[13px] text-slate-500">
                     No branches match your filters.
                 </p>
                 @if ($shakhas->isEmpty())
-                    <p class="px-4 py-10 text-center text-[13px] text-slate-500">
+                    <p class="px-3 py-6 text-center text-[13px] text-slate-500">
                         No active shakhas.
                         @can('shakhas.manage')
                             <a href="{{ route('shakhas.create') }}" class="font-medium text-brand-600 hover:underline">Add a shakha</a>

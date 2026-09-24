@@ -2,7 +2,7 @@
     <div class="px-3 py-3 lg:px-5" style="font-family:'Hind Siliguri','Nirmala UI',system-ui,sans-serif;">
         <link href="https://fonts.bunny.net/css?family=hind-siliguri:400,500,600,700&display=swap" rel="stylesheet" />
 
-        <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
+        <div class="mb-3 flex flex-wrap items-start justify-between gap-2">
             <div class="min-w-0">
                 <a href="{{ route('audits.index') }}" class="text-[13px] font-medium text-[#2b579a] hover:underline">← Back to Audit Reports</a>
                 <h1 class="mt-1 text-lg font-semibold tracking-tight text-navy-900">Report send history</h1>
@@ -40,7 +40,7 @@
             @endforeach
         </div>
 
-        <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <div class="overflow-x-auto">
                 <table class="min-w-full text-left text-[12px]">
                     <thead>

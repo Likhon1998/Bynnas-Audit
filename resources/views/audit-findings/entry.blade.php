@@ -1,6 +1,6 @@
 <x-app-layout>
     <div
-        class="px-4 py-4 lg:px-6"
+        class="px-3 py-3 lg:px-5"
         style="font-family:'Hind Siliguri', 'Nirmala UI', Arial, sans-serif;"
         x-data="{
             q: '',
@@ -146,7 +146,7 @@
         }"
         x-effect="if (page > totalPages) page = totalPages"
     >
-        <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
+        <div class="mb-3 flex flex-wrap items-start justify-between gap-2">
             <div>
                 @can('findings.view_all')
                     <a href="{{ route('audit-findings.index', ['month' => $month, 'year' => $year]) }}" class="mb-1 inline-flex items-center gap-1 text-[13px] font-medium text-[#2b579a] hover:underline">
@@ -216,7 +216,7 @@
                 </select>
             </div>
             <button type="button" @click="resetFilters()" class="h-8 rounded-lg border border-slate-200 px-3 text-[12px] text-slate-600 hover:bg-slate-50">Reset</button>
-            <p class="ml-auto self-center text-[13px] text-slate-400">
+            <p class="ml-auto self-center text-[13px] text-slate-500">
                 <span class="font-semibold tabular-nums text-slate-700" x-text="fromRow + '–' + toRow"></span>
                 of <span x-text="filtered.length"></span>
             </p>
@@ -311,7 +311,7 @@
                                                         </button>
                                                     </template>
                                                     <p
-                                                        class="px-2.5 py-2 text-[13px] text-slate-400"
+                                                        class="px-2.5 py-2 text-[13px] text-slate-500"
                                                         x-show="employees.length > 0 && filterEmployees(staffQ).length === 0"
                                                     >No match — keep typing a free-text name if needed.</p>
                                                 </div>
@@ -321,7 +321,7 @@
                                 </tr>
                             </template>
                             <tr x-show="filtered.length === 0">
-                                <td colspan="7" class="px-3 py-10 text-center text-[13px] text-slate-500">
+                                <td colspan="7" class="px-3 py-6 text-center text-[13px] text-slate-500">
                                     <span x-show="rows.length === 0">No indicators. Seed or import the catalog first.</span>
                                     <span x-show="rows.length > 0">No rows match these filters.</span>
                                 </td>
@@ -336,10 +336,10 @@
                         / <span class="tabular-nums" x-text="totalPages"></span>
                     </p>
                     <div class="flex items-center gap-1">
-                        <button type="button" @click="go(1)" :disabled="page <= 1" class="h-7 rounded-md border border-slate-200 px-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">First</button>
-                        <button type="button" @click="go(page - 1)" :disabled="page <= 1" class="h-7 rounded-md border border-slate-200 px-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">Prev</button>
-                        <button type="button" @click="go(page + 1)" :disabled="page >= totalPages" class="h-7 rounded-md border border-slate-200 px-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">Next</button>
-                        <button type="button" @click="go(totalPages)" :disabled="page >= totalPages" class="h-7 rounded-md border border-slate-200 px-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">Last</button>
+                        <button type="button" @click="go(1)" :disabled="page <= 1" class="h-7 rounded-md border border-slate-200 px-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55">First</button>
+                        <button type="button" @click="go(page - 1)" :disabled="page <= 1" class="h-7 rounded-md border border-slate-200 px-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55">Prev</button>
+                        <button type="button" @click="go(page + 1)" :disabled="page >= totalPages" class="h-7 rounded-md border border-slate-200 px-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55">Next</button>
+                        <button type="button" @click="go(totalPages)" :disabled="page >= totalPages" class="h-7 rounded-md border border-slate-200 px-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55">Last</button>
                     </div>
                 </div>
             </div>

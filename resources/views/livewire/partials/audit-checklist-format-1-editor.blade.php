@@ -4,14 +4,14 @@
 @endphp
 
 <div class="overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm">
-    <div class="border-b border-slate-200 bg-slate-50 px-4 py-3 text-center">
+    <div class="border-b border-slate-200 bg-slate-50 px-3 py-2.5 text-center">
         <p class="text-[13px] font-semibold text-slate-500">Format: {{ $formatModel?->format_number }}</p>
         <p class="text-[15px] font-bold text-navy-900">{{ $formatModel?->org_name }}</p>
         <p class="text-[12px] font-semibold text-slate-700">{{ $formatModel?->dept_name }}</p>
         <p class="mt-1 text-[13px] font-bold text-navy-900">“{{ $formatModel?->heading }}”</p>
     </div>
 
-    <div class="grid gap-3 border-b border-slate-200 px-4 py-3 sm:grid-cols-2">
+    <div class="grid gap-2 border-b border-slate-200 px-3 py-2.5 sm:grid-cols-2">
         <div>
             <label class="mb-0.5 block text-[13px] font-semibold text-slate-600">শাখার নাম :</label>
             <input type="text" wire:model.live="shakha_name" class="h-9 w-full rounded-md border-slate-200 text-[12px] focus:border-[#2b579a] focus:ring-[#2b579a]">
@@ -120,7 +120,7 @@
         </table>
     </div>
 
-    <div class="grid gap-3 border-t border-slate-200 px-4 py-3 lg:grid-cols-3">
+    <div class="grid gap-2 border-t border-slate-200 px-3 py-2.5 lg:grid-cols-3">
         <div class="lg:col-span-3 flex flex-wrap items-center justify-between gap-2">
             <p class="text-[13px] text-slate-500">Fill marks first. AI writes each সারসংক্ষেপ focusing on unusual (✗) points for the report. You can edit the text.</p>
             @if ($aiSummaryReady ?? false)

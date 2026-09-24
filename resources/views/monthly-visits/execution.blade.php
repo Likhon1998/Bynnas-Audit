@@ -1,6 +1,6 @@
 <x-app-layout>
-    <div class="px-4 py-5 lg:px-6">
-        <div class="mb-4">
+    <div class="px-3 py-3 lg:px-5">
+        <div class="mb-3">
             <a href="{{ route('monthly-visits.index', ['fy' => $assignment->workItem->fy_label, 'month' => $assignment->workItem->month_index]) }}" class="text-[13px] font-medium text-brand-600 hover:underline">← Back</a>
             <h1 class="mt-1 text-lg font-semibold tracking-tight text-navy-900">Record execution</h1>
             <p class="mt-0.5 text-[13px] text-slate-500">
@@ -13,8 +13,8 @@
             <div class="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-[12px] text-rose-700">{{ $errors->first() }}</div>
         @endif
 
-        <div class="max-w-xl overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-card">
-            <form method="POST" action="{{ route('monthly-visits.execution.store', $assignment) }}" class="space-y-3 px-4 py-4">
+        <div class="max-w-xl overflow-hidden rounded-xl border border-slate-100 bg-white shadow-card">
+            <form method="POST" action="{{ route('monthly-visits.execution.store', $assignment) }}" class="space-y-3 px-3 py-3">
                 @csrf
                 <div>
                     <label class="mb-1 block text-[13px] font-medium text-slate-600">Status</label>
@@ -26,7 +26,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="grid gap-3 sm:grid-cols-2">
+                <div class="grid gap-2 sm:grid-cols-2">
                     <div>
                         <label class="mb-1 block text-[13px] font-medium text-slate-600">Actual start</label>
                         <input type="date" name="actual_start_date" value="{{ old('actual_start_date', $assignment->execution?->actual_start_date?->toDateString() ?? $assignment->start_date?->toDateString()) }}" class="block w-full rounded-lg border-slate-200 text-[13px]">
@@ -59,7 +59,7 @@
             </form>
 
             @if ($assignment->statusLogs->isNotEmpty())
-                <div class="border-t border-slate-100 px-4 py-3">
+                <div class="border-t border-slate-100 px-3 py-2.5">
                     <p class="mb-2 text-[13px] font-semibold uppercase tracking-wide text-slate-500">History</p>
                     <ul class="space-y-1 text-[13px] text-slate-600">
                         @foreach ($assignment->statusLogs->sortByDesc('id') as $log)

@@ -3,7 +3,7 @@
         sidebarOpen ? 'translate-x-0' : '-translate-x-full',
         sidebarCollapsed ? 'sidebar-collapsed sidebar-is-collapsed' : '',
     ]"
-    class="sidebar-shell fixed inset-y-0 left-0 z-40 flex w-[188px] shrink-0 flex-col overflow-hidden text-white transition-[width,transform] duration-200 ease-out lg:static lg:translate-x-0"
+    class="sidebar-shell fixed inset-y-0 left-0 z-40 flex w-[188px] shrink-0 flex-col overflow-hidden text-white transition-[width,transform] duration-100 ease-out lg:static lg:translate-x-0"
 >
     <div class="relative z-10 flex items-center gap-2 px-2.5 pb-1.5 pt-3.5" :class="sidebarCollapsed && 'lg:flex-col lg:gap-2 lg:px-1.5'">
         <a href="{{ route('dashboard') }}" class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg" title="Bynnas Audit">
@@ -25,7 +25,7 @@
             :aria-expanded="(!sidebarCollapsed).toString()"
         >
             <svg
-                class="h-4 w-4 transition-transform duration-200"
+                class="h-4 w-4 transition-transform duration-100"
                 :class="sidebarCollapsed && 'rotate-180'"
                 fill="none"
                 viewBox="0 0 24 24"

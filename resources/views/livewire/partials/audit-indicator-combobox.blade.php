@@ -199,7 +199,7 @@
                 </span>
             </button>
 
-            <p x-show="filtered.length === 0 && q.trim().length === 0" class="px-2.5 py-2 text-[13px] text-slate-400">
+            <p x-show="filtered.length === 0 && q.trim().length === 0" class="px-2.5 py-2 text-[13px] text-slate-500">
                 <span x-show="allowCreate">Type to search indicators…</span>
                 <span x-show="!allowCreate">Findings Matrix থেকে indicator খুঁজুন বা বেছে নিন</span>
             </p>

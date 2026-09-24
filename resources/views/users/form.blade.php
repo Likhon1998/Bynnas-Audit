@@ -14,8 +14,8 @@
         $permissionMenuMap = $permissionMenuMap ?? \App\Support\RoleAccess::permissionMenuMap();
     @endphp
 
-    <div class="px-4 py-4 lg:px-6">
-        <div class="mb-4">
+    <div class="px-3 py-3 lg:px-5">
+        <div class="mb-3">
             <a href="{{ route('users.index') }}" class="text-[13px] font-medium text-[#2b579a] hover:underline">← Back to users</a>
             <h1 class="mt-1 text-lg font-semibold tracking-tight text-navy-900">
                 {{ $editing ? 'Edit access' : 'Grant access' }}
@@ -32,7 +32,7 @@
         <form
             method="POST"
             action="{{ $editing ? route('users.update', $user) : route('users.store') }}"
-            class="mx-auto max-w-4xl space-y-4"
+            class="mx-auto max-w-4xl space-y-3"
             x-data="grantAccess({
                 createEmployee: {{ $createEmployee && ! $editing ? 'true' : 'false' }},
                 role: @js($selectedRole),
@@ -48,12 +48,12 @@
 
             {{-- 1. Who --}}
             <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-2.5">
+                <div class="border-b border-slate-100 bg-slate-50/80 px-3 py-2">
                     <p class="text-[13px] font-bold uppercase tracking-[0.12em] text-slate-500">1 · Who</p>
                     <p class="text-[12px] font-semibold text-navy-900">Person &amp; login</p>
                 </div>
                 <div class="space-y-3 p-4">
-                    <div class="grid gap-3 sm:grid-cols-2">
+                    <div class="grid gap-2 sm:grid-cols-2">
                         <div>
                             <label class="mb-1 block text-[13px] font-semibold uppercase tracking-wide text-slate-500">Name</label>
                             <input type="text" name="name" value="{{ old('name', $user?->name ?? $prefillEmployee?->name) }}" class="h-9 w-full rounded-lg border-slate-200 text-[13px]" required>
@@ -72,7 +72,7 @@
                         @error('mail_from_email') <p class="mt-1 text-[13px] text-rose-600">{{ $message }}</p> @enderror
                     </div>
 
-                    <div class="grid gap-3 sm:grid-cols-2">
+                    <div class="grid gap-2 sm:grid-cols-2">
                         <div>
                             <label class="mb-1 block text-[13px] font-semibold uppercase tracking-wide text-slate-500">
                                 Password {{ $editing ? '(leave blank to keep)' : '' }}
@@ -138,11 +138,11 @@
 
             {{-- 2. Role --}}
             <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-2.5">
+                <div class="border-b border-slate-100 bg-slate-50/80 px-3 py-2">
                     <p class="text-[13px] font-bold uppercase tracking-[0.12em] text-slate-500">2 · Role</p>
                     <p class="text-[12px] font-semibold text-navy-900">Assign one role (access comes from the role)</p>
                 </div>
-                <div class="space-y-4 p-4">
+                <div class="space-y-3 p-4">
                     <div class="rounded-lg border border-sky-100 bg-sky-50/50 px-3 py-2.5 text-[13px] leading-relaxed text-sky-950">
                         Access is <strong>role-based</strong>. Define permissions on
                         <a href="{{ route('roles.index') }}" class="font-semibold text-[#2b579a] hover:underline">Manage roles</a>,
@@ -175,7 +175,7 @@
 
             {{-- 3. Where --}}
             <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-2.5">
+                <div class="border-b border-slate-100 bg-slate-50/80 px-3 py-2">
                     <p class="text-[13px] font-bold uppercase tracking-[0.12em] text-slate-500">3 · Where (optional)</p>
                     <p class="text-[12px] font-semibold text-navy-900">Extra shakha access</p>
                 </div>
@@ -220,7 +220,7 @@
                 </div>
             </section>
 
-            <div class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
                 @if ($editing && $user->id !== auth()->id())
                     <button
                         type="submit"
@@ -232,7 +232,7 @@
                         data-bynnas-confirm-tone="rose"
                     >Delete login</button>
                 @else
-                    <span class="text-[13px] text-slate-400">Role access is applied immediately after save.</span>
+                    <span class="text-[13px] text-slate-500">Role access is applied immediately after save.</span>
                 @endif
                 <button type="submit" class="inline-flex h-9 items-center rounded-lg bg-[#2b579a] px-4 text-[12px] font-semibold text-white hover:bg-[#204072]">
                     {{ $editing ? 'Save access' : 'Grant access' }}

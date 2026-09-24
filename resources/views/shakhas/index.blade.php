@@ -1,6 +1,6 @@
 <x-app-layout>
     <div
-        class="px-4 py-3 lg:px-6"
+        class="px-3 py-2.5 lg:px-6"
         x-data="{
             q: '',
             area: '',
@@ -238,7 +238,7 @@
                 of <span class="font-semibold text-navy-900" x-text="visibleCount"></span>
                 <span x-show="visibleCount !== {{ $rows->count() }}"> (filtered from {{ $rows->count() }})</span>
             </p>
-            <div class="flex flex-wrap items-center gap-3">
+            <div class="flex flex-wrap items-center gap-2">
                 <label class="inline-flex items-center gap-1.5">
                     <span>Per page</span>
                     <select x-model.number="pageSize" @change="page = 1" class="h-7 rounded-md border-slate-200 py-0 text-[13px]">
@@ -257,23 +257,23 @@
                 <table class="min-w-full text-left">
                     <thead class="border-b border-slate-100 bg-slate-50/80">
                         <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            <th class="w-14 px-4 py-2.5">#</th>
-                            <th class="px-4 py-2.5">Shakha Name</th>
-                            <th class="px-4 py-2.5">Area</th>
-                            <th class="px-4 py-2.5">Division</th>
-                            <th class="px-4 py-2.5">Code</th>
-                            <th class="px-4 py-2.5">Opening date</th>
-                            <th class="px-4 py-2.5">KPI Ready</th>
-                            <th class="px-4 py-2.5">Risk Status</th>
-                            <th class="px-4 py-2.5">Added On</th>
-                            <th class="px-4 py-2.5 text-right">Action</th>
+                            <th class="w-14 px-3 py-2">#</th>
+                            <th class="px-3 py-2">Shakha Name</th>
+                            <th class="px-3 py-2">Area</th>
+                            <th class="px-3 py-2">Division</th>
+                            <th class="px-3 py-2">Code</th>
+                            <th class="px-3 py-2">Opening date</th>
+                            <th class="px-3 py-2">KPI Ready</th>
+                            <th class="px-3 py-2">Risk Status</th>
+                            <th class="px-3 py-2">Added On</th>
+                            <th class="px-3 py-2 text-right">Action</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <template x-for="(row, index) in pageRows" :key="row.id">
                             <tr class="text-[12px]" :class="riskSoft(row.risk)">
-                                <td class="px-4 py-2.5 tabular-nums text-slate-400" x-text="(page - 1) * pageSize + index + 1"></td>
-                                <td class="px-4 py-2.5">
+                                <td class="px-3 py-2 tabular-nums text-slate-500" x-text="(page - 1) * pageSize + index + 1"></td>
+                                <td class="px-3 py-2">
                                     <div class="flex flex-wrap items-center gap-1.5">
                                         <span class="font-semibold" :class="riskText(row.risk)" x-text="row.name"></span>
                                         <span
@@ -283,11 +283,11 @@
                                         ></span>
                                     </div>
                                 </td>
-                                <td class="px-4 py-2.5 text-slate-600" x-text="row.area || '—'"></td>
-                                <td class="px-4 py-2.5 text-slate-600" x-text="row.division || '—'"></td>
-                                <td class="px-4 py-2.5 text-slate-500" x-text="row.code || '—'"></td>
-                                <td class="px-4 py-2.5 text-slate-500" x-text="row.opening"></td>
-                                <td class="px-4 py-2.5">
+                                <td class="px-3 py-2 text-slate-600" x-text="row.area || '—'"></td>
+                                <td class="px-3 py-2 text-slate-600" x-text="row.division || '—'"></td>
+                                <td class="px-3 py-2 text-slate-500" x-text="row.code || '—'"></td>
+                                <td class="px-3 py-2 text-slate-500" x-text="row.opening"></td>
+                                <td class="px-3 py-2">
                                     <template x-if="row.kpi_ready">
                                         <span class="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Ready</span>
                                     </template>
@@ -303,7 +303,7 @@
                                         @endcan
                                     </template>
                                 </td>
-                                <td class="px-4 py-2.5">
+                                <td class="px-3 py-2">
                                     <span
                                         class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
                                         :class="riskBadge(row.risk)"
@@ -311,8 +311,8 @@
                                         x-text="row.risk"
                                     ></span>
                                 </td>
-                                <td class="px-4 py-2.5 text-slate-500" x-text="row.added_on"></td>
-                                <td class="px-4 py-2.5 text-right">
+                                <td class="px-3 py-2 text-slate-500" x-text="row.added_on"></td>
+                                <td class="px-3 py-2 text-right">
                                     <div class="inline-flex items-center gap-1.5">
                                         @can('risk.manage')
                                             <template x-if="row.kpi_ready">
@@ -343,7 +343,7 @@
                             </tr>
                         </template>
                         <tr x-show="filtered.length === 0">
-                            <td colspan="10" class="px-4 py-10 text-center text-[13px] text-slate-500">
+                            <td colspan="10" class="px-3 py-6 text-center text-[13px] text-slate-500">
                                 No shakhas match these filters.
                                 <button type="button" @click="clearFilters(); riskTab = 'all'" class="font-medium text-brand-600 hover:underline">Reset</button>
                             </td>
@@ -354,7 +354,7 @@
 
             <div
                 x-show="filtered.length > 0"
-                class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-4 py-3"
+                class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-3 py-2.5"
             >
                 <p class="text-[13px] text-slate-500">
                     Page <span class="font-semibold text-navy-900" x-text="page"></span>
@@ -365,25 +365,25 @@
                         type="button"
                         @click="goTo(1)"
                         :disabled="page <= 1"
-                        class="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        class="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
                     >First</button>
                     <button
                         type="button"
                         @click="goTo(page - 1)"
                         :disabled="page <= 1"
-                        class="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        class="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
                     >Prev</button>
                     <button
                         type="button"
                         @click="goTo(page + 1)"
                         :disabled="page >= totalPages"
-                        class="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        class="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
                     >Next</button>
                     <button
                         type="button"
                         @click="goTo(totalPages)"
                         :disabled="page >= totalPages"
-                        class="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        class="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
                     >Last</button>
                 </div>
             </div>

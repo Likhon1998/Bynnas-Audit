@@ -1,6 +1,6 @@
-<div class="px-4 py-5 lg:px-6" style="font-family:'Hind Siliguri', 'Nirmala UI', Arial, sans-serif;">
+<div class="px-3 py-3 lg:px-5" style="font-family:'Hind Siliguri', 'Nirmala UI', Arial, sans-serif;">
     @if ($viewMode === 'catalog')
-        <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div class="mb-3 flex flex-wrap items-end justify-between gap-2">
             <div>
                 <h1 class="text-[16px] font-semibold text-navy-900">Checklists</h1>
                 <p class="mt-0.5 text-[13px] text-slate-500">ফরম্যাট স্টোরহাউস · শিরোনাম দিয়ে খুঁজুন · পূর্ণ টেমপ্লেট দেখুন</p>
@@ -38,7 +38,7 @@
                         >View full template</button>
                     </div>
                 @empty
-                    <div class="px-4 py-10 text-center text-[13px] text-slate-500">কোনো ফরম্যাট পাওয়া যায়নি</div>
+                    <div class="px-3 py-6 text-center text-[13px] text-slate-500">কোনো ফরম্যাট পাওয়া যায়নি</div>
                 @endforelse
             </div>
         </div>

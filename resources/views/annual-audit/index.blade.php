@@ -18,17 +18,17 @@
         $canManageAnnual = $canManageAnnual ?? $canEditSchedule;
     @endphp
 
-    <div class="px-4 py-5 lg:px-6">
-        <div class="mb-3 flex flex-nowrap items-center gap-2 overflow-x-auto pb-0.5">
-            <h1 class="shrink-0 text-base font-semibold tracking-tight text-navy-900">Annual Audit &amp; Monitoring</h1>
+    <div class="px-3 py-3 text-[12px] leading-snug lg:px-5">
+        <div class="mb-3 flex flex-wrap items-center gap-2">
+            <h1 class="shrink-0 text-[15px] font-semibold tracking-tight text-navy-900">Annual Audit &amp; Monitoring</h1>
             @unless ($canManageAnnual)
-                <span class="inline-flex shrink-0 items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-800">View only</span>
+                <span class="inline-flex shrink-0 items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-semibold text-sky-800">View only</span>
             @endunless
             <span class="hidden h-4 w-px shrink-0 bg-slate-200 sm:block"></span>
-            <label class="inline-flex shrink-0 items-center gap-1 text-[13px] text-slate-400">
+            <label class="inline-flex shrink-0 items-center gap-1 text-[12px] text-slate-500">
                 FY
                 <select
-                    class="h-7 rounded-md border-slate-200 py-0 text-[12px] font-medium text-navy-900"
+                    class="h-7 rounded-md border-slate-200 py-0 text-[11px] font-medium text-navy-900"
                     onchange="window.location = this.value"
                 >
                     @foreach ($availablePlans as $availablePlan)
@@ -41,12 +41,12 @@
                     @endforeach
                 </select>
             </label>
-            <span class="hidden shrink-0 text-[13px] capitalize text-slate-400 sm:inline">{{ $plan->status }}</span>
+            <span class="hidden shrink-0 text-[12px] capitalize text-slate-500 sm:inline">{{ $plan->status }}</span>
             @if ($plan->generated_at)
-                <span class="hidden shrink-0 text-[13px] text-slate-400 lg:inline">· {{ bd_datetime($plan->generated_at) }}</span>
+                <span class="hidden shrink-0 text-[12px] text-slate-500 lg:inline">· {{ bd_datetime($plan->generated_at) }}</span>
             @endif
 
-            <div class="ml-auto flex shrink-0 flex-nowrap items-center gap-1.5">
+            <div class="ml-auto flex flex-wrap items-center justify-end gap-1.5">
                 @if ($canManageAnnual && ($canDeletePlan ?? false))
                     <form
                         method="POST"
@@ -60,7 +60,7 @@
                         @csrf
                         @method('DELETE')
                         <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
-                        <button type="submit" class="inline-flex h-7 items-center rounded-md border border-rose-200 bg-rose-50 px-2 text-[13px] font-medium text-rose-700 hover:bg-rose-100">
+                        <button type="submit" class="inline-flex h-7 items-center rounded-md border border-rose-200 bg-rose-50 px-2 text-[12px] font-medium text-rose-700 hover:bg-rose-100">
                             Delete FY
                         </button>
                     </form>
@@ -70,7 +70,7 @@
                         <form method="POST" action="{{ route('annual-audit.years.store') }}" class="inline">
                             @csrf
                             <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
-                            <button type="submit" class="inline-flex h-7 items-center rounded-md border border-emerald-200 bg-emerald-50 px-2 text-[13px] font-medium text-emerald-800 hover:bg-emerald-100">
+                            <button type="submit" class="inline-flex h-7 items-center rounded-md border border-emerald-200 bg-emerald-50 px-2 text-[12px] font-medium text-emerald-800 hover:bg-emerald-100">
                                 Create {{ $nextFyLabel }}
                             </button>
                         </form>
@@ -78,7 +78,7 @@
                 @endif
                 <a
                     href="{{ route('annual-audit.export', ['mode' => 'all', 'fy' => $plan->fy_label]) }}"
-                    class="inline-flex h-7 items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 text-[13px] font-medium text-emerald-800 hover:bg-emerald-100"
+                    class="inline-flex h-7 items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 text-[12px] font-medium text-emerald-800 hover:bg-emerald-100"
                     title="Download Total through Project Monitoring in one Excel file"
                 >
                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -92,7 +92,7 @@
                         <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
                         <button
                             type="submit"
-                            class="inline-flex h-7 items-center rounded-md bg-navy-900 px-2.5 text-[13px] font-medium text-white hover:bg-navy-800"
+                            class="inline-flex h-7 items-center rounded-md bg-navy-900 px-2.5 text-[12px] font-medium text-white hover:bg-navy-800"
                             title="Uses frequencies from Policies to build the yearly schedule"
                         >
                             {{ $plan->generated_at ? 'Regenerate' : '2. Generate Plan' }}
@@ -102,10 +102,10 @@
                         <form method="POST" action="{{ route('annual-audit.sync-missing') }}" class="inline">
                             @csrf
                             <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
-                            <input type="hidden" name="tab" value="{{ $tab }}">
+                            <input type="hidden" name="tab" value="{{ $tab }}" data-annual-sync-tab>
                             <button
                                 type="submit"
-                                class="inline-flex h-7 items-center rounded-md border border-slate-200 bg-white px-2.5 text-[13px] font-medium text-slate-700 hover:bg-slate-50"
+                                class="inline-flex h-7 items-center rounded-md border border-slate-200 bg-white px-2.5 text-[12px] font-medium text-slate-700 hover:bg-slate-50"
                                 title="Add only new shakha / area / project rows without changing existing schedules"
                             >
                                 Sync new items
@@ -142,231 +142,204 @@
             </div>
         @endunless
 
-        <div class="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9">
+        <div class="mb-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9">
             @foreach ([
-                ['label' => 'Planned', 'value' => $kpis['planned']],
-                ['label' => 'Completed', 'value' => $kpis['completed']],
-                ['label' => 'Pending', 'value' => $kpis['pending']],
-                ['label' => 'Shakha', 'value' => $kpis['shakha']],
-                ['label' => 'Area', 'value' => $kpis['area']],
-                ['label' => 'PKSF & Maternity', 'value' => $kpis['pksf']],
-                ['label' => 'HQ', 'value' => $kpis['hq']],
-                ['label' => 'Project Audit', 'value' => $kpis['project_audit']],
-                ['label' => 'Project Monitoring', 'value' => $kpis['project_monitoring']],
+                ['label' => 'Planned', 'value' => $kpis['planned'], 'tone' => 'indigo'],
+                ['label' => 'Completed', 'value' => $kpis['completed'], 'tone' => 'emerald'],
+                ['label' => 'Pending', 'value' => $kpis['pending'], 'tone' => 'amber'],
+                ['label' => 'Shakha', 'value' => $kpis['shakha'], 'tone' => 'violet'],
+                ['label' => 'Area', 'value' => $kpis['area'], 'tone' => 'sky'],
+                ['label' => 'PKSF & Maternity', 'value' => $kpis['pksf'], 'tone' => 'orange'],
+                ['label' => 'HQ', 'value' => $kpis['hq'], 'tone' => 'rose'],
+                ['label' => 'Project Audit', 'value' => $kpis['project_audit'], 'tone' => 'teal'],
+                ['label' => 'Project Monitoring', 'value' => $kpis['project_monitoring'], 'tone' => 'cyan'],
             ] as $kpi)
-                <div class="rounded-xl border border-slate-100 bg-white px-3 py-2.5 shadow-card">
-                    <p class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ $kpi['label'] }}</p>
-                    <p class="mt-1 text-[18px] font-semibold tracking-tight text-navy-900">{{ number_format($kpi['value']) }}</p>
+                @php
+                    $tone = match ($kpi['tone']) {
+                        'emerald' => [
+                            'card' => 'from-emerald-50 via-white to-green-50 border-emerald-200/90',
+                            'bar' => 'from-emerald-500 to-green-400',
+                            'label' => 'text-emerald-700',
+                            'value' => 'text-emerald-800',
+                            'glow' => 'bg-emerald-200/50',
+                        ],
+                        'amber' => [
+                            'card' => 'from-amber-50 via-white to-yellow-50 border-amber-200/90',
+                            'bar' => 'from-amber-500 to-orange-400',
+                            'label' => 'text-amber-700',
+                            'value' => 'text-amber-800',
+                            'glow' => 'bg-amber-200/50',
+                        ],
+                        'violet' => [
+                            'card' => 'from-violet-50 via-white to-purple-50 border-violet-200/90',
+                            'bar' => 'from-violet-500 to-fuchsia-400',
+                            'label' => 'text-violet-700',
+                            'value' => 'text-violet-800',
+                            'glow' => 'bg-violet-200/50',
+                        ],
+                        'sky' => [
+                            'card' => 'from-sky-50 via-white to-blue-50 border-sky-200/90',
+                            'bar' => 'from-sky-500 to-blue-400',
+                            'label' => 'text-sky-700',
+                            'value' => 'text-sky-800',
+                            'glow' => 'bg-sky-200/50',
+                        ],
+                        'orange' => [
+                            'card' => 'from-orange-50 via-white to-amber-50 border-orange-200/90',
+                            'bar' => 'from-orange-500 to-amber-400',
+                            'label' => 'text-orange-700',
+                            'value' => 'text-orange-800',
+                            'glow' => 'bg-orange-200/50',
+                        ],
+                        'rose' => [
+                            'card' => 'from-rose-50 via-white to-pink-50 border-rose-200/90',
+                            'bar' => 'from-rose-500 to-pink-400',
+                            'label' => 'text-rose-700',
+                            'value' => 'text-rose-800',
+                            'glow' => 'bg-rose-200/50',
+                        ],
+                        'teal' => [
+                            'card' => 'from-teal-50 via-white to-emerald-50 border-teal-200/90',
+                            'bar' => 'from-teal-500 to-cyan-400',
+                            'label' => 'text-teal-700',
+                            'value' => 'text-teal-800',
+                            'glow' => 'bg-teal-200/50',
+                        ],
+                        'cyan' => [
+                            'card' => 'from-cyan-50 via-white to-sky-50 border-cyan-200/90',
+                            'bar' => 'from-cyan-500 to-sky-400',
+                            'label' => 'text-cyan-700',
+                            'value' => 'text-cyan-800',
+                            'glow' => 'bg-cyan-200/50',
+                        ],
+                        default => [
+                            'card' => 'from-indigo-50 via-white to-blue-50 border-indigo-200/90',
+                            'bar' => 'from-indigo-500 to-blue-400',
+                            'label' => 'text-indigo-700',
+                            'value' => 'text-indigo-800',
+                            'glow' => 'bg-indigo-200/50',
+                        ],
+                    };
+                @endphp
+                <div class="group relative overflow-hidden rounded-xl border bg-gradient-to-br px-3 py-2.5 shadow-[0_8px_24px_rgba(15,23,42,0.08)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(15,23,42,0.12)] {{ $tone['card'] }}">
+                    <span class="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r {{ $tone['bar'] }}"></span>
+                    <span class="pointer-events-none absolute -right-6 -top-6 h-16 w-16 rounded-full {{ $tone['glow'] }} blur-2xl transition group-hover:scale-125"></span>
+                    <p class="relative text-[10px] font-bold uppercase tracking-[0.08em] {{ $tone['label'] }}">{{ $kpi['label'] }}</p>
+                    <p class="relative mt-1 text-[17px] font-bold tabular-nums tracking-tight {{ $tone['value'] }}">{{ number_format($kpi['value']) }}</p>
                 </div>
             @endforeach
         </div>
 
-        <div class="mb-3 flex flex-wrap gap-1.5">
-            @foreach ($tabs as $key => $tabMeta)
-                <a
-                    href="{{ route('annual-audit.index', array_filter(['fy' => $plan->fy_label, 'tab' => $key, 'division' => $filters['division'], 'area_id' => $filters['area_id']])) }}"
-                    class="whitespace-nowrap rounded-lg px-3 py-1.5 text-[12px] font-semibold transition {{ $tab === $key ? $tabMeta['active'] : $tabMeta['idle'] }}"
-                >
-                    {{ $tabMeta['label'] }}
-                </a>
-            @endforeach
-        </div>
+        <div
+            class="mb-3"
+            x-data="annualAuditTabs({
+                tab: @js($tab),
+                fy: @js($plan->fy_label),
+                panelUrl: @js($panelUrl),
+                keys: @js(array_keys($tabs)),
+            })"
+            x-init="prefetch()"
+        >
+            <div class="mb-3 flex flex-wrap gap-1.5">
+                @foreach ($tabs as $key => $tabMeta)
+                    <button
+                        type="button"
+                        @click="go(@js($key))"
+                        :class="tab === @js($key) ? @js($tabMeta['active']) : @js($tabMeta['idle'])"
+                        class="whitespace-nowrap rounded-md px-2.5 py-1 text-[11px] font-semibold transition"
+                    >
+                        {{ $tabMeta['label'] }}
+                    </button>
+                @endforeach
+            </div>
 
-        @if ($tab === 'pksf')
-            <p class="mb-3 text-[13px] text-slate-500">
+            <p x-show="tab === 'pksf'" x-cloak class="mb-3 text-[12px] text-slate-500">
                 Click any month cell to schedule or remove. Nothing is fixed — admin controls each month.
             </p>
-        @endif
 
-        <div class="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-card">
-            @if ($tab === 'hq')
-                @include('annual-audit.partials.hq-work-plan', [
-                    'plan' => $plan,
-                    'months' => $months,
-                    'rows' => $rows,
-                    'hqTotals' => $hqTotals,
-                    'canEditSchedule' => $canEditSchedule,
-                ])
-            @elseif ($tab === 'shakha')
-                @include('annual-audit.partials.shakha-work-plan', [
-                    'plan' => $plan,
-                    'months' => $months,
-                    'shakhaGroups' => $shakhaGroups,
-                    'shakhaTotals' => $shakhaTotals,
-                    'divisions' => $divisions,
-                    'areas' => $areas,
-                    'canEditSchedule' => $canEditSchedule,
-                ])
-            @elseif ($tab === 'pksf')
-                @include('annual-audit.partials.pksf-work-plan', [
-                    'plan' => $plan,
-                    'months' => $months,
-                    'rows' => $rows,
-                    'pksfTotals' => $pksfTotals,
-                    'canEditSchedule' => $canEditSchedule,
-                    'highlightProjectId' => $highlightProjectId ?? null,
-                ])
-            @elseif ($tab === 'area')
-                @include('annual-audit.partials.area-work-plan', [
-                    'plan' => $plan,
-                    'months' => $months,
-                    'rows' => $rows,
-                    'areaTotals' => $areaTotals,
-                    'divisions' => $divisions,
-                    'canEditSchedule' => $canEditSchedule,
-                ])
-            @elseif (in_array($tab, ['project_audit', 'project_monitoring'], true))
-                @include('annual-audit.partials.project-work-plan', [
-                    'mode' => $tab === 'project_audit' ? 'audit' : 'monitoring',
-                    'plan' => $plan,
-                    'months' => $months,
-                    'projectGroups' => $projectGroups,
-                    'divisions' => $divisions,
-                    'canEditSchedule' => $canEditSchedule,
-                    'highlightProjectId' => $highlightProjectId ?? null,
-                ])
-            @elseif ($tab === 'total')
-                @include('annual-audit.partials.total-work-plan', [
-                    'plan' => $plan,
-                    'months' => $months,
-                    'categoryTotals' => $categoryTotals,
-                ])
-            @elseif ($tab === 'policies')
-                @if ($canManageAnnual)
-                <form method="POST" action="{{ route('annual-audit.policies') }}" class="p-4">
-                    @csrf
-                    <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
-                    <p class="mb-3 text-[12px] text-slate-600">
-                        <span class="font-semibold text-navy-900">Step 1 — set times per year.</span>
-                        That is the only policy setting. Months are placed evenly across the FY when you generate;
-                        change any cell later on the report tabs.
-                    </p>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full text-left">
-                            <thead class="border-b border-slate-100 bg-slate-50/80">
-                                <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                    <th class="px-3 py-2.5">Category</th>
-                                    <th class="px-3 py-2.5">Times / Year</th>
-                                    <th class="px-3 py-2.5">When generating</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100">
-                                @foreach ($policies as $policy)
-                                    @php
-                                        $hints = [
-                                            'shakha_audit' => 'Months are rotated across branches so visits are spread out.',
-                                            'area_office' => 'Same months for every area (evenly spaced).',
-                                            'pksf_maternity' => 'Same months for each PKSF / Maternity location.',
-                                            'hq_concern' => 'Same months for each HQ department.',
-                                            'project_audit' => 'Same months for each project-audit location.',
-                                            'project_monitoring' => 'Same months for each monitoring location.',
-                                        ];
-                                    @endphp
-                                    <tr class="text-[12px]">
-                                        <td class="px-3 py-2.5 font-medium capitalize text-navy-900">{{ str_replace('_', ' ', $policy->category) }}</td>
-                                        <td class="px-3 py-2.5">
-                                            @if ($policy->category === 'shakha_audit')
-                                                <select name="policies[{{ $policy->id }}][frequency_per_year]" class="w-24 rounded-lg border-slate-200 text-[12px]">
-                                                    @foreach ([2, 3, 4, 6, 12] as $freq)
-                                                        <option value="{{ $freq }}" @selected((int) $policy->frequency_per_year === $freq)>{{ $freq }}</option>
-                                                    @endforeach
-                                                </select>
-                                            @else
-                                                <input type="number" min="1" max="12" name="policies[{{ $policy->id }}][frequency_per_year]" value="{{ $policy->frequency_per_year }}" class="w-24 rounded-lg border-slate-200 text-[12px]">
-                                            @endif
-                                        </td>
-                                        <td class="px-3 py-2.5 text-slate-500">{{ $hints[$policy->category] ?? 'Evenly spaced months.' }}</td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="mt-4 flex flex-wrap items-center gap-2">
-                        <button type="submit" class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-medium text-slate-700 hover:bg-slate-50">
-                            Save policies
-                        </button>
-                        <button type="submit" name="regenerate" value="1" class="rounded-lg bg-navy-900 px-3 py-1.5 text-[12px] font-medium text-white hover:bg-navy-800">
-                            Save &amp; regenerate plan
-                        </button>
-                    </div>
-                </form>
-                @else
-                    <div class="p-4">
-                        <p class="mb-3 text-[12px] text-slate-500">View only — policy frequencies for this FY.</p>
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full text-left">
-                                <thead class="border-b border-slate-100 bg-slate-50/80">
-                                    <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                        <th class="px-3 py-2.5">Category</th>
-                                        <th class="px-3 py-2.5">Times / Year</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-100">
-                                    @foreach ($policies as $policy)
-                                        <tr class="text-[12px]">
-                                            <td class="px-3 py-2.5 font-medium capitalize text-navy-900">{{ str_replace('_', ' ', $policy->category) }}</td>
-                                            <td class="px-3 py-2.5 text-slate-700">{{ $policy->frequency_per_year }}</td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                @endif
-            @else
-                <div class="overflow-x-auto">
-                    <table class="min-w-full text-left">
-                        <thead class="border-b border-slate-100 bg-slate-50/80">
-                            <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                <th class="px-3 py-2.5">Project</th>
-                                <th class="px-3 py-2.5">Division</th>
-                                <th class="px-3 py-2.5">Location</th>
-                                @foreach ($months as $month)
-                                    <th class="px-1 py-2.5 text-center">{{ $month['label'] }}</th>
-                                @endforeach
-                                <th class="px-3 py-2.5 text-right">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            @forelse ($rows as $row)
-                                <tr
-                                    class="text-[12px]"
-                                    @audit-tick="
-                                        const cell = $el.querySelector('[data-row-total]');
-                                        if (cell) cell.textContent = Number(cell.textContent || 0) + Number($event.detail.delta || 0);
-                                    "
-                                >
-                                    <td class="px-3 py-1.5 font-medium text-navy-900">{{ $row['project'] }}</td>
-                                    <td class="px-3 py-1.5 text-slate-600">{{ $row['division'] ?: '—' }}</td>
-                                    <td class="px-3 py-1.5 text-slate-600">{{ $row['location'] }}</td>
-                                    @foreach ($row['months'] as $monthIndex => $active)
-                                        <td class="px-1 py-1 text-center">
-                                            <x-audit-month-mark
-                                                :active="(bool) $active"
-                                                :manual="(bool) ($row['manual'][$monthIndex] ?? false)"
-                                                :editable="$canEditSchedule"
-                                                :category="$row['category']"
-                                                :schedulable-type="$row['schedulable_type']"
-                                                :schedulable-id="$row['id']"
-                                                :month-index="$monthIndex"
-                                                :tab="$tab"
-                                                :fy="$plan->fy_label"
-                                            />
-                                        </td>
-                                    @endforeach
-                                    <td class="px-3 py-1.5 text-right font-semibold text-navy-900" data-row-total>{{ $row['total'] }}</td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="16" class="px-4 py-10 text-center text-[13px] text-slate-500">
-                                        No schedule rows yet. Set frequency in <span class="font-medium text-navy-800">Policies</span>, then click <span class="font-medium text-navy-800">Generate Annual Plan</span>, or click months directly.
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+            <div class="relative overflow-hidden rounded-xl border border-slate-100 bg-white shadow-card">
+                <div
+                    x-show="loading && !loaded[tab]"
+                    x-cloak
+                    class="absolute inset-0 z-10 flex items-center justify-center bg-white/70 text-[12px] font-medium text-slate-600"
+                >
+                    Loading…
                 </div>
-            @endif
+                @foreach (array_keys($tabs) as $key)
+                    <div
+                        x-show="tab === @js($key)"
+                        @if ($key !== $tab) x-cloak @endif
+                        data-annual-panel="{{ $key }}"
+                        @if ($key === $tab)
+                            x-init="markLoaded(@js($key))"
+                        @endif
+                    >
+                        @if ($key === $tab)
+                            @include('annual-audit.partials.tab-content')
+                        @endif
+                    </div>
+                @endforeach
+            </div>
         </div>
     </div>
+
+    @push('scripts')
+        <script>
+            function annualAuditTabs({ tab, fy, panelUrl, keys }) {
+                return {
+                    tab,
+                    fy,
+                    panelUrl,
+                    keys,
+                    loaded: { [tab]: true },
+                    loading: null,
+                    go(key) {
+                        if (this.tab === key) return;
+                        this.tab = key;
+                        const url = new URL(window.location.href);
+                        url.searchParams.set('fy', this.fy);
+                        url.searchParams.set('tab', key);
+                        window.history.replaceState({}, '', url.toString());
+                        this.ensure(key);
+                        document.querySelectorAll('input[name="tab"][data-annual-sync-tab]').forEach((el) => {
+                            el.value = key;
+                        });
+                    },
+                    markLoaded(key) {
+                        this.loaded[key] = true;
+                    },
+                    async ensure(key) {
+                        if (this.loaded[key]) return;
+                        const panel = document.querySelector('[data-annual-panel="' + key + '"]');
+                        if (! panel) return;
+                        this.loading = key;
+                        try {
+                            const url = new URL(this.panelUrl, window.location.origin);
+                            url.searchParams.set('fy', this.fy);
+                            url.searchParams.set('tab', key);
+                            const res = await fetch(url.toString(), {
+                                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'text/html' },
+                            });
+                            if (! res.ok) throw new Error('panel failed');
+                            panel.innerHTML = await res.text();
+                            if (window.Alpine && typeof Alpine.initTree === 'function') {
+                                Alpine.initTree(panel);
+                            }
+                            this.loaded[key] = true;
+                        } catch (e) {
+                            panel.innerHTML = '<div class="p-4 text-[12px] text-rose-700">Could not load this tab. Please refresh.</div>';
+                        } finally {
+                            if (this.loading === key) this.loading = null;
+                        }
+                    },
+                    prefetch() {
+                        this.keys.forEach((key, i) => {
+                            if (key === this.tab) return;
+                            window.setTimeout(() => this.ensure(key), 350 + i * 220);
+                        });
+                    },
+                };
+            }
+        </script>
+    @endpush
 </x-app-layout>

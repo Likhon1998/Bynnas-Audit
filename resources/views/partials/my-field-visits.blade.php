@@ -9,8 +9,8 @@
 @endphp
 
 {{-- Where to go today --}}
-<div class="mb-4 overflow-hidden rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 via-white to-violet-50 shadow-sm">
-    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-sky-100/80 px-4 py-3">
+<div class="mb-3 overflow-hidden rounded-xl border border-sky-200 bg-gradient-to-br from-sky-50 via-white to-violet-50 shadow-sm">
+    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-sky-100/80 px-3 py-2.5">
         <div>
             <p class="text-[13px] font-semibold uppercase tracking-wide text-sky-700">Where to go today</p>
             <p class="mt-0.5 text-[13px] font-semibold text-navy-900">{{ $todayLabel ?? now('Asia/Dhaka')->format('l, d M Y') }}</p>
@@ -28,14 +28,14 @@
     </div>
 
     @if (count($todayVisits) === 0)
-        <div class="px-4 py-8 text-center">
+        <div class="px-3 py-3 text-center">
             <p class="text-[13px] font-semibold text-slate-700">No visit scheduled for today</p>
             <p class="mt-1 text-[12px] text-slate-500">Check your monthly list below for upcoming shakha visits.</p>
         </div>
     @else
         <div class="divide-y divide-sky-100/80">
             @foreach ($todayActiveList as $row)
-                <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5">
+                <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5">
                         <div class="min-w-0 flex-1">
                             <div class="flex flex-wrap items-center gap-1.5">
                                 <p class="text-[14px] font-semibold {{ ! empty($row['risk']) ? \App\Support\ShakhaRiskTone::textClasses($row['risk']) : 'text-navy-900' }}">{{ $row['label'] }}</p>
@@ -66,7 +66,7 @@
                 </div>
             @endforeach
             @foreach ($todayDoneList as $row)
-                <div class="flex flex-wrap items-center justify-between gap-3 bg-teal-50/40 px-4 py-3">
+                <div class="flex flex-wrap items-center justify-between gap-2 bg-teal-50/40 px-3 py-2.5">
                     <div class="min-w-0">
                         <p class="text-[13px] font-semibold text-teal-900">{{ $row['label'] }}</p>
                         <p class="text-[13px] text-teal-700/80">Completed · {{ $row['dates'] }}</p>
@@ -79,7 +79,7 @@
 </div>
 
 @if ($showMonthStats)
-    <div class="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+    <div class="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
             <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">This month</p>
             <p class="mt-0.5 text-[18px] font-semibold tabular-nums text-navy-900">{{ number_format($stats['visits_month'] ?? 0) }}</p>
@@ -150,7 +150,7 @@
                 </div>
             </div>
         @empty
-            <p class="px-3.5 py-10 text-center text-[13px] text-slate-500">
+            <p class="px-3.5 py-6 text-center text-[13px] text-slate-500">
                 No visits allocated this month yet.
                 @if ($visitsUrl)
                     <a href="{{ $visitsUrl }}" class="font-medium text-brand-600 hover:underline">Open Monthly Visits</a>

@@ -77,8 +77,8 @@
         ];
     @endphp
 
-    <div class="px-4 py-5 lg:px-6">
-        <div class="mb-5 flex flex-wrap items-end justify-between gap-3">
+    <div class="px-3 py-3 lg:px-5">
+        <div class="mb-5 flex flex-wrap items-end justify-between gap-2">
             <div>
                 <div class="mb-1 flex items-center gap-2">
                     <span class="h-2 w-8 rounded-full bg-gradient-to-r from-[#ff2d9b] via-[#7c3aed] to-[#2563eb]"></span>
@@ -126,7 +126,7 @@
         </div>
 
         @if (! empty($myWork) && auth()->user()?->employee_id)
-            <div class="mb-4">
+            <div class="mb-3">
                 <div class="mb-3 flex items-center gap-2">
                     <span class="h-2 w-2 rounded-full bg-gradient-to-br from-sky-500 to-violet-500 shadow-sm shadow-sky-300"></span>
                     <p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">My field visits</p>
@@ -145,8 +145,8 @@
             </div>
         @endif
 
-        <div class="space-y-4">
-            <div class="rounded-2xl border border-slate-200/80 bg-gradient-to-br from-white via-slate-50/60 to-rose-50/40 p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+        <div class="space-y-3">
+            <div class="rounded-xl border border-slate-200/80 bg-gradient-to-br from-white via-slate-50/60 to-rose-50/40 p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
                 <div class="mb-3 flex items-center gap-2">
                     <span class="h-2 w-2 rounded-full bg-gradient-to-br from-rose-500 to-orange-400 shadow-sm shadow-rose-300"></span>
                     <p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Shakha risk</p>
@@ -154,7 +154,7 @@
                 </div>
                 @include('partials.dashboard-metric-cards', ['cards' => $row1, 'columns' => 5])
             </div>
-            <div class="rounded-2xl border border-slate-200/80 bg-gradient-to-br from-white via-blue-50/30 to-violet-50/50 p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+            <div class="rounded-xl border border-slate-200/80 bg-gradient-to-br from-white via-blue-50/30 to-violet-50/50 p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
                 <div class="mb-3 flex items-center gap-2">
                     <span class="h-2 w-2 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 shadow-sm shadow-blue-300"></span>
                     <p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Plan · target · Key Performance Indicator (KPI)</p>

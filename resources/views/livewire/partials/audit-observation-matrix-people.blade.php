@@ -175,7 +175,7 @@
                                         <span class="text-xs text-slate-500" x-text="emp.designation || ''"></span>
                                     </button>
                                 </template>
-                                <p x-show="filtered.length === 0" class="px-2.5 py-2 text-[13px] text-slate-400">
+                                <p x-show="filtered.length === 0" class="px-2.5 py-2 text-[13px] text-slate-500">
                                     <span x-show="staff.length === 0">এই শাখায় staff নেই — নাম টাইপ করুন</span>
                                     <span x-show="staff.length > 0">মিল নেই — Enter চাপলে যা লিখেছেন সেভ হবে</span>
                                 </p>

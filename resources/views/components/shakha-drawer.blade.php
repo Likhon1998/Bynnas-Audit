@@ -25,15 +25,15 @@
         :aria-labelledby="titleId"
         :aria-describedby="descId"
         class="fixed inset-y-0 right-0 z-[710] flex w-full max-w-md flex-col border-l border-white/10 bg-slate-900/85 text-white shadow-2xl shadow-black/40 backdrop-blur-md"
-        x-transition:enter="transform transition ease-out duration-300"
+        x-transition:enter="transform transition ease-out duration-150"
         x-transition:enter-start="translate-x-full"
         x-transition:enter-end="translate-x-0"
-        x-transition:leave="transform transition ease-in duration-200"
+        x-transition:leave="transform transition ease-in duration-100"
         x-transition:leave-start="translate-x-0"
         x-transition:leave-end="translate-x-full"
         @click.stop
     >
-        <header class="flex items-start gap-3 border-b border-white/10 px-5 py-4">
+        <header class="flex items-start gap-2 border-b border-white/10 px-3 py-3">
             <div class="min-w-0 flex-1">
                 <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Shakha territory</p>
                 <h2 :id="titleId" class="mt-1 truncate text-[18px] font-semibold text-white" x-text="shakha.name || 'Shakha'"></h2>
@@ -56,8 +56,8 @@
             </button>
         </header>
 
-        <div class="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5">
-            <dl class="grid grid-cols-2 gap-3">
+        <div class="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3">
+            <dl class="grid grid-cols-2 gap-2">
                 <div class="rounded-xl border border-white/10 bg-white/5 px-3 py-3">
                     <dt class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Assigned auditor</dt>
                     <dd class="mt-1 text-[13px] font-medium text-white" x-text="shakha.auditor || shakha.focal || 'Unassigned'"></dd>
@@ -88,7 +88,7 @@
                                 <p class="text-[13px] font-medium text-white" x-text="issue.title"></p>
                                 <span class="shrink-0 rounded-full bg-rose-500/15 px-2 py-0.5 text-xs font-semibold uppercase text-rose-200" x-text="issue.severity || 'issue'"></span>
                             </div>
-                            <p class="mt-1 text-[13px] text-slate-400" x-show="issue.amount != null">
+                            <p class="mt-1 text-[13px] text-slate-500" x-show="issue.amount != null">
                                 Amount <span class="tabular-nums text-slate-200" x-text="formatAmount(issue.amount)"></span>
                                 <span x-show="issue.count"> · <span class="tabular-nums" x-text="issue.count"></span> irregularities</span>
                             </p>

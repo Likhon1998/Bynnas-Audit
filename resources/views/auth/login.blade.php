@@ -13,7 +13,7 @@
             <x-input-label for="email" value="Email" class="text-[12px] font-semibold text-slate-700" />
             <x-text-input
                 id="email"
-                class="mt-1 block w-full rounded-lg border-slate-200 px-3 py-2 text-[13px] placeholder:text-slate-400"
+                class="mt-1 block w-full rounded-lg border-slate-200 px-3 py-2 text-[13px] placeholder:text-slate-500"
                 type="email"
                 name="email"
                 :value="old('email')"
@@ -30,7 +30,7 @@
             <div class="relative mt-1">
                 <x-text-input
                     id="password"
-                    class="block w-full rounded-lg border-slate-200 px-3 py-2 pr-10 text-[13px] placeholder:text-slate-400"
+                    class="block w-full rounded-lg border-slate-200 px-3 py-2 pr-10 text-[13px] placeholder:text-slate-500"
                     type="password"
                     x-bind:type="showPassword ? 'text' : 'password'"
                     name="password"

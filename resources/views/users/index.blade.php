@@ -1,6 +1,6 @@
 <x-app-layout>
-    <div class="px-4 py-4 lg:px-6">
-        <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+    <div class="px-3 py-3 lg:px-5">
+        <div class="mb-3 flex flex-wrap items-end justify-between gap-2">
             <div>
                 <h1 class="text-lg font-semibold tracking-tight text-navy-900">Users &amp; Access</h1>
                 <p class="mt-0.5 text-[12px] text-slate-500">Assign a role to each login · create roles &amp; permissions separately · optional extra branches</p>
@@ -36,7 +36,7 @@
         @enderror
 
         {{-- Role cheat sheet --}}
-        <div class="mb-4 rounded-xl border border-sky-100 bg-sky-50/40 px-3.5 py-3">
+        <div class="mb-3 rounded-xl border border-sky-100 bg-sky-50/40 px-3.5 py-3">
             <p class="text-[13px] font-bold uppercase tracking-wide text-sky-800">How access works</p>
             <div class="mt-2 grid gap-2 sm:grid-cols-2">
                 @foreach (\App\Support\RoleAccess::accessModelGuide() as $tip)
@@ -48,7 +48,7 @@
             </div>
         </div>
 
-        <div class="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="mb-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             @foreach ($roleCatalog as $key => $role)
                 <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
                     <div class="flex items-start justify-between gap-2">
@@ -68,12 +68,12 @@
                 </div>
             @endforeach
         </div>
-        <div class="mb-4">
+        <div class="mb-3">
             <a href="{{ route('roles.index') }}" class="text-[13px] font-semibold text-[#2b579a] hover:underline">Manage roles →</a>
         </div>
 
         @if ($employeesWithoutLogin->isNotEmpty())
-            <div class="mb-4 overflow-hidden rounded-xl border border-amber-200 bg-amber-50/60 shadow-sm">
+            <div class="mb-3 overflow-hidden rounded-xl border border-amber-200 bg-amber-50/60 shadow-sm">
                 <div class="border-b border-amber-100 px-3.5 py-2.5">
                     <p class="text-[13px] font-semibold text-amber-900">Employees without login ({{ $employeesWithoutLogin->count() }})</p>
                     <p class="text-xs text-amber-800/80">In organogram but cannot sign in until you allocate credentials</p>
@@ -131,7 +131,7 @@
                             </td>
                             <td class="px-3 py-2.5 text-slate-600">
                                 @if ($user->can('shakhas.view_all') || $user->hasAnyRole(['superadmin', 'audit_manager']))
-                                    <span class="text-[13px] text-slate-400">All (by role)</span>
+                                    <span class="text-[13px] text-slate-500">All (by role)</span>
                                 @else
                                     {{ $user->assignedShakhas->count() }} explicit
                                 @endif
@@ -171,7 +171,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-3 py-8 text-center text-slate-400">No users yet</td>
+                            <td colspan="6" class="px-3 py-3 text-center text-slate-500">No users yet</td>
                         </tr>
                     @endforelse
                 </tbody>

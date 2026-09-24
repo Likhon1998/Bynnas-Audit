@@ -61,7 +61,7 @@
         </p>
         <a
             href="{{ route('annual-audit.export', ['mode' => 'total', 'fy' => $plan->fy_label]) }}"
-            class="inline-flex h-7 items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 text-[13px] font-medium text-emerald-800 hover:bg-emerald-100"
+            class="inline-flex h-7 items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 text-[12px] font-medium text-emerald-800 hover:bg-emerald-100"
         >
             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -98,7 +98,7 @@
                             };
                         @endphp
                         <th class="border border-slate-300 px-0.5 py-1 text-center min-w-[48px] {{ $qBg }}">
-                            <div class="text-[13px] font-bold leading-none text-navy-900">{{ $monthTotals[$monthIndex] }}</div>
+                            <div class="text-[12px] font-bold leading-none text-navy-900">{{ $monthTotals[$monthIndex] }}</div>
                             <div class="mt-0.5 text-xs font-semibold uppercase leading-none text-slate-500">{{ $monthName }}-{{ $shortYear }}</div>
                         </th>
                     @endforeach

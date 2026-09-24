@@ -51,7 +51,7 @@
         </div>
     </div>
     <textarea
-        class="mt-1.5 h-14 w-full resize-y rounded border border-emerald-200 bg-white/90 px-2 py-1 text-[13px] text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-emerald-500"
+        class="mt-1.5 h-14 w-full resize-y rounded border border-emerald-200 bg-white/90 px-2 py-1 text-[13px] text-slate-700 placeholder:text-slate-500 focus:border-emerald-500 focus:ring-emerald-500"
         placeholder="এখানে Ctrl+V করুন…"
         @paste="onPaste($event)"
     ></textarea>

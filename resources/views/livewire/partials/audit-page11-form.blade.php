@@ -1,4 +1,4 @@
-<div class="border-b border-slate-200 bg-slate-100 px-3 py-5 lg:px-6">
+<div class="border-b border-slate-200 bg-slate-100 px-3 py-3 lg:px-5">
     <div class="mb-2 flex items-center justify-between gap-2">
         <p class="text-[12px] font-semibold text-slate-800">১১. Finding ২.২–২.৩ (অবচয় / কোটেশন)</p>
         <span class="text-[13px] text-slate-500">পৃষ্ঠা ১১ · প্রারম্ভিক স্থিতি মিল + কোটেশনবিহীন ক্রয়</span>

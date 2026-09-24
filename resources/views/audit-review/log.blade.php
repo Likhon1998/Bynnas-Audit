@@ -11,9 +11,9 @@
 @endphp
 <x-app-layout>
     <div class="px-3 py-3 lg:px-5" style="font-family:'Hind Siliguri','Nirmala UI',system-ui,sans-serif;">
-        <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
+        <div class="mb-3 flex flex-wrap items-start justify-between gap-2">
             <div>
-                <div class="mb-1 flex items-center gap-1.5 text-[13px] text-slate-400">
+                <div class="mb-1 flex items-center gap-1.5 text-[13px] text-slate-500">
                     <a href="{{ route('audit-review.index') }}" class="hover:text-brand-600">Review Panel</a>
                     <span>/</span>
                     <span class="text-slate-600">Auditors log</span>
@@ -30,19 +30,19 @@
         </p>
 
         <div class="mb-3 grid gap-2 sm:grid-cols-3">
-            <a href="{{ route('audit-review.log.pipeline') }}" class="rounded-2xl border border-sky-200 bg-sky-50/80 px-4 py-4 transition hover:border-sky-300 hover:shadow-sm">
+            <a href="{{ route('audit-review.log.pipeline') }}" class="rounded-xl border border-sky-200 bg-sky-50/80 px-3 py-3 transition hover:border-sky-300 hover:shadow-sm">
                 <p class="text-[13px] font-semibold text-sky-950">Pipeline by auditor</p>
                 <p class="mt-1 text-[13px] text-sky-800/80">Where each report sits · filter by auditor, month, position</p>
                 <p class="mt-3 text-[20px] font-semibold tabular-nums text-sky-950">{{ $summary['total'] ?? 0 }}</p>
                 <p class="text-xs text-sky-700">reports in view</p>
             </a>
-            <a href="{{ route('audit-review.log.activity') }}" class="rounded-2xl border border-violet-200 bg-violet-50/80 px-4 py-4 transition hover:border-violet-300 hover:shadow-sm">
+            <a href="{{ route('audit-review.log.activity') }}" class="rounded-xl border border-violet-200 bg-violet-50/80 px-3 py-3 transition hover:border-violet-300 hover:shadow-sm">
                 <p class="text-[13px] font-semibold text-violet-950">Recent activity</p>
                 <p class="mt-1 text-[13px] text-violet-800/80">Latest review events across the pipeline</p>
                 <p class="mt-3 text-[20px] font-semibold tabular-nums text-violet-950">{{ $eventCount }}</p>
                 <p class="text-xs text-violet-700">recent events</p>
             </a>
-            <a href="{{ route('audit-review.assignments') }}" class="rounded-2xl border border-slate-200 bg-white px-4 py-4 transition hover:border-slate-300 hover:shadow-sm">
+            <a href="{{ route('audit-review.assignments') }}" class="rounded-xl border border-slate-200 bg-white px-3 py-3 transition hover:border-slate-300 hover:shadow-sm">
                 <p class="text-[13px] font-semibold text-navy-900">Assign reviewers</p>
                 <p class="mt-1 text-[13px] text-slate-500">Map each auditor → their reviewer</p>
                 <p class="mt-3 text-[12px] font-semibold text-slate-700">Open assignments →</p>

@@ -36,11 +36,11 @@
     }"
     @audit-tick.window="onTick($event)"
 >
-    <div class="border-b border-slate-200 bg-slate-50/80 px-4 py-3">
-        <div class="flex flex-wrap items-start justify-between gap-3">
+    <div class="border-b border-slate-200 bg-slate-50/80 px-3 py-2.5">
+        <div class="flex flex-wrap items-start justify-between gap-2">
             <div>
-                <p class="text-[13px] font-semibold text-navy-900">Headquarters (HQ) Work Plan</p>
-                <p class="text-[13px] text-slate-500">
+                <p class="text-[12px] font-semibold text-navy-900">Headquarters (HQ) Work Plan</p>
+                <p class="text-[12px] text-slate-500">
                     Monitoring &amp; Audit · July {{ $fyParts[0] ?? '' }} to June {{ $fyParts[1] ?? '' }}
                     · matches Excel HQ sheet (departments × months + quarter totals)
                 </p>
@@ -60,7 +60,7 @@
                     @click="showAdd = !showAdd"
                     class="inline-flex items-center gap-1 rounded-lg bg-navy-900 px-2.5 py-1.5 text-[12px] font-medium text-white hover:bg-navy-800"
                 >
-                    <span class="text-[13px] leading-none">+</span>
+                    <span class="text-[12px] leading-none">+</span>
                     Add Department
                 </button>
             </div>
@@ -144,7 +144,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="16" class="border border-slate-200 px-4 py-10 text-center text-[13px] text-slate-500">
+                        <td colspan="16" class="border border-slate-200 px-3 py-6 text-center text-[12px] text-slate-500">
                             No HQ departments yet. Click <span class="font-medium text-navy-800">Add Department</span>.
                         </td>
                     </tr>
@@ -160,7 +160,7 @@
                         <td class="border border-slate-200 px-2 py-2 text-center text-navy-900" x-text="grandTotal"></td>
                         <td class="border border-slate-200"></td>
                     </tr>
-                    <tr class="bg-emerald-50/50 text-[13px]">
+                    <tr class="bg-emerald-50/50 text-[12px]">
                         <td colspan="2" class="border border-slate-200 px-3 py-2 font-semibold text-navy-900">Quarter total</td>
                         <td colspan="3" class="border border-slate-200 px-2 py-2 text-center font-semibold text-navy-900">
                             <span class="text-xs font-normal text-slate-500">Q1</span>
@@ -186,7 +186,7 @@
         </table>
     </div>
 
-    <p class="border-t border-slate-100 px-4 py-2 text-[13px] text-slate-500">
+    <p class="border-t border-slate-100 px-4 py-2 text-[12px] text-slate-500">
         Green = planned HQ visit. Click to add/remove. Footer totals update instantly (monthly + quarterly), like Excel.
     </p>
 </div>

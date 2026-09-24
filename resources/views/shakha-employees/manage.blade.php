@@ -5,10 +5,10 @@
         $currentPhotoUrl = $formEmployee?->photoUrl();
     @endphp
 
-    <div class="px-4 py-5 lg:px-6">
-        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div class="px-3 py-3 lg:px-5">
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
             <div>
-                <div class="mb-1 flex items-center gap-1.5 text-[13px] text-slate-400">
+                <div class="mb-1 flex items-center gap-1.5 text-[13px] text-slate-500">
                     <a href="{{ route('shakha-employees.index') }}" class="hover:text-brand-600">Shakha Employees</a>
                     <span>/</span>
                     <span class="text-slate-600">{{ $shakha->name }}</span>
@@ -35,7 +35,7 @@
             </div>
         @endif
 
-        <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div class="grid gap-2 xl:grid-cols-[minmax(0,1fr)_360px]">
             <div class="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-card">
                 <div class="border-b border-slate-100 px-3.5 py-2.5">
                     <p class="text-[12px] font-semibold text-navy-900">Roster</p>
@@ -115,7 +115,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-3.5 py-10 text-center text-[13px] text-slate-500">
+                                    <td colspan="7" class="px-3.5 py-6 text-center text-[13px] text-slate-500">
                                         No employees on this shakha yet.
                                     </td>
                                 </tr>
@@ -126,7 +126,7 @@
             </div>
 
             @if ($canManage)
-                <div class="space-y-4">
+                <div class="space-y-3">
                 <div
                     class="rounded-xl border border-slate-100 bg-white shadow-card"
                     x-data="{
@@ -155,7 +155,7 @@
 
                         <div class="rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-3">
                             <label class="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">Employee photo</label>
-                            <div class="flex items-center gap-3">
+                            <div class="flex items-center gap-2">
                                 <div class="relative">
                                     <template x-if="preview">
                                         <img :src="preview" alt="Preview" class="h-16 w-16 rounded-full object-cover ring-1 ring-slate-200">

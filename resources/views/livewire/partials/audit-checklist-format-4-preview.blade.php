@@ -6,14 +6,14 @@
 @endphp
 
 <div class="pointer-events-none select-none overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm opacity-95">
-    <div class="border-b border-slate-200 bg-slate-50 px-4 py-3 text-center">
+    <div class="border-b border-slate-200 bg-slate-50 px-3 py-2.5 text-center">
         <p class="text-[13px] font-semibold text-slate-500">Format: {{ $formatModel?->format_number }}</p>
         <p class="text-[15px] font-bold text-navy-900">{{ $formatModel?->org_name }}</p>
         <p class="text-[12px] font-semibold text-slate-700">{{ $formatModel?->dept_name }}</p>
         <p class="mt-1 text-[13px] font-bold text-navy-900">“{{ $formatModel?->heading }}”</p>
     </div>
 
-    <div class="grid gap-3 border-b border-slate-200 px-4 py-3 sm:grid-cols-2">
+    <div class="grid gap-2 border-b border-slate-200 px-3 py-2.5 sm:grid-cols-2">
         <div>
             <label class="mb-0.5 block text-[13px] font-semibold text-slate-600">শাখার নাম :</label>
             <div class="flex h-9 items-center rounded-md border border-slate-200 bg-white px-3 text-[13px] text-slate-500">…………………………</div>
@@ -57,7 +57,7 @@
         </table>
     </div>
 
-    <div class="border-t border-slate-200 px-4 py-3">
+    <div class="border-t border-slate-200 px-3 py-2.5">
         <p class="mb-2 text-[12px] font-bold text-navy-900">চেকলিস্ট পয়েন্ট (১–{{ $checkCount }})</p>
         <ol class="columns-1 gap-x-6 space-y-1 text-[13px] leading-snug text-slate-700 md:columns-2">
             @foreach ($questions as $qi => $q)
@@ -66,7 +66,7 @@
         </ol>
     </div>
 
-    <div class="border-t border-slate-200 px-4 py-3">
+    <div class="border-t border-slate-200 px-3 py-2.5">
         <p class="mb-1 text-[12px] font-bold text-navy-900">সারসংক্ষেপ:</p>
         <div class="min-h-[96px] rounded-md border border-slate-200 bg-white px-3 py-2 text-[12px] text-slate-300">…………………………………………</div>
     </div>

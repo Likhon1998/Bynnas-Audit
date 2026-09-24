@@ -7,6 +7,7 @@ use App\Http\Requests\StorePositionRequest;
 use App\Models\Employee;
 use App\Models\Position;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -38,10 +39,16 @@ class OrganogramController extends Controller
             'sort_order' => $nextOrder + 1,
         ]);
 
+        $photo = $request->file('photo');
+        if ($photo instanceof UploadedFile) {
+            $employee->photo_path = $photo->store('organogram-employees/'.$employee->id, 'public');
+            $employee->save();
+        }
+
         if ($request->user()?->can('users.manage')) {
             return redirect()
                 ->route('users.create', ['employee_id' => $employee->id])
-                ->with('status', 'Officer added. Allocate login credentials and role next.');
+                ->with('status', 'Officer added with photo. Allocate login credentials and role next.');
         }
 
         return back()->with('status', 'Officer added to the audit organogram.');
@@ -72,6 +79,7 @@ class OrganogramController extends Controller
 
     public function destroy(Employee $employee): RedirectResponse
     {
+        $employee->deleteStoredPhoto();
         $employee->delete();
 
         return back()->with('status', 'Officer removed from the audit organogram.');

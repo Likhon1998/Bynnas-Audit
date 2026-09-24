@@ -15,7 +15,7 @@
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="auth-canvas font-sans text-sm antialiased text-slate-800 h-screen overflow-hidden">
+    <body class="bynnas-dense auth-canvas font-sans text-sm antialiased text-slate-800 h-screen overflow-hidden">
         <x-app-loader />
         <a href="{{ url('/') }}" class="absolute left-5 top-4 z-10 flex items-center gap-2">
             <img
@@ -27,7 +27,7 @@
         </a>
 
         <div class="flex h-screen items-center justify-center overflow-hidden px-4 py-6">
-            <div class="w-full max-w-[400px] rounded-2xl bg-white/95 px-6 py-6 shadow-[0_16px_40px_rgba(80,90,140,0.12)] backdrop-blur-md sm:px-7 sm:py-7">
+            <div class="w-full max-w-[400px] rounded-xl bg-white/95 px-6 py-6 shadow-[0_16px_40px_rgba(80,90,140,0.12)] backdrop-blur-md sm:px-7 sm:py-7">
                 {{ $slot }}
             </div>
         </div>

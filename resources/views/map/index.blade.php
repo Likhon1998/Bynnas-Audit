@@ -57,7 +57,7 @@
     x-init="boot()"
 >
     <div class="flex h-screen">
-        <aside class="flex h-full shrink-0 flex-col border-r border-white/10 bg-slate-900/80 text-white backdrop-blur-md transition-[width] duration-200" :class="sidebarOpen ? 'w-[300px]' : 'w-0 overflow-hidden'">
+        <aside class="flex h-full shrink-0 flex-col border-r border-white/10 bg-slate-900/80 text-white backdrop-blur-md transition-[width] duration-100" :class="sidebarOpen ? 'w-[300px]' : 'w-0 overflow-hidden'">
             <div class="flex min-h-0 w-[300px] flex-1 flex-col">
                 <div class="flex items-center gap-2 border-b border-white/10 px-3 py-3">
                     <img src="{{ asset('images/bynnas-logo.png') }}?v=3" alt="" class="h-8 w-8 rounded-lg object-contain">
@@ -71,7 +71,7 @@
                     </span>
                 </div>
 
-                <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-3 py-3">
+                <div class="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3">
                     <div>
                         <label class="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Search</label>
                         <input type="search" x-model="query" @input.debounce.200ms="search()" placeholder="Find a place or shakha" class="h-9 w-full rounded-lg border-white/10 bg-white/10 text-[12px] text-white placeholder:text-slate-400 focus:border-sky-400 focus:ring-sky-400">

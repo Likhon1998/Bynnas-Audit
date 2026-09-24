@@ -172,13 +172,13 @@
         x-show="open"
         x-cloak
         x-transition.origin.bottom.right
-        class="mb-3 flex h-[min(620px,calc(100vh-7rem))] w-[calc(100vw-2rem)] max-w-[390px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.25)]"
+        class="mb-3 flex h-[min(620px,calc(100vh-7rem))] w-[calc(100vw-2rem)] max-w-[390px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.25)]"
         role="dialog"
         aria-label="Super Admin database assistant"
     >
-        <div class="relative overflow-hidden bg-gradient-to-r from-[#0b2447] via-[#123d70] to-[#176b87] px-4 py-3.5 text-white">
+        <div class="relative overflow-hidden bg-gradient-to-r from-[#0b2447] via-[#123d70] to-[#176b87] px-3 py-2.5 text-white">
             <span class="pointer-events-none absolute -right-8 -top-12 h-28 w-28 rounded-full bg-cyan-300/15 blur-xl"></span>
-            <div class="relative flex items-center gap-3">
+            <div class="relative flex items-center gap-2">
                 <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20">
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-4 4v-4z"/></svg>
                 </span>
@@ -193,7 +193,7 @@
                     type="button"
                     @click="startNewConversation()"
                     :disabled="loading"
-                    class="flex h-7 w-7 items-center justify-center rounded-lg text-white/70 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                    class="flex h-7 w-7 items-center justify-center rounded-lg text-white/70 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-55"
                     aria-label="Start a new conversation"
                     title="Start a new conversation"
                 >
@@ -211,7 +211,7 @@
                 <button type="button" @click="loadHistory()" class="mt-1 font-semibold underline underline-offset-2">Try again</button>
             </div>
             <div x-show="messages.length === 0 && !loading" class="py-2 text-center">
-                <span class="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-700 ring-1 ring-cyan-100">
+                <span class="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-50 text-cyan-700 ring-1 ring-cyan-100">
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3a.75.75 0 01.75.75V5h3V3.75a.75.75 0 011.5 0V5h1.25A2.75 2.75 0 0119 7.75v8.5A2.75 2.75 0 0116.25 19h-8.5A2.75 2.75 0 015 16.25v-8.5A2.75 2.75 0 017.75 5H9V3.75A.75.75 0 019.75 3z"/><path stroke-linecap="round" d="M9 11h.01M15 11h.01M9 15h6"/></svg>
                 </span>
                 <p class="mt-3 text-[13px] font-semibold text-navy-900">How can I assist you?</p>
@@ -227,10 +227,10 @@
                 <div :class="message.role === 'user' ? 'flex justify-end' : 'flex justify-start'">
                     <div
                         :class="message.role === 'user'
-                            ? 'max-w-[86%] rounded-2xl rounded-br-md bg-gradient-to-r from-[#164e63] to-[#0369a1] text-white'
+                            ? 'max-w-[86%] rounded-xl rounded-br-md bg-gradient-to-r from-[#164e63] to-[#0369a1] text-white'
                             : message.failed
-                                ? 'max-w-[90%] rounded-2xl rounded-bl-md border border-rose-200 bg-rose-50 text-rose-800'
-                                : 'max-w-[90%] rounded-2xl rounded-bl-md border border-slate-200 bg-white text-slate-700 shadow-sm'"
+                                ? 'max-w-[90%] rounded-xl rounded-bl-md border border-rose-200 bg-rose-50 text-rose-800'
+                                : 'max-w-[90%] rounded-xl rounded-bl-md border border-slate-200 bg-white text-slate-700 shadow-sm'"
                         class="px-3 py-2.5 text-[13px] leading-relaxed"
                     >
                         <template x-if="message.role === 'user'">
@@ -244,7 +244,7 @@
             </template>
 
             <div x-show="loading" class="flex justify-start">
-                <div class="flex items-center gap-1 rounded-2xl rounded-bl-md border border-slate-200 bg-white px-3 py-3 shadow-sm">
+                <div class="flex items-center gap-1 rounded-xl rounded-bl-md border border-slate-200 bg-white px-3 py-3 shadow-sm">
                     <span class="h-1.5 w-1.5 animate-bounce rounded-full bg-cyan-500 [animation-delay:-0.3s]"></span>
                     <span class="h-1.5 w-1.5 animate-bounce rounded-full bg-cyan-500 [animation-delay:-0.15s]"></span>
                     <span class="h-1.5 w-1.5 animate-bounce rounded-full bg-cyan-500"></span>
@@ -261,12 +261,12 @@
                     rows="1"
                     maxlength="1500"
                     placeholder="Ask about audits, reports, risks, or employees..."
-                    class="max-h-28 min-h-[34px] flex-1 resize-none border-0 bg-transparent px-2 py-2 text-[13px] leading-relaxed text-slate-700 placeholder:text-slate-400 focus:ring-0"
+                    class="max-h-28 min-h-[34px] flex-1 resize-none border-0 bg-transparent px-2 py-2 text-[13px] leading-relaxed text-slate-700 placeholder:text-slate-500 focus:ring-0"
                 ></textarea>
                 <button
                     type="submit"
                     :disabled="loading || input.trim().length < 2"
-                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-r from-cyan-600 to-blue-700 text-white shadow-sm hover:from-cyan-700 hover:to-blue-800 disabled:cursor-not-allowed disabled:opacity-40"
+                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-r from-cyan-600 to-blue-700 text-white shadow-sm hover:from-cyan-700 hover:to-blue-800 disabled:cursor-not-allowed disabled:opacity-55"
                     aria-label="Send message"
                 >
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
@@ -281,7 +281,7 @@
         x-transition
         type="button"
         @click="openChat()"
-        class="group relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#0e7490] via-[#0369a1] to-[#1e3a8a] text-white shadow-[0_12px_32px_rgba(3,105,161,0.38)] ring-1 ring-white/20 transition hover:-translate-y-0.5 hover:shadow-[0_16px_38px_rgba(3,105,161,0.48)]"
+        class="group relative flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-[#0e7490] via-[#0369a1] to-[#1e3a8a] text-white shadow-[0_12px_32px_rgba(3,105,161,0.38)] ring-1 ring-white/20 transition hover:-translate-y-0.5 hover:shadow-[0_16px_38px_rgba(3,105,161,0.48)]"
         aria-label="Open Bynnas Audit Assistant"
         title="Ask Bynnas Audit Assistant"
     >

@@ -32,7 +32,7 @@
             <input type="text" wire:model.blur="reportBlocks.{{ $blockIndex }}.org_line1" class="w-full rounded border border-slate-200 bg-white px-2 py-1 text-center text-[12px]">
             <input type="text" wire:model.blur="reportBlocks.{{ $blockIndex }}.org_line2" class="w-full rounded border border-slate-200 bg-white px-2 py-1 text-center text-[12px]">
             <input type="text" wire:model.blur="reportBlocks.{{ $blockIndex }}.org_line3" class="w-full rounded border border-slate-200 bg-white px-2 py-1 text-center text-[12px]">
-            <div class="flex flex-wrap items-center justify-center gap-3 pt-1 text-[12px]">
+            <div class="flex flex-wrap items-center justify-center gap-2 pt-1 text-[12px]">
                 <span class="font-semibold">কর্মসূচীর নাম :</span>
                 <input type="text" wire:model.blur="reportBlocks.{{ $blockIndex }}.program" class="min-w-[110px] rounded border border-slate-200 bg-white px-2 py-1 text-center">
                 <span class="font-semibold">শাখার নাম :</span>

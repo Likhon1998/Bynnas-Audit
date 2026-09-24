@@ -20,9 +20,9 @@
         x-transition.opacity.duration.150ms
     ></div>
     <div
-        class="relative w-full max-w-[300px] overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xl shadow-slate-900/10"
+        class="relative w-full max-w-[300px] overflow-hidden rounded-xl border border-slate-200/80 bg-white p-4 shadow-xl shadow-slate-900/10"
         x-show="open"
-        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter="transition ease-out duration-100"
         x-transition:enter-start="opacity-0 scale-95 translate-y-1"
         x-transition:enter-end="opacity-100 scale-100 translate-y-0"
         x-transition:leave="transition ease-in duration-100"

@@ -42,14 +42,14 @@
                     </td>
                     <td class="border border-slate-800 px-1 py-1">
                         @if ($isSection)
-                            <span class="block text-center text-slate-400">—</span>
+                            <span class="block text-center text-slate-500">—</span>
                         @else
                             <input type="text" wire:model.live="tocRows.{{ $idx }}.amount" class="h-7 w-full border-0 bg-sky-50 px-1 text-right text-[13px] focus:ring-1 focus:ring-sky-400">
                         @endif
                     </td>
                     <td class="border border-slate-800 px-0 py-0">
                         @if ($isSection)
-                            <span class="block px-1 text-center text-slate-400">—</span>
+                            <span class="block px-1 text-center text-slate-500">—</span>
                         @else
                             <select
                                 wire:model.live="tocRows.{{ $idx }}.rating"
@@ -64,14 +64,14 @@
                     </td>
                     <td class="border border-slate-800 px-1 py-1">
                         @if ($isSection)
-                            <span class="block text-center text-slate-400">—</span>
+                            <span class="block text-center text-slate-500">—</span>
                         @else
                             <input type="text" wire:model.live="tocRows.{{ $idx }}.status" class="h-7 w-full border-0 bg-sky-50 px-1 text-[13px] focus:ring-1 focus:ring-sky-400">
                         @endif
                     </td>
                     <td class="border border-slate-800 px-1 py-1">
                         @if ($isSection)
-                            <span class="block text-center text-slate-400">—</span>
+                            <span class="block text-center text-slate-500">—</span>
                         @else
                             <input type="text" wire:model.live="tocRows.{{ $idx }}.page_no" class="h-7 w-full border-0 bg-sky-50 px-1 text-center text-[13px] focus:ring-1 focus:ring-sky-400">
                         @endif

@@ -1,6 +1,6 @@
 <x-app-layout>
     <div class="px-3 py-3 lg:px-5" style="font-family:'Hind Siliguri','Nirmala UI',system-ui,sans-serif;">
-        <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
+        <div class="mb-3 flex flex-wrap items-start justify-between gap-2">
             <div>
                 <h1 class="text-lg font-semibold tracking-tight text-navy-900">Review Panel</h1>
                 <p class="mt-0.5 text-[12px] text-slate-500">What you need to do · inbox · returned · reviewed</p>
@@ -21,7 +21,7 @@
         @endif
 
         @if ($monthlyStats)
-            <div class="mb-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+            <div class="mb-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
                 <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
                     <div>
                         <p class="text-[13px] font-semibold uppercase tracking-wide text-slate-500">Monthly review load</p>
@@ -147,7 +147,7 @@
             </div>
         @endif
 
-        <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <div class="overflow-x-auto">
                 <table class="min-w-full text-left text-[12px]">
                     <thead class="border-b border-slate-100 bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -312,7 +312,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="9" class="px-3 py-12 text-center text-slate-400">No reports in this tab.</td>
+                                <td colspan="9" class="px-3 py-12 text-center text-slate-500">No reports in this tab.</td>
                             </tr>
                         @endforelse
                     </tbody>
