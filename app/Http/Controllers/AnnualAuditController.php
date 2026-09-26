@@ -409,15 +409,9 @@ class AnnualAuditController extends Controller
         $availablePlans = AuditPlan::query()->orderByDesc('start_date')->get(['id', 'fy_label', 'status', 'start_date']);
         $nextFyLabel = FinancialYear::fromLabel($plan->fy_label)->next()->label;
         $nextPlanExists = $availablePlans->contains(fn ($p) => $p->fy_label === $nextFyLabel);
-        $canManageAnnual = (bool) $request->user()?->can('annual_audit.manage');
 
         return $this->tabPayload($request, $plan, $builder, $tab) + [
-            'plan' => $plan,
-            'tab' => $tab,
-            'months' => $builder->months(),
             'kpis' => $builder->kpis(),
-            'divisions' => Divisions::all(),
-            'areas' => Area::query()->where('status', 'active')->orderBy('name')->get(),
             'filters' => [
                 'division' => $division,
                 'area_id' => $areaId,
@@ -426,9 +420,6 @@ class AnnualAuditController extends Controller
             'nextFyLabel' => $nextFyLabel,
             'nextPlanExists' => $nextPlanExists,
             'canDeletePlan' => (bool) $request->user()?->isSuperAdmin(),
-            'highlightProjectId' => $request->integer('project') ?: null,
-            'canEditSchedule' => $canManageAnnual,
-            'canManageAnnual' => $canManageAnnual,
             'panelUrl' => route('annual-audit.panel'),
         ];
     }
@@ -444,7 +435,9 @@ class AnnualAuditController extends Controller
             'tab' => $tab,
             'months' => $builder->months(),
             'divisions' => Divisions::all(),
-            'areas' => Area::query()->where('status', 'active')->orderBy('name')->get(),
+            'areas' => $tab === 'shakha'
+                ? Area::query()->where('status', 'active')->orderBy('name')->get()
+                : collect(),
             'canEditSchedule' => $canManageAnnual,
             'canManageAnnual' => $canManageAnnual,
             'highlightProjectId' => $request->integer('project') ?: null,

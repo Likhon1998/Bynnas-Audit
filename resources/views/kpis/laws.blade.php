@@ -34,6 +34,7 @@
         x-data="{
             section: @js($firstCategory),
             sections: @js($glanceSections),
+            help: null,
         }"
     >
         {{-- Fixed top bar (does not scroll) --}}
@@ -46,7 +47,7 @@
                         <span class="text-slate-600">Laws</span>
                     </div>
                     <h1 class="mt-1 text-lg font-semibold tracking-tight text-navy-900">KPI laws</h1>
-                    <p class="mt-0.5 text-[13px] text-slate-500">Click a group on the left to edit those laws.</p>
+                    <p class="mt-0.5 text-[13px] text-slate-500">Each law is one sum, difference, or division. Press <span class="font-semibold">i</span> to see it solved with sample numbers.</p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
                     <a href="{{ route('kpis.index') }}" class="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-3 text-[12px] font-medium text-slate-600 hover:bg-slate-50">Back to KPI</a>
@@ -127,11 +128,37 @@
                                     @php $prefix = 'laws.'.$law->id; @endphp
                                     <div class="px-3 py-3">
                                         <input type="hidden" name="laws[{{ $law->id }}][id]" value="{{ $law->id }}">
-                                        <div class="mb-3 flex flex-wrap items-start justify-between gap-2">
-                                            <div>
-                                                <p class="text-[13px] font-semibold uppercase tracking-wide text-slate-500">{{ $law->key }}</p>
-                                                <p class="mt-0.5 text-[12px] text-slate-500">Export column key — keep stable for Excel mapping</p>
+                                        @php $example = $law->workedExample(); @endphp
+                                        <div class="mb-2 flex items-start justify-between gap-2">
+                                            <div class="min-w-0">
+                                                <p class="text-[14px] font-semibold text-navy-900">{{ $law->label }}</p>
+                                                <p class="mt-0.5 text-[13px] text-slate-600">{{ $example['sentence'] }}</p>
+                                                <p class="mt-1 text-[12px] font-medium text-slate-500">{{ $example['left_label'] }} {{ $example['symbol'] }} {{ $example['right_label'] }}</p>
                                             </div>
+                                            <button
+                                                type="button"
+                                                @click="help = help === {{ $law->id }} ? null : {{ $law->id }}"
+                                                class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-sky-200 bg-sky-50 text-[13px] font-bold text-sky-800 hover:bg-sky-100"
+                                                :class="help === {{ $law->id }} ? 'ring-2 ring-sky-300' : ''"
+                                                title="Show a worked example"
+                                                aria-label="Show a worked example"
+                                            >i</button>
+                                        </div>
+                                        <div
+                                            x-show="help === {{ $law->id }}"
+                                            x-cloak
+                                            class="mb-3 rounded-lg border border-sky-100 bg-sky-50 px-3 py-2.5 text-[13px] text-sky-950"
+                                        >
+                                            <p class="font-semibold">Example</p>
+                                            <p class="mt-1">{{ $example['left_label'] }} = <span class="font-semibold tabular-nums">{{ $example['left_value'] }}</span></p>
+                                            <p>{{ $example['right_label'] }} = <span class="font-semibold tabular-nums">{{ $example['right_value'] }}</span></p>
+                                            <p class="mt-1 border-t border-sky-100 pt-1 font-semibold">
+                                                {{ $example['left_value'] }} {{ $example['symbol'] }} {{ $example['right_value'] }} = {{ $example['result'] }}
+                                            </p>
+                                            <p class="mt-1 text-[12px] text-sky-800">{{ $example['note'] }}</p>
+                                        </div>
+                                        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                                            <p class="text-[11px] uppercase tracking-wide text-slate-400">{{ $law->key }}</p>
                                             <label class="inline-flex items-center gap-2 text-[12px] font-medium text-slate-700">
                                                 <input
                                                     type="checkbox"

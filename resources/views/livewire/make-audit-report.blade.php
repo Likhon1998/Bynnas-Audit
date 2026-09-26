@@ -1,5 +1,5 @@
 <div
-    class="audit-wizard @if($step === 'wizard') flex min-h-0 flex-1 flex-col overflow-hidden @endif @if($reviewReadOnly) is-review-readonly @endif"
+    class="audit-wizard @if($step === 'wizard') flex h-full min-h-0 flex-col overflow-hidden @endif @if($reviewReadOnly) is-review-readonly @endif"
     style="font-family:'Hind Siliguri', 'Nirmala UI', Arial, sans-serif;"
     x-data="{}"
     x-on:audit-goto-place.window="window.__auditGotoPlace && window.__auditGotoPlace($event)"
@@ -63,7 +63,7 @@
         </div>
     @else
         {{-- Fixed toolbar — does not scroll away --}}
-        <div class="z-30 shrink-0 border-b border-slate-200 bg-white px-3 py-2 lg:px-4">
+        <div class="sticky top-0 z-30 shrink-0 border-b border-slate-200 bg-white px-3 py-2 lg:px-4">
             {{-- Quiet background persist — loader intentionally skipped in app.js --}}
             <span wire:poll.5s="autoSaveDraft" class="hidden" aria-hidden="true"></span>
             <span wire:poll.30s="refreshUndoWindow" class="hidden" aria-hidden="true"></span>
@@ -110,7 +110,7 @@
                             @endif
                         </button>
                     </div>
-                @elseif ($reviewReadOnly && $reviewPerfect)
+                @elseif ($reviewPerfect)
                     <div class="order-last flex w-full flex-wrap items-center gap-2 rounded-md border border-teal-200 bg-teal-50 px-3 py-2 text-[13px] text-teal-950 sm:order-none sm:max-w-xl sm:w-auto">
                         @if ($reviewMakerDone)
                             <span class="inline-flex items-center gap-1.5 font-semibold text-emerald-800">

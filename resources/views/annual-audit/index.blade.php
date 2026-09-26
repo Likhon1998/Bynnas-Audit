@@ -1,22 +1,38 @@
 <x-app-layout>
     @php
         $tabs = [
-            'policies' => [
-                'label' => $plan->generated_at ? 'Policies' : '1. Policies',
-                'idle' => 'bg-rose-50 text-rose-700 hover:bg-rose-100',
-                'active' => 'bg-rose-600 text-white shadow-md ring-2 ring-rose-600/30',
-            ],
-            'total' => ['label' => 'Total', 'idle' => 'bg-slate-100 text-slate-600 hover:bg-slate-200', 'active' => 'bg-navy-900 text-white shadow-md ring-2 ring-navy-900/20'],
-            'shakha' => ['label' => 'Shakha Audit', 'idle' => 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100', 'active' => 'bg-emerald-600 text-white shadow-md ring-2 ring-emerald-600/30'],
-            'area' => ['label' => 'Area Office', 'idle' => 'bg-amber-50 text-amber-800 hover:bg-amber-100', 'active' => 'bg-amber-500 text-white shadow-md ring-2 ring-amber-500/30'],
-            'pksf' => ['label' => 'PKSF & Maternity', 'idle' => 'bg-orange-50 text-orange-700 hover:bg-orange-100', 'active' => 'bg-orange-500 text-white shadow-md ring-2 ring-orange-500/30'],
-            'hq' => ['label' => 'HQ', 'idle' => 'bg-sky-50 text-sky-700 hover:bg-sky-100', 'active' => 'bg-sky-600 text-white shadow-md ring-2 ring-sky-600/30'],
-            'project_audit' => ['label' => 'Project Audit', 'idle' => 'bg-teal-50 text-teal-700 hover:bg-teal-100', 'active' => 'bg-teal-600 text-white shadow-md ring-2 ring-teal-600/30'],
-            'project_monitoring' => ['label' => 'Project Monitoring', 'idle' => 'bg-cyan-50 text-cyan-700 hover:bg-cyan-100', 'active' => 'bg-cyan-600 text-white shadow-md ring-2 ring-cyan-600/30'],
+            'policies' => ['label' => $plan->generated_at ? 'Policies' : '1. Policies'],
+            'total' => ['label' => 'Total'],
+            'shakha' => ['label' => 'Shakha Audit'],
+            'area' => ['label' => 'Area Office'],
+            'pksf' => ['label' => 'PKSF & Maternity'],
+            'hq' => ['label' => 'HQ'],
+            'project_audit' => ['label' => 'Project Audit'],
+            'project_monitoring' => ['label' => 'Project Monitoring'],
         ];
         $canEditSchedule = $canEditSchedule ?? true;
         $canManageAnnual = $canManageAnnual ?? $canEditSchedule;
     @endphp
+
+    <style>
+        .annual-tab{display:inline-flex;align-items:center;min-height:2rem;border-radius:.375rem;border:1px solid transparent;padding:.35rem .75rem;font-size:12px;font-weight:700;line-height:1.2;color:#fff;box-shadow:0 1px 2px rgba(15,23,42,.12)}
+        .annual-tab[data-key="policies"]{background:#be123c}
+        .annual-tab[data-key="total"]{background:#1e293b}
+        .annual-tab[data-key="shakha"]{background:#047857}
+        .annual-tab[data-key="area"]{background:#b45309}
+        .annual-tab[data-key="pksf"]{background:#c2410c}
+        .annual-tab[data-key="hq"]{background:#0369a1}
+        .annual-tab[data-key="project_audit"]{background:#0f766e}
+        .annual-tab[data-key="project_monitoring"]{background:#0e7490}
+        .annual-tab[data-on="1"]{box-shadow:0 0 0 2px #fff,0 0 0 4px #0f172a}
+        .project-plan-fit{overflow-x:hidden}
+        .project-plan-fit .project-month button,
+        .project-plan-fit .project-month span.inline-flex{height:1.35rem;width:1.35rem}
+        .annual-wait{display:flex;min-height:240px;flex-direction:column;align-items:center;justify-content:center;gap:.65rem;padding:2.5rem 1rem;text-align:center}
+        .annual-wait__spin{width:2.25rem;height:2.25rem;border-radius:999px;border:3px solid #dbe4f3;border-top-color:#2b579a;animation:annual-wait-spin .7s linear infinite}
+        @keyframes annual-wait-spin{to{transform:rotate(360deg)}}
+        @media (prefers-reduced-motion:reduce){.annual-wait__spin{animation:none;border-top-color:#2b579a}}
+    </style>
 
     <div class="px-3 py-3 text-[12px] leading-snug lg:px-5">
         <div class="mb-3 flex flex-wrap items-center gap-2">
@@ -237,16 +253,22 @@
                 fy: @js($plan->fy_label),
                 panelUrl: @js($panelUrl),
                 keys: @js(array_keys($tabs)),
+                labels: @js(collect($tabs)->map(fn ($meta) => $meta['label'])->all()),
             })"
-            x-init="prefetch()"
         >
-            <div class="mb-3 flex flex-wrap gap-1.5">
+            <div class="mb-3 flex flex-wrap gap-1.5" role="tablist">
                 @foreach ($tabs as $key => $tabMeta)
                     <button
                         type="button"
+                        role="tab"
+                        data-key="{{ $key }}"
+                        data-on="{{ $tab === $key ? '1' : '0' }}"
+                        :data-on="tab === @js($key) ? '1' : '0'"
+                        :aria-selected="tab === @js($key)"
+                        @pointerenter="warm(@js($key))"
+                        @focus="warm(@js($key))"
                         @click="go(@js($key))"
-                        :class="tab === @js($key) ? @js($tabMeta['active']) : @js($tabMeta['idle'])"
-                        class="whitespace-nowrap rounded-md px-2.5 py-1 text-[11px] font-semibold transition"
+                        class="annual-tab whitespace-nowrap"
                     >
                         {{ $tabMeta['label'] }}
                     </button>
@@ -259,15 +281,19 @@
 
             <div class="relative overflow-hidden rounded-xl border border-slate-100 bg-white shadow-card">
                 <div
-                    x-show="loading && !loaded[tab]"
+                    x-show="!loaded[tab]"
                     x-cloak
-                    class="absolute inset-0 z-10 flex items-center justify-center bg-white/70 text-[12px] font-medium text-slate-600"
+                    class="annual-wait"
+                    role="status"
+                    aria-live="polite"
                 >
-                    Loading…
+                    <div class="annual-wait__spin" aria-hidden="true"></div>
+                    <p class="text-[13px] font-semibold text-navy-900">Please wait</p>
+                    <p class="text-[12px] text-slate-500">Loading <span class="font-medium text-slate-700" x-text="labels[tab] || 'this section'"></span>…</p>
                 </div>
                 @foreach (array_keys($tabs) as $key)
                     <div
-                        x-show="tab === @js($key)"
+                        x-show="tab === @js($key) && loaded[@js($key)]"
                         @if ($key !== $tab) x-cloak @endif
                         data-annual-panel="{{ $key }}"
                         @if ($key === $tab)
@@ -285,14 +311,20 @@
 
     @push('scripts')
         <script>
-            function annualAuditTabs({ tab, fy, panelUrl, keys }) {
+            function annualAuditTabs({ tab, fy, panelUrl, keys, labels }) {
                 return {
                     tab,
                     fy,
                     panelUrl,
                     keys,
+                    labels,
                     loaded: { [tab]: true },
                     loading: null,
+                    inflight: {},
+                    warm(key) {
+                        if (!key || key === this.tab || this.loaded[key]) return;
+                        this.ensure(key);
+                    },
                     go(key) {
                         if (this.tab === key) return;
                         this.tab = key;
@@ -308,35 +340,35 @@
                     markLoaded(key) {
                         this.loaded[key] = true;
                     },
-                    async ensure(key) {
-                        if (this.loaded[key]) return;
+                    ensure(key) {
+                        if (this.loaded[key]) return Promise.resolve();
+                        if (this.inflight[key]) return this.inflight[key];
                         const panel = document.querySelector('[data-annual-panel="' + key + '"]');
-                        if (! panel) return;
+                        if (! panel) return Promise.resolve();
                         this.loading = key;
-                        try {
-                            const url = new URL(this.panelUrl, window.location.origin);
-                            url.searchParams.set('fy', this.fy);
-                            url.searchParams.set('tab', key);
-                            const res = await fetch(url.toString(), {
-                                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'text/html' },
-                            });
-                            if (! res.ok) throw new Error('panel failed');
-                            panel.innerHTML = await res.text();
-                            if (window.Alpine && typeof Alpine.initTree === 'function') {
-                                Alpine.initTree(panel);
+                        const job = (async () => {
+                            try {
+                                const url = new URL(this.panelUrl, window.location.origin);
+                                url.searchParams.set('fy', this.fy);
+                                url.searchParams.set('tab', key);
+                                const res = await fetch(url.toString(), {
+                                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'text/html' },
+                                });
+                                if (! res.ok) throw new Error('panel failed');
+                                panel.innerHTML = await res.text();
+                                if (window.Alpine && typeof Alpine.initTree === 'function') {
+                                    Alpine.initTree(panel);
+                                }
+                                this.loaded[key] = true;
+                            } catch (e) {
+                                panel.innerHTML = '<div class="p-4 text-[12px] text-rose-700">Could not load this tab. Please refresh.</div>';
+                            } finally {
+                                delete this.inflight[key];
+                                if (this.loading === key) this.loading = null;
                             }
-                            this.loaded[key] = true;
-                        } catch (e) {
-                            panel.innerHTML = '<div class="p-4 text-[12px] text-rose-700">Could not load this tab. Please refresh.</div>';
-                        } finally {
-                            if (this.loading === key) this.loading = null;
-                        }
-                    },
-                    prefetch() {
-                        this.keys.forEach((key, i) => {
-                            if (key === this.tab) return;
-                            window.setTimeout(() => this.ensure(key), 350 + i * 220);
-                        });
+                        })();
+                        this.inflight[key] = job;
+                        return job;
                     },
                 };
             }

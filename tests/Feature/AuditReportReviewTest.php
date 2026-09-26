@@ -103,7 +103,7 @@ class AuditReportReviewTest extends TestCase
         $this->assertSame((int) $reviewer->id, (int) $report->reviewer_user_id);
         $this->assertTrue($report->review_cc_superadmin);
         $this->assertTrue($service->isLocked($report));
-        $this->assertFalse($service->isEditableByMaker($report));
+        $this->assertTrue($service->isEditableByMaker($report));
 
         $this->actingAs($reviewer)
             ->post(route('audit-review.request-changes', $report), [
@@ -139,7 +139,7 @@ class AuditReportReviewTest extends TestCase
         $this->assertSame(AuditReport::STATUS_REVIEWED, $report->status);
         $this->assertNotNull($report->reviewed_at);
         $this->assertTrue($service->isLocked($report));
-        $this->assertFalse($service->isEditableByMaker($report));
+        $this->assertTrue($service->isEditableByMaker($report));
 
         $this->actingAs($admin)
             ->get(route('audit-review.show', $report))
@@ -185,13 +185,16 @@ class AuditReportReviewTest extends TestCase
 
         $this->actingAs($admin)
             ->post(route('audit-review.done', $report))
-            ->assertRedirect();
+            ->assertForbidden();
 
         $this->actingAs($admin)
-            ->post(route('audit-review.approve', $report), ['note' => 'SA approve'])
-            ->assertRedirect(route('audit-review.index', ['tab' => 'reviewed']));
+            ->get(route('audit-review.show', $report))
+            ->assertOk()
+            ->assertViewHas('canAct', false)
+            ->assertViewHas('canAnnotate', false);
 
-        $this->assertSame(AuditReport::STATUS_REVIEWED, $report->fresh()->status);
+        $this->assertSame(AuditReport::STATUS_IN_REVIEW, $report->fresh()->status);
+        $this->assertSame((int) $reviewer->id, (int) $report->fresh()->reviewer_user_id);
     }
 
     public function test_can_send_directly_to_superadmin_without_assignment(): void
@@ -940,14 +943,16 @@ class AuditReportReviewTest extends TestCase
         $this->actingAs($admin)
             ->get(route('audit-review.show', $report))
             ->assertOk()
-            ->assertSee('Step Branch');
+            ->assertViewHas('canAct', false)
+            ->assertViewHas('canAnnotate', false);
 
         $this->actingAs($admin)
             ->post(route('audit-review.done', $report))
-            ->assertRedirect();
+            ->assertForbidden();
 
         $report->refresh();
-        $this->assertNotNull($report->review_ready_at);
+        $this->assertNull($report->review_ready_at);
+        $this->assertSame((int) $reviewer->id, (int) $report->reviewer_user_id);
     }
 
     public function test_annotation_cannot_be_deleted_after_return_to_maker(): void

@@ -3,12 +3,29 @@
 <head>
     <meta charset="utf-8">
     <title>Monthly Schedule — {{ $monthLabel }} · FY {{ $plan->fy_label }}</title>
+    @if (!empty($forPdf))
     <style>
+        body { font-family: hindsiliguri, sans-serif; color: #0f172a; font-size: 10px; }
+        .org, .title, .meta { text-align: center; }
+        .org-name { font-size: 16px; font-weight: bold; }
+        .title { font-size: 13px; font-weight: bold; margin: 6px 0 2px; }
+        .meta { font-size: 11px; margin-bottom: 8px; }
+        table.schedule { width: 100%; border-collapse: collapse; }
+        th { background: #e2e8f0; border: 1px solid #334155; padding: 4px; font-size: 9px; text-align: center; }
+        td { border: 1px solid #334155; padding: 4px; font-size: 10px; vertical-align: top; }
+        .c { text-align: center; }
+        .muted { color: #64748b; }
+        .footer-note { margin-top: 8px; font-size: 9px; color: #64748b; }
+    </style>
+    @else
+    <style>
+        @unless (!empty($forPdf))
         @page { size: A4 landscape; margin: 12mm; }
+        @endunless
         * { box-sizing: border-box; }
         body {
             margin: 0;
-            font-family: DejaVu Sans, Arial, Helvetica, sans-serif;
+            font-family: hindsiliguri, 'Hind Siliguri', 'Nirmala UI', Arial, sans-serif;
             color: #0f172a;
             font-size: 11px;
             line-height: 1.35;
@@ -45,9 +62,8 @@
             margin-bottom: 6px;
         }
         .org-name {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 700;
-            letter-spacing: 0.02em;
         }
         .org-sub {
             font-size: 12px;
@@ -69,18 +85,19 @@
         table.schedule {
             width: 100%;
             border-collapse: collapse;
-            table-layout: fixed;
+            overflow: wrap;
         }
         table.schedule th,
         table.schedule td {
             border: 1px solid #334155;
-            padding: 5px 6px;
+            padding: 4px 5px;
             vertical-align: middle;
             word-wrap: break-word;
+            white-space: normal;
         }
         table.schedule th {
             background: #e2e8f0;
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 700;
             text-align: center;
         }
@@ -88,7 +105,7 @@
             font-size: 11px;
         }
         .c { text-align: center; }
-        .visitors { white-space: pre-line; font-weight: 600; }
+        .visitors { font-weight: 600; }
         .remarks {
             text-align: center;
             font-weight: 700;
@@ -107,6 +124,7 @@
             body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
     </style>
+    @endif
 </head>
 <body>
     @unless (!empty($forDoc) || !empty($forPdf))
@@ -141,13 +159,13 @@
         <table class="schedule">
             <thead>
                 <tr>
-                    <th style="width:4%">ক্র.নং<br>SL</th>
-                    <th style="width:16%">পরিদর্শনকারীর নাম<br>Visitor Name</th>
-                    <th style="width:14%">যে মাস পর্যন্ত নিরীক্ষা ও পরিবীক্ষণ করা হয়েছে<br>Last Audit Upto</th>
-                    <th style="width:22%">শাখার নাম<br>Branch / Entity</th>
-                    <th style="width:18%">পরিদর্শনের তারিখ ও মাস<br>Visit Date &amp; Month</th>
+                    <th style="width:4%">ক্রম<br>SL</th>
+                    <th style="width:24%">শাখার নাম<br>Branch</th>
+                    <th style="width:16%">পরিদর্শনকারী<br>Visitor</th>
+                    <th style="width:14%">শেষ নিরীক্ষা<br>Last audit</th>
+                    <th style="width:18%">পরিদর্শনের তারিখ<br>Visit dates</th>
                     <th style="width:8%">দিন<br>Days</th>
-                    <th style="width:12%">মন্তব্য<br>Remarks</th>
+                    <th style="width:16%">মন্তব্য<br>Remarks</th>
                 </tr>
             </thead>
             <tbody>
@@ -155,17 +173,19 @@
                 @forelse ($rows as $i => $row)
                     <tr>
                         <td class="c">{{ $row['sl'] }}</td>
-                        <td class="visitors {{ $row['visitors'] === '—' ? 'muted' : '' }}">{{ $row['visitors'] }}</td>
-                        <td class="c">{{ $row['last_audit_upto_bn'] }}</td>
                         <td>
                             {{ $row['entity'] }}
                             @if ($row['is_special'])
                                 <span class="muted">(Special)</span>
                             @endif
                         </td>
+                        <td class="visitors {{ $row['visitors'] === '—' ? 'muted' : '' }}">{!! nl2br(e($row['visitors'])) !!}</td>
+                        <td class="c">{{ $row['last_audit_upto_bn'] }}</td>
                         <td class="c {{ $row['visit_dates'] === 'Not allocated' ? 'muted' : '' }}">{{ $row['visit_dates'] }}</td>
                         <td class="c">{{ $row['days'] }}</td>
-                        @if ($groupMap->has($i))
+                        @if (!empty($forPdf))
+                            <td class="c">{{ $row['purpose_bn'] }}<br>{{ $row['purpose'] }}</td>
+                        @elseif ($groupMap->has($i))
                             @php $g = $groupMap[$i]; @endphp
                             <td class="remarks" rowspan="{{ $g['count'] }}">
                                 {{ $g['purpose_bn'] }}

@@ -97,19 +97,24 @@ class MonthlyAssignment extends Model
     }
 
     /**
-     * Locked visits can only be changed by Super Admin or the person who locked them.
+     * Allocated visits are locked. Field auditors cannot change visitor or dates.
+     * Super Admin can always correct one. Another admin can correct it only if they locked it, or after it is unlocked.
      */
     public function canBeModifiedBy(?User $user): bool
     {
-        if (! $this->isScheduleLocked()) {
-            return true;
-        }
-
         if (! $user) {
             return false;
         }
 
         if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        if (! $user->can('monthly_visits.manage')) {
+            return false;
+        }
+
+        if (! $this->isScheduleLocked()) {
             return true;
         }
 

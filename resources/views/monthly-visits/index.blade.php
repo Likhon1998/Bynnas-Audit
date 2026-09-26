@@ -18,38 +18,95 @@
             conflictWarning: @js($conflictWarning),
         })"
     >
-        {{-- Header --}}
-        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <div class="min-w-0">
-                <h1 class="text-lg font-semibold tracking-tight text-navy-900">
-                    {{ ($officerView ?? false) ? 'My monthly visits' : 'Monthly Field Visits' }}
-                </h1>
-                <p class="text-[13px] text-slate-500">
-                    FY {{ $plan->fy_label }} · {{ $monthLabel }}
-                    @if ($officerView ?? false)
-                        · only shakhas allocated to you
-                    @endif
-                </p>
+        {{-- Header + period controls on one compact row --}}
+        <div class="mb-2 flex flex-wrap items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-1.5">
+            <h1 class="shrink-0 text-[13px] font-semibold tracking-tight text-navy-900">
+                {{ ($officerView ?? false) ? 'My monthly visits' : 'Monthly Field Visits' }}
+            </h1>
+            @if ($officerView ?? false)
+                <span class="hidden text-[11px] text-slate-500 sm:inline">Your allocated shakhas</span>
+            @endif
+
+            <form method="GET" action="{{ route('monthly-visits.index') }}" class="flex items-center gap-1.5">
+                <select name="fy" class="h-7 rounded-md border-slate-200 !py-0 pl-2 pr-6 text-[12px]" onchange="this.form.submit()" title="Financial year">
+                    @foreach ($availablePlans as $p)
+                        <option value="{{ $p->fy_label }}" @selected($p->fy_label === $plan->fy_label)>{{ $p->fy_label }}</option>
+                    @endforeach
+                </select>
+                <select name="month" class="h-7 w-[7.25rem] rounded-md border-slate-200 !py-0 pl-2 pr-6 text-[12px]" onchange="this.form.submit()" title="Month">
+                    @foreach ($monthOptions as $opt)
+                        <option value="{{ $opt['index'] }}" @selected((int) $opt['index'] === (int) $monthIndex)>{{ $opt['label'] }}</option>
+                    @endforeach
+                </select>
+            </form>
+
+            <div class="relative min-w-[10rem] flex-1">
+                <svg class="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"/></svg>
+                <input
+                    type="search"
+                    x-model="listQuery"
+                    placeholder="Search branch, visitor, status…"
+                    class="h-7 w-full rounded-md border-slate-200 py-0 pl-7 pr-7 text-[12px]"
+                    autocomplete="off"
+                >
+                <button
+                    type="button"
+                    x-show="listQuery"
+                    x-cloak
+                    @click="listQuery = ''"
+                    class="absolute right-1.5 top-1/2 -translate-y-1/2 text-[11px] text-slate-500 hover:text-slate-700"
+                >Clear</button>
             </div>
-            <div class="flex flex-wrap items-center gap-1.5">
+
+            <div class="flex shrink-0 flex-wrap items-center gap-1">
+                @can('monthly_visits.manage')
+                    <a href="{{ route('monthly-visits.people', ['fy' => $plan->fy_label, 'month' => $monthIndex]) }}" class="inline-flex h-7 items-center rounded-md border border-navy-900 bg-navy-900 px-2 text-[12px] font-semibold text-white hover:bg-navy-800">
+                        Who visits where
+                    </a>
+                @endcan
                 @canany(['calendar.manage', 'monthly_visits.manage', 'monthly_visits.execute'])
-                    <a href="{{ route('calendar.index', ['month' => (int) ($fy->months()[$monthIndex]['month'] ?? now('Asia/Dhaka')->month), 'year' => (int) ($fy->months()[$monthIndex]['year'] ?? now('Asia/Dhaka')->year)]) }}" class="inline-flex h-8 items-center rounded-md border border-sky-200 bg-sky-50 px-2.5 text-[12px] font-medium text-sky-800 hover:bg-sky-100">
-                        Working Calendar
+                    <a href="{{ route('calendar.index', ['month' => (int) ($fy->months()[$monthIndex]['month'] ?? now('Asia/Dhaka')->month), 'year' => (int) ($fy->months()[$monthIndex]['year'] ?? now('Asia/Dhaka')->year)]) }}" class="inline-flex h-7 items-center rounded-md border border-sky-200 bg-sky-50 px-2 text-[12px] font-medium text-sky-800 hover:bg-sky-100">
+                        Calendar
                     </a>
                 @endcanany
                 <details class="relative">
-                <summary class="inline-flex h-8 cursor-pointer list-none items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 text-[12px] font-medium text-slate-700 hover:bg-slate-50 [&::-webkit-details-marker]:hidden">
-                    Export
-                    <svg class="h-3 w-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                </summary>
-                <div class="absolute right-0 z-40 mt-1 w-40 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
-                    <a href="{{ route('monthly-visits.schedule.print', ['fy' => $plan->fy_label, 'month' => $monthIndex]) }}" class="block px-3 py-1.5 text-[12px] text-slate-700 hover:bg-slate-50">Print</a>
-                    <a href="{{ route('monthly-visits.schedule.pdf', ['fy' => $plan->fy_label, 'month' => $monthIndex]) }}" class="block px-3 py-1.5 text-[12px] text-slate-700 hover:bg-slate-50">PDF</a>
-                    <a href="{{ route('monthly-visits.schedule.doc', ['fy' => $plan->fy_label, 'month' => $monthIndex]) }}" class="block px-3 py-1.5 text-[12px] text-slate-700 hover:bg-slate-50">DOC</a>
-                    <a href="{{ route('monthly-visits.schedule.excel', ['fy' => $plan->fy_label, 'month' => $monthIndex]) }}" class="block px-3 py-1.5 text-[12px] text-slate-700 hover:bg-slate-50">Excel</a>
-                    <a href="{{ route('monthly-visits.report', ['fy' => $plan->fy_label, 'month' => $monthIndex, 'type' => 'schedule']) }}" class="block border-t border-slate-100 px-3 py-1.5 text-[12px] text-slate-700 hover:bg-slate-50">Reports</a>
-                </div>
-            </details>
+                    <summary class="inline-flex h-7 cursor-pointer list-none items-center gap-1 rounded-md border border-slate-200 bg-white px-2 text-[12px] font-medium text-slate-700 hover:bg-slate-50 [&::-webkit-details-marker]:hidden">
+                        Export
+                        <svg class="h-3 w-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                    </summary>
+                    <div class="absolute right-0 z-40 mt-1 w-40 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+                        <a href="{{ route('monthly-visits.schedule.print', ['fy' => $plan->fy_label, 'month' => $monthIndex]) }}" class="block px-3 py-1.5 text-[12px] text-slate-700 hover:bg-slate-50">Print</a>
+                        <a href="{{ route('monthly-visits.schedule.pdf', ['fy' => $plan->fy_label, 'month' => $monthIndex]) }}" class="block px-3 py-1.5 text-[12px] text-slate-700 hover:bg-slate-50">PDF</a>
+                        <a href="{{ route('monthly-visits.schedule.doc', ['fy' => $plan->fy_label, 'month' => $monthIndex]) }}" class="block px-3 py-1.5 text-[12px] text-slate-700 hover:bg-slate-50">DOC</a>
+                        <a href="{{ route('monthly-visits.schedule.excel', ['fy' => $plan->fy_label, 'month' => $monthIndex]) }}" class="block px-3 py-1.5 text-[12px] text-slate-700 hover:bg-slate-50">Excel</a>
+                        <a href="{{ route('monthly-visits.report', ['fy' => $plan->fy_label, 'month' => $monthIndex, 'type' => 'schedule']) }}" class="block border-t border-slate-100 px-3 py-1.5 text-[12px] text-slate-700 hover:bg-slate-50">Reports</a>
+                    </div>
+                </details>
+                @can('monthly_visits.manage')
+                    <form method="POST" action="{{ route('monthly-visits.generate') }}">
+                        @csrf
+                        <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
+                        <input type="hidden" name="month" value="{{ $monthIndex }}">
+                        <button type="submit" class="inline-flex h-7 items-center rounded-md border border-slate-200 bg-white px-2 text-[12px] font-medium text-slate-700 hover:bg-slate-50" title="Pull latest rows from yearly plan">
+                            Re-sync
+                        </button>
+                    </form>
+                    <form
+                        method="POST"
+                        action="{{ route('monthly-visits.bulk-allocate') }}"
+                        data-bynnas-confirm="Auto-allocate {{ $monthLabel }} with conflict-safe dates? Existing non-completed plans may be rebalanced so every office is covered. The same person will not be placed on overlapping dates."
+                        data-bynnas-confirm-title="Auto-allocate {{ $monthLabel }}?"
+                        data-bynnas-confirm-ok="Auto-allocate"
+                        data-bynnas-confirm-tone="emerald"
+                    >
+                        @csrf
+                        <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
+                        <input type="hidden" name="month" value="{{ $monthIndex }}">
+                        <button type="submit" class="inline-flex h-7 items-center rounded-md bg-emerald-600 px-2.5 text-[12px] font-medium text-white hover:bg-emerald-500">
+                            Auto-allocate
+                        </button>
+                    </form>
+                @endcan
             </div>
         </div>
 
@@ -65,106 +122,64 @@
             </div>
         @endunless
 
-        {{-- Controls: period · search · actions --}}
-        <div class="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-2">
-            <form method="GET" action="{{ route('monthly-visits.index') }}" class="flex flex-wrap items-center gap-2">
-                <select name="fy" class="h-8 rounded-md border-slate-200 !py-0 pl-2 pr-7 text-[12px]" onchange="this.form.submit()" title="Financial year">
-                    @foreach ($availablePlans as $p)
-                        <option value="{{ $p->fy_label }}" @selected($p->fy_label === $plan->fy_label)>{{ $p->fy_label }}</option>
-                    @endforeach
-                </select>
-                <select name="month" class="h-8 rounded-md border-slate-200 !py-0 pl-2 pr-7 text-[12px]" onchange="this.form.submit()" title="Month">
-                    @foreach ($monthOptions as $opt)
-                        <option value="{{ $opt['index'] }}" @selected((int) $opt['index'] === (int) $monthIndex)>{{ $opt['label'] }}</option>
-                    @endforeach
-                </select>
-            </form>
-
-            <div class="relative min-w-[180px] flex-1">
-                <svg class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"/></svg>
-                <input
-                    type="search"
-                    x-model="listQuery"
-                    placeholder="Search branch, visitor, type, status…"
-                    class="h-8 w-full rounded-md border-slate-200 py-0 pl-8 pr-8 text-[12px]"
-                    autocomplete="off"
-                >
-                <button
-                    type="button"
-                    x-show="listQuery"
-                    x-cloak
-                    @click="listQuery = ''"
-                    class="absolute right-2 top-1/2 -translate-y-1/2 text-[13px] text-slate-500 hover:text-slate-600"
-                >Clear</button>
-            </div>
-
-            @can('monthly_visits.manage')
-            <form method="POST" action="{{ route('monthly-visits.generate') }}">
-                @csrf
-                <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
-                <input type="hidden" name="month" value="{{ $monthIndex }}">
-                <button type="submit" class="inline-flex h-8 items-center rounded-md border border-slate-200 bg-white px-2.5 text-[12px] font-medium text-slate-700 hover:bg-slate-50" title="Pull latest rows from yearly plan">
-                    Re-sync
-                </button>
-            </form>
-            <form
-                method="POST"
-                action="{{ route('monthly-visits.bulk-allocate') }}"
-                onsubmit="return confirm('Auto-allocate {{ $monthLabel }} with conflict-safe dates? Existing non-completed plans may be rebalanced so every office is covered. Same person will never be placed on overlapping dates.')"
-            >
-                @csrf
-                <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
-                <input type="hidden" name="month" value="{{ $monthIndex }}">
-                <button type="submit" class="inline-flex h-8 items-center rounded-md bg-emerald-600 px-3 text-[12px] font-medium text-white hover:bg-emerald-500">
-                    Auto-allocate
-                </button>
-            </form>
-            @endcan
-        </div>
-
         @if (($officerView ?? false) && ! ($employeeLinked ?? true))
             <div class="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-900">
                 Your login is not linked to an organogram employee, so no visit allocations can be matched. Ask Super Admin to link your employee on Users &amp; Access.
             </div>
         @endif
 
-        {{-- Compact status strip --}}
-        <div class="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[12px]">
-            <span class="text-slate-500">{{ ($officerView ?? false) ? 'My visits' : 'Planned' }} <strong class="text-navy-900">{{ number_format($performance['totals']['planned']) }}</strong></span>
-            @unless ($officerView ?? false)
-                <span class="text-slate-300">|</span>
-                <span class="text-slate-500">Assigned <strong class="text-emerald-700">{{ number_format($performance['totals']['assigned']) }}</strong></span>
-                <span class="text-slate-300">|</span>
-                <span class="text-slate-500">Unassigned <strong class="text-amber-700">{{ number_format($performance['totals']['pending']) }}</strong></span>
-            @endunless
-            <span class="text-slate-300">|</span>
-            <span class="text-slate-500">Completed <strong class="text-sky-700">{{ number_format($performance['totals']['completed']) }}</strong></span>
-            <span class="text-slate-300">|</span>
-            <span class="text-slate-500">Cancelled <strong class="text-rose-700">{{ number_format($performance['totals']['cancelled']) }}</strong></span>
-            <span class="text-slate-300">|</span>
-            <span class="text-slate-500">Overdue <strong class="text-orange-700">{{ number_format($performance['totals']['overdue']) }}</strong></span>
+        {{-- Status chips --}}
+        <div class="mb-2 flex flex-wrap items-center gap-1.5 text-[12px]">
+            @foreach ([
+                ['label' => ($officerView ?? false) ? 'My visits' : 'Planned', 'value' => $performance['totals']['planned'], 'class' => 'bg-white text-navy-900 ring-slate-200'],
+                ...(($officerView ?? false) ? [] : [
+                    ['label' => 'Assigned', 'value' => $performance['totals']['assigned'], 'class' => 'bg-emerald-50 text-emerald-800 ring-emerald-100'],
+                    ['label' => 'Unassigned', 'value' => $performance['totals']['pending'], 'class' => 'bg-amber-50 text-amber-900 ring-amber-100'],
+                ]),
+                ['label' => 'Completed', 'value' => $performance['totals']['completed'], 'class' => 'bg-sky-50 text-sky-800 ring-sky-100'],
+                ['label' => 'Cancelled', 'value' => $performance['totals']['cancelled'], 'class' => 'bg-rose-50 text-rose-800 ring-rose-100'],
+                ['label' => 'Late', 'value' => $performance['totals']['overdue'], 'class' => 'bg-orange-50 text-orange-900 ring-orange-100'],
+            ] as $chip)
+                <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-medium ring-1 {{ $chip['class'] }}">
+                    {{ $chip['label'] }}
+                    <strong class="tabular-nums">{{ number_format($chip['value']) }}</strong>
+                </span>
+            @endforeach
         </div>
 
-        <div class="grid gap-2 {{ ($officerView ?? false) ? '' : 'xl:grid-cols-12' }}">
+        <div class="grid min-h-0 items-start gap-2 {{ ($officerView ?? false) ? '' : 'xl:grid-cols-12' }}">
             {{-- Unassigned --}}
             @can('monthly_visits.manage')
-            <section class="overflow-hidden rounded-lg border border-slate-200 bg-white xl:col-span-5">
-                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-3 py-2">
-                    <div>
-                        <h2 class="text-[13px] font-semibold text-navy-900">Unassigned</h2>
-                        <p class="text-[13px] text-slate-500">
-                            <span x-text="visibleUnassignedCount"></span> / {{ $unassigned->count() }}
-                            <span x-show="listQuery" x-cloak> · filtered</span>
-                        </p>
+            <section class="flex min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm xl:col-span-4">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-3 py-2" :class="queueMode === 'allocated' ? 'bg-sky-50/70' : 'bg-amber-50/60'">
+                    <div class="inline-flex rounded-lg border border-slate-200 bg-white p-0.5">
+                        <button
+                            type="button"
+                            @click="queueMode = 'waiting'"
+                            class="h-7 rounded-md px-2.5 text-[12px] font-semibold"
+                            :class="queueMode === 'waiting' ? 'bg-navy-900 text-white' : 'text-slate-600 hover:bg-slate-50'"
+                        >Waiting {{ $unassigned->count() }}</button>
+                        <button
+                            type="button"
+                            @click="queueMode = 'allocated'"
+                            class="h-7 rounded-md px-2.5 text-[12px] font-semibold"
+                            :class="queueMode === 'allocated' ? 'bg-navy-900 text-white' : 'text-slate-600 hover:bg-slate-50'"
+                        >Allocated {{ $assigned->count() }}</button>
                     </div>
                     <button
                         type="button"
+                        x-show="queueMode === 'waiting'"
                         @click="showSpecial = !showSpecial"
-                        class="h-7 rounded-md border border-slate-200 px-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50"
+                        class="h-7 rounded-md border border-slate-200 bg-white px-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50"
                         x-text="showSpecial ? 'Cancel special' : '+ Special'"
                     ></button>
                 </div>
+                <p class="border-b border-slate-100 px-3 py-1.5 text-[12px] text-slate-500">
+                    <span x-show="queueMode === 'waiting'">Risky shakhas are listed first. Allocate moves them to Allocated, where you can still edit.</span>
+                    <span x-show="queueMode === 'allocated'" x-cloak>Allocated visits. Edit one to change the visitor or dates.</span>
+                </p>
 
+                <div x-show="queueMode === 'waiting'">
                 <div x-show="showSpecial" x-cloak class="border-b border-slate-100 bg-slate-50 px-3 py-2.5">
                     <form method="POST" action="{{ route('monthly-visits.special.store') }}" class="grid gap-2 sm:grid-cols-2">
                         @csrf
@@ -192,14 +207,13 @@
                     </form>
                 </div>
 
-                <div class="max-h-[28rem] overflow-auto">
-                    <table class="min-w-full text-left">
-                        <thead class="sticky top-0 border-b border-slate-100 bg-slate-50">
-                            <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                <th class="px-3 py-2 w-8">#</th>
-                                <th class="px-3 py-2">Branch / Entity</th>
-                                <th class="px-3 py-2">Type</th>
-                                <th class="px-3 py-2 w-20"></th>
+                <div class="overflow-x-hidden">
+                    <table class="w-full table-fixed text-left">
+                        <thead class="sticky top-0 z-10 border-b border-slate-100 bg-white">
+                            <tr class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                <th class="w-8 px-2 py-2">#</th>
+                                <th class="px-2 py-2">Branch / entity</th>
+                                <th class="w-[5.5rem] px-2 py-2 text-right"></th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -213,12 +227,12 @@
                                     ])));
                                 @endphp
                                 <tr
-                                    class="text-[12px] unassigned-row"
+                                    class="text-[12px] unassigned-row hover:bg-slate-50"
                                     data-search="{{ e($unassignedSearch) }}"
-                                    x-show="rowMatch($el.dataset.search, listQuery)"
+                                    x-show="rowVisible('unassigned', $el)"
                                 >
-                                    <td class="px-3 py-2 text-slate-400">{{ $i + 1 }}</td>
-                                    <td class="px-3 py-2 {{ ($item->schedulable instanceof \App\Models\Shakha && $item->schedulable->riskCategory()) ? \App\Support\ShakhaRiskTone::softBgClasses($item->schedulable->riskCategory()) : '' }}">
+                                    <td class="px-2 py-2 align-top text-slate-400">{{ $i + 1 }}</td>
+                                    <td class="px-2 py-2 align-top">
                                         @if ($item->schedulable instanceof \App\Models\Shakha)
                                             <x-shakha-name
                                                 :name="$item->entity_label"
@@ -226,25 +240,21 @@
                                                 class="text-[12px]"
                                             />
                                         @else
-                                            <p class="font-medium text-navy-900">{{ $item->entity_label }}</p>
+                                            <p class="break-words font-medium text-navy-900">{{ $item->entity_label }}</p>
                                         @endif
-                                        <p class="text-xs text-slate-500">
-                                            {{ $item->isSpecial() ? 'Special' : 'Yearly' }}
-                                            · {{ str_replace('_', ' ', $item->category) }}
-                                        </p>
+                                        <p class="mt-0.5 text-[11px] text-slate-500">{{ $item->activityType?->name ?: str_replace('_', ' ', $item->category) }}</p>
                                     </td>
-                                    <td class="px-3 py-2 text-slate-600">{{ $item->activityType?->name }}</td>
-                                    <td class="px-3 py-2 text-right">
+                                    <td class="px-2 py-2 text-right align-middle">
                                         <button
                                             type="button"
                                             @click="openAllocate({{ $item->id }})"
-                                            class="rounded-md bg-navy-900 px-2 py-1 text-[13px] font-medium text-white hover:bg-navy-800"
+                                            class="inline-flex h-7 items-center rounded-md bg-navy-900 px-2.5 text-[12px] font-semibold text-white hover:bg-navy-800"
                                         >Allocate</button>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="px-3 py-3 text-center text-[13px] text-slate-500">
+                                    <td colspan="3" class="px-3 py-8 text-center text-[13px] text-slate-500">
                                         @if ($items->isEmpty())
                                             @if ($plan->generated_at)
                                                 No yearly schedules for {{ $monthLabel }}.
@@ -259,42 +269,163 @@
                             @endforelse
                             @if ($unassigned->isNotEmpty())
                                 <tr x-show="visibleUnassignedCount === 0 && listQuery" x-cloak>
-                                    <td colspan="4" class="px-3 py-6 text-center text-[13px] text-slate-500">No matches.</td>
+                                    <td colspan="3" class="px-3 py-6 text-center text-[13px] text-slate-500">No matches.</td>
                                 </tr>
                             @endif
                         </tbody>
                     </table>
                 </div>
+                <div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/80 px-3 py-2 text-[12px]">
+                    <span class="text-slate-500" x-text="pageLabel('unassigned')"></span>
+                    <div class="flex flex-wrap items-center gap-1">
+                        <button type="button" @click="shiftPage('unassigned', -1)" :disabled="unassignedPage <= 1" class="h-7 rounded-md border border-slate-200 bg-white px-2 font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40">Previous</button>
+                        <template x-for="n in pageNumbers('unassigned')" :key="'unassigned-page-' + n">
+                            <button
+                                type="button"
+                                @click="goPage('unassigned', n)"
+                                class="inline-flex h-7 min-w-7 items-center justify-center rounded-md border px-1.5 font-semibold tabular-nums"
+                                :class="n === unassignedPage ? 'border-navy-900 bg-navy-900 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'"
+                                x-text="n"
+                            ></button>
+                        </template>
+                        <button type="button" @click="shiftPage('unassigned', 1)" :disabled="unassignedPage >= pageCount('unassigned')" class="h-7 rounded-md border border-slate-200 bg-white px-2 font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40">Next</button>
+                    </div>
+                </div>
+                </div>
+
+                <div x-show="queueMode === 'allocated'" x-cloak>
+                    <div class="overflow-x-hidden">
+                        <table class="w-full table-fixed text-left">
+                            <thead class="sticky top-0 z-10 border-b border-slate-100 bg-white">
+                                <tr class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                    <th class="w-8 px-2 py-2">#</th>
+                                    <th class="px-2 py-2">Branch / entity</th>
+                                    <th class="w-[5.5rem] px-2 py-2 text-right"></th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                @forelse ($assigned as $i => $item)
+                                    @php
+                                        $a = $item->assignment;
+                                        $queueSearch = strtolower(trim(implode(' ', [
+                                            $item->entity_label,
+                                            $a?->visitorNames(' '),
+                                            $item->activityType?->name,
+                                            str_replace('_', ' ', $item->category),
+                                        ])));
+                                    @endphp
+                                    <tr
+                                        class="text-[12px] queue-row hover:bg-slate-50"
+                                        data-search="{{ e($queueSearch) }}"
+                                        x-show="rowVisible('queue', $el)"
+                                    >
+                                        <td class="px-2 py-2 align-top text-slate-400">{{ $i + 1 }}</td>
+                                        <td class="px-2 py-2 align-top">
+                                            @if ($item->schedulable instanceof \App\Models\Shakha)
+                                                <x-shakha-name
+                                                    :name="$item->entity_label"
+                                                    :category="$item->schedulable->riskCategory()"
+                                                    class="text-[12px]"
+                                                />
+                                            @else
+                                                <p class="break-words font-medium text-navy-900">{{ $item->entity_label }}</p>
+                                            @endif
+                                            <p class="mt-0.5 text-[11px] text-slate-500">{{ $a?->visitorList()->map(fn ($e) => trim($e->name.($e->position?->title ? ' · '.$e->position->title : '')))->implode(', ') ?: 'No visitor' }}</p>
+                                        </td>
+                                        <td class="px-2 py-2 text-right align-middle">
+                                            <button
+                                                type="button"
+                                                @click="openAllocate({{ $item->id }})"
+                                                class="inline-flex h-7 items-center rounded-md border border-slate-200 bg-white px-2.5 text-[12px] font-semibold text-[#2b579a] hover:bg-sky-50"
+                                            >Edit</button>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="3" class="px-3 py-8 text-center text-[13px] text-slate-500">Nothing allocated yet.</td>
+                                    </tr>
+                                @endforelse
+                                @if ($assigned->isNotEmpty())
+                                    <tr x-show="visibleQueueCount === 0 && listQuery" x-cloak>
+                                        <td colspan="3" class="px-3 py-6 text-center text-[13px] text-slate-500">No matches.</td>
+                                    </tr>
+                                @endif
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/80 px-3 py-2 text-[12px]">
+                        <span class="text-slate-500" x-text="pageLabel('queue')"></span>
+                        <div class="flex flex-wrap items-center gap-1">
+                            <button type="button" @click="shiftPage('queue', -1)" :disabled="queuePage <= 1" class="h-7 rounded-md border border-slate-200 bg-white px-2 font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40">Previous</button>
+                            <template x-for="n in pageNumbers('queue')" :key="'queue-page-' + n">
+                                <button
+                                    type="button"
+                                    @click="goPage('queue', n)"
+                                    class="inline-flex h-7 min-w-7 items-center justify-center rounded-md border px-1.5 font-semibold tabular-nums"
+                                    :class="n === queuePage ? 'border-navy-900 bg-navy-900 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'"
+                                    x-text="n"
+                                ></button>
+                            </template>
+                            <button type="button" @click="shiftPage('queue', 1)" :disabled="queuePage >= pageCount('queue')" class="h-7 rounded-md border border-slate-200 bg-white px-2 font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40">Next</button>
+                        </div>
+                    </div>
+                </div>
             </section>
             @endcan
 
             {{-- Assigned --}}
-            <section class="overflow-hidden rounded-lg border border-slate-200 bg-white {{ ($officerView ?? false) ? '' : 'xl:col-span-7' }}">
-                <div class="border-b border-slate-100 px-3 py-2">
-                    <h2 class="text-[13px] font-semibold text-navy-900">{{ ($officerView ?? false) ? 'My allocated shakhas' : 'Allocated schedule' }}</h2>
-                    <p class="text-[13px] text-slate-500">
-                        <span x-text="visibleAssignedCount"></span> / {{ $assigned->count() }}
+            <section class="flex min-h-0 flex-col rounded-xl border border-slate-200 bg-white shadow-sm {{ ($officerView ?? false) ? '' : 'xl:col-span-8' }}">
+                <div class="border-b border-slate-100 bg-sky-50/50 px-3 py-2">
+                    <h2 class="text-[13px] font-semibold text-navy-900">{{ ($officerView ?? false) ? 'My allocated shakhas' : 'Allocated this month' }}</h2>
+                    <p class="text-[12px] text-slate-500">
+                        <span x-text="visibleAssignedCount"></span> of {{ $assigned->count() }} assigned
                         <span x-show="listQuery" x-cloak> · filtered</span>
                     </p>
                 </div>
-                <div class="max-h-[28rem] overflow-auto">
-                    <table class="min-w-full text-left">
-                        <thead class="sticky top-0 border-b border-slate-100 bg-slate-50">
-                            <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                <th class="px-3 py-2 w-8">#</th>
-                                <th class="px-3 py-2">Visitor</th>
-                                <th class="px-3 py-2">Branch / Entity</th>
-                                <th class="px-3 py-2">Dates</th>
-                                <th class="px-3 py-2">Days</th>
-                                <th class="px-3 py-2">Status</th>
-                                <th class="px-3 py-2"></th>
+                <div class="overflow-visible">
+                    <table class="w-full table-fixed text-left">
+                        <thead class="sticky top-0 z-10 border-b border-slate-100 bg-white">
+                            <tr class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                <th class="w-8 px-2 py-2">#</th>
+                                <th class="w-[18%] px-2 py-2">Visitor</th>
+                                <th class="px-2 py-2">Branch / entity</th>
+                                <th class="w-[7.5rem] px-2 py-2">When</th>
+                                <th class="w-[6.75rem] px-2 py-2">Status</th>
+                                <th class="w-[6.25rem] px-2 py-2 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             @forelse ($assigned as $i => $item)
                                 @php
                                     $a = $item->assignment;
-                                    $status = str_replace('_', ' ', $a?->execution?->status ?? 'planned');
+                                    $rawStatus = $a?->execution?->status ?? 'planned';
+                                    $workLink = $a ? ($visitWorkLinks[$a->id] ?? null) : null;
+                                    if ($a && app(\App\Services\MonthlyWorklistService::class)->assignmentIsLate($a, $workLink)) {
+                                        $rawStatus = 'delayed';
+                                    }
+                                    $statusLabel = match ($rawStatus) {
+                                        'ongoing', 'in_progress' => 'Ongoing',
+                                        'in_review' => 'In review',
+                                        'completed' => 'Completed',
+                                        'delayed' => 'Delayed',
+                                        'cancelled' => 'Cancelled',
+                                        'rescheduled' => 'Rescheduled',
+                                        default => 'Planned',
+                                    };
+                                    $statusClass = match ($rawStatus) {
+                                        'completed' => 'bg-emerald-50 text-emerald-800 ring-emerald-100',
+                                        'in_progress', 'ongoing' => 'bg-sky-50 text-sky-800 ring-sky-100',
+                                        'in_review' => 'bg-violet-50 text-violet-800 ring-violet-100',
+                                        'delayed', 'rescheduled' => 'bg-amber-50 text-amber-900 ring-amber-100',
+                                        'cancelled' => 'bg-rose-50 text-rose-800 ring-rose-100',
+                                        default => 'bg-slate-100 text-slate-700 ring-slate-200',
+                                    };
+                                    $when = '—';
+                                    if ($a?->start_date && $a?->end_date) {
+                                        $when = $a->start_date->isSameDay($a->end_date)
+                                            ? $a->start_date->format('d M')
+                                            : $a->start_date->format('d').'–'.$a->end_date->format('d M');
+                                    }
                                     $assignedSearch = strtolower(trim(implode(' ', [
                                         $a?->visitorNames(' '),
                                         $item->entity_label,
@@ -303,18 +434,25 @@
                                         $a?->remarks,
                                         $a?->purpose,
                                         $item->activityType?->name,
-                                        $status,
+                                        $statusLabel,
                                         $item->isSpecial() ? 'special' : '',
                                     ])));
                                 @endphp
                                 <tr
-                                    class="text-[12px] assigned-row"
+                                    class="text-[12px] assigned-row hover:bg-slate-50"
                                     data-search="{{ e($assignedSearch) }}"
-                                    x-show="rowMatch($el.dataset.search, listQuery)"
+                                    x-show="rowVisible('assigned', $el)"
                                 >
-                                    <td class="px-3 py-2 text-slate-400">{{ $i + 1 }}</td>
-                                    <td class="px-3 py-2 font-medium text-navy-900 whitespace-pre-line">{{ $a?->visitorNames("\n") ?: '—' }}</td>
-                                    <td class="px-3 py-2 {{ ($item->schedulable instanceof \App\Models\Shakha && $item->schedulable->riskCategory()) ? \App\Support\ShakhaRiskTone::softBgClasses($item->schedulable->riskCategory()) : '' }}">
+                                    <td class="px-2 py-2 align-top text-slate-400">{{ $i + 1 }}</td>
+                                    <td class="px-2 py-2 align-top leading-snug text-navy-900">
+                                        @forelse ($a?->visitorList() ?? collect() as $visitor)
+                                            <p class="font-medium">{{ $visitor->name }}</p>
+                                            <p class="text-[11px] text-slate-500">{{ $visitor->position?->title ?: 'No position' }}</p>
+                                        @empty
+                                            <p class="text-slate-400">—</p>
+                                        @endforelse
+                                    </td>
+                                    <td class="px-2 py-2 align-top">
                                         @if ($item->schedulable instanceof \App\Models\Shakha)
                                             <x-shakha-name
                                                 :name="$item->entity_label"
@@ -322,74 +460,65 @@
                                                 class="text-[12px]"
                                             />
                                         @else
-                                            <p class="font-semibold text-navy-900">{{ $item->entity_label }}</p>
+                                            <p class="break-words font-semibold text-navy-900">{{ $item->entity_label }}</p>
                                         @endif
-                                        <p class="mt-0.5 text-xs text-slate-500">
+                                        <p class="mt-0.5 truncate text-[11px] text-slate-500">
                                             {{ $a?->purpose ?? $item->activityType?->name }}
-                                            @if ($item->isSpecial()) · Special @endif
-                                            @if ($a?->last_audit_upto) · Last {{ $a->last_audit_upto->format('M-Y') }} @endif
+                                            @if ($a?->last_audit_upto) · last {{ $a->last_audit_upto->format('M Y') }} @endif
                                         </p>
                                     </td>
-                                    <td class="px-3 py-2 whitespace-nowrap text-slate-600">{{ $a?->visitDateRangeLabel() }}</td>
-                                    <td class="px-3 py-2 tabular-nums text-slate-600">{{ $a?->duration_days ?: '—' }}</td>
-                                    <td class="px-3 py-2 capitalize text-slate-600">
-                                        <span>{{ $status }}</span>
+                                    <td class="px-2 py-2 align-top text-slate-700">
+                                        <p class="font-medium tabular-nums">{{ $when }}</p>
+                                        <p class="text-[11px] text-slate-500">{{ $a?->duration_days ? $a->duration_days.' days' : '' }}</p>
+                                    </td>
+                                    <td class="px-2 py-2 align-top">
+                                        <span class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 {{ $statusClass }}">{{ $statusLabel }}</span>
                                         @if ($a?->is_locked)
-                                            <span class="ml-1 inline-flex rounded bg-amber-50 px-1.5 py-0.5 text-xs font-bold uppercase tracking-wide text-amber-800 ring-1 ring-amber-200">Locked</span>
+                                            <span class="mt-1 inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800 ring-1 ring-amber-200">Locked</span>
                                         @endif
                                     </td>
-                                    <td class="px-3 py-2 text-right whitespace-nowrap">
-                                        @php $work = $visitWorkLinks[$a->id] ?? null; @endphp
-                                        @if ($work && ($work['supports_audit_work'] ?? $work['is_shakha'] ?? false) && ($work['checklist_url'] ?? null))
-                                            <span class="mr-1 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-xs font-semibold {{ ($work['checklist_ready'] ?? false) ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' : 'bg-amber-50 text-amber-800 ring-1 ring-amber-100' }}">
-                                                CL {{ $work['checklist_done'] }}/{{ $work['checklist_required'] }}
-                                            </span>
-                                            <a href="{{ $work['checklist_url'] }}" class="font-medium text-teal-700 hover:underline">Checklist</a>
-                                            <span class="text-slate-300">·</span>
-                                            @if ($work['checklist_ready'] ?? false)
-                                                <a href="{{ $work['report_url'] }}" class="font-medium text-emerald-700 hover:underline">Report</a>
-                                            @else
-                                                <a href="{{ $work['report_url'] }}" class="font-medium text-slate-400 hover:underline" title="Finish checklist evidence first">Report</a>
-                                            @endif
-                                            <span class="text-slate-300">·</span>
-                                        @endif
-                                        @can('monthly_visits.manage')
-                                            @if ($a?->is_locked && ! $a->canBeModifiedBy(auth()->user()))
-                                                <span class="text-[13px] text-amber-700" title="Locked by {{ $a->lockedBy?->name ?? 'admin' }}">Locked</span>
-                                            @else
-                                                <button type="button" @click="openAllocate({{ $item->id }})" class="font-medium text-brand-600 hover:underline">Edit</button>
-                                                @if ($a)
-                                                    <span class="text-slate-300">·</span>
+                                    <td class="px-2 py-2 text-right align-middle">
+                                        @php $work = $a ? ($visitWorkLinks[$a->id] ?? null) : null; @endphp
+                                        <details class="visit-actions relative inline-block text-left" @toggle="placeActionMenu($event)">
+                                            <summary class="inline-flex h-7 cursor-pointer list-none items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 text-[12px] font-semibold text-slate-700 hover:bg-slate-50 [&::-webkit-details-marker]:hidden">
+                                                Actions
+                                                <svg class="h-3 w-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                                            </summary>
+                                            <div data-action-menu class="fixed z-[80] hidden w-44 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 text-left shadow-xl">
+                                                @if (($officerView ?? false) && $work && ($work['supports_audit_work'] ?? $work['is_shakha'] ?? false) && ($work['checklist_url'] ?? null))
+                                                    <p class="px-3 py-1 text-[11px] font-semibold {{ ($work['checklist_ready'] ?? false) ? 'text-emerald-700' : 'text-amber-800' }}">
+                                                        Checklist {{ $work['checklist_done'] }}/{{ $work['checklist_required'] }}
+                                                    </p>
+                                                    <a href="{{ $work['checklist_url'] }}" class="block px-3 py-1.5 text-[12px] font-medium text-slate-700 hover:bg-slate-50">Checklist</a>
+                                                    <a href="{{ $work['report_url'] }}" class="block px-3 py-1.5 text-[12px] font-medium text-slate-700 hover:bg-slate-50">Report</a>
                                                 @endif
-                                            @endif
-                                        @endcan
-                                        @if ($a)
-                                            <a href="{{ route('monthly-visits.execution', $a) }}" class="font-medium text-slate-600 hover:underline">Execute</a>
-                                            @can('monthly_visits.manage')
-                                                @if ($a->canBeModifiedBy(auth()->user()))
-                                                    <span class="text-slate-300">·</span>
-                                                    <a href="{{ route('monthly-visits.reschedule', $a) }}" class="font-medium text-slate-500 hover:underline">Move</a>
-                                                    @if ($a->is_locked)
-                                                        <span class="text-slate-300">·</span>
-                                                        <form method="POST" action="{{ route('monthly-visits.unlock', $a) }}" class="inline">
-                                                            @csrf
-                                                            <button type="submit" class="font-medium text-amber-700 hover:underline">Unlock</button>
-                                                        </form>
+                                                @can('monthly_visits.manage')
+                                                    @if ($a?->is_locked && ! $a->canBeModifiedBy(auth()->user()))
+                                                        <p class="px-3 py-1.5 text-[12px] text-amber-800" title="Locked by {{ $a->lockedBy?->name ?? 'admin' }}">Locked</p>
                                                     @else
-                                                        <span class="text-slate-300">·</span>
-                                                        <form method="POST" action="{{ route('monthly-visits.lock', $a) }}" class="inline">
-                                                            @csrf
-                                                            <button type="submit" class="font-medium text-slate-500 hover:underline">Lock</button>
-                                                        </form>
+                                                        <button type="button" @click="openAllocate({{ $item->id }})" class="block w-full px-3 py-1.5 text-left text-[12px] font-medium text-slate-700 hover:bg-slate-50">Edit allocation</button>
                                                     @endif
+                                                @endcan
+                                                @if ($a)
+                                                    @can('monthly_visits.manage')
+                                                        @if ($a->canBeModifiedBy(auth()->user()))
+                                                            <a href="{{ route('monthly-visits.reschedule', $a) }}" class="block px-3 py-1.5 text-[12px] font-medium text-slate-700 hover:bg-slate-50">Move dates</a>
+                                                            @if ($a->is_locked)
+                                                                <form method="POST" action="{{ route('monthly-visits.unlock', $a) }}">
+                                                                    @csrf
+                                                                    <button type="submit" class="block w-full px-3 py-1.5 text-left text-[12px] font-medium text-amber-800 hover:bg-amber-50">Unlock to correct</button>
+                                                                </form>
+                                                            @endif
+                                                        @endif
+                                                    @endcan
                                                 @endif
-                                            @endcan
-                                        @endif
+                                            </div>
+                                        </details>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-3 py-3 text-center text-[13px] text-slate-500">
+                                    <td colspan="6" class="px-3 py-8 text-center text-[13px] text-slate-500">
                                         @if ($officerView ?? false)
                                             No visits allocated to you for {{ $monthLabel }}.
                                         @else
@@ -400,11 +529,27 @@
                             @endforelse
                             @if ($assigned->isNotEmpty())
                                 <tr x-show="visibleAssignedCount === 0 && listQuery" x-cloak>
-                                    <td colspan="7" class="px-3 py-6 text-center text-[13px] text-slate-500">No matches.</td>
+                                    <td colspan="6" class="px-3 py-6 text-center text-[13px] text-slate-500">No matches.</td>
                                 </tr>
                             @endif
                         </tbody>
                     </table>
+                </div>
+                <div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/80 px-3 py-2 text-[12px]">
+                    <span class="text-slate-500" x-text="pageLabel('assigned')"></span>
+                    <div class="flex flex-wrap items-center gap-1">
+                        <button type="button" @click="shiftPage('assigned', -1)" :disabled="assignedPage <= 1" class="h-7 rounded-md border border-slate-200 bg-white px-2 font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40">Previous</button>
+                        <template x-for="n in pageNumbers('assigned')" :key="'assigned-page-' + n">
+                            <button
+                                type="button"
+                                @click="goPage('assigned', n)"
+                                class="inline-flex h-7 min-w-7 items-center justify-center rounded-md border px-1.5 font-semibold tabular-nums"
+                                :class="n === assignedPage ? 'border-navy-900 bg-navy-900 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'"
+                                x-text="n"
+                            ></button>
+                        </template>
+                        <button type="button" @click="shiftPage('assigned', 1)" :disabled="assignedPage >= pageCount('assigned')" class="h-7 rounded-md border border-slate-200 bg-white px-2 font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40">Next</button>
+                    </div>
                 </div>
             </section>
         </div>
@@ -476,14 +621,9 @@
                                         <span class="block text-xs text-slate-500">Include weekly offs &amp; calendar holidays in duration</span>
                                     </span>
                                 </label>
-                                <label class="mt-2 flex cursor-pointer items-start gap-2 rounded-lg border border-amber-100 bg-amber-50/60 px-3 py-2">
-                                    <input type="hidden" name="lock_schedule" :value="form.lock_schedule ? 1 : 0">
-                                    <input type="checkbox" value="1" x-model="form.lock_schedule" class="mt-0.5 rounded border-slate-300 text-amber-600 focus:ring-amber-500">
-                                    <span>
-                                        <span class="block text-[12px] font-medium text-amber-950">Lock schedule</span>
-                                        <span class="block text-xs text-amber-800/80">Others cannot edit or move this visit after save</span>
-                                    </span>
-                                </label>
+                                <div class="rounded-md border border-amber-100 bg-amber-50/70 px-3 py-2 text-[12px] text-amber-950">
+                                    Saving locks this visit. The allocated auditor cannot change the visitor or the dates.
+                                </div>
 
                                 <div x-show="rangeHolidays.length || rangeWeekends.length" class="rounded-md border border-slate-100 bg-slate-50 px-3 py-2">
                                     <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Off days in range (from Working Calendar)</p>
@@ -531,28 +671,32 @@
                                     <span class="rounded bg-slate-100 px-2 py-0.5 text-slate-600" x-text="employees.length + ' employees'"></span>
                                 </div>
 
-                                <div class="min-h-[220px] flex-1 space-y-1 overflow-y-auto rounded-md border border-slate-200 bg-slate-50/50 p-1.5">
-                                    <template x-for="emp in filteredEmployees" :key="emp.id">
-                                        <label class="flex cursor-pointer items-center gap-2.5 rounded-md border px-2.5 py-2 transition" :class="rowClass(emp)">
-                                            <input
-                                                type="checkbox"
-                                                name="employee_ids[]"
-                                                :value="emp.id"
-                                                class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                                                x-model.number="visitorIds"
-                                            >
-                                            <div class="min-w-0 flex-1">
-                                                <div class="flex flex-wrap items-center gap-x-2">
-                                                    <span class="truncate text-[12px] font-semibold text-navy-900" x-text="emp.name"></span>
-                                                    <span class="truncate text-xs text-slate-500" x-text="emp.title || ''"></span>
-                                                </div>
-                                                <p class="mt-0.5 text-xs text-rose-600" x-show="isBusyInRange(emp)" x-text="busyLabel(emp)"></p>
+                                <div class="min-h-[220px] flex-1 space-y-2 overflow-y-auto rounded-md border border-slate-200 bg-slate-50/50 p-1.5">
+                                    <template x-for="group in staffByPosition" :key="group.title">
+                                        <div>
+                                            <p class="sticky top-0 z-10 bg-slate-100 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600" x-text="group.title"></p>
+                                            <div class="mt-1 space-y-1">
+                                                <template x-for="emp in group.people" :key="emp.id">
+                                                    <label class="flex cursor-pointer items-center gap-2.5 rounded-md border px-2.5 py-2 transition" :class="rowClass(emp)">
+                                                        <input
+                                                            type="checkbox"
+                                                            name="employee_ids[]"
+                                                            :value="emp.id"
+                                                            class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                                            x-model.number="visitorIds"
+                                                        >
+                                                        <div class="min-w-0 flex-1">
+                                                            <span class="truncate text-[12px] font-semibold text-navy-900" x-text="emp.name"></span>
+                                                            <p class="mt-0.5 text-xs text-rose-600" x-show="isBusyInRange(emp)" x-text="busyLabel(emp)"></p>
+                                                        </div>
+                                                        <div class="shrink-0 text-right">
+                                                            <p class="text-[13px] font-bold tabular-nums" :class="emp.free_days > 0 ? 'text-emerald-700' : 'text-rose-600'" x-text="emp.free_days"></p>
+                                                            <p class="text-xs uppercase text-slate-400">free</p>
+                                                        </div>
+                                                    </label>
+                                                </template>
                                             </div>
-                                            <div class="shrink-0 text-right">
-                                                <p class="text-[13px] font-bold tabular-nums" :class="emp.free_days > 0 ? 'text-emerald-700' : 'text-rose-600'" x-text="emp.free_days"></p>
-                                                <p class="text-xs uppercase text-slate-400">free</p>
-                                            </div>
-                                        </label>
+                                        </div>
                                     </template>
                                 </div>
                                 <p class="mt-1.5 text-xs text-rose-600" x-show="visitorIds.length === 0">Select at least one visitor.</p>
@@ -615,6 +759,11 @@
                 visitorIds: [],
                 staffQuery: '',
                 listQuery: '',
+                queueMode: 'waiting',
+                pageSize: 8,
+                unassignedPage: 1,
+                assignedPage: 1,
+                queuePage: 1,
                 pickerYear: (window.bynnasTime?.nowParts?.() || { year: new Date().getFullYear() }).year,
                 pickerMonth: (window.bynnasTime?.nowParts?.() || { month: new Date().getMonth() + 1 }).month,
                 pickerOpen: null,
@@ -633,7 +782,39 @@
                 hasConflict: !!cfg.hasConflict,
                 conflictWarning: cfg.conflictWarning || '',
                 init() {
+                    this.$watch('listQuery', () => {
+                        this.unassignedPage = 1;
+                        this.assignedPage = 1;
+                        this.queuePage = 1;
+                    });
                     if (cfg.openId) this.openAllocate(cfg.openId, true);
+                },
+                placeActionMenu(event) {
+                    const details = event.currentTarget;
+                    if (!(details instanceof HTMLDetailsElement)) return;
+                    document.querySelectorAll('details.visit-actions[open]').forEach((el) => {
+                        if (el !== details) el.removeAttribute('open');
+                    });
+                    const menu = details.querySelector('[data-action-menu]');
+                    const summary = details.querySelector('summary');
+                    if (!(menu instanceof HTMLElement) || !(summary instanceof HTMLElement)) return;
+                    if (!details.open) {
+                        menu.style.display = 'none';
+                        return;
+                    }
+                    menu.style.display = 'block';
+                    menu.style.visibility = 'hidden';
+                    const rect = summary.getBoundingClientRect();
+                    const width = 176;
+                    const height = menu.offsetHeight || 220;
+                    const spaceBelow = window.innerHeight - rect.bottom;
+                    const top = spaceBelow < height + 16
+                        ? Math.max(8, rect.top - height - 8)
+                        : rect.bottom + 6;
+                    const left = Math.min(Math.max(8, rect.right - width), window.innerWidth - width - 8);
+                    menu.style.top = `${top}px`;
+                    menu.style.left = `${left}px`;
+                    menu.style.visibility = 'visible';
                 },
                 get pickerMonthLabel() {
                     return cal.monthLabel(this.pickerYear, this.pickerMonth);
@@ -715,9 +896,70 @@
                     const text = (haystack || '').toLowerCase();
                     return q.split(/\s+/).every((token) => text.includes(token));
                 },
+                matchingRows(kind) {
+                    const selector = kind === 'unassigned'
+                        ? '.unassigned-row'
+                        : (kind === 'queue' ? '.queue-row' : '.assigned-row');
+                    return Array.from(document.querySelectorAll(selector))
+                        .filter((el) => this.rowMatch(el.dataset.search, this.listQuery));
+                },
+                pageOf(kind) {
+                    if (kind === 'unassigned') return this.unassignedPage;
+                    if (kind === 'queue') return this.queuePage;
+                    return this.assignedPage;
+                },
+                totalOf(kind) {
+                    if (kind === 'unassigned') return this.visibleUnassignedCount;
+                    if (kind === 'queue') return this.visibleQueueCount;
+                    return this.visibleAssignedCount;
+                },
+                setPage(kind, page) {
+                    if (kind === 'unassigned') this.unassignedPage = page;
+                    else if (kind === 'queue') this.queuePage = page;
+                    else this.assignedPage = page;
+                },
+                pageCount(kind) {
+                    return Math.max(1, Math.ceil(this.totalOf(kind) / this.pageSize));
+                },
+                rowVisible(kind, el) {
+                    if (!this.rowMatch(el.dataset.search, this.listQuery)) return false;
+                    const rows = this.matchingRows(kind);
+                    const index = rows.indexOf(el);
+                    const start = (Math.max(1, this.pageOf(kind)) - 1) * this.pageSize;
+                    return index >= start && index < start + this.pageSize;
+                },
+                shiftPage(kind, delta) {
+                    const pages = this.pageCount(kind);
+                    this.setPage(kind, Math.min(pages, Math.max(1, this.pageOf(kind) + delta)));
+                },
+                goPage(kind, page) {
+                    const pages = this.pageCount(kind);
+                    this.setPage(kind, Math.min(pages, Math.max(1, Number(page) || 1)));
+                },
+                pageNumbers(kind) {
+                    const total = this.pageCount(kind);
+                    return Array.from({ length: total }, (_, index) => index + 1);
+                },
+                pageLabel(kind) {
+                    const total = this.totalOf(kind);
+                    const page = this.pageOf(kind);
+                    if (!total) return '0 shown';
+                    const start = (page - 1) * this.pageSize + 1;
+                    const end = Math.min(total, page * this.pageSize);
+                    return start + '–' + end + ' of ' + total;
+                },
                 get visibleUnassignedCount() {
                     const q = this.listQuery;
                     const rows = document.querySelectorAll('.unassigned-row');
+                    if (!rows.length) return 0;
+                    if (!q) return rows.length;
+                    let n = 0;
+                    rows.forEach((el) => { if (this.rowMatch(el.dataset.search, q)) n++; });
+                    return n;
+                },
+                get visibleQueueCount() {
+                    const q = this.listQuery;
+                    const rows = document.querySelectorAll('.queue-row');
                     if (!rows.length) return 0;
                     if (!q) return rows.length;
                     let n = 0;
@@ -868,6 +1110,17 @@
                         if (aBusy !== bBusy) return aBusy - bBusy;
                         return (b.free_days || 0) - (a.free_days || 0);
                     });
+                },
+                get staffByPosition() {
+                    const groups = new Map();
+                    this.filteredEmployees.forEach((emp) => {
+                        const title = (emp.title || 'No position').trim();
+                        if (!groups.has(title)) groups.set(title, []);
+                        groups.get(title).push(emp);
+                    });
+                    return Array.from(groups.entries())
+                        .sort((a, b) => a[0].localeCompare(b[0]))
+                        .map(([title, people]) => ({ title, people }));
                 },
                 get selectedCountLabel() {
                     return `${this.visitorIds.length} selected`;

@@ -71,8 +71,8 @@
         <button type="button" @click="pick('finding_format_pack')" class="mx-1 mb-px flex w-[calc(100%-0.5rem)] items-center gap-1.5 rounded px-2 py-1.5 text-left text-[13px] font-semibold" style="background:#ecfdf5;color:#065f46;">
             <span class="flex h-4 w-4 shrink-0 items-center justify-center rounded text-xs font-bold text-white" style="background:#059669;">★</span>
             <span class="min-w-0 leading-tight">
-                Finding format pack
-                <span class="mt-0.5 block text-xs font-medium opacity-80">বিভাগ → শিরোনাম → নিয়ম → পর্যবেক্ষণ → Rating + Risk</span>
+                এখান থেকে শুরু করুন
+                <span class="mt-0.5 block text-xs font-medium opacity-80">বিভাগ → শিরোনাম → নিয়ম → পর্যবেক্ষণ → Rating → কারণ → সুপারিশ → জবাব</span>
             </span>
         </button>
         <button type="button" @click="pick('finding_item_pack')" class="mx-1 mb-px flex w-[calc(100%-0.5rem)] items-center gap-1.5 rounded px-2 py-1.5 text-left text-[13px] font-semibold" style="background:#f0fdf4;color:#166534;">

@@ -58,6 +58,17 @@ class AuditReport extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::saved(function (AuditReport $report): void {
+            if (! $report->wasRecentlyCreated && ! $report->wasChanged('status') && ! $report->wasChanged('monthly_assignment_id')) {
+                return;
+            }
+
+            app(\App\Services\MonthlyWorklistService::class)->syncVisitFromReport($report);
+        });
+    }
+
     public function shakha(): BelongsTo
     {
         return $this->belongsTo(Shakha::class);

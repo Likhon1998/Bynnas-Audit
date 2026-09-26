@@ -32,6 +32,8 @@
             status: 'all',
             open: false,
             highlight: 0,
+            page: 1,
+            pageSize: 15,
             branches: @js($branchOptions),
             get filtered() {
                 const q = this.q.trim().toLowerCase();
@@ -45,8 +47,34 @@
                 });
             },
             get visibleCount() { return this.filtered.length; },
+            get totalPages() { return Math.max(1, Math.ceil(this.filtered.length / this.pageSize)); },
+            get pageRows() {
+                const start = (this.page - 1) * this.pageSize;
+                return this.filtered.slice(start, start + this.pageSize);
+            },
+            pageNumbers() {
+                const total = this.totalPages;
+                const current = Math.min(this.page, total);
+                const width = 7;
+                let start = Math.max(1, current - 3);
+                let end = Math.min(total, start + width - 1);
+                start = Math.max(1, end - width + 1);
+                const nums = [];
+                for (let i = start; i <= end; i++) nums.push(i);
+                return nums;
+            },
+            goTo(n) {
+                this.page = Math.min(this.totalPages, Math.max(1, Number(n) || 1));
+            },
+            rangeLabel() {
+                if (!this.filtered.length) return '0';
+                const start = (this.page - 1) * this.pageSize + 1;
+                const end = Math.min(this.filtered.length, this.page * this.pageSize);
+                return start + '–' + end;
+            },
             pick(b) {
                 this.q = b.name;
+                this.page = 1;
                 this.open = false;
                 this.$nextTick(() => {
                     const el = document.getElementById('kpi-row-' + b.id);
@@ -77,7 +105,6 @@
                 }
             }
         }"
-        @click.outside="open = false"
     >
         <div class="mb-3 flex flex-wrap items-start justify-between gap-2">
             <div>
@@ -130,7 +157,7 @@
         </div>
 
         <div class="mb-3 grid gap-2 rounded-xl border border-slate-100 bg-white p-3 shadow-card sm:grid-cols-[1fr_180px_150px]">
-            <div class="relative">
+            <div class="relative" @click.outside="open = false">
                 <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Find branch</label>
                 <div class="relative">
                     <svg class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"/></svg>
@@ -138,7 +165,7 @@
                         type="search"
                         x-model="q"
                         @focus="open = true; highlight = 0"
-                        @input="open = true; highlight = 0"
+                        @input="open = true; highlight = 0; page = 1"
                         @keydown="onKey($event)"
                         placeholder="Type branch, area, code, focal person…"
                         class="h-9 w-full rounded-lg border-slate-200 py-0 pl-8 pr-8 text-[13px] shadow-sm focus:border-brand-500 focus:ring-brand-500"
@@ -148,7 +175,7 @@
                         type="button"
                         x-show="q"
                         x-cloak
-                        @click="q = ''; open = false"
+                        @click="q = ''; open = false; page = 1"
                         class="absolute right-2 top-1/2 -translate-y-1/2 text-[13px] font-medium text-slate-400 hover:text-slate-600"
                     >Clear</button>
                 </div>
@@ -200,7 +227,7 @@
 
             <div>
                 <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Area</label>
-                <select x-model="area" class="h-9 w-full rounded-lg border-slate-200 py-0 text-[12px]">
+                <select x-model="area" @change="page = 1" class="h-9 w-full rounded-lg border-slate-200 py-0 text-[12px]">
                     <option value="">All areas</option>
                     @foreach ($areaNames as $areaName)
                         <option value="{{ $areaName }}">{{ $areaName }}</option>
@@ -210,7 +237,7 @@
 
             <div>
                 <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">KPI status</label>
-                <select x-model="status" class="h-9 w-full rounded-lg border-slate-200 py-0 text-[12px]">
+                <select x-model="status" @change="page = 1" class="h-9 w-full rounded-lg border-slate-200 py-0 text-[12px]">
                     <option value="all">All</option>
                     <option value="pending">Pending only</option>
                     <option value="entered">Entered only</option>
@@ -234,12 +261,12 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
-                        <template x-for="b in filtered" :key="b.id">
+                        <template x-for="(b, index) in pageRows" :key="b.id">
                             <tr
                                 :id="'kpi-row-' + b.id"
                                 class="scroll-mt-24 hover:bg-sky-50/40"
                             >
-                                <td class="px-3 py-2 tabular-nums text-slate-500" x-text="b.serial"></td>
+                                <td class="px-3 py-2 tabular-nums text-slate-500" x-text="(page - 1) * pageSize + index + 1"></td>
                                 <td class="px-3 py-2 text-slate-600" x-text="b.area || '—'"></td>
                                 <td class="px-3 py-2 font-medium" :class="(b.risk_text || 'text-navy-900') + ' ' + (b.risk_soft || '')">
                                     <div class="flex flex-wrap items-center gap-1.5">
@@ -275,6 +302,29 @@
                         @endcan
                     </p>
                 @endif
+            </div>
+            <div
+                x-show="filtered.length > 0"
+                x-cloak
+                class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-3 py-2"
+            >
+                <p class="text-[12px] text-slate-500">
+                    Showing <span class="font-semibold text-navy-900" x-text="rangeLabel()"></span>
+                    of <span class="font-semibold text-navy-900" x-text="filtered.length"></span>
+                </p>
+                <div class="flex flex-wrap items-center gap-1">
+                    <button type="button" @click="goTo(page - 1)" :disabled="page <= 1" class="h-7 rounded-md border border-slate-200 bg-white px-2 text-[12px] font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40">Prev</button>
+                    <template x-for="n in pageNumbers()" :key="'kpi-page-' + n">
+                        <button
+                            type="button"
+                            @click="goTo(n)"
+                            class="inline-flex h-7 min-w-7 items-center justify-center rounded-md border px-1.5 text-[12px] font-semibold tabular-nums"
+                            :class="n === page ? 'border-navy-900 bg-navy-900 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'"
+                            x-text="n"
+                        ></button>
+                    </template>
+                    <button type="button" @click="goTo(page + 1)" :disabled="page >= totalPages" class="h-7 rounded-md border border-slate-200 bg-white px-2 text-[12px] font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40">Next</button>
+                </div>
             </div>
         </div>
     </div>

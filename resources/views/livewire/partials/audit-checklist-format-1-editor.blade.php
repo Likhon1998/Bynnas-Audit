@@ -28,7 +28,7 @@
                 <tr class="bg-slate-100 text-center font-semibold text-slate-700">
                     <th class="border border-slate-300 px-1 py-1.5 w-10">ক্রঃ নং</th>
                     <th class="border border-slate-300 px-1 py-1.5 min-w-[140px]">সমিতির নাম ও আইডি</th>
-                    <th class="border border-slate-300 px-1 py-1.5 min-w-[100px]">সমিতি শুরুর তারিখ</th>
+                    <th class="border border-slate-300 px-1 py-1.5 min-w-[148px]">সমিতি শুরুর তারিখ</th>
                     <th class="border border-slate-300 px-1 py-1.5 min-w-[110px]">মাঠকর্মীর নাম</th>
                     <th class="border border-slate-300 px-1 py-1.5" colspan="5">সমিতি গঠন</th>
                     <th class="border border-slate-300 px-1 py-1.5" colspan="3">সমিতি বন্ধ /একত্রিকরণ</th>
@@ -68,7 +68,11 @@
                                 <input type="text" wire:model.live="payload.sections.{{ $sectionKey }}.{{ $ri }}.society_name" class="h-8 w-full border-0 bg-transparent px-1 text-[13px] focus:ring-1 focus:ring-[#2b579a]">
                             </td>
                             <td class="border border-slate-300 p-0.5">
-                                <input type="text" wire:model.live="payload.sections.{{ $sectionKey }}.{{ $ri }}.start_date" class="h-8 w-full border-0 bg-transparent px-1 text-[13px] focus:ring-1 focus:ring-[#2b579a]">
+                                <x-audit-date-field
+                                    wire:model.live="payload.sections.{{ $sectionKey }}.{{ $ri }}.start_date"
+                                    format="dmy"
+                                    class="h-8 w-full border-0 bg-transparent px-1 text-[13px] focus:ring-1 focus:ring-[#2b579a]"
+                                />
                             </td>
                             <td class="border border-slate-300 p-0.5">
                                 <input type="text" wire:model.live="payload.sections.{{ $sectionKey }}.{{ $ri }}.field_worker" class="h-8 w-full border-0 bg-transparent px-1 text-[13px] focus:ring-1 focus:ring-[#2b579a]">

@@ -2,11 +2,12 @@
     <div class="px-3 py-3 lg:px-5">
         <div class="mb-3">
             <a href="{{ route('monthly-visits.index', ['fy' => $assignment->workItem->fy_label, 'month' => $assignment->workItem->month_index]) }}" class="text-[13px] font-medium text-brand-600 hover:underline">← Back</a>
-            <h1 class="mt-1 text-lg font-semibold tracking-tight text-navy-900">Record execution</h1>
+            <h1 class="mt-1 text-lg font-semibold tracking-tight text-navy-900">Review this visit</h1>
             <p class="mt-0.5 text-[13px] text-slate-500">
                 {{ $assignment->workItem->entity_label }} · {{ $assignment->visitorNames(', ') }}
                 · Planned {{ $assignment->visitDateRangeLabel() }}
             </p>
+            <p class="mt-2 max-w-xl text-[12px] text-slate-600">Admin judges this planned visit. <span class="font-semibold">Completed</span> counts it on the annual plan. <span class="font-semibold">Delayed</span> means it did not happen on time and stays pending. <span class="font-semibold">Cancelled</span> drops it from the plan.</p>
         </div>
 
         @if ($errors->any())
@@ -54,7 +55,7 @@
                     <input type="text" name="reason" value="{{ old('reason') }}" class="block w-full rounded-lg border-slate-200 text-[13px]">
                 </div>
                 <div class="flex justify-end gap-2 border-t border-slate-100 pt-3">
-                    <button type="submit" class="rounded-lg bg-navy-900 px-3.5 py-1.5 text-[12px] font-medium text-white hover:bg-navy-800">Save execution</button>
+                    <button type="submit" class="rounded-lg bg-navy-900 px-3.5 py-1.5 text-[12px] font-medium text-white hover:bg-navy-800">Save review</button>
                 </div>
             </form>
 

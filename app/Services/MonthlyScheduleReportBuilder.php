@@ -6,6 +6,10 @@ use App\Models\AuditPlan;
 use App\Models\MonthlyWorkItem;
 use App\Support\FinancialYear;
 use Carbon\Carbon;
+use Mpdf\Config\ConfigVariables;
+use Mpdf\Config\FontVariables;
+use Mpdf\Mpdf;
+use Mpdf\Output\Destination;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
@@ -84,6 +88,23 @@ class MonthlyScheduleReportBuilder
         ];
     }
 
+    public function downloadPdf(AuditPlan $plan, int $monthIndex, ?\Illuminate\Support\Collection $items = null): \Illuminate\Http\Response
+    {
+        $data = $this->build($plan, $monthIndex, $items) + ['forPdf' => true];
+        $html = view('monthly-visits.print-schedule', $data)->render();
+
+        $mpdf = $this->makeMpdf();
+        $mpdf->WriteHTML($html);
+        $binary = $mpdf->Output('', Destination::STRING_RETURN);
+
+        $filename = 'monthly-schedule-'.$plan->fy_label.'-'.$data['monthLabel'].'.pdf';
+
+        return response($binary, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+        ]);
+    }
+
     public function downloadExcel(AuditPlan $plan, int $monthIndex, ?\Illuminate\Support\Collection $items = null): StreamedResponse
     {
         $data = $this->build($plan, $monthIndex, $items);
@@ -105,7 +126,7 @@ class MonthlyScheduleReportBuilder
         $sheet->setCellValue('A3', 'Financial Year '.$plan->fy_label.'  |  Month: '.$data['monthLabel']);
         $sheet->getStyle('A3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-        $headers = ['SL', 'Visitor Name', 'Last Audit Upto', 'Branch / Entity', 'Visit Date & Month', 'Days', 'Remarks'];
+        $headers = ['SL', 'Branch / Entity', 'Visitor Name', 'Last Audit Upto', 'Visit Date & Month', 'Days', 'Remarks'];
         foreach ($headers as $i => $header) {
             $col = chr(ord('A') + $i);
             $sheet->setCellValue($col.'5', $header);
@@ -116,9 +137,9 @@ class MonthlyScheduleReportBuilder
         $rowNum = 6;
         foreach ($data['rows'] as $row) {
             $sheet->setCellValue("A{$rowNum}", $row['sl']);
-            $sheet->setCellValue("B{$rowNum}", $row['visitors_inline']);
-            $sheet->setCellValue("C{$rowNum}", $row['last_audit_upto']);
-            $sheet->setCellValue("D{$rowNum}", $row['entity']);
+            $sheet->setCellValue("B{$rowNum}", $row['entity']);
+            $sheet->setCellValue("C{$rowNum}", $row['visitors_inline']);
+            $sheet->setCellValue("D{$rowNum}", $row['last_audit_upto']);
             $sheet->setCellValue("E{$rowNum}", $row['visit_dates']);
             $sheet->setCellValue("F{$rowNum}", $row['days']);
             $sheet->setCellValue("G{$rowNum}", $row['purpose']);
@@ -139,6 +160,40 @@ class MonthlyScheduleReportBuilder
             $spreadsheet->disconnectWorksheets();
         }, $filename, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    protected function makeMpdf(): Mpdf
+    {
+        $tempDir = storage_path('app/mpdf');
+        if (! is_dir($tempDir)) {
+            mkdir($tempDir, 0755, true);
+        }
+
+        $fontDirs = (new ConfigVariables)->getDefaults()['fontDir'];
+        $fontData = (new FontVariables)->getDefaults()['fontdata'];
+
+        return new Mpdf([
+            'mode' => 'utf-8',
+            'format' => 'A4-L',
+            'margin_left' => 10,
+            'margin_right' => 10,
+            'margin_top' => 10,
+            'margin_bottom' => 10,
+            'tempDir' => $tempDir,
+            'fontDir' => array_merge($fontDirs, [storage_path('fonts')]),
+            'fontdata' => $fontData + [
+                'hindsiliguri' => [
+                    'R' => 'HindSiliguri-Regular.ttf',
+                    'B' => 'HindSiliguri-Bold.ttf',
+                    'useOTL' => 0xFF,
+                ],
+            ],
+            'default_font' => 'hindsiliguri',
+            'default_font_size' => 10,
+            'shrink_tables_to_fit' => 0,
+            'autoScriptToLang' => true,
+            'autoLangToFont' => false,
         ]);
     }
 

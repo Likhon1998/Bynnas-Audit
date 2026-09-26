@@ -411,8 +411,43 @@ class MakeAuditReportStartTest extends TestCase
             ->call('startReport', $shakha->id)
             ->assertHasNoErrors()
             ->assertSet('reportId', $existing->id)
-            ->assertSet('reviewReadOnly', true);
+            ->assertSet('reviewReadOnly', false);
 
         $this->assertSame(1, AuditReport::query()->where('shakha_id', $shakha->id)->count());
+    }
+
+    public function test_maker_can_edit_after_review_is_fully_done(): void
+    {
+        $user = $this->makeAuditUser();
+        $shakha = $this->makeShakha('Done Branch', 'DONE-1');
+
+        $existing = AuditReport::query()->create([
+            'user_id' => $user->id,
+            'shakha_id' => $shakha->id,
+            'report_month' => 9,
+            'report_year' => 2026,
+            'status' => AuditReport::STATUS_REVIEWED,
+            'review_perfect' => true,
+            'current_tab' => 'cover',
+            'progress_pct' => 100,
+            'last_saved_at' => now(),
+            'reviewed_at' => now(),
+            'shakha_display_name' => 'Done Branch',
+            'pages_data' => ['meta' => ['active_tab' => 'cover'], 'cover' => []],
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(MakeAuditReport::class)
+            ->call('resumeReport', $existing->id)
+            ->assertSet('reviewReadOnly', false)
+            ->assertSet('reviewPerfect', true)
+            ->set('memo_no', 'EDIT-AFTER-100')
+            ->call('autoSaveDraft')
+            ->assertHasNoErrors();
+
+        $existing->refresh();
+        $this->assertSame(AuditReport::STATUS_REVIEWED, $existing->status);
+        $this->assertTrue((bool) $existing->review_perfect);
+        $this->assertSame('EDIT-AFTER-100', $existing->memo_no);
     }
 }

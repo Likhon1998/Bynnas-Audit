@@ -415,4 +415,104 @@ class KpiLaw extends Model
 
         return "{$left} {$op} {$right}";
     }
+
+    /**
+     * A short sentence a person can read, plus a worked example with sample numbers.
+     *
+     * @return array{sentence:string,left_label:string,right_label:string,left_value:string,right_value:string,symbol:string,result:string,note:string}
+     */
+    public function workedExample(): array
+    {
+        $operands = static::operandOptions();
+        $leftLabel = $operands[$this->left_operand] ?? $this->left_operand;
+        $rightLabel = $operands[$this->right_operand] ?? $this->right_operand;
+        $left = (float) (static::sampleValues()[$this->left_operand] ?? 100);
+        $right = (float) (static::sampleValues()[$this->right_operand] ?? 10);
+
+        $symbol = match ($this->operation) {
+            self::OPERATION_ADD => '+',
+            self::OPERATION_SUBTRACT => '−',
+            default => '÷',
+        };
+
+        $raw = match ($this->operation) {
+            self::OPERATION_ADD => $left + $right,
+            self::OPERATION_SUBTRACT => $left - $right,
+            default => abs($right) < 0.0000001 ? null : $left / $right,
+        };
+
+        $sentence = match ($this->operation) {
+            self::OPERATION_ADD => "Add {$leftLabel} and {$rightLabel}.",
+            self::OPERATION_SUBTRACT => "Start with {$leftLabel}, then subtract {$rightLabel}.",
+            default => "Divide {$leftLabel} by {$rightLabel}.",
+        };
+
+        if ($raw === null) {
+            $result = 'Cannot divide by zero';
+            $note = 'The second number must not be zero.';
+        } elseif ($this->format === 'pct') {
+            $result = number_format($raw * 100, 2).'%';
+            $note = 'The division is '.number_format($raw, 4).'. Excel shows that as a percentage, so this example is '.$result.'.';
+        } elseif ($this->format === 'int') {
+            $result = number_format((int) round($raw));
+            $note = 'The result is a whole number.';
+        } elseif ($this->format === 'money') {
+            $result = number_format($raw, 2);
+            $note = 'The result is an amount in taka.';
+        } else {
+            $result = number_format($raw, 2);
+            $note = 'The result is how many times the second number fits into the first.';
+        }
+
+        return [
+            'sentence' => $sentence,
+            'left_label' => $leftLabel,
+            'right_label' => $rightLabel,
+            'left_value' => $this->formatSample($left),
+            'right_value' => $this->formatSample($right),
+            'symbol' => $symbol,
+            'result' => $result,
+            'note' => $note,
+        ];
+    }
+
+    protected function formatSample(float $value): string
+    {
+        return fmod($value, 1.0) === 0.0
+            ? number_format($value)
+            : number_format($value, 2);
+    }
+
+    /**
+     * @return array<string, float|int>
+     */
+    public static function sampleValues(): array
+    {
+        return [
+            'fo_count' => 5,
+            'total_samities' => 40,
+            'total_members' => 1200,
+            'total_borrowers' => 900,
+            'total_od_borrowers' => 45,
+            'fy_savings_collection' => 1500000,
+            'fy_savings_withdrawal' => 300000,
+            'savings_balance' => 800000,
+            'fy_members_admission' => 200,
+            'fy_members_dropout' => 40,
+            'fy_disbursement_borrowers' => 250,
+            'fy_fully_repayment_borrowers' => 80,
+            'fy_disbursement_amount' => 4000000,
+            'fy_loan_recovery' => 3200000,
+            'loan_outstanding' => 5000000,
+            'recoverable' => 1000000,
+            'current_recovery' => 920000,
+            'due_recovery' => 80000,
+            'total_od_taka' => 250000,
+            'due_loanee_loan_outstanding' => 400000,
+            'own_fund_until_prior_june' => 2000000,
+            'surplus_deficit_fy' => 150000,
+            'new_due' => 50000,
+            'due_increase_this_month' => 20000,
+        ];
+    }
 }

@@ -193,6 +193,9 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
 
     Route::middleware('permission:monthly_visits.manage|monthly_visits.execute')->group(function () {
         Route::get('/monthly-visits', [MonthlyVisitController::class, 'index'])->name('monthly-visits.index');
+        Route::get('/monthly-visits/people', [MonthlyVisitController::class, 'people'])->name('monthly-visits.people');
+        Route::get('/monthly-visits/people/pdf', [MonthlyVisitController::class, 'peoplePdf'])->name('monthly-visits.people.pdf');
+        Route::get('/monthly-visits/people/doc', [MonthlyVisitController::class, 'peopleDoc'])->name('monthly-visits.people.doc');
         Route::get('/monthly-visits/report', [MonthlyVisitController::class, 'report'])->name('monthly-visits.report');
         Route::get('/monthly-visits/schedule/print', [MonthlyVisitController::class, 'printSchedule'])->name('monthly-visits.schedule.print');
         Route::get('/monthly-visits/schedule/pdf', [MonthlyVisitController::class, 'exportSchedulePdf'])->name('monthly-visits.schedule.pdf');

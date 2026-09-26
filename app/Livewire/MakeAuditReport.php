@@ -733,7 +733,7 @@ class MakeAuditReport extends Component
                 }
 
                 $reviews = app(\App\Services\AuditReportReviewService::class);
-                if ($reviews->isEditableByMaker($existing)) {
+                if ($reviews->isEditableByMaker($existing, $authUser)) {
                     $teamIds = $collaboration->visitorUserIdsForSchedulablePeriod(
                         $schedulableType,
                         $schedulableId,
@@ -747,28 +747,12 @@ class MakeAuditReport extends Component
 
                 $statusLabel = match (true) {
                     $existing->isChangesRequested() => 'রিভিউ থেকে ফেরত আসা রিপোর্ট খোলা হয়েছে — Edit করে আবার পাঠান।',
-                    $existing->isInReview() => 'রিভিউতে থাকা রিপোর্ট খোলা হয়েছে (read-only)।',
-                    $existing->isReviewed() => 'নিশ্চিতকৃত রিপোর্ট খোলা হয়েছে (locked)।',
+                    $existing->isInReview() => 'রিভিউতে থাকা রিপোর্ট খোলা হয়েছে — এডিট করা যাবে।',
+                    $existing->isReviewed() => 'নিশ্চিতকৃত রিপোর্ট খোলা হয়েছে — এডিট করা যাবে।',
                     $existing->isDraft() => 'একই অডিটের যৌথ নিরীক্ষা — বিদ্যমান শেয়ারড রিপোর্ট খোলা হয়েছে।',
                     default => 'এই মাসের বিদ্যমান রিপোর্ট খোলা হয়েছে — নতুন করে শুরু হয়নি।',
                 };
                 session()->flash('status', $statusLabel);
-
-                return;
-            }
-        }
-
-        if ($userId > 0) {
-            $openDrafts = AuditReport::query()
-                ->accessibleBy($userId)
-                ->drafts()
-                ->count();
-
-            if ($openDrafts >= AuditReport::MAX_CONCURRENT_DRAFTS) {
-                $this->addError(
-                    'shakha_id',
-                    'আপনি একসাথে সর্বোচ্চ '.AuditReport::MAX_CONCURRENT_DRAFTS.'টি চলমান রিপোর্ট রাখতে পারবেন। আগে একটি চালিয়ে শেষ করুন বা Dashboard থেকে Continue করুন।'
-                );
 
                 return;
             }
@@ -919,14 +903,14 @@ class MakeAuditReport extends Component
         if ($restored !== $blocks) {
             $page4['reportBlocks'] = $restored;
             $pages['page4'] = $page4;
-            if ($reviews->isEditableByMaker($report)) {
+            if ($reviews->isEditableByMaker($report, $user)) {
                 $report->forceFill(['pages_data' => $pages, 'last_saved_at' => now()])->save();
                 $report->refresh();
             }
         }
 
         $this->hydrateFromReport($report);
-        $this->reviewReadOnly = ! $reviews->isEditableByMaker($report);
+        $this->reviewReadOnly = ! $reviews->isEditableByMaker($report, $user);
         $this->reviewNeedsFix = $report->isChangesRequested() && ! $this->reviewReadOnly;
         $this->reviewPerfect = $report->isPerfectReview();
         $this->reviewMakerDone = $report->isMakerDone();
@@ -1498,7 +1482,11 @@ class MakeAuditReport extends Component
             AuditReport::STATUS_IN_REVIEW,
             AuditReport::STATUS_REVIEWED,
         ], true)) {
-            session()->flash('status', 'This report is locked for review.');
+            $this->ensureFinancialAuditDefaults();
+            $this->syncAllFinancialFindingsToToc();
+            $this->relinkStatsBlocksToFindings();
+            $this->persistDraft(markTab: 'page4', flash: false);
+            session()->flash('status', 'Edits saved. Review status stays as it is.');
 
             return;
         }
@@ -2160,30 +2148,7 @@ class MakeAuditReport extends Component
 
         if ($type === 'finding_format_pack') {
             $sectionSerial = $this->nextSectionSerialFromBlocks();
-            $findingRow = $this->blankFindingRow($this->nextFindingSerialForSectionSerial($sectionSerial));
-            $pack = [
-                [
-                    'type' => 'section',
-                    'serial' => $sectionSerial,
-                    'title' => $sectionSerial.' নতুন বিভাগ',
-                ],
-                [
-                    'type' => 'finding',
-                    ...$findingRow,
-                ],
-                $this->blankCriteriaBlock(''),
-                $this->blankObservationBlock('পর্যবেক্ষণ (Observation) :', ''),
-                $this->blankStatsBlock('Report Rating Box:', null, [
-                    'linked_indicator_id' => $findingRow['indicator_id'] ?? null,
-                    'linked_indicator_code' => $findingRow['indicator_code'] ?? null,
-                    'linked_finding_serial' => $findingRow['serial'] ?? null,
-                    'linked_finding_title' => $findingRow['title'] ?? null,
-                ]),
-                $this->blankRiskBox(),
-                $this->blankRootCauseBox(),
-                $this->blankRecommendationBox(),
-                $this->blankJobabBlock(),
-            ];
+            $pack = $this->startReportTemplateBlocks($sectionSerial);
             array_splice($this->reportBlocks, $index, 0, $pack);
         } elseif ($type === 'finding_item_pack') {
             // Same flow as Finding format pack, but without বিভাগ — starts at শিরোনাম.
@@ -4739,20 +4704,30 @@ class MakeAuditReport extends Component
                 if ($serial !== '' && str_starts_with($title, $serial)) {
                     $titleWithoutSerial = trim(mb_substr($title, mb_strlen($serial)));
                 }
-                $label = $titleWithoutSerial !== ''
-                    ? ($title !== '' ? $title : $serial.' '.$titleWithoutSerial)
-                    : ($serial !== '' ? $serial.' নতুন বিভাগ' : 'বিভাগ');
-                // Skip only the redundant page-4 mirror of "আর্থিক নিরীক্ষা".
-                if ($this->outlineSectionDuplicatesPageLabel($serial, $title)) {
-                    continue;
+                $isStartHere = ! empty($block['start_indicator']);
+                if ($isStartHere) {
+                    $items[] = [
+                        'kind' => 'indicator',
+                        'label' => 'এখান থেকে শুরু করুন',
+                        'tab' => 'page4',
+                        'anchor' => self::sectionAnchorId($serial !== '' ? $serial : 'start'),
+                        'depth' => 1,
+                    ];
+                } else {
+                    $label = $titleWithoutSerial !== ''
+                        ? ($title !== '' ? $title : $serial.' '.$titleWithoutSerial)
+                        : ($serial !== '' ? $serial.' নতুন বিভাগ' : 'বিভাগ');
+                    if ($this->outlineSectionDuplicatesPageLabel($serial, $title)) {
+                        continue;
+                    }
+                    $items[] = [
+                        'kind' => 'section',
+                        'label' => $label,
+                        'tab' => 'page4',
+                        'anchor' => self::sectionAnchorId($serial !== '' ? $serial : $title),
+                        'depth' => 0,
+                    ];
                 }
-                $items[] = [
-                    'kind' => 'section',
-                    'label' => $label,
-                    'tab' => 'page4',
-                    'anchor' => self::sectionAnchorId($serial !== '' ? $serial : $title),
-                    'depth' => 0,
-                ];
             } elseif ($type === 'compliance_table') {
                 $serial = trim((string) ($block['serial'] ?? ''));
                 $title = trim((string) ($block['title'] ?? ''));
@@ -4803,7 +4778,10 @@ class MakeAuditReport extends Component
                 $serial = trim((string) ($block['serial'] ?? ''));
                 $body = trim((string) ($block['body'] ?? ''));
                 $title = trim((string) ($block['title'] ?? ''));
-                $text = $body !== '' ? $body : ($title !== '' && $title !== 'শিরোনাম' ? $title : 'শিরোনাম');
+                if ($this->isStockOrStarterFinding($block) || ($body === '' && ($title === '' || $title === 'শিরোনাম'))) {
+                    continue;
+                }
+                $text = $body !== '' ? $body : $title;
                 $short = mb_strlen($text) > 48 ? mb_substr($text, 0, 48).'…' : $text;
                 $label = $serial !== '' ? $serial.' '.$short : $short;
                 $items[] = [
@@ -5692,10 +5670,10 @@ class MakeAuditReport extends Component
         abort_unless($report->isAccessibleBy(auth()->user()), 403);
 
         $reviews = app(\App\Services\AuditReportReviewService::class);
-        if (! $reviews->isEditableByMaker($report)) {
+        if (! $reviews->isEditableByMaker($report, auth()->user())) {
             $this->reviewReadOnly = true;
             if ($flash) {
-                session()->flash('status', 'This report is locked (in review or already reviewed).');
+                session()->flash('status', 'You can view this report, but only the maker can edit it.');
             }
 
             return;
@@ -6156,11 +6134,9 @@ class MakeAuditReport extends Component
             ];
         };
 
-        // Short report: cover → page4 financial (১.১–১.২).
+        // New reports start blank. The auditor writes each finding; nothing is copied into every report.
         $this->tocRows = [
             $make('section', '১.০', 'অর্থ ও হিসাব নিরীক্ষা (Accounts and Financial Audit)', '', 2),
-            $make('item', '১.১', 'ভ্যাট ও ট্যাক্স কর্তন না করা', 'Major (B)', 2),
-            $make('item', '১.২', 'ভ্যাট ও ট্যাক্স পরিশোধ না করা', 'Major (B)', 2),
         ];
     }
 
@@ -6388,7 +6364,9 @@ class MakeAuditReport extends Component
             );
         }
 
-        $this->reportBlocks = array_values($blocks);
+        $this->reportBlocks = array_values($this->placeRatingBoxBelowObservation(
+            $this->replaceStockVatFindingsWithStarter($blocks)
+        ));
         $this->syncLegacyUtilityFromBlocks();
     }
 
@@ -6419,14 +6397,11 @@ class MakeAuditReport extends Component
 
         $blocks[] = $this->blankCriteriaBlock();
         $blocks[] = $this->blankObservationBlock();
-        $blocks[] = $this->blankStatsBlock(
-            'Report Rating Box:',
-            $this->vatObservationRows !== [] ? $this->vatObservationRows : null
-        );
-        $blocks[] = $this->blankStatsBlock(
-            'Report Rating Box:',
-            $this->taxObservationRows !== [] ? $this->taxObservationRows : null
-        );
+        $blocks[] = $this->blankStatsBlock('Report Rating Box:');
+        $blocks[] = $this->blankRiskBox();
+        $blocks[] = $this->blankRootCauseBox();
+        $blocks[] = $this->blankRecommendationBox();
+        $blocks[] = $this->blankJobabBlock();
         $this->reportBlocks = $blocks;
     }
 
@@ -7308,37 +7283,271 @@ class MakeAuditReport extends Component
     {
         $this->ensureTocDefaults();
 
-        $wanted = ['১.১', '১.২'];
-        $fromToc = [];
-
+        $findings = [];
         foreach ($this->tocRows as $row) {
             if (($row['type'] ?? 'item') !== 'item') {
                 continue;
             }
-            $serial = trim((string) ($row['serial'] ?? ''));
-            if (! in_array($serial, $wanted, true)) {
+            $body = trim((string) ($row['finding'] ?? ''));
+            if ($body === '' || in_array($body, $this->stockVatFindingTitles(), true)) {
                 continue;
             }
-            $fromToc[$serial] = $row;
-        }
-
-        $findings = [];
-        foreach ($wanted as $serial) {
-            $row = $fromToc[$serial] ?? null;
             $findings[] = [
-                'serial' => $serial,
-                'title' => 'শিরোনাম',
-                'body' => (string) ($row['finding'] ?? ($serial === '১.১'
-                    ? 'ভ্যাট ও ট্যাক্স কর্তন না করা'
-                    : 'ভ্যাট ও ট্যাক্স পরিশোধ না করা')),
-                'rating' => (string) ($row['rating'] ?? 'Major (B)'),
+                'serial' => trim((string) ($row['serial'] ?? '')),
+                'title' => '',
+                'body' => $body,
+                'rating' => (string) ($row['rating'] ?? ''),
                 'amount' => (string) ($row['amount'] ?? ''),
                 'indicator_id' => null,
                 'indicator_code' => null,
             ];
         }
 
+        if ($findings === []) {
+            $findings[] = $this->blankFindingRow('১.১');
+        }
+
         $this->financialFindings = $findings;
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function stockVatFindingTitles(): array
+    {
+        return [
+            'ভ্যাট ও ট্যাক্স কর্তন না করা',
+            'ভ্যাট ও ট্যাক্স পরিশোধ না করা',
+        ];
+    }
+
+    /**
+     * @return array{serial:string,title:string,body:string,rating:string,amount:string,indicator_id:null,indicator_code:null}
+     */
+    /**
+     * Full starting template. আর্থিক নিরীক্ষা stays the page name, not this বিভাগ.
+     *
+     * @return list<array<string, mixed>>
+     */
+    protected function startReportTemplateBlocks(string $sectionSerial = '১.০'): array
+    {
+        $findingSerial = $this->nextFindingSerialForSectionSerial($sectionSerial);
+        // The section is new, so no finding serial exists yet — use .১
+        if ($findingSerial === '' || ! str_contains($findingSerial, '.')) {
+            $findingSerial = '১.১';
+        }
+        $map = [
+            '০' => '0', '১' => '1', '২' => '2', '৩' => '3', '৪' => '4',
+            '৫' => '5', '৬' => '6', '৭' => '7', '৮' => '8', '৯' => '9',
+        ];
+        $rev = array_flip($map);
+        $latin = strtr($sectionSerial, $map);
+        $prefix = '1';
+        if (preg_match('/^(\d+)/', $latin, $m)) {
+            $prefix = $m[1];
+        }
+        $findingSerial = strtr($prefix, $rev).'.'.\App\Support\BanglaNumerals::fromInt(1);
+        $finding = $this->blankFindingRow($findingSerial);
+        $finding['title'] = '';
+        $finding['body'] = '';
+        $finding['rating'] = '';
+
+        return [
+            [
+                'type' => 'section',
+                'serial' => $sectionSerial,
+                'title' => '',
+                'start_indicator' => true,
+            ],
+            [
+                'type' => 'finding',
+                ...$finding,
+            ],
+            $this->blankCriteriaBlock(''),
+            $this->blankObservationBlock('পর্যবেক্ষণ (Observation) :', ''),
+            $this->blankStatsBlock('Report Rating Box:', null, [
+                'linked_indicator_id' => $finding['indicator_id'] ?? null,
+                'linked_indicator_code' => $finding['indicator_code'] ?? null,
+                'linked_finding_serial' => $finding['serial'] ?? null,
+                'linked_finding_title' => $finding['title'] ?? null,
+            ]),
+            $this->blankRootCauseBox(),
+            $this->blankRecommendationBox(),
+            $this->blankJobabBlock(),
+        ];
+    }
+
+    /**
+     * Keep Report Rating Box directly under পর্যবেক্ষণ in the start template.
+     *
+     * @param  list<array<string, mixed>>  $blocks
+     * @return list<array<string, mixed>>
+     */
+    protected function placeRatingBoxBelowObservation(array $blocks): array
+    {
+        $start = null;
+        $end = count($blocks);
+        foreach ($blocks as $i => $block) {
+            if (($block['type'] ?? '') !== 'section') {
+                continue;
+            }
+            $isStart = ! empty($block['start_indicator'])
+                || $this->outlineSectionDuplicatesPageLabel((string) ($block['serial'] ?? ''), (string) ($block['title'] ?? ''))
+                || trim((string) ($block['title'] ?? '')) === '';
+            if (! $isStart) {
+                continue;
+            }
+            $start = $i;
+            for ($j = $i + 1; $j < count($blocks); $j++) {
+                if (($blocks[$j]['type'] ?? '') === 'section') {
+                    $end = $j;
+                    break;
+                }
+            }
+            break;
+        }
+        if ($start === null) {
+            return $blocks;
+        }
+
+        $slice = array_slice($blocks, $start, $end - $start);
+        $obsPos = null;
+        $statsBefore = [];
+        foreach ($slice as $k => $block) {
+            $type = (string) ($block['type'] ?? '');
+            if ($type === 'observation' && $obsPos === null) {
+                $obsPos = $k;
+            }
+            if ($obsPos === null && ($type === 'stats' || $this->isStatsLike($type))) {
+                $statsBefore[] = $k;
+            }
+        }
+        if ($obsPos === null || $statsBefore === []) {
+            return $blocks;
+        }
+
+        $moving = [];
+        foreach (array_reverse($statsBefore) as $k) {
+            $moving[] = $slice[$k];
+            array_splice($slice, $k, 1);
+        }
+        $moving = array_reverse($moving);
+        foreach ($slice as $k => $block) {
+            if (($block['type'] ?? '') === 'observation') {
+                array_splice($slice, $k + 1, 0, $moving);
+                break;
+            }
+        }
+
+        array_splice($blocks, $start, $end - $start, $slice);
+
+        return array_values($blocks);
+    }
+
+    /**
+     * @param  array<string, mixed>  $block
+     */
+    protected function isStockOrStarterFinding(array $block): bool
+    {
+        if (($block['type'] ?? '') !== 'finding') {
+            return false;
+        }
+        if (! empty($block['checklist_pack']) || ! empty($block['from_checklist'])) {
+            return false;
+        }
+        if (trim((string) ($block['amount'] ?? '')) !== '') {
+            return false;
+        }
+
+        $text = trim((string) ($block['body'] ?? ''));
+        $title = trim((string) ($block['title'] ?? ''));
+        $stock = array_merge($this->stockVatFindingTitles(), [
+            'এখান থেকে প্রতিবেদন শুরু করুন',
+            'এখান থেকে শুরু করুন',
+        ]);
+
+        return in_array($text, $stock, true) || in_array($title, $stock, true);
+    }
+
+    /**
+     * The same two VAT titles were inserted into every report. Replace that pair
+     * with one Bangla starter and the full finding format.
+     *
+     * @param  list<array<string, mixed>>  $blocks
+     * @return list<array<string, mixed>>
+     */
+    protected function replaceStockVatFindingsWithStarter(array $blocks): array
+    {
+        $stockIndexes = [];
+        $hasOtherFinding = false;
+        foreach ($blocks as $i => $block) {
+            if (($block['type'] ?? '') !== 'finding') {
+                continue;
+            }
+            if ($this->isStockOrStarterFinding($block)) {
+                $stockIndexes[] = $i;
+            } else {
+                $hasOtherFinding = true;
+            }
+        }
+        if ($stockIndexes === [] || $hasOtherFinding) {
+            return $blocks;
+        }
+
+        $kept = [];
+        foreach ($blocks as $block) {
+            $type = (string) ($block['type'] ?? '');
+            if ($type === 'section' && $this->outlineSectionDuplicatesPageLabel((string) ($block['serial'] ?? ''), (string) ($block['title'] ?? ''))) {
+                continue;
+            }
+            if ($type === 'finding' && $this->isStockOrStarterFinding($block)) {
+                continue;
+            }
+            if (in_array($type, ['criteria', 'observation', 'stats', 'risk', 'root_cause', 'recommendation', 'jobab_table'], true)) {
+                continue;
+            }
+            $kept[] = $block;
+        }
+
+        return array_values(array_merge($this->startReportTemplateBlocks('১.০'), $kept));
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $blocks
+     * @return list<array<string, mixed>>
+     */
+    protected function ensureFullFindingFormat(array $blocks, int $afterIndex): array
+    {
+        $types = array_map(fn ($block) => (string) ($block['type'] ?? ''), $blocks);
+        $extra = [];
+        if (! in_array('criteria', $types, true)) {
+            $extra[] = $this->blankCriteriaBlock('');
+        }
+        if (! in_array('observation', $types, true)) {
+            $extra[] = $this->blankObservationBlock('পর্যবেক্ষণ (Observation) :', '');
+        }
+        if (! in_array('stats', $types, true) && ! collect($types)->contains(fn ($type) => $this->isStatsLike($type))) {
+            $extra[] = $this->blankStatsBlock('Report Rating Box:');
+        }
+        if (! in_array('risk', $types, true)) {
+            $extra[] = $this->blankRiskBox();
+        }
+        if (! in_array('root_cause', $types, true)) {
+            $extra[] = $this->blankRootCauseBox();
+        }
+        if (! in_array('recommendation', $types, true)) {
+            $extra[] = $this->blankRecommendationBox();
+        }
+        if (! in_array('jobab_table', $types, true)) {
+            $extra[] = $this->blankJobabBlock();
+        }
+        if ($extra === []) {
+            return $blocks;
+        }
+
+        array_splice($blocks, $afterIndex + 1, 0, $extra);
+
+        return array_values($blocks);
     }
 
     /**
@@ -11719,8 +11928,8 @@ class MakeAuditReport extends Component
             'ongoingCount' => $ongoingCount,
             'completedCount' => $completedCount,
             'pendingSlots' => $pendingSlots,
-            'maxConcurrentDrafts' => AuditReport::MAX_CONCURRENT_DRAFTS,
-            'canStartNewReport' => $pendingSlots > 0,
+            'maxConcurrentDrafts' => null,
+            'canStartNewReport' => true,
             'listFilterMonth' => $this->listFilterMonth,
             'listFilterYear' => $this->listFilterYear,
             'listFilterQ' => $this->listFilterQ,

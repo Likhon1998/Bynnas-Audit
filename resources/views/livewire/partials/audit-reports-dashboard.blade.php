@@ -9,7 +9,7 @@
         <div class="min-w-0">
             <h1 class="text-base font-semibold tracking-tight text-navy-900">Audit Reports</h1>
             <p class="mt-0.5 text-[13px] text-slate-500">
-                Max {{ $maxConcurrentDrafts }} drafts · Joint visit auditors share one report · Auto-save
+                Joint visit auditors share one report · Auto-save
             </p>
         </div>
         <div class="flex flex-wrap items-center gap-1.5 text-[13px]">
@@ -22,9 +22,6 @@
             <span class="inline-flex items-center gap-1 rounded-md border border-sky-200 bg-sky-50 px-2 py-1 font-semibold text-sky-800">
                 Ongoing <span class="tabular-nums">{{ $ongoingCount }}</span>
             </span>
-            <span class="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 font-semibold text-amber-800">
-                Slots <span class="tabular-nums">{{ $pendingSlots }}</span>
-            </span>
             <span class="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 font-semibold text-emerald-800">
                 Done <span class="tabular-nums">{{ $completedCount }}</span>
             </span>
@@ -34,12 +31,6 @@
     @if (session('status'))
         <div class="border-b border-emerald-100 bg-emerald-50 px-3 py-1.5 text-[13px] text-emerald-800 sm:px-4">{{ session('status') }}</div>
     @endif
-
-    @unless ($canStartNewReport)
-        <div class="border-b border-amber-200 bg-amber-50 px-3 py-1.5 text-[13px] text-amber-900 sm:px-4">
-            Draft limit reached ({{ $maxConcurrentDrafts }}). Continue or delete a draft to start another.
-        </div>
-    @endunless
 
     {{-- Start new --}}
     <div class="border-b border-slate-100 px-3 py-2.5 sm:px-4 {{ $canStartNewReport ? '' : 'pointer-events-none opacity-55' }}">
@@ -348,7 +339,7 @@
                                         type="button"
                                         wire:click="resumeReport({{ $report->id }})"
                                         class="inline-flex h-7 items-center rounded-md border border-slate-200 bg-white px-2.5 text-[13px] font-semibold text-slate-700 hover:bg-slate-50"
-                                    >Open</button>
+                                    >Edit report</button>
                                     <a
                                         href="{{ route('audits.checklist', $report) }}"
                                         class="inline-flex h-7 items-center rounded-md border border-slate-200 px-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50"

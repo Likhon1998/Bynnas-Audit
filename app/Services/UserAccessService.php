@@ -267,6 +267,23 @@ class UserAccessService
         return $visitors->contains(fn ($e) => (int) $e->id === $employeeId);
     }
 
+    /**
+     * Official visit judgment (Completed, Delayed, Cancelled) belongs to the planner,
+     * not the visiting officer. Completed is what the annual plan counts.
+     */
+    public function userCanReviewVisitPlan(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->isSuperAdmin() || $user->hasRole('superadmin') || $user->hasRole('audit_manager')) {
+            return true;
+        }
+
+        return $user->can('monthly_visits.manage');
+    }
+
     public function userCanAccessAssignment(?User $user, MonthlyAssignment $assignment): bool
     {
         if (! $user) {

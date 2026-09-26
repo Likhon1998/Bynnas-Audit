@@ -311,12 +311,6 @@
             :class="sidebarCollapsed && 'lg:absolute lg:bottom-full lg:left-full lg:mb-0 lg:ml-1 lg:w-36 lg:shadow-xl'"
         >
             <a href="{{ route('profile.edit') }}" class="block rounded-md px-2 py-1 text-[13px] text-slate-300 hover:bg-white/[0.05] hover:text-white">Profile</a>
-            <button
-                type="button"
-                @click="toggleTheme()"
-                class="block w-full rounded-md px-2 py-1 text-left text-[13px] text-slate-300 hover:bg-white/[0.05] hover:text-white"
-                x-text="darkMode ? 'Light theme' : 'Dark theme'"
-            ></button>
             <form
                 method="POST"
                 action="{{ route('logout') }}"

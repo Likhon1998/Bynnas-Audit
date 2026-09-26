@@ -50,6 +50,7 @@ class CalendarController extends Controller
                 'day' => (int) $cursor->day,
                 'in_month' => $inMonth,
                 'is_today' => $cursor->isToday(),
+                'dow' => (int) $cursor->dayOfWeek,
                 'is_weekend' => $isWeekend,
                 'is_off' => $isWeekend || $dayHolidays->isNotEmpty(),
                 'holidays' => $dayHolidays->map(fn (CalendarHoliday $h) => [

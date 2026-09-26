@@ -119,28 +119,39 @@
         </div>
     </div>
 
-    <div class="max-h-[calc(100vh-13rem)] overflow-auto">
-        <table class="min-w-full border-collapse text-left">
+    <div class="project-plan-fit max-h-[calc(100vh-13rem)] overflow-x-hidden overflow-y-auto">
+        <table class="w-full table-fixed border-collapse text-left">
+            <colgroup>
+                <col style="width:2rem">
+                <col style="width:16%">
+                <col style="width:14%">
+                @foreach ($months as $month)
+                    <col>
+                @endforeach
+                <col style="width:2.25rem">
+                <col style="width:2.5rem">
+            </colgroup>
             <thead class="sticky top-0 z-20">
-                <tr class="border-b border-slate-200 bg-emerald-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                    <th class="border border-slate-200 bg-emerald-50 px-2 py-2 text-center w-10">#</th>
-                    <th class="border border-slate-200 bg-emerald-50 px-3 py-2 min-w-[220px]">Name of the Projects / Donor</th>
-                    <th class="border border-slate-200 bg-emerald-50 px-3 py-2 min-w-[180px]">Location of the Projects</th>
+                <tr class="border-b border-slate-200 bg-emerald-50 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+                    <th class="border border-slate-200 bg-emerald-50 px-1 py-1.5 text-center">#</th>
+                    <th class="border border-slate-200 bg-emerald-50 px-2 py-1.5">Project / Donor</th>
+                    <th class="border border-slate-200 bg-emerald-50 px-2 py-1.5">Location</th>
                     @foreach ($months as $month)
                         @php
                             $shortYear = $month['index'] <= 5 ? $startYear : $endYear;
                             $monthName = match ($month['month']) {
-                                7 => 'July', 8 => 'August', 9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December',
-                                1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April', 5 => 'May', 6 => 'June',
+                                7 => 'Jul', 8 => 'Aug', 9 => 'Sep', 10 => 'Oct', 11 => 'Nov', 12 => 'Dec',
+                                1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr', 5 => 'May', 6 => 'Jun',
                                 default => $month['label'],
                             };
                         @endphp
-                        <th class="border border-slate-200 bg-emerald-50 px-1 py-2 text-center text-xs leading-tight min-w-[52px]">
-                            {{ $monthName }}'{{ $shortYear }}
+                        <th class="border border-slate-200 bg-emerald-50 px-0 py-1 text-center leading-none">
+                            <span class="block">{{ $monthName }}</span>
+                            <span class="mt-0.5 block font-medium text-slate-400">'{{ $shortYear }}</span>
                         </th>
                     @endforeach
-                    <th class="border border-slate-200 bg-emerald-50 px-2 py-2 text-center w-12">Total</th>
-                    <th class="border border-slate-200 bg-emerald-50 px-2 py-2 w-28">Actions</th>
+                    <th class="border border-slate-200 bg-emerald-50 px-0.5 py-1.5 text-center">Tot</th>
+                    <th class="border border-slate-200 bg-emerald-50 px-0.5 py-1.5 text-center">Add</th>
                 </tr>
             </thead>
             <tbody>
@@ -152,8 +163,8 @@
                             class="text-[12px] {{ $isHighlighted ? 'bg-amber-100 ring-2 ring-inset ring-amber-400' : '' }}"
                         >
                             <td class="border border-slate-200 px-2 py-2 text-center text-slate-500">{{ $group['sl'] }}</td>
-                            <td class="border border-slate-200 px-3 py-2 align-top">
-                                <p class="font-medium text-navy-900">{{ $group['project'] }}</p>
+                            <td class="border border-slate-200 px-2 py-1.5 align-top">
+                                <p class="break-words font-medium leading-snug text-navy-900">{{ $group['project'] }}</p>
                                 @if ($group['donor'])
                                     <p class="mt-0.5 text-[12px] text-slate-500">{{ $group['donor'] }}</p>
                                 @endif
@@ -201,33 +212,40 @@
                             >
                                 @if ($index === 0)
                                     <td rowspan="{{ $group['rows']->count() }}" class="border border-slate-200 px-2 py-2 text-center align-middle font-medium text-slate-600">{{ $group['sl'] }}</td>
-                                    <td rowspan="{{ $group['rows']->count() }}" class="border border-slate-200 px-3 py-2 align-top">
-                                        <p class="font-medium leading-snug text-navy-900">{{ $group['project'] }}</p>
+                                    <td rowspan="{{ $group['rows']->count() }}" class="border border-slate-200 px-2 py-1.5 align-top">
+                                        <p class="break-words font-medium leading-snug text-navy-900">{{ $group['project'] }}</p>
                                         @if ($group['donor'])
                                             <p class="mt-1 text-[12px] text-slate-500">{{ $group['donor'] }}</p>
                                         @endif
                                     </td>
                                 @endif
-                                <td class="border border-slate-200 px-3 py-1.5">
-                                    <div class="flex items-center justify-between gap-2">
-                                        <span class="text-slate-700">
+                                <td class="border border-slate-200 px-2 py-1.5">
+                                    <div class="min-w-0">
+                                        <p class="break-words leading-snug text-slate-700">
                                             @if (! empty($row['division']))
                                                 <span class="font-medium text-navy-900">{{ $row['division'] }}</span>
                                                 <span class="text-slate-400"> · </span>
                                             @endif
                                             {{ $row['location'] }}
-                                        </span>
-                                        <form method="POST" action="{{ route('annual-audit.projects.locations.destroy', [$group['project_id'], $row['id']]) }}" onsubmit="return confirm('Remove location {{ $row['location'] }}?')">
+                                        </p>
+                                        <form
+                                            method="POST"
+                                            action="{{ route('annual-audit.projects.locations.destroy', [$group['project_id'], $row['id']]) }}"
+                                            data-bynnas-confirm="Remove location {{ $row['location'] }} from this project?"
+                                            data-bynnas-confirm-title="Remove location?"
+                                            data-bynnas-confirm-ok="Remove"
+                                            data-bynnas-confirm-tone="rose"
+                                        >
                                             @csrf
                                             @method('DELETE')
                                             <input type="hidden" name="return_tab" value="{{ $tabKey }}">
-                                    <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
-                                            <button type="submit" class="shrink-0 text-xs font-medium text-rose-500 hover:underline" title="Remove location">Remove</button>
+                                            <input type="hidden" name="fy" value="{{ $plan->fy_label }}">
+                                            <button type="submit" class="text-[10px] font-medium text-rose-500 hover:underline" title="Remove location">Remove</button>
                                         </form>
                                     </div>
                                 </td>
                                 @foreach ($row['months'] as $monthIndex => $active)
-                                    <td class="border border-slate-200 px-0 py-0 text-center {{ $active ? 'bg-emerald-100' : 'bg-white' }}">
+                                    <td class="project-month border border-slate-200 p-0 text-center {{ $active ? 'bg-emerald-100' : 'bg-white' }}">
                                         <x-audit-month-mark
                                             :active="(bool) $active"
                                             :manual="(bool) ($row['manual'][$monthIndex] ?? false)"

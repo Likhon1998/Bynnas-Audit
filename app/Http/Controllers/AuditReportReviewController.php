@@ -293,14 +293,12 @@ class AuditReportReviewController extends Controller
             );
     }
 
-    public function reopenReview(Request $request, AuditReport $report, AuditReportReviewService $reviews): RedirectResponse
+    public function reopenReview(Request $request, AuditReport $report): RedirectResponse
     {
         $user = $request->user();
         abort_unless($report->isReviewed(), 422, 'Only confirmed reviews can be reopened.');
         abort_unless(
-            (int) $report->reviewer_user_id === (int) $user->id
-                || $reviews->isReviewAdmin($user)
-                || $user->can('audits.manage'),
+            (int) $report->reviewer_user_id === (int) $user->id,
             403
         );
 

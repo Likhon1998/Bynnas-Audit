@@ -107,8 +107,25 @@ class MonthlyVisitController extends Controller
             ? collect()
             : $this->calendar->employeeAvailabilityForMonth($defaultStart, $monthEnd);
 
-        $assigned = $items->where('status', MonthlyWorkItem::STATUS_ASSIGNED)->values();
+        $assigned = $items
+            ->where('status', MonthlyWorkItem::STATUS_ASSIGNED)
+            ->sortByDesc(fn (MonthlyWorkItem $item) => $item->assignment?->updated_at?->getTimestamp() ?? 0)
+            ->values();
+        $unassigned = $officerView
+            ? collect()
+            : $this->sortByShakhaRisk(
+                $items->where('status', MonthlyWorkItem::STATUS_UNASSIGNED)->values()
+            );
+        $this->syncAssignedVisitsFromReports($assigned, $fy, $monthIndex);
         $visitWorkLinks = $this->buildVisitWorkLinks($assigned, $fy);
+        $performance['totals']['overdue'] = $assigned->filter(function (MonthlyWorkItem $item) use ($visitWorkLinks) {
+            $assignment = $item->assignment;
+            if (! $assignment) {
+                return false;
+            }
+
+            return $this->worklist->assignmentIsLate($assignment, $visitWorkLinks[$assignment->id] ?? null);
+        })->count();
 
         return view('monthly-visits.index', [
             'plan' => $plan,
@@ -117,7 +134,7 @@ class MonthlyVisitController extends Controller
             'monthOptions' => $this->worklist->monthOptions($fy),
             'availablePlans' => AuditPlan::query()->orderByDesc('start_date')->get(['id', 'fy_label', 'status']),
             'items' => $items,
-            'unassigned' => $officerView ? collect() : $items->where('status', MonthlyWorkItem::STATUS_UNASSIGNED)->values(),
+            'unassigned' => $unassigned,
             'assigned' => $assigned,
             'visitWorkLinks' => $visitWorkLinks,
             'performance' => $performance,
@@ -127,6 +144,7 @@ class MonthlyVisitController extends Controller
             'activityTypes' => ActivityType::query()->where('is_active', true)->orderBy('sort_order')->get(),
             'monthLabel' => $fy->months()[$monthIndex]['label'].' '.$fy->months()[$monthIndex]['year'],
             'allocatePayload' => $allocatePayload,
+            'canReviewVisitPlan' => $this->access->userCanReviewVisitPlan($user),
             'openAllocateId' => $officerView ? null : ($request->integer('allocate') ?: null),
             'conflictFlash' => session('conflicts'),
             'conflictWarning' => session('conflict_warning'),
@@ -135,9 +153,157 @@ class MonthlyVisitController extends Controller
         ]);
     }
 
+    public function people(Request $request): View
+    {
+        abort_unless($request->user()?->can('monthly_visits.manage'), 403);
+
+        $plan = $this->worklist->resolvePlan($request->string('fy')->toString() ?: null);
+        $fy = FinancialYear::fromLabel($plan->fy_label);
+        $monthIndex = $request->filled('month')
+            ? max(0, min(11, $request->integer('month')))
+            : $this->worklist->currentMonthIndex($plan);
+
+        if ($plan->generated_at) {
+            $this->worklist->refreshFromYearly($plan, $monthIndex, $request->user()?->id);
+        }
+
+        $assigned = $this->worklist->workItemsForMonth($plan, $monthIndex)
+            ->where('status', MonthlyWorkItem::STATUS_ASSIGNED)
+            ->sortByDesc(fn (MonthlyWorkItem $item) => $item->assignment?->updated_at?->getTimestamp() ?? 0)
+            ->values();
+        $this->syncAssignedVisitsFromReports($assigned, $fy, $monthIndex);
+
+        return view('monthly-visits.people', $this->peoplePageData($plan, $fy, $monthIndex, $assigned, null));
+    }
+
+    public function peoplePdf(Request $request): Response
+    {
+        abort_unless($request->user()?->can('monthly_visits.manage'), 403);
+        $data = $this->peopleExportData($request);
+        $pdf = Pdf::loadView('monthly-visits.people-report', $data)->setPaper('a4', 'landscape');
+        $who = $data['scopeLabel'];
+
+        return $pdf->download('who-visits-where-'.$data['plan']->fy_label.'-'.$data['monthFile'].'-'.$who.'.pdf');
+    }
+
+    public function peopleDoc(Request $request): Response
+    {
+        abort_unless($request->user()?->can('monthly_visits.manage'), 403);
+        $data = $this->peopleExportData($request);
+        $html = view('monthly-visits.people-report', $data)->render();
+        $who = $data['scopeLabel'];
+        $filename = 'who-visits-where-'.$data['plan']->fy_label.'-'.$data['monthFile'].'-'.$who.'.doc';
+
+        return response($html, 200, [
+            'Content-Type' => 'application/msword; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+        ]);
+    }
+
     /**
-     * Start checklist-first visit work: ensure draft report, then open checklist or report.
+     * @param  \Illuminate\Support\Collection<int, MonthlyWorkItem>  $assigned
+     * @return array<string, mixed>
      */
+    protected function peoplePageData(AuditPlan $plan, FinancialYear $fy, int $monthIndex, $assigned, ?int $onlyPersonId = null): array
+    {
+        $peopleRoster = $this->peopleRoster($assigned);
+        $lastRoster = $this->peopleRoster($this->previousMonthAssigned($fy, $monthIndex));
+        $lastById = $lastRoster->keyBy('id');
+
+        $peopleRoster = $peopleRoster->map(function (array $person) use ($lastById) {
+            $person['last_visits'] = $lastById->get($person['id'])['visits'] ?? [];
+
+            return $person;
+        });
+
+        foreach ($lastRoster as $person) {
+            if ($peopleRoster->contains(fn (array $row) => (int) $row['id'] === (int) $person['id'])) {
+                continue;
+            }
+            $person['last_visits'] = $person['visits'];
+            $person['visits'] = [];
+            $peopleRoster->push($person);
+        }
+
+        $peopleRoster = $peopleRoster
+            ->sortBy(fn (array $person) => mb_strtolower($person['name']))
+            ->values();
+
+        if ($onlyPersonId) {
+            $peopleRoster = $peopleRoster->where('id', $onlyPersonId)->values();
+        }
+
+        $shakhaRows = $this->shakhaRoster($assigned, $onlyPersonId);
+
+        $selected = $onlyPersonId ? $peopleRoster->first() : null;
+        $scopeLabel = $selected
+            ? str($selected['name'])->slug()
+            : 'everyone';
+
+        $monthMeta = $fy->months()[$monthIndex];
+        [$prevFy, $prevIndex] = $this->previousMonth($fy, $monthIndex);
+
+        return [
+            'plan' => $plan,
+            'monthIndex' => $monthIndex,
+            'monthLabel' => $monthMeta['label'].' '.$monthMeta['year'],
+            'monthFile' => $monthMeta['label'].'-'.$monthMeta['year'],
+            'lastMonthLabel' => $prevFy->months()[$prevIndex]['label'].' '.$prevFy->months()[$prevIndex]['year'],
+            'monthOptions' => $this->worklist->monthOptions($fy),
+            'availablePlans' => AuditPlan::query()->orderByDesc('start_date')->get(['id', 'fy_label', 'status']),
+            'peopleRoster' => $peopleRoster,
+            'shakhaRows' => $shakhaRows,
+            'scopeLabel' => (string) $scopeLabel,
+            'scopeTitle' => $selected ? $selected['name'] : 'Everyone',
+            'visitTypes' => $shakhaRows
+                ->pluck('type')
+                ->filter()
+                ->unique()
+                ->sort()
+                ->values(),
+        ];
+    }
+
+    protected function peopleExportData(Request $request): array
+    {
+        $plan = $this->worklist->resolvePlan($request->string('fy')->toString() ?: null);
+        $fy = FinancialYear::fromLabel($plan->fy_label);
+        $monthIndex = max(0, min(11, $request->integer('month')));
+        $assigned = $this->worklist->workItemsForMonth($plan, $monthIndex)
+            ->where('status', MonthlyWorkItem::STATUS_ASSIGNED)
+            ->values();
+
+        return $this->peoplePageData($plan, $fy, $monthIndex, $assigned, $request->integer('person') ?: null);
+    }
+
+    /**
+     * @return array{0: FinancialYear, 1: int}
+     */
+    protected function previousMonth(FinancialYear $fy, int $monthIndex): array
+    {
+        if ($monthIndex > 0) {
+            return [$fy, $monthIndex - 1];
+        }
+
+        return [$fy->previous(), 11];
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, MonthlyWorkItem>
+     */
+    protected function previousMonthAssigned(FinancialYear $fy, int $monthIndex)
+    {
+        [$prevFy, $prevIndex] = $this->previousMonth($fy, $monthIndex);
+        $prevPlan = AuditPlan::query()->where('fy_label', $prevFy->label)->first();
+        if (! $prevPlan) {
+            return collect();
+        }
+
+        return $this->worklist->workItemsForMonth($prevPlan, $prevIndex)
+            ->where('status', MonthlyWorkItem::STATUS_ASSIGNED)
+            ->values();
+    }
+
     public function startWork(Request $request, MonthlyAssignment $assignment): RedirectResponse
     {
         abort_unless($this->access->userCanAccessAssignment($request->user(), $assignment), 403);
@@ -418,7 +584,7 @@ class MonthlyVisitController extends Controller
 
     public function executionForm(MonthlyAssignment $assignment): View
     {
-        abort_unless($this->access->userCanAccessAssignment(auth()->user(), $assignment), 403);
+        abort_unless($this->access->userCanReviewVisitPlan(auth()->user()), 403);
 
         $assignment->load(['workItem.activityType', 'employee', 'visitors', 'execution', 'statusLogs']);
 
@@ -438,7 +604,7 @@ class MonthlyVisitController extends Controller
 
     public function updateExecution(Request $request, MonthlyAssignment $assignment): RedirectResponse
     {
-        abort_unless($this->access->userCanAccessAssignment($request->user(), $assignment), 403);
+        abort_unless($this->access->userCanReviewVisitPlan($request->user()), 403);
 
         $validated = $request->validate([
             'status' => ['required', Rule::in([
@@ -463,7 +629,7 @@ class MonthlyVisitController extends Controller
 
         return redirect()
             ->route('monthly-visits.index', ['fy' => $item->fy_label, 'month' => $item->month_index])
-            ->with('status', 'Execution updated.');
+            ->with('status', 'Visit reviewed. Completed visits count on the annual plan. Delayed visits stay pending.');
     }
 
     public function rescheduleForm(MonthlyAssignment $assignment): View
@@ -619,13 +785,7 @@ class MonthlyVisitController extends Controller
         $monthIndex = max(0, min(11, $request->integer('month')));
         $items = $this->scopedMonthItems($request, $plan, $monthIndex);
 
-        $data = $this->scheduleReport->build($plan, $monthIndex, $items) + ['forPdf' => true];
-        $pdf = Pdf::loadView('monthly-visits.print-schedule', $data)
-            ->setPaper('a4', 'landscape');
-
-        $filename = 'monthly-schedule-'.$plan->fy_label.'-'.$data['monthLabel'].'.pdf';
-
-        return $pdf->download($filename);
+        return $this->scheduleReport->downloadPdf($plan, $monthIndex, $items);
     }
 
     public function exportScheduleDoc(Request $request): Response
@@ -644,6 +804,178 @@ class MonthlyVisitController extends Controller
         $items = $this->scopedMonthItems($request, $plan, $monthIndex);
 
         return $this->scheduleReport->downloadExcel($plan, $monthIndex, $items);
+    }
+
+    /**
+     * Show the visit stage from the auditor's report: Ongoing while they write it,
+     * In review after they send it, Completed after it is confirmed.
+     *
+     * @param  \Illuminate\Support\Collection<int, MonthlyWorkItem>  $assigned
+     */
+    protected function syncAssignedVisitsFromReports($assigned, FinancialYear $fy, int $monthIndex): void
+    {
+        $period = $fy->months()[$monthIndex] ?? null;
+        if (! $period || $assigned->isEmpty()) {
+            return;
+        }
+
+        $shakhaIds = $assigned
+            ->filter(fn (MonthlyWorkItem $item) => $item->schedulable instanceof Shakha)
+            ->map(fn (MonthlyWorkItem $item) => (int) $item->schedulable_id)
+            ->all();
+        $locationIds = $assigned
+            ->filter(fn (MonthlyWorkItem $item) => $item->schedulable instanceof \App\Models\ProjectLocation)
+            ->map(fn (MonthlyWorkItem $item) => (int) $item->schedulable_id)
+            ->all();
+
+        if ($shakhaIds === [] && $locationIds === []) {
+            return;
+        }
+
+        AuditReport::query()
+            ->where('report_month', (int) $period['month'])
+            ->where('report_year', (int) $period['year'])
+            ->where(function ($q) use ($shakhaIds, $locationIds) {
+                if ($shakhaIds !== []) {
+                    $q->orWhereIn('shakha_id', $shakhaIds);
+                }
+                if ($locationIds !== []) {
+                    $q->orWhereIn('project_location_id', $locationIds);
+                }
+            })
+            ->get()
+            ->each(fn (AuditReport $report) => $this->worklist->syncVisitFromReport($report));
+
+        $assigned->load('assignment.execution');
+    }
+
+    /**
+     * One row per shakha: the people allocated to visit that place this month.
+     *
+     * @param  \Illuminate\Support\Collection<int, MonthlyWorkItem>  $assigned
+     * @return \Illuminate\Support\Collection<int, array<string, mixed>>
+     */
+    protected function shakhaRoster($assigned, ?int $onlyPersonId = null)
+    {
+        $rows = [];
+
+        foreach ($assigned as $item) {
+            $assignment = $item->assignment;
+            if (! $assignment) {
+                continue;
+            }
+
+            $people = [];
+            foreach ($assignment->visitorList() as $employee) {
+                $people[] = [
+                    'id' => (int) $employee->id,
+                    'name' => (string) $employee->name,
+                    'title' => (string) ($employee->position?->title ?: ''),
+                ];
+            }
+
+            if ($onlyPersonId && ! collect($people)->contains(fn (array $person) => $person['id'] === $onlyPersonId)) {
+                continue;
+            }
+
+            $from = $assignment->start_date?->timezone('Asia/Dhaka')->format('d M Y');
+            $to = $assignment->end_date?->timezone('Asia/Dhaka')->format('d M Y');
+            $lastAudit = $assignment->last_audit_upto ?? $this->worklist->computeLastAuditUpto($item);
+
+            $rows[] = [
+                'place' => (string) ($item->entity_label ?: '—'),
+                'type' => (string) ($item->activityType?->name ?: str_replace('_', ' ', (string) $item->category)),
+                'from' => $from ?: '—',
+                'to' => $to ?: '—',
+                'days' => (int) ($assignment->duration_days ?: 0),
+                'last_audit' => $lastAudit ? $lastAudit->timezone('Asia/Dhaka')->format('M Y') : '—',
+                'person_ids' => collect($people)->pluck('id')->implode(' '),
+                'people' => $people,
+            ];
+        }
+
+        return collect($rows)
+            ->sortBy(fn (array $row) => mb_strtolower($row['place']))
+            ->values();
+    }
+
+    /**
+     * One block per person: every place they visit this month, with dates.
+     *
+     * @param  \Illuminate\Support\Collection<int, MonthlyWorkItem>  $assigned
+     * @return \Illuminate\Support\Collection<int, array{id:int,name:string,title:string,visits:list<array{place:string,from:string,to:string,days:int,start:string}>}>
+     */
+    protected function peopleRoster($assigned)
+    {
+        $byPerson = [];
+
+        foreach ($assigned as $item) {
+            $assignment = $item->assignment;
+            if (! $assignment) {
+                continue;
+            }
+
+            $from = $assignment->start_date?->timezone('Asia/Dhaka')->format('d M Y');
+            $to = $assignment->end_date?->timezone('Asia/Dhaka')->format('d M Y');
+            $lastAudit = $assignment->last_audit_upto ?? $this->worklist->computeLastAuditUpto($item);
+
+            foreach ($assignment->visitorList() as $employee) {
+                $id = (int) $employee->id;
+                $byPerson[$id] ??= [
+                    'id' => $id,
+                    'name' => (string) $employee->name,
+                    'title' => (string) ($employee->position?->title ?: ''),
+                    'visits' => [],
+                ];
+                $byPerson[$id]['visits'][] = [
+                    'place' => (string) ($item->entity_label ?: '—'),
+                    'type' => (string) ($item->activityType?->name ?: str_replace('_', ' ', (string) $item->category)),
+                    'from' => $from ?: '—',
+                    'to' => $to ?: '—',
+                    'days' => (int) ($assignment->duration_days ?: 0),
+                    'start' => $assignment->start_date?->toDateString() ?? '',
+                    'last_audit' => $lastAudit ? $lastAudit->timezone('Asia/Dhaka')->format('M Y') : '—',
+                ];
+            }
+        }
+
+        return collect($byPerson)
+            ->map(function (array $person) {
+                usort($person['visits'], fn ($a, $b) => strcmp($a['start'], $b['start']));
+
+                return $person;
+            })
+            ->sortBy(fn (array $person) => mb_strtolower($person['name']))
+            ->values();
+    }
+
+    /**
+     * Significant and high-risk shakhas first, then milder risk, then other work.
+     *
+     * @param  \Illuminate\Support\Collection<int, MonthlyWorkItem>  $items
+     * @return \Illuminate\Support\Collection<int, MonthlyWorkItem>
+     */
+    protected function sortByShakhaRisk($items)
+    {
+        $rank = function (MonthlyWorkItem $item): int {
+            if (! $item->schedulable instanceof Shakha) {
+                return 6;
+            }
+
+            return match (\App\Support\ShakhaRiskTone::key($item->schedulable->riskCategory())) {
+                'significant' => 0,
+                'high' => 1,
+                'medium' => 2,
+                'low' => 3,
+                default => 4,
+            };
+        };
+
+        return $items
+            ->sortBy(function (MonthlyWorkItem $item) use ($rank) {
+                return sprintf('%02d-%s', $rank($item), mb_strtolower((string) $item->entity_label));
+            })
+            ->values();
     }
 
     /**

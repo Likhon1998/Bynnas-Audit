@@ -98,7 +98,7 @@
         <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
             <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Draft reports</p>
             <p class="mt-0.5 text-[18px] font-semibold tabular-nums text-navy-900">{{ number_format($stats['drafts'] ?? 0) }}</p>
-            <p class="text-xs text-slate-500">{{ $slotsLeft ?? 0 }} slots free</p>
+            <p class="text-xs text-slate-500">No limit on open drafts</p>
         </div>
     </div>
 @endif

@@ -1,6 +1,6 @@
 <x-app-layout>
     <div
-        class="px-3 py-3 lg:px-5"
+        class="flex h-full min-h-0 flex-col gap-2 px-3 py-2 lg:px-4"
         x-data="calendarPage({
             canManage: {{ $canManage ? 'true' : 'false' }},
             days: @js($days),
@@ -8,58 +8,39 @@
             weekendDays: @js($weekendDays),
         })"
     >
-        {{-- Hero --}}
-        <div class="relative mb-3 overflow-hidden rounded-xl border border-teal-200/70 bg-gradient-to-br from-teal-600 via-cyan-600 to-sky-700 px-3 py-3 text-white shadow-sm sm:px-5 sm:py-5">
-            <div class="pointer-events-none absolute -right-8 -top-10 h-40 w-40 rounded-full bg-amber-300/20 blur-2xl"></div>
-            <div class="pointer-events-none absolute -bottom-12 left-1/3 h-36 w-36 rounded-full bg-emerald-300/20 blur-2xl"></div>
-            <div class="relative flex flex-wrap items-start justify-between gap-2">
+        <div class="flex shrink-0 flex-wrap items-center justify-between gap-2">
+            <div class="flex min-w-0 flex-wrap items-center gap-2">
                 <div class="min-w-0">
-                    <div class="mb-2 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-teal-50 ring-1 ring-white/20">
-                        <span class="h-1.5 w-1.5 rounded-full bg-amber-300"></span>
-                        Manual · Customizable
-                    </div>
-                    <h1 class="text-[20px] font-semibold tracking-tight sm:text-[22px]">Working Calendar</h1>
-                    <p class="mt-1 max-w-xl text-[12px] text-teal-50/90">
-                        Paint your organisation’s real off days — weekly offs, national & government holidays, and internal offs. Used for staff free days and monthly visit allocation.
-                    </p>
+                    <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Working Calendar</p>
+                    <h1 class="text-[16px] font-semibold leading-tight tracking-tight text-navy-900">{{ $periodLabel }}</h1>
                 </div>
-                <div class="flex flex-wrap items-center gap-1.5">
-                    <form method="GET" action="{{ route('calendar.index') }}" class="flex flex-wrap items-center gap-1.5">
-                        <select name="month" class="h-8 rounded-lg border-0 bg-white/95 py-0 text-[12px] font-medium text-slate-800 shadow-sm" onchange="this.form.submit()">
-                            @for ($m = 1; $m <= 12; $m++)
-                                <option value="{{ $m }}" @selected($m === $month)>{{ date('F', mktime(0, 0, 0, $m, 1)) }}</option>
-                            @endfor
-                        </select>
-                        <select name="year" class="h-8 rounded-lg border-0 bg-white/95 py-0 text-[12px] font-medium text-slate-800 shadow-sm" onchange="this.form.submit()">
-                            @foreach ($yearOptions as $y)
-                                <option value="{{ $y }}" @selected($y === $year)>{{ $y }}</option>
-                            @endforeach
-                        </select>
-                    </form>
-                    <a href="{{ $prevUrl }}" class="inline-flex h-8 items-center rounded-lg bg-white/15 px-2.5 text-[12px] font-medium text-white ring-1 ring-white/25 hover:bg-white/25">←</a>
-                    <a href="{{ $todayUrl }}" class="inline-flex h-8 items-center rounded-lg bg-amber-300 px-2.5 text-[12px] font-semibold text-teal-950 hover:bg-amber-200">Today</a>
-                    <a href="{{ $nextUrl }}" class="inline-flex h-8 items-center rounded-lg bg-white/15 px-2.5 text-[12px] font-medium text-white ring-1 ring-white/25 hover:bg-white/25">→</a>
-                    @if ($canManage)
-                        <button type="button" @click="openCreate()" class="inline-flex h-8 items-center gap-1 rounded-lg bg-white px-3 text-[12px] font-semibold text-teal-800 shadow-sm hover:bg-teal-50">
-                            + Add off day
-                        </button>
-                    @endif
+                <div class="flex items-center gap-1 text-[11px] font-semibold">
+                    <span class="rounded-md bg-emerald-50 px-2 py-1 text-emerald-800 ring-1 ring-emerald-100">Working <span class="tabular-nums">{{ $stats['working'] }}</span></span>
+                    <span class="rounded-md bg-rose-50 px-2 py-1 text-rose-800 ring-1 ring-rose-100">Off <span class="tabular-nums">{{ $stats['off'] }}</span></span>
+                    <span class="rounded-md bg-amber-50 px-2 py-1 text-amber-900 ring-1 ring-amber-100">Internal <span class="tabular-nums">{{ $stats['custom'] }}</span></span>
                 </div>
             </div>
-
-            <div class="relative mt-4 grid grid-cols-3 gap-2 sm:max-w-lg">
-                <div class="rounded-xl bg-white/15 px-3 py-2 ring-1 ring-white/20">
-                    <p class="text-xs font-medium uppercase tracking-wide text-teal-100">Working</p>
-                    <p class="text-[18px] font-semibold tabular-nums">{{ $stats['working'] }}</p>
-                </div>
-                <div class="rounded-xl bg-rose-400/25 px-3 py-2 ring-1 ring-rose-200/30">
-                    <p class="text-xs font-medium uppercase tracking-wide text-rose-100">Off days</p>
-                    <p class="text-[18px] font-semibold tabular-nums">{{ $stats['off'] }}</p>
-                </div>
-                <div class="rounded-xl bg-amber-300/25 px-3 py-2 ring-1 ring-amber-200/40">
-                    <p class="text-xs font-medium uppercase tracking-wide text-amber-100">Internal</p>
-                    <p class="text-[18px] font-semibold tabular-nums">{{ $stats['custom'] }}</p>
-                </div>
+            <div class="flex flex-wrap items-center gap-1">
+                <form method="GET" action="{{ route('calendar.index') }}" class="flex items-center gap-1">
+                    <select name="month" class="h-8 rounded-md border-slate-200 py-0 pl-2 pr-7 text-[12px] font-medium text-slate-800" onchange="this.form.submit()">
+                        @for ($m = 1; $m <= 12; $m++)
+                            <option value="{{ $m }}" @selected($m === $month)>{{ date('F', mktime(0, 0, 0, $m, 1)) }}</option>
+                        @endfor
+                    </select>
+                    <select name="year" class="h-8 rounded-md border-slate-200 py-0 pl-2 pr-7 text-[12px] font-medium text-slate-800" onchange="this.form.submit()">
+                        @foreach ($yearOptions as $y)
+                            <option value="{{ $y }}" @selected($y === $year)>{{ $y }}</option>
+                        @endforeach
+                    </select>
+                </form>
+                <a href="{{ $prevUrl }}" class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white text-[13px] text-slate-700 hover:bg-slate-50" aria-label="Previous month">←</a>
+                <a href="{{ $todayUrl }}" class="inline-flex h-8 items-center rounded-md bg-teal-700 px-2.5 text-[12px] font-semibold text-white hover:bg-teal-800">Today</a>
+                <a href="{{ $nextUrl }}" class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white text-[13px] text-slate-700 hover:bg-slate-50" aria-label="Next month">→</a>
+                @if ($canManage)
+                    <button type="button" @click="openCreate()" class="inline-flex h-8 items-center rounded-md border border-teal-200 bg-teal-50 px-2.5 text-[12px] font-semibold text-teal-800 hover:bg-teal-100">
+                        + Add off day
+                    </button>
+                @endif
             </div>
         </div>
 
@@ -70,129 +51,112 @@
             <div class="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-[12px] text-rose-700">{{ $errors->first() }}</div>
         @endif
 
-        <div class="mb-3 grid gap-2 lg:grid-cols-[1fr_300px]">
-            <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-gradient-to-r from-slate-50 via-white to-amber-50/40 px-3 py-3">
-                    <div>
-                        <p class="text-[15px] font-semibold text-navy-900">{{ $periodLabel }}</p>
-                        <p class="text-[13px] text-slate-500">
-                            @if ($canManage)
-                                Click any day to mark or edit an off day
-                            @else
-                                View-only · ask an authorised user to change offs
-                            @endif
-                        </p>
-                    </div>
-                    <div class="flex flex-wrap gap-1.5 text-xs font-semibold">
-                        <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-emerald-700 ring-1 ring-emerald-100"><span class="h-2 w-2 rounded-full bg-emerald-500"></span> Working</span>
-                        <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-slate-600 ring-1 ring-slate-200"><span class="h-2 w-2 rounded-full bg-slate-400"></span> Weekly off</span>
-                        <span class="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2 py-1 text-sky-700 ring-1 ring-sky-100"><span class="h-2 w-2 rounded-full bg-sky-500"></span> National</span>
-                        <span class="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-1 text-violet-700 ring-1 ring-violet-100"><span class="h-2 w-2 rounded-full bg-violet-500"></span> Government</span>
-                        <span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-amber-800 ring-1 ring-amber-100"><span class="h-2 w-2 rounded-full bg-amber-500"></span> Internal</span>
-                    </div>
+        <div class="flex min-h-0 flex-1 flex-col gap-2 lg:flex-row">
+            <section class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div class="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-slate-100 px-2.5 py-1.5 text-[11px] font-semibold">
+                    <span class="text-slate-500">{{ $canManage ? 'Click a day to mark an off' : 'View only' }}</span>
+                    <span class="inline-flex items-center gap-1 text-emerald-700"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Working</span>
+                    <span class="inline-flex items-center gap-1 text-slate-600"><span class="h-1.5 w-1.5 rounded-full bg-slate-400"></span> Weekly</span>
+                    <span class="inline-flex items-center gap-1 text-sky-700"><span class="h-1.5 w-1.5 rounded-full bg-sky-500"></span> National</span>
+                    <span class="inline-flex items-center gap-1 text-violet-700"><span class="h-1.5 w-1.5 rounded-full bg-violet-500"></span> Government</span>
+                    <span class="inline-flex items-center gap-1 text-amber-800"><span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span> Internal</span>
                 </div>
 
-                <div class="grid grid-cols-7 border-b border-slate-100 text-center text-xs font-bold uppercase tracking-wide">
+                <div class="grid shrink-0 grid-cols-7 border-b border-slate-200 bg-slate-50 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                     @foreach ($weekdayLabels as $dow => $label)
-                        <div class="px-1 py-2.5 {{ in_array($dow, $weekendDays, true) ? 'bg-slate-200/80 text-slate-600' : 'bg-teal-50/80 text-teal-800' }}">
-                            {{ $label }}
-                        </div>
+                        <div class="px-1 py-1.5 {{ in_array($dow, $weekendDays, true) ? 'text-rose-700' : '' }}">{{ $label }}</div>
                     @endforeach
                 </div>
 
-                <div class="grid grid-cols-7 auto-rows-fr bg-slate-50/40">
+                <div
+                    class="grid min-h-0 flex-1 grid-cols-7 bg-slate-50/50"
+                    :style="'grid-template-rows: repeat(' + Math.max(1, Math.ceil(days.length / 7)) + ', minmax(0, 1fr))'"
+                >
                     <template x-for="day in days" :key="day.date">
                         <button
                             type="button"
-                            class="relative min-h-[96px] border-b border-r border-slate-100 px-1.5 py-1.5 text-left transition"
+                            class="group relative flex min-h-0 flex-col overflow-hidden border-b border-r border-slate-100 px-1 py-1 text-left"
                             :class="dayCellClass(day)"
                             :disabled="!canManage"
                             @click="canManage && openDay(day)"
                         >
-                            <div class="flex items-start justify-between gap-1">
+                            <div class="flex items-center justify-between gap-1">
                                 <span
-                                    class="inline-flex h-7 w-7 items-center justify-center rounded-full text-[12px] font-bold"
+                                    class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
                                     :class="dayNumberClass(day)"
                                     x-text="day.day"
                                 ></span>
                                 <span
-                                    x-show="day.is_weekend && day.in_month"
-                                    class="rounded bg-slate-200/90 px-1 py-0.5 text-xs font-bold uppercase tracking-wide text-slate-600"
-                                >Weekly</span>
-                                <span
                                     x-show="day.is_today"
-                                    class="rounded bg-teal-600 px-1 py-0.5 text-xs font-bold uppercase tracking-wide text-white"
+                                    class="rounded bg-teal-600 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-white"
                                 >Today</span>
+                                <span
+                                    x-show="day.is_weekend && day.in_month && !day.is_today && day.holidays.length === 0"
+                                    class="text-[9px] font-semibold uppercase tracking-wide text-rose-600"
+                                >Off</span>
                             </div>
-                            <div class="mt-1.5 space-y-1">
+                            <div class="mt-0.5 min-h-0 space-y-0.5">
                                 <template x-for="h in day.holidays.slice(0, 2)" :key="h.id">
                                     <p
-                                        class="truncate rounded-md px-1.5 py-1 text-xs font-semibold leading-tight text-white shadow-sm"
+                                        class="truncate rounded px-1 py-px text-[10px] font-semibold leading-tight text-white"
                                         :class="holidayChipClass(h.type)"
+                                        :title="h.name"
                                         x-text="h.name"
                                     ></p>
                                 </template>
                                 <p
                                     x-show="day.holidays.length > 2"
-                                    class="text-xs font-semibold text-slate-500"
-                                    x-text="'+' + (day.holidays.length - 2) + ' more'"
+                                    class="text-[10px] font-semibold text-slate-500"
+                                    x-text="'+' + (day.holidays.length - 2)"
                                 ></p>
-                                <p
-                                    x-show="canManage && day.in_month && day.holidays.length === 0 && !day.is_weekend"
-                                    class="text-xs font-medium text-teal-600/70 opacity-0 transition group-hover:opacity-100"
-                                    style="opacity: 0.55"
-                                >+ mark off</p>
                             </div>
                         </button>
                     </template>
                 </div>
             </section>
 
-            <aside class="space-y-3">
-                <div class="overflow-hidden rounded-xl border border-teal-100 bg-gradient-to-b from-teal-50 to-white p-3 shadow-sm">
-                    <p class="text-[12px] font-semibold text-teal-900">Weekly off days</p>
-                    <p class="mt-0.5 text-xs text-teal-700/80">Tap weekdays your organisation does not work</p>
+            <aside class="flex max-h-[42vh] shrink-0 flex-col gap-2 lg:max-h-none lg:w-[228px]">
+                <div class="shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
+                    <p class="text-[12px] font-semibold text-navy-900">Weekly offs</p>
 
                     @if ($canManage)
-                        <form method="POST" action="{{ route('calendar.weekends') }}" class="mt-3 space-y-1.5">
+                        <form method="POST" action="{{ route('calendar.weekends') }}" class="mt-1.5">
                             @csrf
                             @method('PUT')
                             <input type="hidden" name="month" value="{{ $month }}">
                             <input type="hidden" name="year" value="{{ $year }}">
+                            <div class="grid grid-cols-2 gap-0.5">
                             @foreach ($weekdayLabels as $dow => $label)
-                                <label class="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] transition hover:bg-white {{ in_array($dow, $weekendDays, true) ? 'bg-white font-semibold text-teal-900 ring-1 ring-teal-100' : 'text-slate-600' }}">
+                                <label class="flex cursor-pointer items-center gap-1.5 rounded px-1 py-0.5 text-[11px] {{ in_array($dow, $weekendDays, true) ? 'bg-slate-100 font-semibold text-slate-800' : 'text-slate-600' }}">
                                     <input
                                         type="checkbox"
                                         name="weekend_days[]"
                                         value="{{ $dow }}"
-                                        class="rounded border-teal-300 text-teal-700 focus:ring-teal-600"
+                                        class="rounded border-slate-300 text-teal-700 focus:ring-teal-600"
                                         @checked(in_array($dow, $weekendDays, true))
                                     >
-                                    <span>{{ $label }}</span>
-                                    @if (in_array($dow, $weekendDays, true))
-                                        <span class="ml-auto rounded bg-slate-200 px-1.5 py-0.5 text-xs font-bold uppercase text-slate-600">Off</span>
-                                    @endif
+                                    <span class="truncate">{{ $label }}</span>
                                 </label>
                             @endforeach
-                            <button type="submit" class="mt-2 inline-flex h-9 w-full items-center justify-center rounded-lg bg-teal-700 text-[12px] font-semibold text-white hover:bg-teal-800">
+                            </div>
+                            <button type="submit" class="mt-1.5 inline-flex h-7 w-full items-center justify-center rounded-md bg-teal-700 text-[11px] font-semibold text-white hover:bg-teal-800">
                                 Save weekly offs
                             </button>
                         </form>
                     @else
-                        <ul class="mt-3 space-y-1.5 text-[12px] text-slate-700">
+                        <ul class="mt-1.5 space-y-1 text-[12px] text-slate-700">
                             @forelse ($weekendDays as $dow)
-                                <li class="rounded-lg bg-white px-2 py-1.5 ring-1 ring-teal-100">{{ $weekdayLabels[$dow] ?? 'Day '.$dow }}</li>
+                                <li class="rounded bg-slate-50 px-2 py-1">{{ $weekdayLabels[$dow] ?? 'Day '.$dow }}</li>
                             @empty
-                                <li class="text-slate-400">No weekly offs configured</li>
+                                <li class="text-slate-400">No weekly offs</li>
                             @endforelse
                         </ul>
                     @endif
                 </div>
 
-                <div class="overflow-hidden rounded-xl border border-amber-100 bg-gradient-to-b from-amber-50 to-white p-3 shadow-sm">
-                    <p class="text-[12px] font-semibold text-amber-950">This month’s marked offs</p>
-                    <p class="mt-0.5 text-xs text-amber-800/70">Manual entries & holidays</p>
-                    <div class="mt-2 max-h-[360px] space-y-2 overflow-y-auto">
+                <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
+                    <p class="shrink-0 text-[12px] font-semibold text-navy-900">Marked offs</p>
+                    <div class="mt-1.5 min-h-0 flex-1 space-y-1 overflow-y-auto">
                         @forelse ($monthHolidays as $holiday)
                             @php
                                 $chip = match ($holiday->type) {
@@ -202,21 +166,20 @@
                                     default => 'bg-slate-400',
                                 };
                             @endphp
-                            <div class="rounded-xl border border-white bg-white px-2.5 py-2 shadow-sm {{ $holiday->is_active ? '' : 'opacity-60' }}">
-                                <div class="flex items-start justify-between gap-2">
+                            <div class="rounded-md border border-slate-100 px-2 py-1.5 {{ $holiday->is_active ? '' : 'opacity-60' }}">
+                                <div class="flex items-start justify-between gap-1">
                                     <div class="min-w-0">
-                                        <div class="mb-1 flex items-center gap-1.5">
-                                            <span class="h-2 w-2 rounded-full {{ $chip }}"></span>
-                                            <p class="text-[13px] font-semibold text-slate-800">{{ $holiday->holiday_date->format('d M Y') }}</p>
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="h-1.5 w-1.5 shrink-0 rounded-full {{ $chip }}"></span>
+                                            <p class="text-[11px] font-semibold text-slate-700">{{ $holiday->holiday_date->format('d M') }}</p>
                                         </div>
                                         <p class="truncate text-[12px] font-medium text-navy-900">{{ $holiday->name }}</p>
-                                        <p class="text-xs text-slate-500">{{ \App\Models\CalendarHoliday::typeLabel($holiday->type) }}{{ $holiday->is_active ? '' : ' · inactive' }}</p>
                                     </div>
                                     @if ($canManage)
-                                        <div class="flex shrink-0 gap-1">
+                                        <div class="flex shrink-0 gap-0.5">
                                             <button
                                                 type="button"
-                                                class="rounded-md bg-slate-50 px-1.5 py-0.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                                                class="rounded px-1 py-0.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-100"
                                                 @click="openEdit(@js([
                                                     'id' => $holiday->id,
                                                     'holiday_date' => $holiday->holiday_date->toDateString(),
@@ -226,20 +189,24 @@
                                                     'is_active' => $holiday->is_active,
                                                 ]))"
                                             >Edit</button>
-                                            <form method="POST" action="{{ route('calendar.toggle', $holiday) }}" onsubmit="return confirm('Toggle this off day?')">
+                                            <form
+                                                method="POST"
+                                                action="{{ route('calendar.toggle', $holiday) }}"
+                                                data-bynnas-confirm="This marked day will count as an off day, or stop counting, until you change it again."
+                                                data-bynnas-confirm-title="Change this off day?"
+                                                data-bynnas-confirm-ok="Change"
+                                                data-bynnas-confirm-tone="amber"
+                                            >
                                                 @csrf
                                                 @method('PATCH')
-                                                <button type="submit" class="rounded-md bg-amber-50 px-1.5 py-0.5 text-xs font-semibold text-amber-800 hover:bg-amber-100">{{ $holiday->is_active ? 'Off' : 'On' }}</button>
+                                                <button type="submit" class="rounded px-1 py-0.5 text-[10px] font-semibold text-amber-800 hover:bg-amber-50">{{ $holiday->is_active ? 'Off' : 'On' }}</button>
                                             </form>
                                         </div>
                                     @endif
                                 </div>
                             </div>
                         @empty
-                            <div class="rounded-xl border border-dashed border-amber-200 bg-white/70 px-3 py-6 text-center">
-                                <p class="text-[13px] font-medium text-amber-900/80">No marked offs yet</p>
-                                <p class="mt-1 text-xs text-amber-800/60">Click a day on the grid to add an internal off day</p>
-                            </div>
+                            <p class="px-1 py-4 text-center text-[12px] text-slate-500">No marked offs this month. Click a day on the calendar.</p>
                         @endforelse
                     </div>
                 </div>
@@ -338,28 +305,39 @@
                 },
                 dayCellClass(day) {
                     const classes = [];
-                    if (!day.in_month) classes.push('bg-slate-50/80 opacity-55');
-                    else if (day.is_weekend) classes.push('bg-slate-100/90');
-                    else if (day.holidays?.some((h) => h.type === 'ngo')) classes.push('bg-amber-50');
-                    else if (day.holidays?.some((h) => h.type === 'national')) classes.push('bg-sky-50');
-                    else if (day.holidays?.some((h) => h.type === 'government')) classes.push('bg-violet-50');
-                    else classes.push('bg-white hover:bg-teal-50/70');
-                    if (day.is_today) classes.push('ring-2 ring-inset ring-teal-500');
+                    const holiday = day.holidays?.[0]?.type;
+                    if (!day.in_month) {
+                        classes.push('bg-slate-50 text-slate-300');
+                    } else if (holiday === 'national') {
+                        classes.push('bg-sky-50');
+                    } else if (holiday === 'government') {
+                        classes.push('bg-violet-50');
+                    } else if (holiday === 'ngo') {
+                        classes.push('bg-amber-50');
+                    } else if (day.is_weekend) {
+                        classes.push('bg-rose-50/80');
+                    } else {
+                        classes.push('bg-white hover:bg-slate-50');
+                    }
+                    if (day.is_today) classes.push('ring-2 ring-inset ring-teal-600');
                     if (this.canManage && day.in_month) classes.push('cursor-pointer');
                     return classes.join(' ');
                 },
                 dayNumberClass(day) {
                     if (!day.in_month) return 'text-slate-300';
-                    if (day.is_today) return 'bg-teal-600 text-white shadow-sm';
-                    if (day.is_weekend) return 'bg-slate-200 text-slate-600';
-                    if (day.holidays?.length) return 'bg-white text-slate-800 ring-1 ring-slate-200';
+                    if (day.is_today) return 'bg-teal-700 text-white';
+                    const holiday = day.holidays?.[0]?.type;
+                    if (holiday === 'national') return 'bg-sky-600 text-white';
+                    if (holiday === 'government') return 'bg-violet-600 text-white';
+                    if (holiday === 'ngo') return 'bg-amber-600 text-white';
+                    if (day.is_weekend) return 'text-rose-700';
                     return 'text-slate-800';
                 },
                 holidayChipClass(type) {
-                    if (type === 'national') return 'bg-sky-500';
-                    if (type === 'government') return 'bg-violet-500';
-                    if (type === 'ngo') return 'bg-amber-500';
-                    return 'bg-slate-400';
+                    if (type === 'national') return 'bg-sky-600';
+                    if (type === 'government') return 'bg-violet-600';
+                    if (type === 'ngo') return 'bg-amber-600';
+                    return 'bg-slate-500';
                 },
                 openCreate(date = null) {
                     this.editingId = null;
@@ -397,11 +375,15 @@
                     };
                     this.modalOpen = true;
                 },
-                confirmDelete() {
+                async confirmDelete() {
                     if (!this.editingId) return;
-                    if (confirm('Remove this off day from the calendar?')) {
-                        this.$refs.deleteForm.submit();
-                    }
+                    const ok = await window.bynnasConfirm({
+                        title: 'Remove this off day?',
+                        message: 'It will no longer count as an off day on the Working Calendar.',
+                        okLabel: 'Remove',
+                        tone: 'rose',
+                    });
+                    if (ok) this.$refs.deleteForm.submit();
                 },
             };
         }

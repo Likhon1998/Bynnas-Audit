@@ -13,7 +13,12 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        // composer dump-autoload must include app/helpers.php; load it here too
+        // so bd_zone() exists even if the generated class map is stale.
+        $helpers = dirname(__DIR__).DIRECTORY_SEPARATOR.'helpers.php';
+        if (is_file($helpers)) {
+            require_once $helpers;
+        }
     }
 
     public function boot(): void

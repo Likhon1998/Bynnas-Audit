@@ -11,9 +11,8 @@
         <link rel="icon" type="image/png" href="{{ asset('images/bynnas-logo.png') }}?v=3">
         <script>
             try {
-                const savedTheme = localStorage.getItem('bynnasTheme');
-                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                document.documentElement.classList.toggle('dark', savedTheme === 'dark' || (!savedTheme && prefersDark));
+                document.documentElement.classList.remove('dark');
+                localStorage.removeItem('bynnasTheme');
             } catch (e) {}
         </script>
 
@@ -29,7 +28,6 @@
             x-data="{
                 sidebarOpen: false,
                 sidebarCollapsed: false,
-                darkMode: document.documentElement.classList.contains('dark'),
                 init() {
                     try {
                         this.sidebarCollapsed = localStorage.getItem('bynnasSidebarCollapsedV2') === '1';
@@ -45,13 +43,6 @@
                     this.$nextTick(() => {
                         window.dispatchEvent(new Event('resize'));
                     });
-                },
-                toggleTheme() {
-                    this.darkMode = !this.darkMode;
-                    document.documentElement.classList.toggle('dark', this.darkMode);
-                    try {
-                        localStorage.setItem('bynnasTheme', this.darkMode ? 'dark' : 'light');
-                    } catch (e) {}
                 },
             }"
             @keydown.window.escape="sidebarOpen = false"
@@ -73,7 +64,7 @@
                 </button>
 
                 <main class="flex min-h-0 flex-1 flex-col overflow-hidden pt-10 lg:pt-0">
-                    <div class="h-full min-h-0 flex-1 overflow-y-auto">
+                    <div class="flex h-full min-h-0 flex-1 flex-col overflow-y-auto">
                         {{ $slot }}
                     </div>
                 </main>

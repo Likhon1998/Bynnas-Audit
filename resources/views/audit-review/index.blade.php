@@ -172,14 +172,12 @@
                                 $isMakerOfRow = (int) $report->user_id === (int) $user->id;
                                 $canReopen = $tab === 'reviewed'
                                     && $report->isReviewed()
-                                    && (
-                                        (int) $report->reviewer_user_id === (int) $user->id
-                                        || $reviews->isReviewAdmin($user)
-                                        || $user->can('audits.manage')
-                                    );
-                                $todo = 'Open';
+                                    && (int) $report->reviewer_user_id === (int) $user->id;
+                                $todo = 'View only';
                                 if ($tab === 'inbox' && $canActRow) {
                                     $todo = 'Review & mark comments';
+                                } elseif ($tab === 'inbox') {
+                                    $todo = 'View only';
                                 } elseif ($tab === 'returned') {
                                     $todo = 'Edit report, then resubmit';
                                 } elseif ($tab === 'reviewed') {

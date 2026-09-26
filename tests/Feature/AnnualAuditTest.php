@@ -278,4 +278,86 @@ class AnnualAuditTest extends TestCase
             ->post(route('annual-audit.generate'))
             ->assertForbidden();
     }
+
+    public function test_completed_card_counts_a_finished_monthly_visit(): void
+    {
+        $position = \App\Models\Position::query()->create([
+            'serial' => 41,
+            'title' => 'Audit Officer',
+            'slug' => 'ao-annual-done',
+            'color' => '#667085',
+        ]);
+        $employee = \App\Models\Employee::query()->create([
+            'position_id' => $position->id,
+            'name' => 'Annual Done Officer',
+            'sort_order' => 1,
+        ]);
+        $area = \App\Models\Area::query()->create(['name' => 'Done Area', 'division' => 'Dhaka', 'status' => 'active']);
+        $shakha = Shakha::query()->create([
+            'area_id' => $area->id,
+            'name' => 'Done Shakha',
+            'code' => 'DONE-1',
+            'status' => 'active',
+        ]);
+        $activity = \App\Models\ActivityType::query()->create([
+            'name' => 'Shakha Audit',
+            'slug' => 'shakha-audit-done-kpi',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+        $plan = AuditPlan::query()->create([
+            'name' => 'FY 2026-2027',
+            'fy_label' => '2026-2027',
+            'start_date' => '2026-07-01',
+            'end_date' => '2027-06-30',
+            'status' => 'active',
+            'generated_at' => now(),
+        ]);
+        $schedule = PlanSchedule::query()->create([
+            'audit_plan_id' => $plan->id,
+            'category' => AuditPolicy::CATEGORY_SHAKHA,
+            'schedulable_type' => Shakha::class,
+            'schedulable_id' => $shakha->id,
+            'month_index' => 0,
+            'planned_date' => '2026-07-15',
+            'occurrence' => 1,
+            'status' => 'planned',
+        ]);
+        $item = \App\Models\MonthlyWorkItem::query()->create([
+            'audit_plan_id' => $plan->id,
+            'fy_label' => '2026-2027',
+            'month_index' => 0,
+            'category' => AuditPolicy::CATEGORY_SHAKHA,
+            'activity_type_id' => $activity->id,
+            'schedulable_type' => Shakha::class,
+            'schedulable_id' => $shakha->id,
+            'plan_schedule_id' => $schedule->id,
+            'source' => \App\Models\MonthlyWorkItem::SOURCE_YEARLY,
+            'status' => \App\Models\MonthlyWorkItem::STATUS_UNASSIGNED,
+            'entity_label' => $shakha->name,
+        ]);
+
+        $builder = new \App\Services\AnnualAuditReportBuilder($plan);
+        $this->assertSame(0, $builder->kpis()['completed']);
+        $this->assertSame(1, $builder->kpis()['pending']);
+
+        $assignment = app(\App\Services\MonthlyWorklistService::class)->assign($item, [
+            'employee_ids' => [$employee->id],
+            'start_date' => '2026-07-15',
+            'end_date' => '2026-07-15',
+            'visit_date' => '2026-07-15',
+        ]);
+
+        app(\App\Services\MonthlyWorklistService::class)->updateExecution($assignment, [
+            'status' => \App\Models\VisitExecution::STATUS_COMPLETED,
+            'actual_start_date' => '2026-07-15',
+            'actual_end_date' => '2026-07-15',
+        ]);
+
+        $schedule->refresh();
+        $this->assertSame('completed', $schedule->status);
+        $kpis = $builder->kpis();
+        $this->assertSame(1, $kpis['completed']);
+        $this->assertSame(0, $kpis['pending']);
+    }
 }

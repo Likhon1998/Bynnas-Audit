@@ -6,10 +6,12 @@ use App\Models\Area;
 use App\Models\AuditPlan;
 use App\Models\AuditPolicy;
 use App\Models\HqDepartment;
+use App\Models\MonthlyWorkItem;
 use App\Models\PlanSchedule;
 use App\Models\Project;
 use App\Models\ProjectLocation;
 use App\Models\Shakha;
+use App\Models\VisitExecution;
 use App\Support\FinancialYear;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +19,9 @@ use Illuminate\Support\Facades\DB;
 class AnnualAuditReportBuilder
 {
     public function __construct(public readonly AuditPlan $plan) {}
+
+    /** @var array<string, array{label:string,planned:int,by_month:array<int,int>}>|null */
+    protected ?array $categoryTotalsCache = null;
 
     public function months(): array
     {
@@ -28,6 +33,10 @@ class AnnualAuditReportBuilder
      */
     public function totalsByCategory(): array
     {
+        if ($this->categoryTotalsCache !== null) {
+            return $this->categoryTotalsCache;
+        }
+
         $months = range(0, 11);
         $categories = [
             AuditPolicy::CATEGORY_SHAKHA => 'Shakha Audit',
@@ -60,17 +69,32 @@ class AnnualAuditReportBuilder
             ];
         }
 
-        return $result;
+        return $this->categoryTotalsCache = $result;
     }
 
     public function kpis(): array
     {
         $totals = $this->totalsByCategory();
-        $planned = array_sum(array_column($totals, 'planned'));
+        $cancelled = PlanSchedule::query()
+            ->where('audit_plan_id', $this->plan->id)
+            ->where('month_index', '<=', 11)
+            ->where('status', 'cancelled')
+            ->count();
+        $planned = max(0, array_sum(array_column($totals, 'planned')) - $cancelled);
+        $completedFromVisits = MonthlyWorkItem::query()
+            ->where('audit_plan_id', $this->plan->id)
+            ->whereNotNull('plan_schedule_id')
+            ->whereHas('assignment.execution', fn ($q) => $q->where('status', VisitExecution::STATUS_COMPLETED))
+            ->pluck('plan_schedule_id');
+
         $completed = PlanSchedule::query()
             ->where('audit_plan_id', $this->plan->id)
             ->where('month_index', '<=', 11)
-            ->where('status', 'completed')
+            ->where('status', '!=', 'cancelled')
+            ->where(function ($q) use ($completedFromVisits) {
+                $q->where('status', 'completed')
+                    ->orWhereIn('id', $completedFromVisits);
+            })
             ->count();
 
         return [

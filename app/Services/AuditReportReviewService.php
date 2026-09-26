@@ -60,13 +60,11 @@ class AuditReportReviewService
             return false;
         }
 
-        // Admin / assigner may step in to review any report.
-        if ($this->isReviewAdmin($user)) {
-            return true;
+        if ((int) $report->reviewer_user_id !== (int) $user->id) {
+            return false;
         }
 
-        return (int) $report->reviewer_user_id === (int) $user->id
-            && $user->can('audits.review');
+        return $user->can('audits.review') || $this->isReviewAdmin($user);
     }
 
     /**
@@ -103,10 +101,9 @@ class AuditReportReviewService
                 ->whereNotNull('review_ready_at')
                 ->whereNull('review_sent_to_maker_at');
 
-            if (! $this->seesAllReviewInbox($user)) {
-                $inboxQuery->where('reviewer_user_id', $user->id);
-                $readyQuery->where('reviewer_user_id', $user->id);
-            }
+            // Every reviewer — including admin — only acts on reports sent to them.
+            $inboxQuery->where('reviewer_user_id', $user->id);
+            $readyQuery->where('reviewer_user_id', $user->id);
 
             $inbox = (int) $inboxQuery->count();
             $ready = (int) $readyQuery->count();
@@ -1007,13 +1004,13 @@ class AuditReportReviewService
         ];
     }
 
-    public function isEditableByMaker(AuditReport $report): bool
+    public function isEditableByMaker(AuditReport $report, ?User $user = null): bool
     {
-        return in_array($report->status, [
-            AuditReport::STATUS_DRAFT,
-            AuditReport::STATUS_COMPLETED,
-            AuditReport::STATUS_CHANGES_REQUESTED,
-        ], true);
+        if ($user !== null && ! $report->isAccessibleBy($user)) {
+            return false;
+        }
+
+        return true;
     }
 
     public function isLocked(AuditReport $report): bool

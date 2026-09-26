@@ -7,6 +7,7 @@ use App\Models\Area;
 use App\Models\AssignmentStatusLog;
 use App\Models\AuditPlan;
 use App\Models\AuditPolicy;
+use App\Models\AuditReport;
 use App\Models\Employee;
 use App\Models\HqDepartment;
 use App\Models\MonthlyAssignment;
@@ -828,9 +829,8 @@ class MonthlyWorklistService
             $this->assertScheduleEditable($item->assignment, $actor);
         }
 
-        $shouldLock = array_key_exists('lock_schedule', $data)
-            ? ! empty($data['lock_schedule'])
-            : true;
+        // Visits are always locked when allocated so the auditor cannot change them.
+        $shouldLock = true;
 
         return DB::transaction(function () use ($item, $data, $visitorIds, $start, $end, $duration, $mode, $countOffDays, $lastUpto, $userId, $shouldLock) {
             $assignment = MonthlyAssignment::query()->updateOrCreate(
@@ -922,9 +922,8 @@ class MonthlyWorklistService
             throw new InvalidArgumentException($this->formatConflictMessage($conflicts, $visitorIds));
         }
 
-        $shouldLock = array_key_exists('lock_schedule', $data)
-            ? ! empty($data['lock_schedule'])
-            : (bool) $assignment->is_locked;
+        // A moved visit stays locked. Only an admin can change it.
+        $shouldLock = true;
 
         return DB::transaction(function () use ($assignment, $data, $visitorIds, $start, $end, $duration, $mode, $countOffDays, $reason, $userId, $shouldLock) {
             $from = $assignment->execution?->status ?? 'assigned';
@@ -1095,7 +1094,114 @@ class MonthlyWorklistService
             ]);
         }
 
+        $this->syncYearlyScheduleStatus($assignment, (string) $to);
+
         return $execution->fresh();
+    }
+
+    /**
+     * Visit status follows the allocated auditor's report, not a manual admin change.
+     * Making the report = Ongoing. Sent for review = In review. Confirmed = Completed.
+     */
+    public function syncVisitFromReport(AuditReport $report): void
+    {
+        $assignment = $this->assignmentForReport($report);
+        if (! $assignment) {
+            return;
+        }
+
+        $status = match ($report->status) {
+            AuditReport::STATUS_IN_REVIEW => 'in_review',
+            AuditReport::STATUS_REVIEWED => VisitExecution::STATUS_COMPLETED,
+            AuditReport::STATUS_DRAFT,
+            AuditReport::STATUS_COMPLETED,
+            AuditReport::STATUS_CHANGES_REQUESTED => 'ongoing',
+            default => VisitExecution::STATUS_PLANNED,
+        };
+
+        $execution = VisitExecution::query()->firstOrCreate(
+            ['monthly_assignment_id' => $assignment->id],
+            [
+                'status' => $status,
+                'created_by' => $report->user_id,
+            ]
+        );
+
+        if ($execution->status !== $status) {
+            $from = $execution->status;
+            $execution->update(['status' => $status, 'updated_by' => $report->user_id]);
+            AssignmentStatusLog::query()->create([
+                'monthly_assignment_id' => $assignment->id,
+                'from_status' => $from,
+                'to_status' => $status,
+                'reason' => 'Follows the auditor report ('.$report->status.')',
+                'changed_by' => $report->user_id,
+            ]);
+        }
+
+        $this->syncYearlyScheduleStatus($assignment, $status);
+    }
+
+    protected function assignmentForReport(AuditReport $report): ?MonthlyAssignment
+    {
+        if ($report->monthly_assignment_id) {
+            $linked = MonthlyAssignment::query()->with('workItem')->find($report->monthly_assignment_id);
+            if ($linked) {
+                return $linked;
+            }
+        }
+
+        if (! $report->report_month || ! $report->report_year) {
+            return null;
+        }
+
+        $type = $report->shakha_id ? Shakha::class : ($report->project_location_id ? ProjectLocation::class : null);
+        $entityId = $report->shakha_id ?: $report->project_location_id;
+        if (! $type || ! $entityId) {
+            return null;
+        }
+
+        $date = Carbon::create((int) $report->report_year, (int) $report->report_month, 15, 0, 0, 0, 'Asia/Dhaka');
+        $monthIndex = FinancialYear::current($date)->monthIndexForDate($date);
+        if ($monthIndex === null) {
+            return null;
+        }
+
+        $item = MonthlyWorkItem::query()
+            ->where('month_index', $monthIndex)
+            ->where('schedulable_type', $type)
+            ->where('schedulable_id', $entityId)
+            ->whereHas('assignment')
+            ->with('assignment.workItem')
+            ->orderByDesc('id')
+            ->first();
+
+        return $item?->assignment;
+    }
+
+    /**
+     * Annual Audit Completed / Pending follow the monthly visit execution.
+     * Marking a visit Completed fills the yearly schedule status the cards read.
+     */
+    protected function syncYearlyScheduleStatus(MonthlyAssignment $assignment, string $executionStatus): void
+    {
+        $assignment->loadMissing('workItem');
+        $scheduleId = $assignment->workItem?->plan_schedule_id;
+        if (! $scheduleId) {
+            return;
+        }
+
+        $scheduleStatus = match ($executionStatus) {
+            VisitExecution::STATUS_COMPLETED => 'completed',
+            VisitExecution::STATUS_CANCELLED => 'cancelled',
+            default => 'planned',
+        };
+
+        PlanSchedule::query()
+            ->whereKey($scheduleId)
+            ->update([
+                'status' => $scheduleStatus,
+            ]);
     }
 
     /**
@@ -1165,6 +1271,40 @@ class MonthlyWorklistService
         return 'Cannot allocate: same person cannot be in two places at once'
             .($detail !== '' ? ' — '.$detail : '')
             .'. Change visitors or dates.';
+    }
+
+    /**
+     * Late when the visit end date has passed and the auditor has not started the checklist.
+     *
+     * @param  array{supports_audit_work?:bool,checklist_done?:int,checklist_required?:int}|null  $workLink
+     */
+    public function assignmentIsLate(MonthlyAssignment $assignment, ?array $workLink): bool
+    {
+        $status = (string) ($assignment->execution?->status ?? 'planned');
+        if (in_array($status, [
+            VisitExecution::STATUS_COMPLETED,
+            VisitExecution::STATUS_CANCELLED,
+            'in_review',
+        ], true)) {
+            return false;
+        }
+
+        if (! ($workLink['supports_audit_work'] ?? false)) {
+            return false;
+        }
+
+        $checklistStarted = ((int) ($workLink['checklist_done'] ?? 0)) > 0
+            || ((int) ($workLink['checklist_required'] ?? 0)) > 0;
+        if ($checklistStarted) {
+            return false;
+        }
+
+        $end = $assignment->end_date;
+        if (! $end) {
+            return false;
+        }
+
+        return $end->toDateString() < now('Asia/Dhaka')->toDateString();
     }
 
     /**

@@ -65,7 +65,7 @@ class VisitAuditWorkService
                 $existing->forceFill(['monthly_assignment_id' => $assignment->id])->save();
             }
 
-            if (app(AuditReportReviewService::class)->isEditableByMaker($existing)) {
+            if (app(AuditReportReviewService::class)->isEditableByMaker($existing, $user)) {
                 $teamIds = $this->collaboration->visitorUserIdsForSchedulablePeriod($type, $entityId, $month, $year);
                 $this->collaboration->syncCollaborators($existing, $teamIds, $user);
             }
