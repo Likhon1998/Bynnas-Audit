@@ -34,7 +34,7 @@
             <thead>
                 <tr class="bg-slate-100 text-center font-semibold text-slate-700">
                     <th class="border border-slate-300 px-1 py-1.5 w-10">ক্রমিক নং</th>
-                    <th class="border border-slate-300 px-1 py-1.5 min-w-[110px]">মাঠকর্মকর্তার নাম</th>
+                    <th class="border border-slate-300 px-1 py-1.5 min-w-[180px]">মাঠকর্মকর্তার নাম</th>
                     <th class="border border-slate-300 px-1 py-1.5 min-w-[80px]">সমিতি নং</th>
                     <th class="border border-slate-300 px-1 py-1.5 min-w-[90px]">সমিতি গঠনের তারিখ</th>
                     <th class="border border-slate-300 px-1 py-1.5 min-w-[90px]">সমিতি গ্রহণের তারিখ</th>
@@ -53,7 +53,14 @@
                         <td class="border border-slate-300 px-1 py-1 text-center tabular-nums">{{ $ri + 1 }}</td>
                         @foreach (['fo_name','society_no','formed_date','accepted_date','member_count','borrower_count','savings_balance','loan_balance','arrear_count','arrear_amount'] as $field)
                             <td class="border border-slate-300 p-0.5">
-                                <input type="text" wire:model.live="payload.stats_rows.{{ $ri }}.{{ $field }}" class="h-8 w-full border-0 bg-transparent px-1 text-[13px] focus:ring-1 focus:ring-[#2b579a]">
+                                @if ($field === 'fo_name')
+                                    @include('livewire.partials.audit-checklist-staff-select', [
+                                        'wireModel' => 'payload.stats_rows.'.$ri.'.fo_name',
+                                        'value' => data_get($payload, "stats_rows.{$ri}.fo_name", ''),
+                                    ])
+                                @else
+                                    <input type="text" wire:model.live="payload.stats_rows.{{ $ri }}.{{ $field }}" class="h-8 w-full border-0 bg-transparent px-1 text-[13px] focus:ring-1 focus:ring-[#2b579a]">
+                                @endif
                             </td>
                         @endforeach
                         <td class="border border-slate-300 p-0.5 text-center">

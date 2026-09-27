@@ -16,7 +16,7 @@
     @endphp
 
     <div
-        class="px-3 py-3 lg:px-5"
+        class="flex h-full min-h-0 flex-col px-3 py-3 lg:px-5"
         x-data="{
             addOpen: false,
             division: @js((string) ($filters['division'] ?? '')),
@@ -219,9 +219,9 @@
             </div>
         </form>
 
-        <div class="mb-3 grid gap-2 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <div class="grid min-h-0 flex-1 gap-2 lg:grid-cols-[280px_minmax(0,1fr)]">
             <div
-                class="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-card"
+                class="flex min-h-0 flex-col overflow-hidden rounded-xl border border-slate-100 bg-white shadow-card"
                 x-data="{
                     branchQ: '',
                     branches: @js($byShakha->map(fn ($b) => [
@@ -268,7 +268,7 @@
                         >
                     </div>
                 </div>
-                <div class="max-h-[28rem] divide-y divide-slate-100 overflow-y-auto">
+                <div class="min-h-0 flex-1 divide-y divide-slate-100 overflow-y-auto">
                     <template x-for="branch in filteredBranches" :key="branch.id">
                         <a
                             :href="branch.url"
@@ -293,7 +293,7 @@
                 </div>
             </div>
 
-            <div class="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-card">
+            <div class="flex min-h-0 flex-col overflow-hidden rounded-xl border border-slate-100 bg-white shadow-card">
                 <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-3.5 py-2.5">
                     <div>
                         <p class="text-[12px] font-semibold text-navy-900">
@@ -317,7 +317,7 @@
                         </a>
                     @endif
                 </div>
-                <div class="overflow-x-auto">
+                <div class="min-h-0 flex-1 overflow-x-auto overflow-y-auto">
                     @if (! $selectedShakha)
                         <div class="px-3.5 py-14 text-center">
                             <p class="text-[13px] font-medium text-navy-900">No shakha selected</p>
@@ -360,22 +360,14 @@
                                                 <span class="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">Inactive</span>
                                             @endif
                                         </td>
-                                        <td class="px-3.5 py-2.5 text-right whitespace-nowrap">
-                                            @php $count = (int) (($reportCounts[$employee->id] ?? 0)); @endphp
-                                            <a href="{{ route('shakha-employees.dossier', $employee) }}" class="text-[13px] font-semibold text-rose-700 hover:underline">
-                                                রিপোর্ট{{ $count > 0 ? ' ('.$count.')' : '' }}
-                                            </a>
-                                            <a href="{{ route('shakha-employees.manage', $employee->shakha) }}" class="ml-2 text-[13px] font-semibold text-[#2b579a] hover:underline">Manage</a>
-                                            @if ($canManage)
-                                                <a href="{{ route('shakha-employees.edit', $employee) }}" class="ml-2 text-[13px] font-semibold text-slate-600 hover:underline">Edit</a>
-                                                <span class="ml-2 inline-block align-middle">
-                                                    @include('shakha-employees.partials.transfer-fire-actions', [
-                                                        'employee' => $employee,
-                                                        'transferTargets' => $transferTargets ?? collect(),
-                                                        'returnTo' => request()->fullUrl(),
-                                                    ])
-                                                </span>
-                                            @endif
+                                        <td class="px-3.5 py-2.5 text-right">
+                                            @include('shakha-employees.partials.transfer-fire-actions', [
+                                                'employee' => $employee,
+                                                'transferTargets' => $transferTargets ?? collect(),
+                                                'returnTo' => request()->fullUrl(),
+                                                'canManage' => $canManage,
+                                                'reportCount' => (int) (($reportCounts[$employee->id] ?? 0)),
+                                            ])
                                         </td>
                                     </tr>
                                 @empty

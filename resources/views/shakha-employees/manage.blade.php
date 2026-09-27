@@ -85,31 +85,22 @@
                                         @endif
                                     </td>
                                     @if ($canManage)
-                                        <td class="px-3.5 py-2.5 text-right whitespace-nowrap">
-                                            @php $count = (int) (($reportCounts[$row->id] ?? 0)); @endphp
-                                            <a href="{{ route('shakha-employees.dossier', $row) }}" class="mr-2 text-[13px] font-semibold text-rose-700 hover:underline">
-                                                রিপোর্ট{{ $count > 0 ? ' ('.$count.')' : '' }}
-                                            </a>
-                                            <a href="{{ route('shakha-employees.edit', $row) }}" class="text-[13px] font-semibold text-[#2b579a] hover:underline">Edit</a>
-                                            <span class="ml-2 inline-block align-middle">
-                                                @include('shakha-employees.partials.transfer-fire-actions', [
-                                                    'employee' => $row,
-                                                    'transferTargets' => $transferTargets ?? collect(),
-                                                    'returnTo' => request()->fullUrl(),
-                                                ])
-                                            </span>
-                                            <form method="POST" action="{{ route('shakha-employees.destroy', $row) }}" class="ml-2 inline" onsubmit="return confirm('Remove this employee from the roster?')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="text-[13px] font-semibold text-rose-600 hover:underline">Remove</button>
-                                            </form>
+                                        <td class="px-3.5 py-2.5 text-right">
+                                            @include('shakha-employees.partials.transfer-fire-actions', [
+                                                'employee' => $row,
+                                                'transferTargets' => $transferTargets ?? collect(),
+                                                'returnTo' => request()->fullUrl(),
+                                                'canManage' => true,
+                                                'reportCount' => (int) (($reportCounts[$row->id] ?? 0)),
+                                                'showRemove' => true,
+                                            ])
                                         </td>
                                     @else
-                                        <td class="px-3.5 py-2.5 text-right whitespace-nowrap">
-                                            @php $count = (int) (($reportCounts[$row->id] ?? 0)); @endphp
-                                            <a href="{{ route('shakha-employees.dossier', $row) }}" class="text-[13px] font-semibold text-rose-700 hover:underline">
-                                                রিপোর্ট{{ $count > 0 ? ' ('.$count.')' : '' }}
-                                            </a>
+                                        <td class="px-3.5 py-2.5 text-right">
+                                            @include('shakha-employees.partials.transfer-fire-actions', [
+                                                'employee' => $row,
+                                                'reportCount' => (int) (($reportCounts[$row->id] ?? 0)),
+                                            ])
                                         </td>
                                     @endif
                                 </tr>

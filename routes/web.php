@@ -13,6 +13,7 @@ use App\Http\Controllers\OrganogramController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\RiskAssessmentController;
+use App\Http\Controllers\RuleBookController;
 use App\Http\Controllers\ShakhaController;
 use App\Http\Controllers\ShakhaEmployeeController;
 use App\Http\Controllers\ShakhaKpiController;
@@ -84,6 +85,13 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
 
     Route::middleware('permission:audits.create|audits.manage')->group(function () {
         Route::get('/audits', [AuditReportController::class, 'index'])->name('audits.index');
+        Route::get('/audits/storage', [AuditReportController::class, 'storage'])->name('audits.storage');
+        Route::get('/audits/storage/{report}/pdf', [AuditReportController::class, 'storagePdf'])->name('audits.storage.pdf');
+        Route::get('/rule-book', [RuleBookController::class, 'index'])->name('rule-book.index');
+        Route::redirect('/rule-book/preview', '/rule-book');
+        Route::post('/rule-book', [RuleBookController::class, 'store'])->name('rule-book.store');
+        Route::put('/rule-book/{rule}', [RuleBookController::class, 'update'])->whereNumber('rule')->name('rule-book.update');
+        Route::delete('/rule-book/{rule}', [RuleBookController::class, 'destroy'])->whereNumber('rule')->name('rule-book.destroy');
         Route::get('/audits/send-history', [AuditReportController::class, 'sendHistory'])->name('audits.send-history');
         Route::get('/audits/{report}/checklist', [AuditReportController::class, 'checklist'])->name('audits.checklist');
         Route::get('/audits/{report}/checklist/{file}/download', [AuditReportController::class, 'downloadChecklistFile'])->name('audits.checklist.download');

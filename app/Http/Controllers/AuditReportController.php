@@ -17,6 +17,76 @@ class AuditReportController extends Controller
         return view('audits.index');
     }
 
+    public function storage(): View
+    {
+        $userId = (int) (auth()->id() ?? 0);
+        abort_unless($userId > 0, 403);
+
+        $reports = AuditReport::query()
+            ->ownedBy($userId)
+            ->whereNotNull('maker_done_at')
+            ->with(['shakha:id,name', 'projectLocation:id,name,project_id', 'projectLocation.project:id,name'])
+            ->orderByDesc('report_year')
+            ->orderByDesc('report_month')
+            ->orderByDesc('updated_at')
+            ->limit(800)
+            ->get();
+
+        $folders = $reports
+            ->groupBy(function (AuditReport $report) {
+                $month = (int) $report->report_month;
+                $year = (int) $report->report_year;
+                if ($month < 1 || $month > 12 || $year < 1) {
+                    return 'undated';
+                }
+
+                return sprintf('%04d-%02d', $year, $month);
+            })
+            ->map(function ($group, $key) {
+                $first = $group->first();
+
+                return [
+                    'key' => (string) $key,
+                    'label' => $key === 'undated' ? 'Undated' : $first->periodLabel(),
+                    'count' => $group->count(),
+                    'reports' => $group->map(fn (AuditReport $report) => [
+                        'id' => (int) $report->id,
+                        'name' => $report->entityDisplayName(),
+                        'status' => 'Done · 100%',
+                        'memo' => (string) ($report->memo_no ?: ''),
+                        'pdf_url' => route('audits.storage.pdf', $report),
+                        'edit_url' => route('audits.index', ['report' => $report->id]),
+                    ])->values()->all(),
+                ];
+            })
+            ->sortByDesc('key')
+            ->values();
+
+        return view('audits.storage', [
+            'folders' => $folders,
+            'total' => $reports->count(),
+        ]);
+    }
+
+    public function storagePdf(AuditReport $report): StreamedResponse
+    {
+        $userId = (int) (auth()->id() ?? 0);
+        abort_unless($userId > 0 && (int) $report->user_id === $userId, 403);
+        abort_unless($report->isMakerDone(), 404);
+
+        if (! $report->storage_pdf_path || ! Storage::disk('local')->exists($report->storage_pdf_path)) {
+            $report = app(\App\Services\AuditReportArchiveService::class)->archive($report);
+        }
+
+        abort_unless($report->storage_pdf_path && Storage::disk('local')->exists($report->storage_pdf_path), 404);
+
+        $name = 'audit-report-'.$report->id.'.pdf';
+
+        return Storage::disk('local')->download($report->storage_pdf_path, $name, [
+            'Content-Type' => 'application/pdf',
+        ]);
+    }
+
     public function sendHistory(Request $request): View
     {
         $userId = (int) (auth()->id() ?? 0);

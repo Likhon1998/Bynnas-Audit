@@ -126,12 +126,24 @@
             @endcan
 
             @canany(['audits.create', 'audits.manage'])
-                <x-sidebar-link :href="route('audits.index')" :active="request()->routeIs('audits.*')" title="Audit Reports">
+                <x-sidebar-link :href="route('audits.index')" :active="request()->routeIs('audits.index') || request()->routeIs('audits.checklist*')" title="Audit Reports">
                     <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('audits.*') ? 'text-blue-100' : 'text-blue-400' }}" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M7 2.75A1.75 1.75 0 018.75 1h5.69c.46 0 .9.18 1.23.51l4.82 4.82c.33.33.51.77.51 1.23v11.69A1.75 1.75 0 0119.25 21H8.75A1.75 1.75 0 017 19.25V2.75z"/>
                         <path class="{{ request()->routeIs('audits.*') ? 'text-emerald-200' : 'text-emerald-400' }}" fill="currentColor" d="M9.5 11h7v1.4h-7V11zm0 3.2h5v1.4h-5v-1.4z"/>
                     </svg>
                     <span class="sidebar-link-label truncate">Audit Reports</span>
+                </x-sidebar-link>
+                <x-sidebar-link :href="route('rule-book.index')" :active="request()->routeIs('rule-book.*')" title="Rule book">
+                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('rule-book.*') ? 'text-indigo-100' : 'text-indigo-300' }}" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M6.75 2A2.75 2.75 0 004 4.75v14.5A2.75 2.75 0 006.75 22H18.5a1.5 1.5 0 001.5-1.5v-15A2 2 0 0018 3.5H8.25A1.5 1.5 0 016.75 2z"/>
+                    </svg>
+                    <span class="sidebar-link-label truncate">Rule book</span>
+                </x-sidebar-link>
+                <x-sidebar-link :href="route('audits.storage')" :active="request()->routeIs('audits.storage')" title="Report storage">
+                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('audits.storage') ? 'text-amber-100' : 'text-amber-400' }}" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3.75 6.75A1.5 1.5 0 015.25 5.25h4.19c.4 0 .78.16 1.06.44l1.31 1.31c.28.28.66.44 1.06.44h6.88a1.5 1.5 0 011.5 1.5v8.56a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5V6.75z"/>
+                    </svg>
+                    <span class="sidebar-link-label truncate">Report storage</span>
                 </x-sidebar-link>
             @endcanany
 

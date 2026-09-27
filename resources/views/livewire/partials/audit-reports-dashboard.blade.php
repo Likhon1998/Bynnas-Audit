@@ -3,42 +3,25 @@
     $allReports = $ongoingReports->concat($completedReports)->values();
 @endphp
 
-<div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-    {{-- Header --}}
-    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50/70 px-3 py-2 sm:px-4">
-        <div class="min-w-0">
-            <h1 class="text-base font-semibold tracking-tight text-navy-900">Audit Reports</h1>
-            <p class="mt-0.5 text-[13px] text-slate-500">
-                Joint visit auditors share one report · Auto-save
-            </p>
-        </div>
-        <div class="flex flex-wrap items-center gap-1.5 text-[13px]">
-            {{-- Hidden for now: Send by Gmail / send history
-            <a
-                href="{{ route('audits.send-history', ['month' => $listFilterMonth ?: bd_now()->month, 'year' => $listFilterYear ?: bd_now()->year]) }}"
-                class="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 font-semibold text-slate-700 hover:bg-slate-50"
-            >Send history</a>
-            --}}
-            <span class="inline-flex items-center gap-1 rounded-md border border-sky-200 bg-sky-50 px-2 py-1 font-semibold text-sky-800">
-                Ongoing <span class="tabular-nums">{{ $ongoingCount }}</span>
-            </span>
-            <span class="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 font-semibold text-emerald-800">
-                Done <span class="tabular-nums">{{ $completedCount }}</span>
-            </span>
-        </div>
-    </div>
-
+<div class="space-y-2">
     @if (session('status'))
-        <div class="border-b border-emerald-100 bg-emerald-50 px-3 py-1.5 text-[13px] text-emerald-800 sm:px-4">{{ session('status') }}</div>
+        <div class="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-[13px] text-emerald-800">{{ session('status') }}</div>
     @endif
 
-    {{-- Start new --}}
-    <div class="border-b border-slate-100 px-3 py-2.5 sm:px-4 {{ $canStartNewReport ? '' : 'pointer-events-none opacity-55' }}">
-        <div class="mb-1.5 flex items-baseline justify-between gap-2">
-            <p class="text-[13px] font-semibold uppercase tracking-wide text-slate-500">Start new</p>
-            <p class="text-xs text-slate-500">Allocated shakha & project visits · month · year</p>
-        </div>
-        <div class="grid gap-2 lg:grid-cols-[minmax(0,1fr)_118px_88px_auto] lg:items-end">
+    <div class="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm sm:px-4 {{ $canStartNewReport ? '' : 'pointer-events-none opacity-55' }}">
+        <div class="grid items-end gap-2 lg:grid-cols-[auto_auto_minmax(0,1fr)_118px_88px_auto]">
+            <div class="min-w-0 pb-0.5">
+                <h1 class="text-[15px] font-semibold leading-tight tracking-tight text-navy-900">Audit Reports</h1>
+                <p class="text-[11px] text-slate-500">Shared report · Auto-save</p>
+            </div>
+            <div class="flex items-center gap-1.5 pb-0.5">
+                <span class="inline-flex items-center gap-1 rounded-lg border border-sky-200 bg-sky-50 px-2 py-1 text-[12px] font-semibold text-sky-800">
+                    Ongoing <span class="tabular-nums">{{ $ongoingCount }}</span>
+                </span>
+                <span class="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[12px] font-semibold text-emerald-800">
+                    Done <span class="tabular-nums">{{ $completedCount }}</span>
+                </span>
+            </div>
             <div class="relative min-w-0" @mousedown.outside="open = false">
                 <label class="mb-0.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Branch / Project</label>
                 <div class="relative">
@@ -152,7 +135,7 @@
                     wire:loading.attr="disabled"
                     wire:target="startReport"
                     @disabled(! $canStartNewReport)
-                    class="inline-flex h-[34px] w-full items-center justify-center rounded-md bg-[#2b579a] px-3.5 text-[12px] font-semibold text-white hover:bg-[#204072] disabled:cursor-not-allowed disabled:opacity-50 lg:w-auto"
+                    class="inline-flex h-9 w-full items-center justify-center rounded-lg bg-[#2b579a] px-4 text-[13px] font-semibold text-white shadow-sm hover:bg-[#204072] disabled:cursor-not-allowed disabled:opacity-50 lg:w-auto"
                 >
                     <span wire:loading.remove wire:target="startReport">Start</span>
                     <span wire:loading wire:target="startReport">…</span>
@@ -161,8 +144,8 @@
         </div>
     </div>
 
-    {{-- Filters --}}
-    <div class="flex flex-wrap items-end gap-2 border-b border-slate-100 bg-slate-50/40 px-3 py-2 sm:px-4">
+    <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div class="flex flex-wrap items-end gap-2 border-b border-slate-100 bg-slate-50/80 px-3 py-2.5 sm:px-4">
         <div class="min-w-[10rem] flex-1 basis-[12rem]">
             <label class="mb-0.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Find</label>
             <input
@@ -218,8 +201,8 @@
     {{-- Unified list --}}
     <div class="overflow-x-auto">
         <table class="min-w-full text-left">
-            <thead class="border-b border-slate-100 bg-white">
-                <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <thead class="border-b border-slate-200 bg-slate-50">
+                <tr class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                     <th class="px-3 py-2 sm:px-4">Branch</th>
                     <th class="px-2 py-2">Period</th>
                     <th class="px-2 py-2">Status</th>
@@ -605,6 +588,7 @@
             · {{ $completedReports->count() }} done
         </div>
     @endif
+    </div>
 </div>
 
 {{-- Hidden for now: Send by Gmail modal

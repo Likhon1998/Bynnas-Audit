@@ -6,6 +6,7 @@ use App\Models\AuditChecklistFormat;
 use App\Models\AuditChecklistSubmission;
 use App\Models\AuditReport;
 use App\Models\AuditReportChecklistFile;
+use App\Models\ShakhaEmployee;
 use App\Services\ChecklistAiSummaryService;
 use App\Services\ChecklistReportInfluenceService;
 use App\Support\AuditChecklistCatalog;
@@ -692,6 +693,15 @@ class AuditReportChecklist extends Component
         $reportBlocks = (array) data_get($this->report->fresh()?->pages_data ?? $this->report->pages_data, 'page4.reportBlocks', []);
         $addedSummaryKeys = app(ChecklistReportInfluenceService::class)->existingSeedKeys($reportBlocks);
 
+        $shakhaEmployees = collect();
+        if ($this->report->shakha_id) {
+            $shakhaEmployees = ShakhaEmployee::query()
+                ->where('shakha_id', $this->report->shakha_id)
+                ->whereIn('status', [ShakhaEmployee::STATUS_ACTIVE, ShakhaEmployee::STATUS_INACTIVE])
+                ->orderBy('name')
+                ->get(['id', 'name', 'designation', 'employee_code']);
+        }
+
         return view('livewire.audit-report-checklist', [
             'files' => $this->report->checklistFiles()->get(),
             'pickerFormats' => $pickerFormats,
@@ -701,6 +711,7 @@ class AuditReportChecklist extends Component
             'formatModel' => $this->formatId ? AuditChecklistFormat::query()->find($this->formatId) : null,
             'aiSummaryReady' => app(ChecklistAiSummaryService::class)->isConfigured(),
             'addedSummaryKeys' => $addedSummaryKeys,
+            'shakhaEmployees' => $shakhaEmployees,
         ]);
     }
 }

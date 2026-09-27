@@ -34,7 +34,7 @@
                 <tr class="bg-slate-100 text-center font-semibold text-slate-700">
                     <th class="border border-slate-300 px-1 py-1.5 w-10">ক্রঃ নং</th>
                     <th class="border border-slate-300 px-1 py-1.5 min-w-[130px]">সমিতির নাম ও আইডি</th>
-                    <th class="border border-slate-300 px-1 py-1.5 min-w-[110px]">সংশ্লিষ্ট এফ ও এর নাম</th>
+                    <th class="border border-slate-300 px-1 py-1.5 min-w-[180px]">সংশ্লিষ্ট এফ ও এর নাম</th>
                     <th class="border border-slate-300 px-1 py-1.5 min-w-[140px]">সমিতির সদস্যদের নাম ও আইডি</th>
                     @for ($i = 1; $i <= $checkCount; $i++)
                         <th class="border border-slate-300 px-0.5 py-1.5 w-8">{{ $i }}</th>
@@ -51,7 +51,10 @@
                             <input type="text" wire:model.live="payload.rows.{{ $ri }}.society_name" class="h-8 w-full border-0 bg-transparent px-1 text-[13px] focus:ring-1 focus:ring-[#2b579a]">
                         </td>
                         <td class="border border-slate-300 p-0.5">
-                            <input type="text" wire:model.live="payload.rows.{{ $ri }}.fo_name" class="h-8 w-full border-0 bg-transparent px-1 text-[13px] focus:ring-1 focus:ring-[#2b579a]">
+                            @include('livewire.partials.audit-checklist-staff-select', [
+                                'wireModel' => 'payload.rows.'.$ri.'.fo_name',
+                                'value' => data_get($payload, "rows.{$ri}.fo_name", ''),
+                            ])
                         </td>
                         <td class="border border-slate-300 p-0.5">
                             <input type="text" wire:model.live="payload.rows.{{ $ri }}.member_name" class="h-8 w-full border-0 bg-transparent px-1 text-[13px] focus:ring-1 focus:ring-[#2b579a]">

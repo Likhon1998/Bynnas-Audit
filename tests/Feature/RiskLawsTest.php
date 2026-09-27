@@ -46,7 +46,7 @@ class RiskLawsTest extends TestCase
             ->get(route('shakhas.risk.laws'))
             ->assertOk()
             ->assertSee('Risk analysis laws')
-            ->assertSee('At a glance')
+            ->assertSee('Ratio scoring')
             ->assertSee('OTR');
 
         $this->assertGreaterThan(5, RiskLaw::query()->count());

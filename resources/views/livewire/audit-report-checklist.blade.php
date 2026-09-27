@@ -205,6 +205,7 @@
             'payload' => $payload,
             'aiSummaryReady' => $aiSummaryReady ?? false,
             'addedSummaryKeys' => $addedSummaryKeys ?? [],
+            'shakhaEmployees' => $shakhaEmployees ?? collect(),
         ])
     @endif
 </div>

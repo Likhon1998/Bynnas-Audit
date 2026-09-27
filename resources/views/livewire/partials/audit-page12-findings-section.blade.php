@@ -71,7 +71,10 @@
     <div class="mb-[2mm]">
         <p class="mb-[1mm] font-bold">প্রচলিত নিয়ম (Criteria):</p>
         @if ($editable)
-            <textarea wire:model.live="page12Findings.{{ $fIndex }}.criteria" rows="4" class="w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[13px]"></textarea>
+            <div data-rule-pick>
+                @include('rule-book.partials.criteria-picker')
+                <textarea wire:model.live="page12Findings.{{ $fIndex }}.criteria" rows="4" class="w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[13px]"></textarea>
+            </div>
         @else
             <p class="m-0 text-justify">{{ $finding['criteria'] ?? '' }}</p>
         @endif

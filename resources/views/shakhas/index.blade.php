@@ -1,6 +1,6 @@
 <x-app-layout>
     <div
-        class="px-3 py-2.5 lg:px-6"
+        class="px-3 py-2 text-[12px] leading-snug lg:px-5"
         x-data="{
             q: '',
             area: '',
@@ -77,86 +77,63 @@
             }
         }"
     >
-        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <div>
-                <h1 class="text-lg font-semibold tracking-tight text-navy-900">All Shakha</h1>
-                <p class="mt-0.5 text-[13px] text-slate-500">
-                    {{ $rows->count() }} branches · KPI FY {{ $fyLabel }}
-                </p>
+        <div class="mb-1.5 flex flex-wrap items-center gap-1.5">
+            <div class="mr-1 shrink-0">
+                <h1 class="text-[14px] font-semibold leading-none tracking-tight text-navy-900">All Shakha</h1>
+                <p class="mt-0.5 text-[11px] leading-none text-slate-500">{{ $rows->count() }} · FY {{ $fyLabel }}</p>
             </div>
-            <div class="flex flex-wrap items-center gap-2">
-                @can('risk.manage')
-                    <a
-                        href="{{ route('shakhas.risk.laws') }}"
-                        class="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[12px] font-semibold text-slate-700 hover:bg-slate-50"
-                    >
-                        Risk laws
-                    </a>
-                    <a
-                        href="{{ route('shakhas.risk.export', ['fy' => $fyLabel]) }}"
-                        class="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[12px] font-medium text-emerald-800 hover:bg-emerald-100"
-                    >
-                        Export Risk Excel
-                    </a>
-                @endcan
-                @can('shakhas.manage')
-                    <a href="{{ route('shakhas.create') }}" class="inline-flex items-center gap-1 rounded-lg bg-navy-900 px-2.5 py-1.5 text-[12px] font-medium text-white hover:bg-navy-800">
-                        <span class="text-[13px] leading-none">+</span>
-                        Add Shakha
-                    </a>
-                @endcan
+            <div class="relative min-w-[160px] flex-1 basis-40">
+                <svg class="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"/></svg>
+                <input
+                    type="search"
+                    x-model="q"
+                    @input="page = 1"
+                    placeholder="Search name, code, area…"
+                    class="h-7 w-full rounded-md border-slate-200 py-0 pl-7 pr-2 text-[12px] focus:border-brand-500 focus:ring-brand-500"
+                >
             </div>
+            <select
+                :value="division"
+                @change="setDivision($event.target.value)"
+                class="h-7 w-[8.5rem] rounded-md border-slate-200 py-0 text-[12px]"
+                title="Division"
+            >
+                <option value="">All divisions</option>
+                @foreach ($divisions as $division)
+                    <option value="{{ $division }}">{{ $division }}</option>
+                @endforeach
+            </select>
+            <select
+                x-model="area"
+                @change="page = 1"
+                class="h-7 w-[9rem] rounded-md border-slate-200 py-0 text-[12px]"
+                :disabled="!division"
+                title="Area"
+            >
+                <option value="" x-text="division ? 'All areas' : 'Area'"></option>
+                <template x-for="name in areasForDivision" :key="name">
+                    <option :value="name" x-text="name"></option>
+                </template>
+            </select>
+            <select x-model="kpi" @change="page = 1" class="h-7 w-[6.5rem] rounded-md border-slate-200 py-0 text-[12px]" title="KPI {{ $fyLabel }}">
+                <option value="all">KPI: All</option>
+                <option value="ready">KPI ready</option>
+                <option value="missing">KPI missing</option>
+            </select>
+            @can('risk.manage')
+                <a href="{{ route('shakhas.risk.laws') }}" class="inline-flex h-7 items-center rounded-md border border-slate-200 bg-white px-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-50">Risk laws</a>
+                <a href="{{ route('shakhas.risk.export', ['fy' => $fyLabel]) }}" class="inline-flex h-7 items-center rounded-md border border-emerald-200 bg-emerald-50 px-2 text-[11px] font-semibold text-emerald-800 hover:bg-emerald-100">Export</a>
+            @endcan
+            @can('shakhas.manage')
+                <a href="{{ route('shakhas.create') }}" class="inline-flex h-7 items-center rounded-md bg-navy-900 px-2 text-[11px] font-semibold text-white hover:bg-navy-800">+ Add</a>
+            @endcan
         </div>
 
         @if (session('status'))
-            <div class="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-[12px] text-emerald-700">{{ session('status') }}</div>
+            <div class="mb-1.5 rounded-md bg-emerald-50 px-2 py-1 text-[12px] text-emerald-700">{{ session('status') }}</div>
         @endif
 
-
-        {{-- Compact filters + risk tabs --}}
-        <div class="mb-2 space-y-1.5">
-            <div class="flex flex-wrap items-center gap-1.5">
-                <div class="relative min-w-[180px] flex-1 basis-48">
-                    <svg class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"/></svg>
-                    <input
-                        type="search"
-                        x-model="q"
-                        @input="page = 1"
-                        placeholder="Search name, code, area…"
-                        class="h-8 w-full rounded-lg border-slate-200 py-0 pl-8 pr-2 text-[12px] shadow-sm focus:border-brand-500 focus:ring-brand-500"
-                    >
-                </div>
-                <select
-                    :value="division"
-                    @change="setDivision($event.target.value)"
-                    class="h-8 w-[140px] rounded-lg border-slate-200 py-0 text-[12px]"
-                    title="Division"
-                >
-                    <option value="">All divisions</option>
-                    @foreach ($divisions as $division)
-                        <option value="{{ $division }}">{{ $division }}</option>
-                    @endforeach
-                </select>
-                <select
-                    x-model="area"
-                    @change="page = 1"
-                    class="h-8 w-[150px] rounded-lg border-slate-200 py-0 text-[12px]"
-                    :disabled="!division"
-                    title="Area"
-                >
-                    <option value="" x-text="division ? 'All areas' : 'Area (pick division)'"></option>
-                    <template x-for="name in areasForDivision" :key="name">
-                        <option :value="name" x-text="name"></option>
-                    </template>
-                </select>
-                <select x-model="kpi" @change="page = 1" class="h-8 w-[120px] rounded-lg border-slate-200 py-0 text-[12px]" title="KPI {{ $fyLabel }}">
-                    <option value="all">KPI: All</option>
-                    <option value="ready">KPI ready</option>
-                    <option value="missing">KPI missing</option>
-                </select>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-1.5 rounded-lg border border-slate-100 bg-white p-1">
+        <div class="mb-1.5 flex flex-wrap items-center gap-1">
                 @php
                     $tabs = [
                         [
@@ -219,7 +196,7 @@
                     <button
                         type="button"
                         @click="setFilter('riskTab', @js($tab['key']))"
-                        class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[13px] font-semibold transition"
+                        class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-tight transition"
                         :class="riskTab === @js($tab['key']) ? @js($tab['active']) : @js($tab['idle'])"
                     >
                         {{ $tab['label'] }}
@@ -229,10 +206,9 @@
                         >{{ $tab['count'] }}</span>
                     </button>
                 @endforeach
-            </div>
         </div>
 
-        <div class="mb-1.5 flex flex-wrap items-center justify-between gap-2 text-[13px] text-slate-500">
+        <div class="mb-1.5 flex flex-wrap items-center justify-between gap-2 text-[12px] text-slate-500">
             <p>
                 Showing <span class="font-semibold text-navy-900" x-text="rangeLabel"></span>
                 of <span class="font-semibold text-navy-900" x-text="visibleCount"></span>
@@ -241,7 +217,7 @@
             <div class="flex flex-wrap items-center gap-2">
                 <label class="inline-flex items-center gap-1.5">
                     <span>Per page</span>
-                    <select x-model.number="pageSize" @change="page = 1" class="h-7 rounded-md border-slate-200 py-0 text-[13px]">
+                    <select x-model.number="pageSize" @change="page = 1" class="h-7 rounded-md border-slate-200 py-0 text-[12px]">
                         <option value="10">10</option>
                         <option value="25">25</option>
                         <option value="50">50</option>
@@ -256,7 +232,7 @@
             <div class="overflow-x-auto">
                 <table class="min-w-full text-left">
                     <thead class="border-b border-slate-100 bg-slate-50/80">
-                        <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <tr class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                             <th class="w-14 px-3 py-2">#</th>
                             <th class="px-3 py-2">Shakha Name</th>
                             <th class="px-3 py-2">Area</th>
@@ -318,24 +294,24 @@
                                             <template x-if="row.kpi_ready">
                                                 <a
                                                     :href="row.risk_url"
-                                                    class="inline-flex rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[13px] font-medium text-slate-600 hover:border-amber-200 hover:bg-amber-50 hover:text-amber-800"
+                                                    class="inline-flex rounded-lg bg-amber-600 px-2.5 py-1 text-[12px] font-semibold text-white shadow-[0_6px_14px_rgba(180,83,9,0.35)] transition hover:-translate-y-0.5 hover:bg-amber-700 hover:shadow-[0_10px_18px_rgba(180,83,9,0.4)]"
                                                 >Risk</a>
                                             </template>
                                             <template x-if="!row.kpi_ready">
                                                 <span
-                                                    class="inline-flex cursor-not-allowed rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-1 text-[13px] font-medium text-slate-400"
+                                                    class="inline-flex cursor-not-allowed rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-1 text-[12px] font-medium text-slate-400"
                                                     title="Complete annual KPI for this FY first, then open Risk."
                                                 >Risk locked</span>
                                             </template>
                                         @endcan
                                         <a
                                             :href="row.staff_url"
-                                            class="inline-flex rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[13px] font-medium text-slate-600 hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800"
+                                            class="inline-flex rounded-lg bg-sky-700 px-2.5 py-1 text-[12px] font-semibold text-white shadow-[0_6px_14px_rgba(3,105,161,0.35)] transition hover:-translate-y-0.5 hover:bg-sky-800 hover:shadow-[0_10px_18px_rgba(3,105,161,0.4)]"
                                         >Staff</a>
                                         @can('shakhas.manage')
                                             <a
                                                 :href="row.edit_url"
-                                                class="inline-flex rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[13px] font-medium text-slate-600 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
+                                                class="inline-flex rounded-lg bg-indigo-700 px-2.5 py-1 text-[12px] font-semibold text-white shadow-[0_6px_14px_rgba(55,48,163,0.35)] transition hover:-translate-y-0.5 hover:bg-indigo-800 hover:shadow-[0_10px_18px_rgba(55,48,163,0.4)]"
                                             >Edit</a>
                                         @endcan
                                     </div>
@@ -343,7 +319,7 @@
                             </tr>
                         </template>
                         <tr x-show="filtered.length === 0">
-                            <td colspan="10" class="px-3 py-6 text-center text-[13px] text-slate-500">
+                            <td colspan="10" class="px-3 py-6 text-center text-[12px] text-slate-500">
                                 No shakhas match these filters.
                                 <button type="button" @click="clearFilters(); riskTab = 'all'" class="font-medium text-brand-600 hover:underline">Reset</button>
                             </td>
@@ -356,7 +332,7 @@
                 x-show="filtered.length > 0"
                 class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-3 py-2.5"
             >
-                <p class="text-[13px] text-slate-500">
+                <p class="text-[12px] text-slate-500">
                     Page <span class="font-semibold text-navy-900" x-text="page"></span>
                     of <span class="font-semibold text-navy-900" x-text="totalPages"></span>
                 </p>
@@ -365,25 +341,25 @@
                         type="button"
                         @click="goTo(1)"
                         :disabled="page <= 1"
-                        class="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
+                        class="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
                     >First</button>
                     <button
                         type="button"
                         @click="goTo(page - 1)"
                         :disabled="page <= 1"
-                        class="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
+                        class="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
                     >Prev</button>
                     <button
                         type="button"
                         @click="goTo(page + 1)"
                         :disabled="page >= totalPages"
-                        class="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
+                        class="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
                     >Next</button>
                     <button
                         type="button"
                         @click="goTo(totalPages)"
                         :disabled="page >= totalPages"
-                        class="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
+                        class="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
                     >Last</button>
                 </div>
             </div>

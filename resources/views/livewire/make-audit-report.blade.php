@@ -8,7 +8,7 @@
 
     @if ($step === 'select')
         <div
-            class="px-3 py-3 lg:px-5"
+            class="min-h-full bg-slate-100/80 px-3 py-3 lg:px-5"
             x-data="{
                 q: '',
                 open: false,

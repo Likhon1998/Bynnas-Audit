@@ -2,11 +2,13 @@
 
 namespace App\Providers;
 
+use App\Models\Rule;
 use App\Support\AppTime;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -56,6 +58,16 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return null;
+        });
+
+        View::composer('livewire.partials.audit-page*-findings-section', function ($view): void {
+            if (! Schema::hasTable('rules')) {
+                $view->with('ruleBookRules', collect());
+
+                return;
+            }
+
+            $view->with('ruleBookRules', Rule::query()->orderBy('serial')->orderBy('id')->get());
         });
     }
 

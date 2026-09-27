@@ -740,7 +740,7 @@ class AuditReportReviewService
             ]);
         }
 
-        return DB::transaction(function () use ($report, $actor) {
+        $stored = DB::transaction(function () use ($report, $actor) {
             $report->update([
                 'maker_done_at' => now(),
                 'maker_done_by' => $actor->id,
@@ -757,6 +757,14 @@ class AuditReportReviewService
 
             return $report->fresh(['reviewer', 'user', 'shakha']);
         });
+
+        try {
+            app(AuditReportArchiveService::class)->archive($stored);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return $stored->fresh(['reviewer', 'user', 'shakha']);
     }
 
     /**

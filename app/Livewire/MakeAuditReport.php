@@ -5637,6 +5637,10 @@ class MakeAuditReport extends Component
             try {
                 $this->persistDraft(markTab: null, flash: false);
                 $this->persistUndoStack();
+                $saved = AuditReport::query()->find($this->reportId);
+                if ($saved?->isMakerDone()) {
+                    app(\App\Services\AuditReportArchiveService::class)->archive($saved->fresh());
+                }
             } catch (\Throwable $e) {
                 report($e);
             }
