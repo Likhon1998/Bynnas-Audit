@@ -152,12 +152,15 @@
                     <button type="button" wire:click="moveBlock({{ $bIndex }}, 'down')" class="text-[13px] text-slate-600 hover:underline">↓</button>
                     <button type="button" wire:click="removeBlock({{ $bIndex }})" class="text-[13px] text-rose-600 hover:underline">মুছুন</button>
                 </div>
-                <textarea
-                    wire:model.live="reportBlocks.{{ $bIndex }}.body"
-                    rows="2"
-                    class="audit-autogrow w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[13px] leading-relaxed"
-                    placeholder="প্রচলিত নিয়ম লিখুন…"
-                ></textarea>
+                <div data-rule-pick>
+                    @include('rule-book.partials.criteria-picker')
+                    <textarea
+                        wire:model.live="reportBlocks.{{ $bIndex }}.body"
+                        rows="2"
+                        class="audit-autogrow w-full rounded border border-slate-200 bg-sky-50/40 p-2 text-[13px] leading-relaxed"
+                        placeholder="প্রচলিত নিয়ম লিখুন…"
+                    ></textarea>
+                </div>
             @else
                 <p class="mb-[1mm] font-bold">{{ $block['label'] ?? 'প্রচলিত নিয়ম (Criteria):' }}</p>
                 <p class="m-0 text-justify leading-[1.45]">{{ $block['body'] ?? $financial_criteria }}</p>

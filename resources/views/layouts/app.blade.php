@@ -74,6 +74,119 @@
         <x-nice-confirm />
 
         @stack('scripts')
+        <script>
+            document.addEventListener('alpine:init', () => {
+                if (! window.Alpine || window.__bynnasRuleSearch) {
+                    return;
+                }
+                window.__bynnasRuleSearch = true;
+                window.Alpine.data('ruleSearch', () => ({
+                    q: '',
+                    open: false,
+                    rules: [],
+                    init() {
+                        try {
+                            this.rules = JSON.parse(this.$el.dataset.rules || '[]');
+                        } catch (error) {
+                            this.rules = [];
+                        }
+                        window.addEventListener('bynnas-rule-added', (event) => {
+                            const row = event.detail || {};
+                            if (! row.value || this.rules.some((item) => item.value === row.value)) {
+                                return;
+                            }
+                            this.rules.push(row);
+                        });
+                    },
+                    get filtered() {
+                        const query = this.q.trim().toLowerCase();
+                        const rows = this.rules.filter((rule) => query === '' || (rule.group + ' ' + rule.article + ' ' + rule.statement).toLowerCase().includes(query));
+                        const groups = [];
+                        rows.forEach((rule) => {
+                            let group = groups.find((item) => item.name === rule.group);
+                            if (! group) {
+                                group = { name: rule.group, rows: [] };
+                                groups.push(group);
+                            }
+                            group.rows.push(rule);
+                        });
+                        return groups;
+                    },
+                    toggle() {
+                        this.open = ! this.open;
+                        if (this.open) {
+                            this.$nextTick(() => this.$refs.find && this.$refs.find.focus());
+                        }
+                    },
+                    choose(rule) {
+                        const box = this.$root.closest('[data-rule-pick]');
+                        const area = box ? box.querySelector('textarea') : null;
+                        if (area) {
+                            area.value = rule.value;
+                            area.dispatchEvent(new Event('input', { bubbles: true }));
+                            area.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                        this.q = '';
+                        this.open = false;
+                    },
+                    chooseFirst() {
+                        const group = this.filtered[0];
+                        if (group && group.rows[0]) {
+                            this.choose(group.rows[0]);
+                        }
+                    },
+                }));
+            });
+
+            window.bynnasSaveRule = async function (button) {
+                const box = button.closest('[data-rule-pick]');
+                const note = box ? box.querySelector('[data-rule-status]') : null;
+                const area = box ? box.querySelector('textarea') : null;
+                const statement = (area?.value || '').replace(/\s+/g, ' ').trim();
+                const say = (text) => {
+                    if (note) {
+                        note.textContent = text;
+                        note.classList.remove('hidden');
+                    }
+                };
+                if (statement === '') {
+                    say('আগে নিয়মটি লিখুন।');
+                    return;
+                }
+                const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+                button.disabled = true;
+                try {
+                    const response = await fetch(button.dataset.url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': token,
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: JSON.stringify({ statement }),
+                    });
+                    if (! response.ok) {
+                        say('যোগ করা যায়নি।');
+                        return;
+                    }
+                    const saved = await response.json();
+                    window.dispatchEvent(new CustomEvent('bynnas-rule-added', {
+                        detail: {
+                            group: saved.group,
+                            article: saved.article || '',
+                            statement: saved.statement || statement,
+                            value: saved.value,
+                        },
+                    }));
+                    say(saved.added ? 'নিয়ম বইয়ে যোগ হয়েছে।' : 'এই নিয়ম আগেই আছে।');
+                } catch (error) {
+                    say('যোগ করা যায়নি।');
+                } finally {
+                    button.disabled = false;
+                }
+            };
+        </script>
         @livewireScripts
     </body>
 </html>

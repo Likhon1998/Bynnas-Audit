@@ -90,6 +90,7 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
         Route::get('/rule-book', [RuleBookController::class, 'index'])->name('rule-book.index');
         Route::redirect('/rule-book/preview', '/rule-book');
         Route::post('/rule-book', [RuleBookController::class, 'store'])->name('rule-book.store');
+        Route::post('/rule-book/quick', [RuleBookController::class, 'quickStore'])->name('rule-book.quick');
         Route::put('/rule-book/{rule}', [RuleBookController::class, 'update'])->whereNumber('rule')->name('rule-book.update');
         Route::delete('/rule-book/{rule}', [RuleBookController::class, 'destroy'])->whereNumber('rule')->name('rule-book.destroy');
         Route::get('/audits/send-history', [AuditReportController::class, 'sendHistory'])->name('audits.send-history');

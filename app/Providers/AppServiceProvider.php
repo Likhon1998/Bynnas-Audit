@@ -60,7 +60,11 @@ class AppServiceProvider extends ServiceProvider
             return null;
         });
 
-        View::composer('livewire.partials.audit-page*-findings-section', function ($view): void {
+        View::composer([
+            'livewire.partials.audit-page*-findings-section',
+            'livewire.partials.audit-page5-financial-detail-section',
+            'livewire.partials.audit-financial-audit-section',
+        ], function ($view): void {
             if (! Schema::hasTable('rules')) {
                 $view->with('ruleBookRules', collect());
 

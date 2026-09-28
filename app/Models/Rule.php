@@ -27,13 +27,14 @@ class Rule extends Model
     public function criteriaText(): string
     {
         $parts = array_filter([
-            trim((string) $this->statement),
-            trim((string) $this->article) !== '' ? 'অনুচ্ছেদ: '.$this->article : '',
-            trim((string) $this->reference_where) !== '' ? 'কোথায়: '.$this->reference_where : '',
-            trim((string) $this->reference_when) !== '' ? 'কখন: '.$this->reference_when : '',
-            trim((string) $this->reference_who) !== '' ? 'কে: '.$this->reference_who : '',
+            trim((string) $this->source_name),
+            trim((string) $this->article) !== '' ? 'অনুচ্ছেদ '.$this->article : '',
         ]);
+        $statement = trim((string) $this->statement);
+        if ($parts === []) {
+            return $statement;
+        }
 
-        return implode(' ', $parts);
+        return $statement.' ('.implode(', ', $parts).')';
     }
 }

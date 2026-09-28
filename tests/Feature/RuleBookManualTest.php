@@ -30,9 +30,9 @@ class RuleBookManualTest extends TestCase
             ->post(route('rule-book.store'), [
                 'source_name' => 'Current Loan Adjustment Policy',
                 'rules' => [
-                    ['statement' => 'A member may adjust a current loan only when savings cover the outstanding amount.', 'article' => '1', 'where' => '', 'when' => '', 'who' => ''],
-                    ['statement' => '   ', 'article' => '', 'where' => '', 'when' => '', 'who' => ''],
-                    ['statement' => 'Closing the loan without full savings cover is not permitted.', 'article' => '2', 'where' => '', 'when' => '2024', 'who' => 'Branch manager'],
+                    ['statement' => 'A member may adjust a current loan only when savings cover the outstanding amount.', 'article' => '1'],
+                    ['statement' => '   ', 'article' => ''],
+                    ['statement' => 'Closing the loan without full savings cover is not permitted.', 'article' => '2'],
                 ],
             ])
             ->assertRedirect(route('rule-book.index'));
@@ -41,20 +41,54 @@ class RuleBookManualTest extends TestCase
 
         $first = Rule::query()->orderBy('serial')->first();
         $this->assertSame('1', $first->article);
-        $this->assertSame('Current Loan Adjustment Policy', $first->reference_where);
+        $this->assertSame('Current Loan Adjustment Policy', $first->source_name);
+        $this->assertSame('', $first->reference_where);
 
         $this->actingAs($user)
             ->put(route('rule-book.update', $first), [
                 'statement' => 'Updated rule text for the first clause.',
                 'article' => '1',
-                'where' => 'Head office circular',
-                'when' => '',
-                'who' => '',
                 'source_name' => 'Current Loan Adjustment Policy',
             ])
             ->assertRedirect();
 
         $this->assertSame('Updated rule text for the first clause.', $first->fresh()->statement);
-        $this->assertSame('Head office circular', $first->fresh()->reference_where);
+        $this->assertSame('Current Loan Adjustment Policy', $first->fresh()->source_name);
+    }
+
+    public function test_a_new_criteria_line_can_be_added_to_the_rule_book(): void
+    {
+        $user = User::factory()->create([
+            'email_verified_at' => now(),
+            'is_superadmin' => true,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->postJson(route('rule-book.quick'), [
+                'statement' => 'A newly written criteria line from the report.',
+            ])
+            ->assertOk()
+            ->assertJson(['added' => true, 'group' => 'রিপোর্ট থেকে']);
+
+        $this->actingAs($user)
+            ->postJson(route('rule-book.quick'), [
+                'statement' => 'A newly written criteria line from the report.',
+            ])
+            ->assertOk()
+            ->assertJson(['added' => false]);
+
+        $this->assertSame(1, Rule::query()->count());
+    }
+
+    public function test_criteria_picker_is_a_search_field(): void
+    {
+        $html = view('rule-book.partials.criteria-picker', [
+            'ruleBookRules' => collect(),
+        ])->render();
+
+        $this->assertStringContainsString('প্রচলিত নিয়ম বাছাই করুন', $html);
+        $this->assertStringContainsString('খুঁজুন', $html);
+        $this->assertStringNotContainsString('<select', $html);
     }
 }

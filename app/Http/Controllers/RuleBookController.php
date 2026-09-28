@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Rule;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -21,23 +22,38 @@ class RuleBookController extends Controller
                 $formRows[] = [
                     'statement' => (string) ($row['statement'] ?? ''),
                     'article' => (string) ($row['article'] ?? ''),
-                    'where' => (string) ($row['where'] ?? ''),
-                    'when' => (string) ($row['when'] ?? ''),
-                    'who' => (string) ($row['who'] ?? ''),
                 ];
             }
         }
 
+        $rules = Rule::query()->orderBy('serial')->orderBy('id')->get();
+        $groups = $rules->groupBy(fn (Rule $rule) => $this->documentName($rule));
+
         return view('rule-book.index', [
-            'rules' => Rule::query()->orderBy('serial')->orderBy('id')->get(),
+            'groups' => $groups,
+            'ruleCount' => $rules->count(),
+            'catalog' => $rules->map(fn (Rule $rule) => [
+                'id' => $rule->id,
+                'source' => $this->documentName($rule),
+                'haystack' => mb_strtolower(implode(' ', array_filter([
+                    $rule->statement,
+                    $rule->article,
+                    $rule->source_name,
+                ]))),
+            ])->values(),
             'formRows' => $formRows !== [] ? $formRows : [[
                 'statement' => '',
                 'article' => '',
-                'where' => '',
-                'when' => '',
-                'who' => '',
             ]],
+            'openComposer' => $formRows !== [] && session()->hasOldInput(),
         ]);
+    }
+
+    private function documentName(Rule $rule): string
+    {
+        $name = trim((string) $rule->source_name);
+
+        return $name !== '' ? $name : 'No document';
     }
 
     public function store(Request $request): RedirectResponse
@@ -47,9 +63,6 @@ class RuleBookController extends Controller
             'rules' => ['required', 'array', 'min:1', 'max:40'],
             'rules.*.statement' => ['nullable', 'string', 'max:5000'],
             'rules.*.article' => ['nullable', 'string', 'max:255'],
-            'rules.*.where' => ['nullable', 'string', 'max:255'],
-            'rules.*.when' => ['nullable', 'string', 'max:255'],
-            'rules.*.who' => ['nullable', 'string', 'max:255'],
         ]);
 
         $source = trim((string) ($data['source_name'] ?? ''));
@@ -67,9 +80,9 @@ class RuleBookController extends Controller
                 'title' => $this->titleFrom($statement),
                 'statement' => $statement,
                 'article' => trim((string) ($row['article'] ?? '')),
-                'reference_where' => trim((string) ($row['where'] ?? '')) ?: $source,
-                'reference_when' => trim((string) ($row['when'] ?? '')),
-                'reference_who' => trim((string) ($row['who'] ?? '')),
+                'reference_where' => '',
+                'reference_when' => '',
+                'reference_who' => '',
                 'source_name' => $source,
                 'created_by' => $request->user()?->id,
             ]);
@@ -92,9 +105,6 @@ class RuleBookController extends Controller
         $data = $request->validate([
             'statement' => ['required', 'string', 'max:5000'],
             'article' => ['nullable', 'string', 'max:255'],
-            'where' => ['nullable', 'string', 'max:255'],
-            'when' => ['nullable', 'string', 'max:255'],
-            'who' => ['nullable', 'string', 'max:255'],
             'source_name' => ['nullable', 'string', 'max:255'],
         ]);
 
@@ -103,13 +113,67 @@ class RuleBookController extends Controller
             'title' => $this->titleFrom($statement),
             'statement' => $statement,
             'article' => trim((string) ($data['article'] ?? '')),
-            'reference_where' => trim((string) ($data['where'] ?? '')),
-            'reference_when' => trim((string) ($data['when'] ?? '')),
-            'reference_who' => trim((string) ($data['who'] ?? '')),
+            'reference_where' => '',
+            'reference_when' => '',
+            'reference_who' => '',
             'source_name' => trim((string) ($data['source_name'] ?? '')),
         ]);
 
         return back()->with('status', 'Rule saved.');
+    }
+
+    public function quickStore(Request $request): JsonResponse
+    {
+        $statement = trim((string) $request->validate([
+            'statement' => ['required', 'string', 'max:5000'],
+        ])['statement']);
+        $statement = preg_replace('/\s+/u', ' ', $statement) ?? $statement;
+
+        $existing = Rule::query()->orderBy('id')->get()->first(function (Rule $rule) use ($statement) {
+            $saved = preg_replace('/\s+/u', ' ', trim((string) $rule->statement)) ?? '';
+            $cited = preg_replace('/\s+/u', ' ', trim($rule->criteriaText())) ?? '';
+
+            return $saved === $statement || $cited === $statement;
+        });
+
+        if ($existing instanceof Rule) {
+        return response()->json([
+            'added' => false,
+            'group' => $this->documentName($existing),
+            'label' => $this->pickerLabel($existing),
+            'value' => $existing->criteriaText(),
+            'article' => trim((string) $existing->article) !== '' ? $existing->article : (string) $existing->serial,
+            'statement' => $existing->statement,
+        ]);
+        }
+
+        $rule = Rule::query()->create([
+            'serial' => ((int) Rule::query()->max('serial')) + 1,
+            'title' => $this->titleFrom($statement),
+            'statement' => $statement,
+            'article' => '',
+            'reference_where' => '',
+            'reference_when' => '',
+            'reference_who' => '',
+            'source_name' => 'রিপোর্ট থেকে',
+            'created_by' => $request->user()?->id,
+        ]);
+
+        return response()->json([
+            'added' => true,
+            'group' => 'রিপোর্ট থেকে',
+            'label' => $this->pickerLabel($rule),
+            'value' => $rule->criteriaText(),
+            'article' => (string) $rule->serial,
+            'statement' => $rule->statement,
+        ]);
+    }
+
+    private function pickerLabel(Rule $rule): string
+    {
+        $number = trim((string) $rule->article) !== '' ? $rule->article : (string) $rule->serial;
+
+        return $number.'. '.\Illuminate\Support\Str::limit((string) $rule->statement, 90);
     }
 
     public function destroy(Rule $rule): RedirectResponse
