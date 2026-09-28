@@ -1,48 +1,50 @@
+@php
+    $btn = 'inline-flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-[12px] font-semibold text-white transition hover:-translate-y-0.5';
+    $cards = [
+        ['label' => 'Indicators with findings', 'value' => number_format($totals['indicators']), 'tone' => 'from-[#1b3a70] to-[#2b579a]'],
+        ['label' => 'Branches', 'value' => number_format($totals['branches']), 'tone' => 'from-amber-400 to-orange-500'],
+        ['label' => 'Irregularities', 'value' => number_format($totals['irregularities']), 'tone' => 'from-rose-400 to-rose-600'],
+        ['label' => 'Amount involved', 'value' => number_format((float) $totals['amount'], 2), 'tone' => 'from-emerald-400 to-emerald-600'],
+    ];
+@endphp
 <x-app-layout>
-    <div class="px-3 py-3 lg:px-5" style="font-family:'Hind Siliguri','Nirmala UI',system-ui,sans-serif;">
-        <link href="https://fonts.bunny.net/css?family=hind-siliguri:400,500,600,700&display=swap" rel="stylesheet" />
+    <div class="space-y-3 px-3 py-3 lg:px-5" style="font-family:'Hind Siliguri','Nirmala UI',system-ui,sans-serif;">
+        <x-findings-header
+            title="Findings Summary"
+            :subtitle="'Report findings by heading, with branches and accused staff · '.$periodLabel"
+            active-tab="summary"
+            :month="$month"
+            :year="$year"
+            :month-strip="$monthStrip"
+            :prev-year-url="$prevYearUrl"
+            :next-year-url="$nextYearUrl"
+        >
+            <a href="{{ $exportUrl }}" class="{{ $btn }} bg-emerald-600 shadow-[0_6px_14px_rgba(5,150,105,0.3)] hover:bg-emerald-700">
+                <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3v10m0 0-4-4m4 4 4-4M4 16h12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Excel
+            </a>
+            @canany(['findings.summary.export_ppt', 'findings.view_all'])
+                <a href="{{ $exportPptUrl }}" class="{{ $btn }} bg-[#c43e1c] shadow-[0_6px_14px_rgba(196,62,28,0.3)] hover:bg-[#a83316]">
+                    <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3v10m0 0-4-4m4 4 4-4M4 16h12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    Download PPT
+                </a>
+            @endcanany
+        </x-findings-header>
 
-        {{-- Header --}}
-        <div class="mb-3 flex flex-wrap items-start justify-between gap-2">
-            <div class="min-w-0">
-                <h1 class="text-lg font-semibold tracking-tight text-navy-900">Findings Summary</h1>
-                <p class="mt-0.5 text-[12px] text-slate-500">{{ $periodLabel }}</p>
-                @include('audit-findings.partials.view-tabs', ['activeTab' => 'summary', 'month' => $month, 'year' => $year])
-            </div>
-            <div class="ml-auto flex flex-wrap items-center justify-end gap-1.5">
-                <form method="GET" action="{{ route('audit-findings.summary') }}" class="flex flex-wrap items-center gap-1.5">
-                    <select name="month" class="h-8 rounded-md border-slate-200 py-0 text-[12px]" onchange="this.form.submit()">
-                        @for ($m = 1; $m <= 12; $m++)
-                            <option value="{{ $m }}" @selected($m === $month)>{{ date('F', mktime(0, 0, 0, $m, 1)) }}</option>
-                        @endfor
-                    </select>
-                    <select name="year" class="h-8 rounded-md border-slate-200 py-0 text-[12px]" onchange="this.form.submit()">
-                        @foreach ($yearOptions as $y)
-                            <option value="{{ $y }}" @selected($y === $year)>{{ $y }}</option>
-                        @endforeach
-                    </select>
-                </form>
-                <a href="{{ $exportUrl }}" class="inline-flex h-9 items-center gap-1.5 rounded-md bg-emerald-700 px-3 text-[12px] font-semibold text-white hover:bg-emerald-800">Excel</a>
-                @canany(['findings.summary.export_ppt', 'findings.view_all'])
-                    <a href="{{ $exportPptUrl }}" class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#c43e1c] px-3 text-[12px] font-semibold text-white hover:bg-[#a83316]">Download PPT</a>
-                @endcanany
-            </div>
-        </div>
-
-        {{-- Month strip --}}
-        <div class="mb-3 grid grid-cols-4 gap-1 rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm sm:grid-cols-6 lg:grid-cols-12">
-            @foreach ($monthStrip as $chip)
-                <a
-                    href="{{ $chip['url'] }}"
-                    class="rounded-md px-1 py-1.5 text-center text-[13px] font-semibold transition
-                        {{ $chip['active'] ? 'bg-navy-900 text-white' : ($chip['has_data'] ? 'bg-sky-50 text-sky-900 hover:bg-sky-100' : 'text-slate-400 hover:bg-slate-50') }}"
-                >{{ $chip['label'] }}</a>
+        <div class="grid grid-cols-2 gap-2 lg:grid-cols-4">
+            @foreach ($cards as $card)
+                <div class="flex items-center gap-2.5 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+                    <span class="h-8 w-1.5 shrink-0 rounded-full bg-gradient-to-b {{ $card['tone'] }}"></span>
+                    <div class="min-w-0">
+                        <p class="truncate text-[10.5px] font-semibold uppercase tracking-wide text-slate-500">{{ $card['label'] }}</p>
+                        <p class="mt-0.5 truncate text-[19px] font-bold leading-none tabular-nums text-navy-900">{{ $card['value'] }}</p>
+                    </div>
+                </div>
             @endforeach
         </div>
 
-        {{-- Indicator table — sticky column headers stay visible while scrolling --}}
-        <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-            <div class="max-h-[calc(100vh-11rem)] overflow-auto">
+        <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div class="max-h-[calc(100vh-15rem)] overflow-auto">
                 <table class="min-w-full border-separate border-spacing-0 text-left text-[12px]">
                     <thead>
                         <tr class="text-xs font-semibold uppercase tracking-wide text-slate-200">
@@ -55,7 +57,7 @@
                             <th class="sticky top-0 z-20 whitespace-nowrap border-b border-slate-700 bg-[#0B1F36] px-3 py-2.5 text-right">Irreg.</th>
                             <th class="sticky top-0 z-20 whitespace-nowrap border-b border-slate-700 bg-[#0B1F36] px-3 py-2.5 text-right">%</th>
                             <th class="sticky top-0 z-20 whitespace-nowrap border-b border-slate-700 bg-[#0B1F36] px-3 py-2.5 text-right">Branches</th>
-                            <th class="sticky top-0 z-20 min-w-[160px] border-b border-slate-700 bg-[#0B1F36] px-3 py-2.5">Shakha</th>
+                            <th class="sticky top-0 z-20 min-w-[190px] border-b border-slate-700 bg-[#0B1F36] px-3 py-2.5">Shakha</th>
                             <th class="sticky top-0 z-20 min-w-[180px] border-b border-slate-700 bg-[#0B1F36] px-3 py-2.5">অভিযুক্ত কর্মী</th>
                         </tr>
                     </thead>
@@ -93,7 +95,7 @@
                                         </td>
                                         <td class="px-3 py-2.5 text-right align-top font-semibold tabular-nums" rowspan="{{ $rowSpan }}">{{ number_format($row['branch_count']) }}</td>
                                     @endif
-                                    <td class="border-t border-slate-100 px-3 py-2.5 align-top text-[13px] text-slate-700">
+                                    <td class="whitespace-nowrap border-t border-slate-100 px-3 py-2.5 align-top text-[13px] text-slate-700">
                                         {{ $branch['label'] ?? '—' }}
                                     </td>
                                     <td class="border-t border-slate-100 px-3 py-2.5 align-top text-[13px] font-medium text-violet-900">

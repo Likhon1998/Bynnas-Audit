@@ -22,31 +22,14 @@
 @endphp
 
 <div style="font-family:'Hind Siliguri','Nirmala UI',system-ui,sans-serif;" wire:loading.class="opacity-70">
-    <div class="mb-3 flex flex-wrap items-start justify-between gap-2">
-        <div>
-            <div class="mb-1 flex items-center gap-1.5 text-[13px] text-slate-500">
-                <a href="{{ route('audit-review.index') }}" class="hover:text-brand-600">Review Panel</a>
-                <span>/</span>
-                <a href="{{ route('audit-review.log') }}" class="hover:text-brand-600">Auditors log</a>
-                <span>/</span>
-                <span class="text-slate-600">{{ $mode === 'activity' ? 'Activity' : 'Pipeline' }}</span>
-            </div>
-            <h1 class="text-lg font-semibold tracking-tight text-navy-900">
-                {{ $mode === 'activity' ? 'Recent activity' : 'Pipeline by auditor' }}
-            </h1>
-            <p class="mt-0.5 text-[12px] text-slate-500">
-                Watch only · {{ $mode === 'activity' ? 'latest review events' : 'where each report sits' }} · updates live
-            </p>
-        </div>
-        <div class="flex flex-wrap gap-1.5">
-            @if ($mode === 'pipeline')
-                <a href="{{ route('audit-review.log.activity', $filterQuery) }}" class="inline-flex h-9 items-center rounded-md border border-violet-200 bg-violet-50 px-3 text-[12px] font-semibold text-violet-900 hover:bg-violet-100">Activity</a>
-            @else
-                <a href="{{ route('audit-review.log.pipeline', $filterQuery) }}" class="inline-flex h-9 items-center rounded-md border border-sky-200 bg-sky-50 px-3 text-[12px] font-semibold text-sky-900 hover:bg-sky-100">Pipeline</a>
-            @endif
-            <a href="{{ route('audit-review.assignments') }}" class="inline-flex h-9 items-center rounded-md border border-slate-200 bg-white px-3 text-[12px] font-semibold text-slate-700 hover:bg-slate-50">Assign</a>
-            <a href="{{ route('audit-review.log') }}" class="inline-flex h-9 items-center rounded-md border border-slate-200 bg-white px-3 text-[12px] font-medium text-slate-600 hover:bg-slate-50">Hub</a>
-        </div>
+    <div class="mb-3">
+        @include('audit-review.partials.log-nav', [
+            'active' => $mode === 'activity' ? 'activity' : 'pipeline',
+            'back' => route('audit-review.log'),
+            'backLabel' => 'Back to Auditors log',
+            'title' => $mode === 'activity' ? 'Auditors log <span class="font-medium text-slate-400">·</span> <span class="font-medium text-sky-700">Review events</span>' : 'Auditors log <span class="font-medium text-slate-400">·</span> <span class="font-medium text-sky-700">Pipeline</span>',
+            'subtitle' => $mode === 'activity' ? 'Every review step across all reports, newest first. Updates as you filter.' : 'Where each auditor\'s reports sit in review right now. Updates as you filter.',
+        ])
     </div>
 
     <div class="mb-3 rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm">

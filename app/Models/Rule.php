@@ -26,15 +26,6 @@ class Rule extends Model
 
     public function criteriaText(): string
     {
-        $parts = array_filter([
-            trim((string) $this->source_name),
-            trim((string) $this->article) !== '' ? 'অনুচ্ছেদ '.$this->article : '',
-        ]);
-        $statement = trim((string) $this->statement);
-        if ($parts === []) {
-            return $statement;
-        }
-
-        return $statement.' ('.implode(', ', $parts).')';
+        return trim((string) $this->statement);
     }
 }

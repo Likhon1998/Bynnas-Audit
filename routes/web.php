@@ -106,6 +106,18 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
         Route::get('/audit-review/log', [AuditReportReviewController::class, 'log'])->name('audit-review.log');
         Route::get('/audit-review/log/pipeline', [AuditReportReviewController::class, 'logPipeline'])->name('audit-review.log.pipeline');
         Route::get('/audit-review/log/activity', [AuditReportReviewController::class, 'logActivity'])->name('audit-review.log.activity');
+        Route::get('/audit-review/log/auditor/{user}', [AuditReportReviewController::class, 'logAuditor'])->whereNumber('user')->name('audit-review.log.auditor');
+        Route::get('/performance', [\App\Http\Controllers\PerformanceController::class, 'index'])->name('performance.index');
+        Route::get('/performance/export', [\App\Http\Controllers\PerformanceController::class, 'export'])->name('performance.export');
+        Route::get('/performance/rules', [\App\Http\Controllers\PerformanceController::class, 'rules'])->name('performance.rules');
+        Route::post('/performance/rules', [\App\Http\Controllers\PerformanceController::class, 'saveRules'])->name('performance.rules.save');
+        Route::post('/performance/rules/reset', [\App\Http\Controllers\PerformanceController::class, 'resetRules'])->name('performance.rules.reset');
+        Route::post('/performance/rules/add', [\App\Http\Controllers\PerformanceController::class, 'storeRule'])->name('performance.rules.store');
+        Route::delete('/performance/rules/{rule}', [\App\Http\Controllers\PerformanceController::class, 'destroyRule'])->whereNumber('rule')->name('performance.rules.destroy');
+        Route::get('/performance/marks', [\App\Http\Controllers\PerformanceController::class, 'marks'])->name('performance.marks');
+        Route::post('/performance/marks', [\App\Http\Controllers\PerformanceController::class, 'storeMark'])->name('performance.marks.store');
+        Route::delete('/performance/marks/{mark}', [\App\Http\Controllers\PerformanceController::class, 'destroyMark'])->whereNumber('mark')->name('performance.marks.destroy');
+        Route::get('/performance/{user}', [\App\Http\Controllers\PerformanceController::class, 'show'])->whereNumber('user')->name('performance.show');
         Route::get('/audit-review/log/{report}', [AuditReportReviewController::class, 'logHistory'])->whereNumber('report')->name('audit-review.log.show');
     });
     Route::middleware('permission:audits.review|audits.review_assign|audits.create|audits.manage')->group(function () {

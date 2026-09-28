@@ -138,7 +138,7 @@
         </div>
 
         @if (session('status'))
-            <div class="mb-3 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-800">{{ session('status') }}</div>
+            <div data-flash class="mb-3 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-800">{{ session('status') }}</div>
         @endif
 
         <div class="mb-3 grid gap-2 sm:grid-cols-3">

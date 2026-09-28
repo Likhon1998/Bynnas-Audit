@@ -43,6 +43,7 @@ class AuditFindingController extends Controller
                 'full' => date('F', mktime(0, 0, 0, $m, 1)),
                 'active' => $m === $month,
                 'has_data' => $stat !== null && (int) $stat->cells > 0,
+                'cells' => (int) ($stat->cells ?? 0),
                 'url' => route('audit-findings.summary', ['month' => $m, 'year' => $year]),
             ];
         });
@@ -60,7 +61,14 @@ class AuditFindingController extends Controller
             'month' => $month,
             'year' => $year,
             'monthStrip' => $monthStrip,
-            'yearOptions' => range(now()->year + 1, now()->year - 6),
+            'prevYearUrl' => route('audit-findings.summary', ['month' => $month, 'year' => $year - 1]),
+            'nextYearUrl' => route('audit-findings.summary', ['month' => $month, 'year' => $year + 1]),
+            'totals' => [
+                'indicators' => $flatRows->count(),
+                'amount' => $flatRows->sum('amount'),
+                'irregularities' => $flatRows->sum('irregularities'),
+                'branches' => $flatRows->flatMap(fn ($row) => collect($row['branch_rows'] ?? [])->pluck('label'))->filter()->unique()->count(),
+            ],
             'exportUrl' => route('audit-findings.summary.export', ['month' => $month, 'year' => $year]),
             'exportPptUrl' => route('audit-findings.summary.export-ppt', ['month' => $month, 'year' => $year]),
         ]);
@@ -178,6 +186,8 @@ class AuditFindingController extends Controller
             'newIndicatorsThisMonthCount' => $newIndicatorsThisMonth->count(),
             'newIndicatorsMonthLabel' => $monthStart->format('F Y'),
             'monthStrip' => $monthStrip,
+            'prevYearUrl' => route('audit-findings.index', ['month' => $month, 'year' => $year - 1]),
+            'nextYearUrl' => route('audit-findings.index', ['month' => $month, 'year' => $year + 1]),
             'exportUrl' => route('audit-findings.export', ['month' => $month, 'year' => $year]),
             'exportYearUrl' => route('audit-findings.export', ['year' => $year, 'scope' => 'year']),
             'monthLabel' => date('F', mktime(0, 0, 0, $month, 1)),
@@ -202,8 +212,24 @@ class AuditFindingController extends Controller
 
     public function show(Request $request, AuditIndicator $indicator, AuditSummaryService $summary): View
     {
-        $month = (int) $request->integer('month', now('Asia/Dhaka')->month);
-        $year = (int) $request->integer('year', now('Asia/Dhaka')->year);
+        $month = max(1, min(12, (int) $request->integer('month', now('Asia/Dhaka')->month)));
+        $year = max(2000, min(2100, (int) $request->integer('year', now('Asia/Dhaka')->year)));
+
+        $indicatorMonths = AuditFinding::query()
+            ->where('audit_indicator_id', $indicator->id)
+            ->where('audit_year', $year)
+            ->selectRaw('audit_month, COUNT(*) as cells')
+            ->groupBy('audit_month')
+            ->pluck('cells', 'audit_month');
+        $monthStrip = collect(range(1, 12))->map(fn (int $m) => [
+            'month' => $m,
+            'label' => date('M', mktime(0, 0, 0, $m, 1)),
+            'full' => date('F', mktime(0, 0, 0, $m, 1)),
+            'active' => $m === $month,
+            'has_data' => (int) ($indicatorMonths[$m] ?? 0) > 0,
+            'cells' => (int) ($indicatorMonths[$m] ?? 0),
+            'url' => route('audit-findings.show', ['indicator' => $indicator->id, 'month' => $m, 'year' => $year]),
+        ]);
 
         $branches = $summary->getIndicatorBranchFindings($indicator->id, $month, $year);
         $orgRow = $summary->getOrganizationTotals($month, $year)->firstWhere('indicator_id', $indicator->id);
@@ -246,6 +272,9 @@ class AuditFindingController extends Controller
             'branchRows' => $branchRows,
             'employeesByShakha' => $employeesByShakha,
             'orgRow' => $orgRow,
+            'monthStrip' => $monthStrip,
+            'prevYearUrl' => route('audit-findings.show', ['indicator' => $indicator->id, 'month' => $month, 'year' => $year - 1]),
+            'nextYearUrl' => route('audit-findings.show', ['indicator' => $indicator->id, 'month' => $month, 'year' => $year + 1]),
         ]);
     }
 
@@ -321,6 +350,8 @@ class AuditFindingController extends Controller
                 $year = (int) $report->report_year;
             }
         }
+        $month = max(1, min(12, $month));
+        $year = max(2000, min(2100, $year));
 
         $shakha = Shakha::query()->with('area')->find($shakhaId);
         if (! $shakha) {

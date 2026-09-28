@@ -189,6 +189,12 @@
                     </svg>
                     <span class="sidebar-link-label truncate">Auditors log</span>
                 </x-sidebar-link>
+                <x-sidebar-link :href="route('performance.index')" :active="request()->routeIs('performance.*')" title="Performance & awards">
+                    <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('performance.*') ? 'text-amber-100' : 'text-amber-400' }}" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M7 3h10v2h3a1 1 0 011 1v2a5 5 0 01-4.6 5A5 5 0 0113 15.9V18h3v3H8v-3h3v-2.1A5 5 0 017.6 13 5 5 0 013 8V6a1 1 0 011-1h3V3zm0 4H5v1a3 3 0 002 2.8V7zm10 0v3.8A3 3 0 0019 8V7h-2z"/>
+                    </svg>
+                    <span class="sidebar-link-label truncate">Performance</span>
+                </x-sidebar-link>
             @endif
 
             @canany(['audits.create', 'audits.manage'])

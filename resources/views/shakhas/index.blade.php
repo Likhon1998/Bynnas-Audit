@@ -130,7 +130,7 @@
         </div>
 
         @if (session('status'))
-            <div class="mb-1.5 rounded-md bg-emerald-50 px-2 py-1 text-[12px] text-emerald-700">{{ session('status') }}</div>
+            <div data-flash class="mb-1.5 rounded-md bg-emerald-50 px-2 py-1 text-[12px] text-emerald-700">{{ session('status') }}</div>
         @endif
 
         <div class="mb-1.5 flex flex-wrap items-center gap-1">

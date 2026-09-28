@@ -8,122 +8,77 @@
             'orange' => '#fed7aa',
         ];
     @endphp
-    <div class="px-3 py-3 lg:px-5" style="font-family:'Hind Siliguri','Nirmala UI',system-ui,sans-serif;">
-        <div class="mb-3 flex flex-wrap items-start justify-between gap-2">
-            <div class="min-w-0">
-                <div class="mb-1 flex items-center gap-1.5 text-[13px] text-slate-500">
-                    <a href="{{ route('audit-review.index') }}" class="hover:text-brand-600">Review Panel</a>
-                    <span>/</span>
-                    <span class="text-slate-600">#{{ $report->id }}</span>
-                </div>
-                <h1 class="text-lg font-semibold tracking-tight text-navy-900">
-                    {{ $report->entityDisplayName() }} · {{ $report->periodLabel() }}
+    @php
+        $btn = 'inline-flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-[12px] font-semibold text-white transition hover:-translate-y-0.5 disabled:opacity-60';
+        $tones = [
+            'navy' => 'bg-[#2b579a] hover:bg-[#204072] shadow-[0_6px_14px_rgba(43,87,154,0.35)]',
+            'emerald' => 'bg-emerald-600 hover:bg-emerald-700 shadow-[0_6px_14px_rgba(5,150,105,0.35)]',
+            'teal' => 'bg-teal-600 hover:bg-teal-700 shadow-[0_6px_14px_rgba(13,148,136,0.35)]',
+            'sky' => 'bg-sky-600 hover:bg-sky-700 shadow-[0_6px_14px_rgba(2,132,199,0.35)]',
+        ];
+        $isResubmit = ! empty($reviewContext['is_resubmit']);
+        $timeline = $reviewContext['timeline'] ?? [];
+        $roundLabel = $reviewContext['round_label'] ?? $report->currentReviewRoundLabel();
+        $statusChip = match (true) {
+            $report->isReviewed() && $report->review_perfect => 'bg-teal-50 text-teal-700 ring-teal-200',
+            $report->isReviewed() => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+            $report->isChangesRequested() => 'bg-rose-50 text-rose-700 ring-rose-200',
+            $report->isInReview() && $report->isReviewReady() => 'bg-sky-50 text-sky-700 ring-sky-200',
+            default => 'bg-amber-50 text-amber-800 ring-amber-200',
+        };
+        $sideStart = $isResubmit && $canAct && ! $reviewReady ? 'changes' : 'marks';
+    @endphp
+    <div class="space-y-3 px-3 py-3 lg:px-5" style="font-family:'Hind Siliguri','Nirmala UI',system-ui,sans-serif;">
+        <header class="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-slate-200 border-l-4 border-l-[#2b579a] bg-white px-3 py-2 shadow-sm">
+            <a
+                href="{{ route('audit-review.index') }}"
+                class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:-translate-y-0.5 hover:border-[#2b579a] hover:text-[#2b579a]"
+                title="Back to Review Panel"
+                aria-label="Back to Review Panel"
+            >
+                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.5 15 7.5 10l5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+            <div class="min-w-0 flex-1">
+                <h1 class="truncate text-[14px] font-semibold text-navy-900" title="{{ $report->entityDisplayName() }} · {{ $report->periodLabel() }}">
+                    {{ $report->entityDisplayName() }}
+                    <span class="font-medium text-slate-400">·</span>
+                    <span class="font-medium text-slate-600">{{ $report->periodLabel() }}</span>
                 </h1>
-                <p class="mt-0.5 text-[12px] text-slate-500">
-                    Maker: {{ $report->user?->name ?: '—' }}
-                    · Reviewer: {{ $report->reviewer?->name ?: '—' }}
-                    · <span class="font-semibold text-slate-700">{{ $report->statusLabel() }}</span>
-                    · <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-semibold {{ ($reviewContext['is_resubmit'] ?? false) ? 'bg-amber-50 text-amber-800' : 'bg-violet-50 text-violet-800' }}">{{ $reviewContext['round_label'] ?? $report->currentReviewRoundLabel() }}</span>
+                <p class="mt-0.5 truncate text-[11.5px] text-slate-500">
+                    <span class="text-slate-400">#{{ $report->id }}</span>
+                    <span class="mx-1 text-slate-300">|</span>Maker <span class="font-medium text-slate-700">{{ $report->user?->name ?: '—' }}</span>
+                    <span class="mx-1 text-slate-300">|</span>Reviewer <span class="font-medium text-slate-700">{{ $report->reviewer?->name ?: '—' }}</span>
+                    @if ($report->isReviewed())
+                        <span class="mx-1 text-slate-300">|</span>Locked <span class="font-medium text-slate-700">{{ bd_date($report->reviewed_at) }}</span>
+                    @endif
                     @if ($report->review_cc_superadmin)
-                        · Flagged for Super Admin
+                        <span class="mx-1 text-slate-300">|</span><span class="font-medium text-rose-600">Flagged for Super Admin</span>
                     @endif
                 </p>
             </div>
-            <div class="flex flex-wrap gap-1.5">
-                <a href="{{ route('audit-review.index') }}" class="inline-flex h-9 items-center rounded-md border border-slate-200 bg-white px-3 text-[12px] font-medium text-slate-600 hover:bg-slate-50">Back</a>
+            <div class="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-1.5">
+                <span class="rounded-md px-1.5 py-0.5 text-[11px] font-semibold ring-1 {{ $statusChip }}">{{ $report->statusLabel() }}</span>
+                <span class="rounded-md px-1.5 py-0.5 text-[11px] font-semibold ring-1 {{ $isResubmit ? 'bg-amber-50 text-amber-800 ring-amber-200' : 'bg-violet-50 text-violet-700 ring-violet-200' }}">{{ $roundLabel }}</span>
             </div>
-        </div>
+            @if ($canDownloadReviewPack)
+                <a href="{{ $downloadReviewUrl }}" class="{{ $btn }} {{ $tones['sky'] }} shrink-0">
+                    <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3v10m0 0 4-4m-4 4-4-4M4 16h12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    Download PDF + comments
+                </a>
+            @endif
+        </header>
 
         @if (session('status'))
-            <div class="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-[12px] text-emerald-700">{{ session('status') }}</div>
+            <div data-flash class="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-[12px] font-medium text-emerald-800">
+                <span class="h-2 w-2 shrink-0 rounded-full bg-emerald-500"></span>{{ session('status') }}
+            </div>
         @endif
         @if ($errors->any())
-            <div class="mb-3 rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-[12px] text-rose-700">{{ $errors->first() }}</div>
-        @endif
-
-        @if (! empty($reviewContext['is_resubmit']))
-            <div class="mb-3 space-y-2 rounded-xl border border-amber-200 bg-amber-50/80 px-3.5 py-3 shadow-sm">
-                <div class="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                        <p class="text-[13px] font-semibold text-amber-950">{{ $reviewContext['round_label'] }} — compare asks vs fixes</p>
-                        <p class="mt-0.5 text-[12px] text-amber-900/80">This is not the 1st review. Use the lists below to see what you asked for and what the maker says they changed.</p>
-                    </div>
-                </div>
-                @if (! empty($reviewContext['maker_note']))
-                    <div class="rounded-lg border border-amber-200 bg-white px-3 py-2">
-                        <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Maker resubmit note</p>
-                        <p class="mt-1 text-[12px] font-medium text-slate-900">{{ $reviewContext['maker_note'] }}</p>
-                    </div>
-                @endif
-                @if (! empty($reviewContext['change_summary']))
-                    <div class="rounded-lg border border-amber-200 bg-white px-3 py-2">
-                        <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">What changed in the report</p>
-                        <ul class="mt-1 list-disc space-y-0.5 pl-4 text-[12px] text-slate-800">
-                            @foreach ($reviewContext['change_summary'] as $line)
-                                <li>{{ $line }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
-                <div class="grid gap-2 lg:grid-cols-2">
-                    <div class="rounded-lg border border-rose-200 bg-white px-3 py-2">
-                        <p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Earlier asks (previous round)</p>
-                        @forelse ($reviewContext['prior_asks'] as $ask)
-                            <div class="mt-1.5 border-t border-slate-100 pt-1.5 first:mt-1 first:border-0 first:pt-0">
-                                <p class="text-[13px] font-medium text-slate-900">{{ $ask['body'] ?: ($ask['quote'] ?: 'Mark') }}</p>
-                                <p class="text-xs text-slate-500">Round {{ $ask['review_round'] ?? '?' }} · {{ $ask['author'] ?? 'Reviewer' }}@if (! empty($ask['addressed'])) · <span class="font-semibold text-emerald-700">Maker marked done</span>@endif</p>
-                            </div>
-                        @empty
-                            <p class="mt-1 text-[13px] text-slate-500">No earlier marks stored for a prior round.</p>
-                        @endforelse
-                    </div>
-                    <div class="rounded-lg border border-emerald-200 bg-white px-3 py-2">
-                        <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Maker marked done</p>
-                        @forelse ($reviewContext['addressed_asks'] as $ask)
-                            <div class="mt-1.5 border-t border-slate-100 pt-1.5 first:mt-1 first:border-0 first:pt-0">
-                                <p class="text-[13px] font-medium text-slate-900 line-through decoration-emerald-600/50">{{ $ask['body'] ?: ($ask['quote'] ?: 'Mark') }}</p>
-                            </div>
-                        @empty
-                            <p class="mt-1 text-[13px] text-slate-500">Maker did not tick any marks as done.</p>
-                        @endforelse
-                    </div>
-                </div>
-            </div>
-        @elseif (($reviewContext['round'] ?? 1) === 1)
-            <div class="mb-3 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-[12px] text-violet-900">
-                <span class="font-semibold">1st review</span> — mark issues on the document. After Review done: Send to maker (they fix &amp; come back as re-review) or Confirm (final).
-            </div>
-        @endif
-
-        @if (! empty($reviewContext['timeline']))
-            <details class="mb-3 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 shadow-sm">
-                <summary class="cursor-pointer text-[12px] font-semibold text-navy-900">Review timeline ({{ count($reviewContext['timeline']) }})</summary>
-                <ol class="mt-2 space-y-1.5 border-t border-slate-100 pt-2">
-                    @foreach ($reviewContext['timeline'] as $ev)
-                        <li class="text-[13px] text-slate-700">
-                            <span class="font-semibold {{ ($ev['round'] ?? 1) >= 2 ? 'text-amber-800' : 'text-violet-800' }}">{{ $ev['label'] }}</span>
-                            <span class="text-slate-400">· {{ $ev['round_label'] }} · {{ $ev['actor'] }} · {{ $ev['at'] }}</span>
-                            @if (! empty($ev['body']))
-                                <p class="mt-0.5 whitespace-pre-line text-slate-600">{{ $ev['body'] }}</p>
-                            @endif
-                        </li>
-                    @endforeach
-                </ol>
-            </details>
-        @endif
-
-        @if ($report->isReviewed())
-            <div class="mb-3 rounded-lg border {{ $report->review_perfect ? 'border-teal-200 bg-teal-50 text-teal-950' : 'border-emerald-200 bg-emerald-50 text-emerald-900' }} px-3 py-2 text-[12px]">
-                @if ($report->review_perfect)
-                    Totally fixed · 100% perfect — locked on {{ bd_date($report->reviewed_at) }}.
-                @else
-                    Confirmed and locked on {{ bd_date($report->reviewed_at) }}.
-                @endif
-            </div>
+            <div class="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-[12px] font-medium text-rose-700">{{ $errors->first() }}</div>
         @endif
 
         <div
-            class="grid gap-2 {{ count($annotations) || $canAnnotate || $canAct ? 'xl:grid-cols-[minmax(0,1fr)_300px]' : '' }}"
+            class="grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_320px]"
             x-data="reviewAnnotator({
                 canAnnotate: @js((bool) $canAnnotate),
                 storeUrl: @js($storeAnnotationUrl),
@@ -139,7 +94,7 @@
             <div class="xl:col-span-full" x-show="uiError" x-cloak>
                 <div class="mb-1 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] text-rose-800" x-text="uiError"></div>
             </div>
-            <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                 <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/80 px-3 py-2">
                     <div>
                         <p class="text-[13px] font-semibold text-navy-900">Full report</p>
@@ -157,14 +112,14 @@
                             <div class="inline-flex rounded-lg border border-slate-200 bg-white p-0.5">
                                 <button
                                     type="button"
-                                    class="rounded-md px-2.5 py-1 text-[13px] font-semibold"
-                                    :class="tool === 'text' ? 'bg-navy-900 text-white' : 'text-slate-600 hover:bg-slate-50'"
+                                    class="rounded-md px-2.5 py-1 text-[12px] font-semibold transition"
+                                    :class="tool === 'text' ? 'bg-[#1b3a70] text-white shadow-[0_6px_14px_rgba(27,58,112,0.3)]' : 'text-slate-600 hover:bg-slate-50'"
                                     @click="setTool('text')"
                                 >Select text</button>
                                 <button
                                     type="button"
-                                    class="rounded-md px-2.5 py-1 text-[13px] font-semibold"
-                                    :class="tool === 'area' ? 'bg-navy-900 text-white' : 'text-slate-600 hover:bg-slate-50'"
+                                    class="rounded-md px-2.5 py-1 text-[12px] font-semibold transition"
+                                    :class="tool === 'area' ? 'bg-[#1b3a70] text-white shadow-[0_6px_14px_rgba(27,58,112,0.3)]' : 'text-slate-600 hover:bg-slate-50'"
                                     @click="setTool('area')"
                                 >Draw area</button>
                             </div>
@@ -308,14 +263,38 @@
                 </div>
             </section>
 
-            <aside class="space-y-2 xl:sticky xl:top-3 xl:self-start" x-show="annotations.length || canAnnotate || {{ $canAct ? 'true' : 'false' }}" x-cloak>
-                <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                    <div class="border-b border-slate-100 px-3 py-2.5">
-                        <div>
-                            <p class="text-[12px] font-semibold text-navy-900">1. Marks and comments</p>
-                            <p class="text-xs text-slate-500">Draw/select on the report → note here → Edit anytime</p>
-                        </div>
+            <aside class="space-y-3 lg:sticky lg:top-3 lg:self-start" x-data="{ side: @js($sideStart) }">
+                <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                    <div class="flex gap-1 border-b border-slate-100 bg-slate-50/70 p-1">
+                        <button type="button" class="inline-flex h-7 flex-1 items-center justify-center gap-1 rounded-lg text-[12px] font-semibold transition" :class="side === 'marks' ? 'bg-[#1b3a70] text-white shadow-[0_6px_14px_rgba(27,58,112,0.3)]' : 'text-slate-600 hover:bg-white'" @click="side = 'marks'">
+                            Marks
+                            <span class="rounded-full px-1.5 text-[10px] font-bold" :class="side === 'marks' ? 'bg-white/20' : 'bg-slate-200 text-slate-700'" x-text="annotations.length"></span>
+                        </button>
+                        @if ($isResubmit)
+                            <button type="button" class="inline-flex h-7 flex-1 items-center justify-center gap-1 rounded-lg text-[12px] font-semibold transition" :class="side === 'changes' ? 'bg-[#1b3a70] text-white shadow-[0_6px_14px_rgba(27,58,112,0.3)]' : 'text-slate-600 hover:bg-white'" @click="side = 'changes'">
+                                Changes
+                                <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+                            </button>
+                        @endif
+                        @if ($timeline)
+                            <button type="button" class="inline-flex h-7 flex-1 items-center justify-center gap-1 rounded-lg text-[12px] font-semibold transition" :class="side === 'timeline' ? 'bg-[#1b3a70] text-white shadow-[0_6px_14px_rgba(27,58,112,0.3)]' : 'text-slate-600 hover:bg-white'" @click="side = 'timeline'">
+                                Timeline
+                                <span class="rounded-full px-1.5 text-[10px] font-bold" :class="side === 'timeline' ? 'bg-white/20' : 'bg-slate-200 text-slate-700'">{{ count($timeline) }}</span>
+                            </button>
+                        @endif
                     </div>
+
+                    <div x-show="side === 'marks'">
+                        <div class="border-b border-slate-100 px-3 py-2">
+                            <p class="text-[12px] font-semibold text-navy-900">Marks and comments</p>
+                            <p class="text-[11px] text-slate-500">
+                                @if (! $isResubmit && $canAnnotate)
+                                    1st review · select text or draw an area on the report, then finish below.
+                                @else
+                                    Click a mark to jump to it on the report.
+                                @endif
+                            </p>
+                        </div>
                     <ul class="max-h-[min(70vh,820px)] divide-y divide-slate-100 overflow-y-auto">
                         <template x-for="ann in annotations" :key="ann.id">
                             <li class="px-3 py-2.5 hover:bg-slate-50">
@@ -374,66 +353,121 @@
                             No marks yet. Select text or draw an area on the report.
                         </li>
                     </ul>
-                    @if ($canAct || $canDownloadReviewPack)
-                        <div class="space-y-2 border-t border-slate-100 bg-emerald-50/50 px-3 py-3">
-                            <p class="text-[13px] font-semibold text-emerald-950">Finish</p>
-                            @if ($canDownloadReviewPack)
-                                <a
-                                    href="{{ $downloadReviewUrl }}"
-                                    class="inline-flex h-9 w-full items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-[12px] font-semibold text-slate-700 hover:bg-slate-50"
-                                >Download PDF + comments</a>
-                            @endif
+                    </div>
 
-                            @if ($canAct && ! $reviewReady)
-                                <form
-                                    method="POST"
-                                    action="{{ route('audit-review.done', $report) }}"
-                                    x-ref="doneForm"
-                                    @submit.prevent="askReviewDone()"
-                                >
-                                    @csrf
-                                    <button
-                                        type="submit"
-                                        class="inline-flex h-9 w-full items-center justify-center rounded-md bg-emerald-700 px-3 text-[12px] font-semibold text-white hover:bg-emerald-800"
-                                    >Review done</button>
-                                </form>
-                                <form
-                                    method="POST"
-                                    action="{{ route('audit-review.totally-fixed', $report) }}"
-                                    data-bynnas-confirm="This marks the report as Totally fixed · 100% perfect and locks it. No send-back to the maker."
-                                    data-bynnas-confirm-title="Grant as totally fixed?"
-                                    data-bynnas-confirm-ok="Totally fixed"
-                                    data-bynnas-confirm-tone="emerald"
-                                >
-                                    @csrf
-                                    <button
-                                        type="submit"
-                                        class="inline-flex h-9 w-full items-center justify-center rounded-md bg-teal-600 px-3 text-[12px] font-semibold text-white hover:bg-teal-700"
-                                    >Totally fixed · 100%</button>
-                                </form>
-                                <p class="text-xs text-emerald-800">Need fixes? Use <span class="font-semibold">Review done</span> then Send to maker. Perfect as-is? Use <span class="font-semibold">Totally fixed</span>.</p>
+                    @if ($isResubmit)
+                        <div x-show="side === 'changes'" x-cloak class="max-h-[min(70vh,820px)] space-y-2.5 overflow-y-auto p-3">
+                            <div>
+                                <p class="text-[12px] font-semibold text-navy-900">{{ $roundLabel }} — compare asks vs fixes</p>
+                                <p class="text-[11px] text-slate-500">What you asked for last round, and what the maker changed.</p>
+                            </div>
+                            @if (! empty($reviewContext['maker_note']))
+                                <div class="rounded-xl border border-amber-200 bg-amber-50/70 px-3 py-2">
+                                    <p class="text-[10px] font-semibold uppercase tracking-wide text-amber-700">Maker resubmit note</p>
+                                    <p class="mt-0.5 text-[12px] font-medium text-slate-900">{{ $reviewContext['maker_note'] }}</p>
+                                </div>
                             @endif
+                            @if (! empty($reviewContext['change_summary']))
+                                <div class="rounded-xl border border-sky-200 bg-sky-50/60 px-3 py-2">
+                                    <p class="text-[10px] font-semibold uppercase tracking-wide text-sky-700">What changed in the report</p>
+                                    <ul class="mt-1 space-y-0.5 text-[12px] text-slate-800">
+                                        @foreach ($reviewContext['change_summary'] as $line)
+                                            <li class="flex gap-1.5"><span class="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-sky-500"></span>{{ $line }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            @endif
+                            <div class="rounded-xl border border-rose-200 bg-rose-50/50 px-3 py-2">
+                                <p class="text-[10px] font-semibold uppercase tracking-wide text-rose-700">Earlier asks (previous round)</p>
+                                @forelse ($reviewContext['prior_asks'] as $ask)
+                                    <div class="mt-1.5 border-t border-rose-100 pt-1.5 first:mt-1 first:border-0 first:pt-0">
+                                        <p class="text-[12px] font-medium text-slate-900">{{ $ask['body'] ?: ($ask['quote'] ?: 'Mark') }}</p>
+                                        <p class="text-[11px] text-slate-500">Round {{ $ask['review_round'] ?? '?' }} · {{ $ask['author'] ?? 'Reviewer' }}@if (! empty($ask['addressed'])) · <span class="font-semibold text-emerald-700">Maker marked done</span>@endif</p>
+                                    </div>
+                                @empty
+                                    <p class="mt-1 text-[12px] text-slate-500">No earlier marks stored for a prior round.</p>
+                                @endforelse
+                            </div>
+                            <div class="rounded-xl border border-emerald-200 bg-emerald-50/50 px-3 py-2">
+                                <p class="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">Maker marked done</p>
+                                @forelse ($reviewContext['addressed_asks'] as $ask)
+                                    <p class="mt-1 text-[12px] font-medium text-slate-900 line-through decoration-emerald-600/50">{{ $ask['body'] ?: ($ask['quote'] ?: 'Mark') }}</p>
+                                @empty
+                                    <p class="mt-1 text-[12px] text-slate-500">The maker did not tick any marks as done.</p>
+                                @endforelse
+                            </div>
+                        </div>
+                    @endif
 
-                            @if ($canAct && $reviewReady)
-                                <p class="rounded-md bg-sky-50 px-2 py-1.5 text-[13px] text-sky-900">Ready — Send to maker for fixes, Confirm, or Totally fixed on the Reviewed tab.</p>
-                                <form
-                                    method="POST"
-                                    action="{{ route('audit-review.totally-fixed', $report) }}"
-                                    data-bynnas-confirm="This marks the report as Totally fixed · 100% perfect and locks it."
-                                    data-bynnas-confirm-title="Grant as totally fixed?"
-                                    data-bynnas-confirm-ok="Totally fixed"
-                                    data-bynnas-confirm-tone="emerald"
-                                >
-                                    @csrf
-                                    <button
-                                        type="submit"
-                                        class="inline-flex h-9 w-full items-center justify-center rounded-md bg-teal-600 px-3 text-[12px] font-semibold text-white hover:bg-teal-700"
-                                    >Totally fixed · 100%</button>
-                                </form>
-                            @endif
+                    @if ($timeline)
+                        <div x-show="side === 'timeline'" x-cloak class="max-h-[min(70vh,820px)] overflow-y-auto p-3">
+                            <ol class="relative space-y-3 border-l border-slate-200 pl-4">
+                                @foreach ($timeline as $ev)
+                                    <li class="relative">
+                                        <span class="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full ring-2 ring-white {{ ($ev['round'] ?? 1) >= 2 ? 'bg-amber-500' : 'bg-violet-500' }}"></span>
+                                        <p class="text-[12px] font-semibold text-navy-900">{{ $ev['label'] }}</p>
+                                        <p class="text-[11px] text-slate-500">{{ $ev['round_label'] }} · {{ $ev['actor'] }} · {{ $ev['at'] }}</p>
+                                        @if (! empty($ev['body']))
+                                            <p class="mt-0.5 whitespace-pre-line text-[12px] text-slate-600">{{ $ev['body'] }}</p>
+                                        @endif
+                                    </li>
+                                @endforeach
+                            </ol>
                         </div>
                     @endif
                 </div>
+
+                @if ($report->isReviewed())
+                    <div class="rounded-2xl border px-3.5 py-3 shadow-sm {{ $report->review_perfect ? 'border-teal-200 bg-teal-50' : 'border-emerald-200 bg-emerald-50' }}">
+                        <p class="text-[12px] font-semibold {{ $report->review_perfect ? 'text-teal-900' : 'text-emerald-900' }}">
+                            {{ $report->review_perfect ? 'Totally fixed · 100% perfect' : 'Confirmed' }}
+                        </p>
+                        <p class="mt-0.5 text-[11px] {{ $report->review_perfect ? 'text-teal-800' : 'text-emerald-800' }}">Reviewed and locked on {{ bd_date($report->reviewed_at) }}.</p>
+                    </div>
+                @endif
+
+                @if ($canAct)
+                    <div class="space-y-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+                        <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Finish review</p>
+                        @if (! $reviewReady)
+                            <form
+                                method="POST"
+                                action="{{ route('audit-review.done', $report) }}"
+                                x-ref="doneForm"
+                                @submit.prevent="askReviewDone()"
+                            >
+                                @csrf
+                                <button type="submit" class="{{ $btn }} {{ $tones['emerald'] }} w-full">Review done</button>
+                            </form>
+                            <form
+                                method="POST"
+                                action="{{ route('audit-review.totally-fixed', $report) }}"
+                                data-bynnas-confirm="This marks the report as Totally fixed · 100% perfect and locks it. No send-back to the maker."
+                                data-bynnas-confirm-title="Grant as totally fixed?"
+                                data-bynnas-confirm-ok="Totally fixed"
+                                data-bynnas-confirm-tone="emerald"
+                            >
+                                @csrf
+                                <button type="submit" class="{{ $btn }} {{ $tones['teal'] }} w-full">Totally fixed · 100%</button>
+                            </form>
+                            <p class="text-[11px] leading-snug text-slate-500">Needs fixes? Choose <span class="font-semibold text-slate-700">Review done</span>, then send it to the maker. Already perfect? Choose <span class="font-semibold text-slate-700">Totally fixed</span>.</p>
+                        @else
+                            <p class="rounded-lg bg-sky-50 px-2.5 py-2 text-[11px] leading-snug text-sky-900">Review is ready. Send it to the maker or confirm it from the Reviewed tab.</p>
+                            <a href="{{ route('audit-review.index', ['tab' => 'reviewed']) }}" class="{{ $btn }} {{ $tones['navy'] }} w-full">Open Reviewed tab</a>
+                            <form
+                                method="POST"
+                                action="{{ route('audit-review.totally-fixed', $report) }}"
+                                data-bynnas-confirm="This marks the report as Totally fixed · 100% perfect and locks it."
+                                data-bynnas-confirm-title="Grant as totally fixed?"
+                                data-bynnas-confirm-ok="Totally fixed"
+                                data-bynnas-confirm-tone="emerald"
+                            >
+                                @csrf
+                                <button type="submit" class="{{ $btn }} {{ $tones['teal'] }} w-full">Totally fixed · 100%</button>
+                            </form>
+                        @endif
+                    </div>
+                @endif
             </aside>
         </div>
     </div>
@@ -490,10 +524,17 @@
 
                 init() {
                     this.$nextTick(async () => {
+                        this.fitDocument();
                         this.paintAll();
                         await this.backfillMissingSnapshots();
                     });
-                    window.addEventListener('resize', () => this.paintAll());
+                    window.addEventListener('resize', () => {
+                        this.fitDocument();
+                        this.paintAll();
+                    });
+                    if (window.ResizeObserver && this.$refs.scroller) {
+                        new ResizeObserver(() => this.fitDocument()).observe(this.$refs.scroller);
+                    }
                     if (this.canAnnotate) {
                         this.autoSaveTimer = setInterval(() => this.flushDirtyEdits(), 5000);
                     }
@@ -501,6 +542,20 @@
 
                 destroy() {
                     if (this.autoSaveTimer) clearInterval(this.autoSaveTimer);
+                },
+
+                fitDocument() {
+                    const stage = this.$refs.stage;
+                    const scroller = this.$refs.scroller;
+                    if (!stage || !scroller) return;
+                    const page = stage.querySelector('.page');
+                    const natural = Math.max(page ? page.offsetWidth : 0, 794) + 8;
+                    const styles = window.getComputedStyle(scroller);
+                    const avail = scroller.clientWidth - parseFloat(styles.paddingLeft) - parseFloat(styles.paddingRight);
+                    const zoom = Math.max(0.45, Math.min(1, avail / natural));
+                    stage.style.width = natural + 'px';
+                    stage.style.maxWidth = 'none';
+                    stage.style.zoom = zoom < 0.999 ? String(zoom) : '';
                 },
 
                 startEditing(ann) {
@@ -860,6 +915,8 @@
                     if (!clip || typeof window.html2canvas !== 'function') return null;
                     const stage = this.$refs.stage;
                     if (!stage) return null;
+                    const zoom = stage.style.zoom;
+                    stage.style.zoom = '';
                     try {
                         const full = await window.html2canvas(stage, {
                             scale: 1.25,
@@ -902,6 +959,8 @@
                         return out.toDataURL('image/jpeg', 0.78);
                     } catch (e) {
                         return null;
+                    } finally {
+                        stage.style.zoom = zoom;
                     }
                 },
 

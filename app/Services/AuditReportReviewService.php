@@ -7,6 +7,7 @@ use App\Models\AuditReportReviewAnnotation;
 use App\Models\AuditReportReviewEvent;
 use App\Models\AuditReportReviewSnapshot;
 use App\Models\AuditReviewerAssignment;
+use App\Models\AuditReviewerMonthAssignment;
 use App\Models\User;
 use App\Support\AppTime;
 use Illuminate\Support\Facades\DB;
@@ -14,12 +15,98 @@ use Illuminate\Validation\ValidationException;
 
 class AuditReportReviewService
 {
-    public function assignmentForAuditor(int $auditorUserId): ?AuditReviewerAssignment
+    /**
+     * A reviewer set for that exact month wins over the fixed (any time) reviewer.
+     */
+    public function assignmentForAuditor(int $auditorUserId, ?int $year = null, ?int $month = null): AuditReviewerAssignment|AuditReviewerMonthAssignment|null
     {
+        if ($year && $month) {
+            $monthly = AuditReviewerMonthAssignment::query()
+                ->with(['reviewer:id,name,email'])
+                ->where('auditor_user_id', $auditorUserId)
+                ->where('year', $year)
+                ->where('month', $month)
+                ->first();
+
+            if ($monthly) {
+                return $monthly;
+            }
+        }
+
         return AuditReviewerAssignment::query()
             ->with(['reviewer:id,name,email'])
             ->where('auditor_user_id', $auditorUserId)
             ->first();
+    }
+
+    public function assignmentForReport(AuditReport $report): AuditReviewerAssignment|AuditReviewerMonthAssignment|null
+    {
+        [$year, $month] = $this->reportPeriod($report);
+
+        return $this->assignmentForAuditor((int) $report->user_id, $year, $month);
+    }
+
+    /**
+     * Reviewer each report would be sent to, keyed by report id.
+     *
+     * @param  iterable<AuditReport>  $reports
+     * @return array<int, array{reviewer_id:int, reviewer_name:string, reviewer_email:string, monthly:bool}>
+     */
+    public function reviewerMetaForReports(iterable $reports): array
+    {
+        $reports = collect($reports);
+        $ownerIds = $reports->pluck('user_id')->map(fn ($id) => (int) $id)->filter()->unique()->values();
+        if ($ownerIds->isEmpty()) {
+            return [];
+        }
+
+        $fixed = AuditReviewerAssignment::query()
+            ->with(['reviewer:id,name,email'])
+            ->whereIn('auditor_user_id', $ownerIds)
+            ->get()
+            ->keyBy('auditor_user_id');
+
+        $monthly = AuditReviewerMonthAssignment::query()
+            ->with(['reviewer:id,name,email'])
+            ->whereIn('auditor_user_id', $ownerIds)
+            ->get()
+            ->keyBy(fn ($row) => $row->auditor_user_id.'-'.$row->year.'-'.$row->month);
+
+        $meta = [];
+        foreach ($reports as $report) {
+            [$year, $month] = $this->reportPeriod($report);
+            $row = $monthly->get($report->user_id.'-'.$year.'-'.$month) ?? $fixed->get($report->user_id);
+            if (! $row) {
+                continue;
+            }
+            $meta[(int) $report->id] = [
+                'reviewer_id' => (int) $row->reviewer_user_id,
+                'reviewer_name' => (string) ($row->reviewer?->name ?: 'Reviewer'),
+                'reviewer_email' => (string) ($row->reviewer?->email ?: ''),
+                'monthly' => $row instanceof AuditReviewerMonthAssignment,
+            ];
+        }
+
+        return $meta;
+    }
+
+    /**
+     * Month a report belongs to: its audit period, or the current month when unset.
+     *
+     * @return array{0:int, 1:int}
+     */
+    public function reportPeriod(AuditReport $report): array
+    {
+        $year = (int) ($report->report_year ?: 0);
+        $month = (int) ($report->report_month ?: 0);
+
+        if ($year < 2000 || $month < 1 || $month > 12) {
+            $now = AppTime::now();
+
+            return [(int) $now->year, (int) $now->month];
+        }
+
+        return [$year, $month];
     }
 
     public function reviewerForReport(AuditReport $report): ?User
@@ -28,9 +115,7 @@ class AuditReportReviewService
             return User::query()->find($report->reviewer_user_id);
         }
 
-        $assignment = $this->assignmentForAuditor((int) $report->user_id);
-
-        return $assignment?->reviewer;
+        return $this->assignmentForReport($report)?->reviewer;
     }
 
     public function canReview(User $user, AuditReport $report): bool
@@ -163,9 +248,17 @@ class AuditReportReviewService
                 're_reviews' => 0,
                 'confirmed' => 0,
                 'awaiting' => 0,
+                'completed_by_me' => 0,
                 'reports' => [],
             ];
         }
+
+        $completedByMe = AuditReportReviewEvent::query()
+            ->where('actor_user_id', $user->id)
+            ->whereIn('action', [AuditReportReviewEvent::ACTION_RETURNED, AuditReportReviewEvent::ACTION_APPROVED])
+            ->whereYear('created_at', $year)
+            ->whereMonth('created_at', $month)
+            ->count();
 
         $snapshots = AuditReportReviewSnapshot::query()
             ->whereHas('report', $reportScope)
@@ -228,7 +321,112 @@ class AuditReportReviewService
             're_reviews' => $re,
             'confirmed' => $confirmed,
             'awaiting' => $awaiting,
+            'completed_by_me' => $completedByMe,
             'reports' => $rows,
+        ];
+    }
+
+    /**
+     * Reviews a reviewer finished (sent back or confirmed), grouped by the month they acted.
+     * Review admins may inspect any reviewer, or everyone when $reviewerId is 0.
+     *
+     * @return array{
+     *     year:int,
+     *     reviewer_id:int,
+     *     can_pick:bool,
+     *     reviewers:list<array{id:int,name:string}>,
+     *     total:int,
+     *     shakha_count:int,
+     *     confirmed:int,
+     *     returned:int,
+     *     peak:int,
+     *     months:array<int, array{label:string,short:string,count:int,shakhas:int,rows:list<array<string,mixed>>}>
+     * }
+     */
+    public function reviewHistory(User $viewer, ?int $reviewerId, int $year): array
+    {
+        $canPick = $this->isReviewAdmin($viewer);
+        $reviewerId = $canPick ? (int) ($reviewerId ?? $viewer->id) : (int) $viewer->id;
+
+        $actions = [AuditReportReviewEvent::ACTION_RETURNED, AuditReportReviewEvent::ACTION_APPROVED];
+
+        $reviewers = [];
+        if ($canPick) {
+            $reviewers = User::query()
+                ->whereIn('id', AuditReportReviewEvent::query()->whereIn('action', $actions)->select('actor_user_id'))
+                ->orWhere('id', $viewer->id)
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn (User $u) => ['id' => (int) $u->id, 'name' => (string) $u->name])
+                ->all();
+        }
+
+        $events = AuditReportReviewEvent::query()
+            ->with(['report.shakha:id,name,code', 'report.projectLocation.project', 'report.user:id,name', 'actor:id,name'])
+            ->whereIn('action', $actions)
+            ->whereYear('created_at', $year)
+            ->when($reviewerId > 0, fn ($q) => $q->where('actor_user_id', $reviewerId))
+            ->orderByDesc('created_at')
+            ->get();
+
+        $months = [];
+        for ($m = 12; $m >= 1; $m--) {
+            $date = \Carbon\Carbon::create($year, $m, 1);
+            $months[$m] = [
+                'label' => $date->format('F Y'),
+                'short' => $date->format('M'),
+                'count' => 0,
+                'shakhas' => 0,
+                'rows' => [],
+            ];
+        }
+
+        $confirmed = 0;
+        $returned = 0;
+        $allShakhas = [];
+
+        foreach ($events as $event) {
+            $report = $event->report;
+            if (! $report) {
+                continue;
+            }
+            $month = (int) $event->created_at->month;
+            $isApproved = $event->action === AuditReportReviewEvent::ACTION_APPROVED;
+            $perfect = $isApproved && (($event->meta['via'] ?? '') === 'totally_fixed');
+            $isApproved ? $confirmed++ : $returned++;
+
+            $entity = $report->entityDisplayName();
+            $allShakhas[$entity] = true;
+
+            $months[$month]['count']++;
+            $months[$month]['rows'][] = [
+                'report_id' => (int) $report->id,
+                'shakha' => $entity,
+                'period' => $report->periodLabel(),
+                'maker' => $report->user?->name ?: '—',
+                'reviewer' => $event->actor?->name ?: '—',
+                'round' => AuditReport::reviewRoundLabel(max(1, (int) $event->review_round)),
+                'outcome' => $perfect ? 'Totally fixed' : ($isApproved ? 'Confirmed' : 'Sent back'),
+                'tone' => $perfect ? 'teal' : ($isApproved ? 'emerald' : 'amber'),
+                'at' => $event->created_at,
+            ];
+        }
+
+        foreach ($months as $m => $month) {
+            $months[$m]['shakhas'] = count(array_unique(array_column($month['rows'], 'shakha')));
+        }
+
+        return [
+            'year' => $year,
+            'reviewer_id' => $reviewerId,
+            'can_pick' => $canPick,
+            'reviewers' => $reviewers,
+            'total' => $confirmed + $returned,
+            'shakha_count' => count($allShakhas),
+            'confirmed' => $confirmed,
+            'returned' => $returned,
+            'peak' => max(1, ...array_column($months, 'count')),
+            'months' => $months,
         ];
     }
 
@@ -406,7 +604,7 @@ class AuditReportReviewService
         }
 
         $destination = in_array($destination, ['assigned', 'superadmin'], true) ? $destination : 'assigned';
-        $assignment = $this->assignmentForAuditor((int) $report->user_id);
+        $assignment = $this->assignmentForReport($report);
         $superadmin = $this->primarySuperadmin();
 
         if ($destination === 'superadmin') {
@@ -1099,7 +1297,7 @@ class AuditReportReviewService
     }
 
     private function composeSubmitBody(
-        ?AuditReviewerAssignment $assignment,
+        AuditReviewerAssignment|AuditReviewerMonthAssignment|null $assignment,
         bool $ccSuperadmin,
         ?string $note,
         string $destination = 'assigned',

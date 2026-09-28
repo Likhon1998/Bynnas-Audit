@@ -12,8 +12,8 @@
             class="relative min-w-0 flex-1"
             x-data="ruleSearch"
             data-rules='@json($ruleCatalog)'
-            @click.outside="open = false"
-            @keydown.escape.window="open = false"
+            @click.outside="ruleMenuOpen = false"
+            @keydown.escape.window="ruleMenuOpen = false"
         >
             <button
                 type="button"
@@ -24,7 +24,7 @@
                 <svg class="h-3.5 w-3.5 shrink-0 text-slate-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
             </button>
             <div
-                x-show="open"
+                x-show="ruleMenuOpen"
                 x-cloak
                 class="absolute left-0 right-0 top-full z-[80] mt-1 flex max-h-72 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_12px_32px_rgba(15,23,42,0.16)]"
             >
@@ -60,9 +60,9 @@
         </div>
         <button
             type="button"
-            title="Add to rule book"
-            aria-label="Add to rule book"
-            data-url="{{ route('rule-book.quick') }}"
+            title="নতুন নিয়ম যোগ করুন"
+            aria-label="নতুন নিয়ম যোগ করুন"
+            data-policies='@json($ruleCatalog->pluck('group')->unique()->values())'
             class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-700 text-[16px] font-semibold leading-none text-white shadow-[0_6px_14px_rgba(55,48,163,0.35)] transition hover:-translate-y-0.5 hover:bg-indigo-800"
             onclick="window.bynnasSaveRule(this)"
         >+</button>

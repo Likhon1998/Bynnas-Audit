@@ -25,7 +25,7 @@
         </div>
 
         @if (session('status'))
-            <div class="mt-2 rounded-lg bg-emerald-50 px-3 py-1.5 text-[12px] text-emerald-800">{{ session('status') }}</div>
+            <div data-flash class="mt-2 rounded-lg bg-emerald-50 px-3 py-1.5 text-[12px] text-emerald-800">{{ session('status') }}</div>
         @endif
         @if ($errors->any())
             <div class="mt-2 rounded-lg bg-rose-50 px-3 py-1.5 text-[12px] text-rose-700">{{ $errors->first() }}</div>
@@ -72,7 +72,7 @@
                                 <ol>
                                     @foreach ($items as $rule)
                                         <li class="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5 border-b border-slate-100 px-3 py-2 last:border-b-0" x-show="shown({{ $rule->id }})" x-cloak>
-                                            <span class="inline-flex h-7 min-w-7 items-center justify-center rounded-lg bg-indigo-700 px-1.5 text-[12px] font-semibold tabular-nums text-white shadow-[0_6px_14px_rgba(55,48,163,0.35)]">{{ $rule->article !== '' ? $rule->article : $rule->serial }}</span>
+                                            <span class="inline-flex h-7 min-w-7 items-center justify-center rounded-lg bg-emerald-600 px-1.5 text-[12px] font-semibold tabular-nums text-white shadow-[0_6px_14px_rgba(5,150,105,0.35)]">{{ $rule->article !== '' ? $rule->article : $rule->serial }}</span>
                                             <div class="min-w-0">
                                                 <p class="text-[13px] leading-snug text-navy-900">{{ $rule->statement }}</p>
                                             </div>

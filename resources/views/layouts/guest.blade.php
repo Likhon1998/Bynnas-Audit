@@ -31,5 +31,6 @@
                 {{ $slot }}
             </div>
         </div>
+        @include('partials.flash-autohide')
     </body>
 </html>

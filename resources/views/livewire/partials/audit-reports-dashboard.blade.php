@@ -5,7 +5,7 @@
 
 <div class="space-y-2">
     @if (session('status'))
-        <div class="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-[13px] text-emerald-800">{{ session('status') }}</div>
+        <div data-flash class="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-[13px] text-emerald-800">{{ session('status') }}</div>
     @endif
 
     <div class="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm sm:px-4 {{ $canStartNewReport ? '' : 'pointer-events-none opacity-55' }}">
@@ -321,18 +321,18 @@
                                     <button
                                         type="button"
                                         wire:click="resumeReport({{ $report->id }})"
-                                        class="inline-flex h-7 items-center rounded-md border border-slate-200 bg-white px-2.5 text-[13px] font-semibold text-slate-700 hover:bg-slate-50"
+                                        class="inline-flex h-7 items-center rounded-md bg-[#2b579a] px-2.5 text-[13px] font-semibold text-white shadow-[0_6px_14px_rgba(43,87,154,0.35)] transition hover:-translate-y-0.5 hover:bg-[#204072]"
                                     >Edit report</button>
                                     <a
                                         href="{{ route('audits.checklist', $report) }}"
-                                        class="inline-flex h-7 items-center rounded-md border border-slate-200 px-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50"
+                                        class="inline-flex h-7 items-center rounded-md bg-teal-600 px-2.5 text-[13px] font-semibold text-white shadow-[0_6px_14px_rgba(13,148,136,0.35)] transition hover:-translate-y-0.5 hover:bg-teal-700"
                                     >Checklist</a>
                                     @endif
                                 @endif
                                 @unless ($isDraft)
                                     @if ($report->isCompleted() || $report->isChangesRequested())
                                         @php
-                                            $ownerMeta = ($reviewMetaByOwner ?? [])[(int) $report->user_id] ?? null;
+                                            $ownerMeta = ($reviewMetaByReport ?? [])[(int) $report->id] ?? null;
                                             $assignedName = $ownerMeta['reviewer_name'] ?? null;
                                             $superName = ($reviewSuperadmin['name'] ?? null) ?: 'Super Admin';
                                             $defaultDest = $assignedName ? 'assigned' : 'superadmin';

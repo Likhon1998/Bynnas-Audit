@@ -9,51 +9,51 @@
     @if ($step === 'select')
         <div
             class="min-h-full bg-slate-100/80 px-3 py-3 lg:px-5"
-            x-data="{
+                    x-data="{
                 q: '',
-                open: false,
-                highlight: 0,
+                        open: false,
+                        highlight: 0,
                 selectedId: @js($selectedEntityKey ?: ''),
                 selectedLabel: @js($selectedShakhaLabel ?: ''),
-                branches: @js($branchOptions),
-                get filtered() {
-                    const q = this.q.trim().toLowerCase();
+                        branches: @js($branchOptions),
+                        get filtered() {
+                            const q = this.q.trim().toLowerCase();
                     if (!q) return this.branches;
-                    return this.branches.filter((b) => {
+                            return this.branches.filter((b) => {
                         const hay = (b.name + ' ' + b.code + ' ' + b.area + ' ' + b.division + ' ' + b.focal + ' ' + (b.kind_label || '')).toLowerCase();
-                        return hay.includes(q);
-                    });
-                },
-                pick(b) {
-                    this.selectedId = String(b.id);
+                                return hay.includes(q);
+                            });
+                        },
+                        pick(b) {
+                            this.selectedId = String(b.id);
                     this.selectedLabel = b.name + (b.code && b.kind !== 'location' ? ' (' + b.code + ')' : '') + (b.area ? ' — ' + b.area : '');
                     this.q = '';
-                    this.open = false;
-                    this.highlight = 0;
+                            this.open = false;
+                            this.highlight = 0;
                     $wire.selectReportEntity(String(b.id));
-                },
-                clear() {
-                    this.q = '';
-                    this.selectedId = '';
+                        },
+                        clear() {
+                            this.q = '';
+                            this.selectedId = '';
                     this.selectedLabel = '';
-                    this.open = false;
-                    this.highlight = 0;
+                            this.open = false;
+                            this.highlight = 0;
                     $wire.clearShakha();
-                },
-                onKey(e) {
-                    const list = this.filtered;
-                    if (e.key === 'ArrowDown') {
-                        e.preventDefault();
+                        },
+                        onKey(e) {
+                            const list = this.filtered;
+                            if (e.key === 'ArrowDown') {
+                                e.preventDefault();
                         this.open = true;
                         this.highlight = Math.min(this.highlight + 1, Math.max(list.length - 1, 0));
-                    } else if (e.key === 'ArrowUp') {
-                        e.preventDefault();
-                        this.highlight = Math.max(this.highlight - 1, 0);
-                    } else if (e.key === 'Enter' && list[this.highlight]) {
-                        e.preventDefault();
-                        this.pick(list[this.highlight]);
-                    } else if (e.key === 'Escape') {
-                        this.open = false;
+                            } else if (e.key === 'ArrowUp') {
+                                e.preventDefault();
+                                this.highlight = Math.max(this.highlight - 1, 0);
+                            } else if (e.key === 'Enter' && list[this.highlight]) {
+                                e.preventDefault();
+                                this.pick(list[this.highlight]);
+                            } else if (e.key === 'Escape') {
+                                this.open = false;
                         this.q = '';
                     }
                 }
@@ -75,8 +75,8 @@
                     : 'Undo ১০ মিনিট পর্যন্ত কাজ করে (Save এর পরেও)';
             @endphp
             <div class="flex flex-wrap items-center gap-2">
-                <button
-                    type="button"
+                        <button
+                            type="button"
                     wire:click="backToSelect"
                     class="inline-flex h-8 shrink-0 items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 text-[12px] font-medium text-slate-700 hover:bg-slate-50"
                 >
@@ -92,15 +92,15 @@
                             <span class="text-emerald-700"> · {{ $autoSaveHint }}</span>
                         @endif
                     </p>
-                </div>
+                    </div>
 
                 @if ($reviewNeedsFix)
                     <div class="order-last flex w-full flex-wrap items-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-[13px] text-rose-950 sm:order-none sm:max-w-xl sm:w-auto">
                         <span class="min-w-0 flex-1">
                             <span class="font-semibold">Fix &amp; resubmit</span> — edit the report on the left; reviewer comments stay on the right.
                         </span>
-                        <button
-                            type="button"
+                            <button
+                                type="button"
                             wire:click="toggleReviewComments"
                             class="inline-flex h-7 shrink-0 items-center rounded-md border border-rose-300 bg-white px-2.5 text-[13px] font-semibold text-rose-800 hover:bg-rose-100"
                         >
@@ -118,9 +118,9 @@
                                 Done · reviewer marked 100% perfect
                             </span>
                         @else
-                            <span class="min-w-0 flex-1">
+                                <span class="min-w-0 flex-1">
                                 Reviewer marked this report <span class="font-semibold">Totally fixed · 100% perfect</span>. Tick when you are finished with this report.
-                            </span>
+                                    </span>
                             <button
                                 type="button"
                                 @click="async () => {
@@ -145,8 +145,8 @@
                             Read-only — confirmed by reviewer (not 100% perfect; no done tick).
                         @else
                             Read-only — waiting for reviewer.
-                        @endif
-                    </div>
+                    @endif
+                </div>
                 @endif
 
                 <div class="flex shrink-0 flex-wrap items-center gap-1.5">
@@ -239,8 +239,8 @@
                         class="inline-flex h-8 items-center rounded-md bg-[#2b579a] px-3 text-[12px] font-medium text-white hover:bg-[#204072]"
                     >সংরক্ষণ</button>
                 </div>
+                </div>
             </div>
-        </div>
 
         @if ($reportSearchOpen)
             <div class="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/40 px-3 py-10 sm:px-6" wire:key="report-search-modal">
@@ -249,9 +249,9 @@
                         <div>
                             <p class="text-[14px] font-semibold text-navy-900">Report search</p>
                             <p class="text-[13px] text-slate-500">Count how many times a name or word appears anywhere in this report.</p>
-                        </div>
+            </div>
                         <button type="button" wire:click="closeReportSearch" class="rounded-md px-2 py-1 text-[12px] text-slate-500 hover:bg-slate-50">✕</button>
-                    </div>
+        </div>
                     <div class="space-y-2 border-b border-slate-100 px-3 py-2.5">
                         <div class="flex gap-2">
                             <input
@@ -280,7 +280,7 @@
                             <p class="px-2 py-6 text-center text-[13px] text-slate-500">Type a name or word to scan the full report.</p>
                         @elseif ($reportSearchHits === [])
                             <p class="px-2 py-6 text-center text-[12px] text-slate-500">No matches found.</p>
-                        @else
+    @else
                             <ul class="space-y-1">
                                 @foreach ($reportSearchHits as $hit)
                                     <li>
@@ -300,7 +300,7 @@
                                 @endforeach
                             </ul>
                         @endif
-                    </div>
+                </div>
                 </div>
             </div>
         @endif
@@ -355,8 +355,8 @@
                         <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">শিরোনাম</p>
                         <p class="truncate text-xs text-slate-500">ক্লিক = স্ক্রল</p>
                     </div>
-                    <button
-                        type="button"
+                <button
+                    type="button"
                         @click="open = false"
                         class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-800"
                         aria-label="সাইডবার বন্ধ"
@@ -365,12 +365,12 @@
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
                         </svg>
-                    </button>
-                </div>
+                </button>
+            </div>
 
                 {{-- Collapsed: full-height thin rail on the side --}}
-                <button
-                    type="button"
+                    <button
+                        type="button"
                     x-show="! open"
                     x-cloak
                     @click="open = true"
@@ -382,7 +382,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
                     </svg>
                     <span class="select-none text-xs font-semibold tracking-wide" style="writing-mode: vertical-rl; text-orientation: mixed;">শিরোনাম</span>
-                </button>
+                    </button>
 
                 <nav
                     class="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-1.5 py-1.5"
@@ -410,7 +410,7 @@
                         >
                             <span class="line-clamp-2">{{ $item['label'] }}</span>
                         </button>
-                    @endforeach
+                @endforeach
                 </nav>
             </aside>
 
@@ -437,7 +437,7 @@
                     </select>
                 </div>
         @if (session('status'))
-            <div class="bg-emerald-50 px-4 py-2 text-[12px] text-emerald-800 lg:px-6">{{ session('status') }}</div>
+            <div data-flash class="bg-emerald-50 px-4 py-2 text-[12px] text-emerald-800 lg:px-6">{{ session('status') }}</div>
         @endif
 
         @if ($activeTab === 'cover')
@@ -527,7 +527,7 @@
 
                     <div class="mt-6 text-[11.5px] leading-relaxed">
                         <div class="mb-1.5 flex flex-wrap items-center justify-between gap-2">
-                            <p class="font-semibold">অনুলিপি:</p>
+                        <p class="font-semibold">অনুলিপি:</p>
                             <button
                                 type="button"
                                 wire:click="addCopyRecipient"
@@ -568,11 +568,11 @@
 
         @elseif ($activeTab === 'page2')
             <div id="audit-page2">
-                @include('livewire.partials.audit-page2-form')
+            @include('livewire.partials.audit-page2-form')
             </div>
         @elseif ($activeTab === 'page3')
             <div id="audit-page3">
-                @include('livewire.partials.audit-page3-form')
+            @include('livewire.partials.audit-page3-form')
             </div>
         @elseif ($activeTab === 'page4')
             <div id="audit-page4">
@@ -684,8 +684,8 @@
                                     </span>
                                     <div class="flex items-center gap-1.5">
                                         <span class="text-xs text-slate-500">{{ ($c['type'] ?? '') === 'area' ? 'Area' : 'Text' }}</span>
-                                        <button
-                                            type="button"
+                            <button
+                                type="button"
                                             @click="toggleDone({{ $commentId }})"
                                             class="inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-semibold transition"
                                             :class="isDone({{ $commentId }})
@@ -694,9 +694,9 @@
                                         >
                                             <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                                             <span x-text="isDone({{ $commentId }}) ? 'Done' : 'Mark done'"></span>
-                                        </button>
-                                    </div>
-                                </div>
+                            </button>
+                        </div>
+                    </div>
 
                                 @if (! empty($c['snapshot_url']))
                                     <button
@@ -740,13 +740,13 @@
                                     <p class="mt-1 text-[12px] font-medium leading-snug text-slate-900" :class="isDone({{ $commentId }}) && 'line-through opacity-70'">{{ $c['body'] }}</p>
                                 @endif
                                 <p class="mt-2 text-xs text-slate-500">{{ $c['author'] ?? 'Reviewer' }}@if (! empty($c['created'])) · {{ $c['created'] }}@endif</p>
-                            </div>
+                                    </div>
                         @empty
                             <div class="rounded-lg border border-dashed border-rose-200 bg-white px-3 py-3 text-center text-[12px] text-slate-500">
                                 No marks on the document. Follow the reviewer note above (if any), then resubmit.
-                            </div>
+                                    </div>
                         @endforelse
-                    </div>
+                                    </div>
                     <div class="shrink-0 border-t border-rose-100 bg-white px-3 py-2.5">
                         <form
                             method="POST"
@@ -782,7 +782,7 @@
                                 class="inline-flex h-8 w-full items-center justify-center rounded-md bg-rose-700 text-[13px] font-semibold text-white hover:bg-rose-800"
                             >Resubmit for re-review</button>
                         </form>
-                    </div>
+                                    </div>
 
                     {{-- Enlarge marked snapshot so maker can see what to change --}}
                     <div
@@ -805,7 +805,7 @@
                                 <div class="min-w-0">
                                     <p class="text-[13px] font-semibold text-navy-900" x-text="previewTitle || 'Marked place'"></p>
                                     <p class="mt-0.5 text-[13px] text-slate-500">Reviewer mark — zoomed so you can see what to fix</p>
-                                </div>
+                                    </div>
                                 <button
                                     type="button"
                                     class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-800"
@@ -814,14 +814,14 @@
                                 >
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                                 </button>
-                            </div>
+                                    </div>
                             <div class="min-h-0 flex-1 overflow-auto bg-slate-100 p-3 sm:p-4">
                                 <img
                                     :src="previewUrl"
                                     alt="Enlarged marked place"
                                     class="mx-auto max-h-[70vh] w-auto max-w-full rounded-md border border-slate-200 bg-white object-contain shadow-sm"
                                 >
-                            </div>
+                                </div>
                             <div class="shrink-0 border-t border-slate-100 bg-white px-3 py-2.5" x-show="previewBody">
                                 <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">What to change</p>
                                 <p class="mt-1 text-[13px] font-medium leading-snug text-slate-900" x-text="previewBody"></p>
@@ -874,7 +874,7 @@
                             </button>
                         </div>
                     </div>
-                </div>
+                        </div>
 
                 <div class="min-h-0 flex-1 overflow-y-auto px-3 py-4" @click.self="open = false; $wire.closePreview()">
                     <div class="mx-auto w-full max-w-[236mm]">

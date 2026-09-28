@@ -68,7 +68,7 @@
             </div>
 
             @if (session('status'))
-                <div class="mt-3 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-800">{{ session('status') }}</div>
+                <div data-flash class="mt-3 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-800">{{ session('status') }}</div>
             @endif
 
             @if ($errors->any())

@@ -124,10 +124,15 @@ class RuleBookController extends Controller
 
     public function quickStore(Request $request): JsonResponse
     {
-        $statement = trim((string) $request->validate([
+        $data = $request->validate([
             'statement' => ['required', 'string', 'max:5000'],
-        ])['statement']);
+            'article' => ['nullable', 'string', 'max:255'],
+            'source_name' => ['nullable', 'string', 'max:255'],
+        ]);
+        $statement = trim((string) $data['statement']);
         $statement = preg_replace('/\s+/u', ' ', $statement) ?? $statement;
+        $article = trim((string) ($data['article'] ?? ''));
+        $source = trim((string) ($data['source_name'] ?? ''));
 
         $existing = Rule::query()->orderBy('id')->get()->first(function (Rule $rule) use ($statement) {
             $saved = preg_replace('/\s+/u', ' ', trim((string) $rule->statement)) ?? '';
@@ -151,20 +156,20 @@ class RuleBookController extends Controller
             'serial' => ((int) Rule::query()->max('serial')) + 1,
             'title' => $this->titleFrom($statement),
             'statement' => $statement,
-            'article' => '',
+            'article' => $article,
             'reference_where' => '',
             'reference_when' => '',
             'reference_who' => '',
-            'source_name' => 'রিপোর্ট থেকে',
+            'source_name' => $source,
             'created_by' => $request->user()?->id,
         ]);
 
         return response()->json([
             'added' => true,
-            'group' => 'রিপোর্ট থেকে',
+            'group' => $this->documentName($rule),
             'label' => $this->pickerLabel($rule),
             'value' => $rule->criteriaText(),
-            'article' => (string) $rule->serial,
+            'article' => $article !== '' ? $article : (string) $rule->serial,
             'statement' => $rule->statement,
         ]);
     }

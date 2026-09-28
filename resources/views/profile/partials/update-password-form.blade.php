@@ -64,7 +64,7 @@
                     x-data="{ show: true }"
                     x-show="show"
                     x-transition
-                    x-init="setTimeout(() => show = false, 2000)"
+                    x-init="setTimeout(() => show = false, 5000)"
                     class="text-xs font-medium text-emerald-600"
                 >{{ __('Saved.') }}</p>
             @endif

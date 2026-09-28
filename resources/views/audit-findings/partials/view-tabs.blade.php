@@ -7,7 +7,7 @@
 @endphp
 
 @if ($canMatrix || $canSummary)
-<nav class="mt-2 inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5" aria-label="Findings views">
+<nav class="inline-flex shrink-0 rounded-lg border border-slate-200 bg-slate-50 p-0.5" aria-label="Findings views">
     @if ($canMatrix)
         <a
             href="{{ route('audit-findings.index', ['month' => $tabMonth, 'year' => $tabYear]) }}"

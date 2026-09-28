@@ -82,7 +82,7 @@
                 window.__bynnasRuleSearch = true;
                 window.Alpine.data('ruleSearch', () => ({
                     q: '',
-                    open: false,
+                    ruleMenuOpen: false,
                     rules: [],
                     init() {
                         try {
@@ -113,8 +113,8 @@
                         return groups;
                     },
                     toggle() {
-                        this.open = ! this.open;
-                        if (this.open) {
+                        this.ruleMenuOpen = ! this.ruleMenuOpen;
+                        if (this.ruleMenuOpen) {
                             this.$nextTick(() => this.$refs.find && this.$refs.find.focus());
                         }
                     },
@@ -127,7 +127,7 @@
                             area.dispatchEvent(new Event('change', { bubbles: true }));
                         }
                         this.q = '';
-                        this.open = false;
+                        this.ruleMenuOpen = false;
                     },
                     chooseFirst() {
                         const group = this.filtered[0];
@@ -138,36 +138,69 @@
                 }));
             });
 
-            window.bynnasSaveRule = async function (button) {
-                const box = button.closest('[data-rule-pick]');
-                const note = box ? box.querySelector('[data-rule-status]') : null;
-                const area = box ? box.querySelector('textarea') : null;
-                const statement = (area?.value || '').replace(/\s+/g, ' ').trim();
-                const say = (text) => {
-                    if (note) {
-                        note.textContent = text;
-                        note.classList.remove('hidden');
-                    }
-                };
-                if (statement === '') {
-                    say('আগে নিয়মটি লিখুন।');
+            window.bynnasSaveRule = function (button) {
+                const dialog = document.getElementById('bynnas-rule-dialog');
+                if (! dialog) {
                     return;
                 }
-                const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-                button.disabled = true;
+                const box = button.closest('[data-rule-pick]');
+                const area = box ? box.querySelector('textarea') : null;
+                dialog._ruleBox = box;
+                const form = dialog.querySelector('form');
+                form.reset();
+                form.querySelector('[name="statement"]').value = (area?.value || '').trim();
+                const list = dialog.querySelector('#bynnas-rule-policies');
+                list.innerHTML = '';
+                let policies = [];
                 try {
-                    const response = await fetch(button.dataset.url, {
+                    policies = JSON.parse(button.dataset.policies || '[]');
+                } catch (error) {
+                    policies = [];
+                }
+                policies.forEach((name) => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    list.appendChild(option);
+                });
+                dialog.querySelector('[data-rule-error]').classList.add('hidden');
+                dialog.showModal();
+                form.querySelector('[name="source_name"]').focus();
+            };
+
+            document.addEventListener('submit', async (event) => {
+                const form = event.target;
+                if (! form.matches('#bynnas-rule-dialog form')) {
+                    return;
+                }
+                event.preventDefault();
+                const dialog = form.closest('dialog');
+                const error = dialog.querySelector('[data-rule-error]');
+                const submit = form.querySelector('[type="submit"]');
+                const payload = {
+                    source_name: form.source_name.value.trim(),
+                    article: form.article.value.trim(),
+                    statement: form.statement.value.replace(/\s+/g, ' ').trim(),
+                };
+                if (payload.statement === '') {
+                    error.textContent = 'নিয়মটি লিখুন।';
+                    error.classList.remove('hidden');
+                    return;
+                }
+                submit.disabled = true;
+                try {
+                    const response = await fetch(form.action, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'Accept': 'application/json',
-                            'X-CSRF-TOKEN': token,
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
                             'X-Requested-With': 'XMLHttpRequest',
                         },
-                        body: JSON.stringify({ statement }),
+                        body: JSON.stringify(payload),
                     });
                     if (! response.ok) {
-                        say('যোগ করা যায়নি।');
+                        error.textContent = 'নিয়ম যোগ করা যায়নি। আবার চেষ্টা করুন।';
+                        error.classList.remove('hidden');
                         return;
                     }
                     const saved = await response.json();
@@ -175,18 +208,66 @@
                         detail: {
                             group: saved.group,
                             article: saved.article || '',
-                            statement: saved.statement || statement,
+                            statement: saved.statement || payload.statement,
                             value: saved.value,
                         },
                     }));
-                    say(saved.added ? 'নিয়ম বইয়ে যোগ হয়েছে।' : 'এই নিয়ম আগেই আছে।');
-                } catch (error) {
-                    say('যোগ করা যায়নি।');
+                    const box = dialog._ruleBox;
+                    const area = box ? box.querySelector('textarea') : null;
+                    if (area) {
+                        area.value = saved.value;
+                        area.dispatchEvent(new Event('input', { bubbles: true }));
+                        area.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                    const note = box ? box.querySelector('[data-rule-status]') : null;
+                    if (note) {
+                        note.textContent = saved.added ? 'নিয়ম বইয়ে যোগ হয়েছে।' : 'এই নিয়ম আগেই নিয়ম বইয়ে আছে।';
+                        note.classList.remove('hidden');
+                    }
+                    dialog.close();
+                } catch (err) {
+                    error.textContent = 'নিয়ম যোগ করা যায়নি। আবার চেষ্টা করুন।';
+                    error.classList.remove('hidden');
                 } finally {
-                    button.disabled = false;
+                    submit.disabled = false;
                 }
-            };
+            });
         </script>
+
+        @auth
+            <dialog id="bynnas-rule-dialog" class="w-full max-w-lg rounded-xl border border-slate-200 p-0 shadow-xl backdrop:bg-slate-900/40">
+                <form method="POST" action="{{ route('rule-book.quick') }}" class="p-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <h2 class="text-[15px] font-semibold text-navy-900">নতুন নিয়ম যোগ করুন</h2>
+                            <p class="mt-0.5 text-[12px] text-slate-500">নিয়মটি নিয়ম বইয়ে জমা হবে এবং এই প্রচলিত নিয়মে বসবে।</p>
+                        </div>
+                        <button type="button" class="inline-flex h-7 shrink-0 items-center rounded-lg bg-rose-600 px-3 text-[12px] font-semibold text-white shadow-[0_6px_14px_rgba(225,29,72,0.35)] transition hover:-translate-y-0.5 hover:bg-rose-700" onclick="this.closest('dialog').close()">বন্ধ</button>
+                    </div>
+                    <label class="mt-3 block">
+                        <span class="text-[11px] font-semibold text-slate-600">Policy name</span>
+                        <input type="text" name="source_name" list="bynnas-rule-policies" placeholder="যেমন: Current Loan Adjustment Policy" autocomplete="off" class="mt-1 block w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-[13px] text-navy-900 placeholder:text-slate-400 focus:border-navy-900 focus:outline-none focus:ring-1 focus:ring-navy-900">
+                        <datalist id="bynnas-rule-policies"></datalist>
+                    </label>
+                    <div class="mt-2 flex items-start gap-2">
+                        <label class="w-16 shrink-0">
+                            <span class="text-[11px] font-semibold text-slate-600">No.</span>
+                            <input type="text" name="article" placeholder="১" class="mt-1 block w-full rounded-lg border border-slate-200 px-2 py-1.5 text-center text-[13px] text-navy-900 placeholder:text-slate-400 focus:border-navy-900 focus:outline-none focus:ring-1 focus:ring-navy-900">
+                        </label>
+                        <label class="min-w-0 flex-1">
+                            <span class="text-[11px] font-semibold text-slate-600">Rule</span>
+                            <textarea name="statement" rows="4" placeholder="নিয়মটি লিখুন" class="mt-1 block w-full rounded-lg border border-slate-200 px-2.5 py-2 text-[13px] leading-snug text-navy-900 placeholder:text-slate-400 focus:border-navy-900 focus:outline-none focus:ring-1 focus:ring-navy-900"></textarea>
+                        </label>
+                    </div>
+                    <p data-rule-error class="mt-2 hidden text-[12px] font-medium text-rose-700"></p>
+                    <div class="mt-3 flex justify-end gap-2">
+                        <button type="button" class="inline-flex h-8 items-center rounded-lg bg-rose-600 px-3 text-[12px] font-semibold text-white shadow-[0_6px_14px_rgba(225,29,72,0.35)] transition hover:-translate-y-0.5 hover:bg-rose-700" onclick="this.closest('dialog').close()">বাতিল</button>
+                        <button type="submit" class="inline-flex h-8 items-center rounded-lg bg-emerald-600 px-3 text-[12px] font-semibold text-white shadow-[0_6px_14px_rgba(5,150,105,0.35)] transition hover:-translate-y-0.5 hover:bg-emerald-700 disabled:opacity-60">নিয়ম যোগ করুন</button>
+                    </div>
+                </form>
+            </dialog>
+        @endauth
         @livewireScripts
+        @include('partials.flash-autohide')
     </body>
 </html>

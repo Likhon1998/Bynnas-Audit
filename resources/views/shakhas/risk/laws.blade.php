@@ -54,7 +54,7 @@
                 </div>
             </div>
             @if (session('status'))
-                <div class="mt-2 rounded-lg bg-emerald-50 px-2 py-1 text-[12px] text-emerald-800">{{ session('status') }}</div>
+                <div data-flash class="mt-2 rounded-lg bg-emerald-50 px-2 py-1 text-[12px] text-emerald-800">{{ session('status') }}</div>
             @endif
             @if ($errors->any())
                 <div class="mt-2 rounded-lg bg-rose-50 px-2 py-1 text-[12px] text-rose-700">{{ $errors->first() }}</div>

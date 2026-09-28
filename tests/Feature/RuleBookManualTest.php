@@ -69,7 +69,11 @@ class RuleBookManualTest extends TestCase
                 'statement' => 'A newly written criteria line from the report.',
             ])
             ->assertOk()
-            ->assertJson(['added' => true, 'group' => 'রিপোর্ট থেকে']);
+            ->assertJson([
+                'added' => true,
+                'group' => 'No document',
+                'value' => 'A newly written criteria line from the report.',
+            ]);
 
         $this->actingAs($user)
             ->postJson(route('rule-book.quick'), [
@@ -78,7 +82,21 @@ class RuleBookManualTest extends TestCase
             ->assertOk()
             ->assertJson(['added' => false]);
 
-        $this->assertSame(1, Rule::query()->count());
+        $this->actingAs($user)
+            ->postJson(route('rule-book.quick'), [
+                'statement' => 'Loans must be adjusted within the month.',
+                'article' => '১৪',
+                'source_name' => 'Current Loan Adjustment Policy',
+            ])
+            ->assertOk()
+            ->assertJson([
+                'added' => true,
+                'group' => 'Current Loan Adjustment Policy',
+                'article' => '১৪',
+                'value' => 'Loans must be adjusted within the month.',
+            ]);
+
+        $this->assertSame(2, Rule::query()->count());
     }
 
     public function test_criteria_picker_is_a_search_field(): void

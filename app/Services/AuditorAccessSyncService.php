@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\AuditReviewerAssignment;
+use App\Models\AuditReviewerMonthAssignment;
 use App\Models\User;
 use App\Support\RoleAccess;
 use Database\Seeders\RolePermissionSeeder;
@@ -28,6 +29,7 @@ class AuditorAccessSyncService
 
         $reviewerIds = AuditReviewerAssignment::query()
             ->pluck('reviewer_user_id')
+            ->concat(AuditReviewerMonthAssignment::query()->pluck('reviewer_user_id'))
             ->map(fn ($id) => (int) $id)
             ->unique()
             ->all();

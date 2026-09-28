@@ -696,6 +696,24 @@ class MakeAuditReport extends Component
             'report_year.required' => 'বছর নির্বাচন করুন।',
         ]);
 
+        // A report opened earlier on this page must not leak its content into the new one.
+        $this->resetExcept([
+            'step',
+            'shakha_id',
+            'project_location_id',
+            'report_entity_key',
+            'report_month',
+            'report_year',
+            'auditor_name',
+            'auditor_designation',
+            'listFilterMonth',
+            'listFilterYear',
+            'listFilterQ',
+            'listFilterStatus',
+        ]);
+        $this->report_date = now()->toDateString();
+        $this->ensureCopyRecipientsDefaults();
+
         $this->applyMonthYearDefaults();
 
         $userId = (int) (auth()->id() ?? 0);
@@ -4704,7 +4722,7 @@ class MakeAuditReport extends Component
                 if ($serial !== '' && str_starts_with($title, $serial)) {
                     $titleWithoutSerial = trim(mb_substr($title, mb_strlen($serial)));
                 }
-                $isStartHere = ! empty($block['start_indicator']);
+                $isStartHere = ! empty($block['start_indicator']) && $serial === '' && $titleWithoutSerial === '';
                 if ($isStartHere) {
                     $items[] = [
                         'kind' => 'indicator',
@@ -4715,7 +4733,7 @@ class MakeAuditReport extends Component
                     ];
                 } else {
                     $label = $titleWithoutSerial !== ''
-                        ? ($title !== '' ? $title : $serial.' '.$titleWithoutSerial)
+                        ? trim($serial.' '.$titleWithoutSerial)
                         : ($serial !== '' ? $serial.' নতুন বিভাগ' : 'বিভাগ');
                     if ($this->outlineSectionDuplicatesPageLabel($serial, $title)) {
                         continue;
@@ -4778,10 +4796,14 @@ class MakeAuditReport extends Component
                 $serial = trim((string) ($block['serial'] ?? ''));
                 $body = trim((string) ($block['body'] ?? ''));
                 $title = trim((string) ($block['title'] ?? ''));
-                if ($this->isStockOrStarterFinding($block) || ($body === '' && ($title === '' || $title === 'শিরোনাম'))) {
+                if ($this->isStockOrStarterFinding($block)) {
                     continue;
                 }
-                $text = $body !== '' ? $body : $title;
+                $untitled = $body === '' && ($title === '' || $title === 'শিরোনাম');
+                if ($untitled && $serial === '') {
+                    continue;
+                }
+                $text = $untitled ? 'নতুন শিরোনাম' : ($body !== '' ? $body : $title);
                 $short = mb_strlen($text) > 48 ? mb_substr($text, 0, 48).'…' : $text;
                 $label = $serial !== '' ? $serial.' '.$short : $short;
                 $items[] = [
@@ -11810,32 +11832,11 @@ class MakeAuditReport extends Component
             }
         }
 
-        $reviewMetaByOwner = [];
+        $reviewMetaByReport = [];
         $reviewSuperadmin = null;
         if (! $isWizard) {
-            $ownerIds = $ongoingReports->concat($completedReports)
-                ->pluck('user_id')
-                ->map(fn ($id) => (int) $id)
-                ->filter()
-                ->unique()
-                ->values()
-                ->all();
-            if ($ownerIds !== []) {
-                $reviewMetaByOwner = \App\Models\AuditReviewerAssignment::query()
-                    ->with(['reviewer:id,name,email'])
-                    ->whereIn('auditor_user_id', $ownerIds)
-                    ->get()
-                    ->mapWithKeys(function ($row) {
-                        return [
-                            (int) $row->auditor_user_id => [
-                                'reviewer_id' => (int) $row->reviewer_user_id,
-                                'reviewer_name' => (string) ($row->reviewer?->name ?: 'Reviewer'),
-                                'reviewer_email' => (string) ($row->reviewer?->email ?: ''),
-                            ],
-                        ];
-                    })
-                    ->all();
-            }
+            $reviewMetaByReport = app(\App\Services\AuditReportReviewService::class)
+                ->reviewerMetaForReports($ongoingReports->concat($completedReports));
             $super = app(\App\Services\AuditReportReviewService::class)->primarySuperadmin();
             if ($super) {
                 $reviewSuperadmin = [
@@ -11938,7 +11939,7 @@ class MakeAuditReport extends Component
             'listFilterYear' => $this->listFilterYear,
             'listFilterQ' => $this->listFilterQ,
             'listFilterStatus' => $this->listFilterStatus,
-            'reviewMetaByOwner' => $reviewMetaByOwner,
+            'reviewMetaByReport' => $reviewMetaByReport,
             'reviewSuperadmin' => $reviewSuperadmin,
             'customTableEditorIndex' => $this->customTableEditorIndex,
             'customTableSizeCols' => $this->customTableSizeCols,

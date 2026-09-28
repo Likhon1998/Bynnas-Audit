@@ -146,33 +146,26 @@
         }"
         x-effect="if (page > totalPages) page = totalPages"
     >
-        <div class="mb-3 flex flex-wrap items-start justify-between gap-2">
-            <div>
-                @can('findings.view_all')
-                    <a href="{{ route('audit-findings.index', ['month' => $month, 'year' => $year]) }}" class="mb-1 inline-flex items-center gap-1 text-[13px] font-medium text-[#2b579a] hover:underline">
-                        ← Consolidated totals
-                    </a>
-                @else
-                    <a href="{{ route('dashboard') }}" class="mb-1 inline-flex items-center gap-1 text-[13px] font-medium text-[#2b579a] hover:underline">
-                        ← Dashboard
-                    </a>
-                @endcan
-                <h1 class="text-[16px] font-semibold text-navy-900">Enter findings</h1>
-                <p class="mt-0.5 text-[13px] text-slate-500">
-                    {{ $shakha->name }}{{ $shakha->code ? ' ('.$shakha->code.')' : '' }}
-                    · {{ $shakha->area?->name }}
-                    · {{ date('F', mktime(0, 0, 0, $month, 1)) }} {{ $year }}
-                    · Staff from this shakha’s employees (type ID or name)
-                    · Leave blank = no cell
-                </p>
-            </div>
-            @canany(['audits.create', 'audits.manage'])
-                <a href="{{ route('audits.index') }}" class="inline-flex h-8 items-center rounded-lg border border-slate-200 px-3 text-[12px] text-slate-600 hover:bg-slate-50">Audit Reports</a>
-            @endcanany
-        </div>
+        @php
+            $canViewAll = auth()->user()?->can('findings.view_all');
+        @endphp
+        <x-findings-header
+                :title="'Enter findings · '.$shakha->name.($shakha->code ? ' ('.$shakha->code.')' : '')"
+                :subtitle="collect([$shakha->area?->name, date('F', mktime(0, 0, 0, $month, 1)).' '.$year, 'Leave a row blank if there is no finding'])->filter()->implode(' · ')"
+                :back="$canViewAll ? route('audit-findings.index', ['month' => $month, 'year' => $year]) : route('dashboard')"
+                :back-label="$canViewAll ? 'Back to Findings Matrix' : 'Back to Dashboard'"
+            >
+                @canany(['audits.create', 'audits.manage'])
+                    <a href="{{ route('audits.index') }}" class="inline-flex h-8 items-center whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 text-[12px] font-semibold text-slate-600 transition hover:-translate-y-0.5 hover:border-[#2b579a] hover:text-[#2b579a]">Audit Reports</a>
+                @endcanany
+                <button type="submit" form="findings-entry-form" class="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#2b579a] px-3 text-[12px] font-semibold text-white shadow-[0_6px_14px_rgba(43,87,154,0.3)] transition hover:-translate-y-0.5 hover:bg-[#204072]">
+                    <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="m4.5 10.5 3.5 3.5 7.5-8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    Save findings
+                </button>
+            </x-findings-header>
 
         @if (session('status'))
-            <div class="mb-3 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-800">{{ session('status') }}</div>
+            <div data-flash class="mb-3 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-800">{{ session('status') }}</div>
         @endif
 
         <div class="mb-3 flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
@@ -222,15 +215,11 @@
             </p>
         </div>
 
-        <form method="POST" action="{{ route('audit-findings.entry.store') }}">
+        <form id="findings-entry-form" method="POST" action="{{ route('audit-findings.entry.store') }}">
             @csrf
             <input type="hidden" name="shakha_id" value="{{ $shakha->id }}">
             <input type="hidden" name="audit_month" value="{{ $month }}">
             <input type="hidden" name="audit_year" value="{{ $year }}">
-
-            <div class="mb-3 flex justify-end">
-                <button type="submit" class="h-9 rounded-lg bg-[#2b579a] px-4 text-[12px] font-semibold text-white hover:bg-[#204072]">Save findings</button>
-            </div>
 
             <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                 <div class="overflow-x-auto">
@@ -242,7 +231,7 @@
                                 <th class="border-b border-slate-200 px-2 py-2">Amount</th>
                                 <th class="border-b border-slate-200 px-2 py-2">Samples</th>
                                 <th class="border-b border-slate-200 px-2 py-2">Irregularities</th>
-                                <th class="border-b border-slate-200 px-2 py-2 min-w-[160px]">Observation</th>
+                                <th class="border-b border-slate-200 px-2 py-2 min-w-[220px]">Observation</th>
                                 <th class="border-b border-slate-200 px-2 py-2">Staff</th>
                             </tr>
                         </thead>

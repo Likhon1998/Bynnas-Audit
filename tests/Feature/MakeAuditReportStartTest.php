@@ -98,6 +98,34 @@ class MakeAuditReportStartTest extends TestCase
         $this->assertSame(1, AuditReport::query()->where('shakha_id', $shakha->id)->count());
     }
 
+    public function test_new_report_does_not_copy_the_previously_opened_report(): void
+    {
+        $user = $this->makeAuditUser();
+        $first = $this->makeShakha('First Branch', 'FST-1');
+        $second = $this->makeShakha('Second Branch', 'SND-1');
+
+        $component = Livewire::actingAs($user)
+            ->test(MakeAuditReport::class)
+            ->call('startReport', $first->id);
+
+        $blocks = $component->get('reportBlocks');
+        $blocks[0]['title'] = '১.০ স্থায়ী সম্পদ সংক্রান্ত';
+        $component
+            ->set('reportBlocks', $blocks)
+            ->set('memo_no', 'OLD-MEMO')
+            ->call('autoSaveDraft')
+            ->call('backToSelect')
+            ->call('startReport', $second->id)
+            ->assertHasNoErrors()
+            ->assertSet('step', 'wizard');
+
+        $newReport = AuditReport::query()->findOrFail($component->get('reportId'));
+        $this->assertSame($second->id, (int) $newReport->shakha_id);
+        $this->assertStringNotContainsString('স্থায়ী সম্পদ সংক্রান্ত', json_encode($newReport->pages_data, JSON_UNESCAPED_UNICODE));
+        $this->assertStringNotContainsString('স্থায়ী সম্পদ সংক্রান্ত', json_encode($component->get('reportBlocks'), JSON_UNESCAPED_UNICODE));
+        $this->assertNotSame('OLD-MEMO', $newReport->memo_no);
+    }
+
     public function test_mail_modal_prefills_sender_and_accepts_manual_email_addresses(): void
     {
         $user = $this->makeAuditUser();

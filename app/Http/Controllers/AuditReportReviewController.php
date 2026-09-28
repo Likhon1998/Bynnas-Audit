@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AuditReport;
 use App\Models\AuditReviewerAssignment;
+use App\Models\AuditReviewerMonthAssignment;
 use App\Models\User;
 use App\Services\AuditReportReviewService;
 use Illuminate\Http\RedirectResponse;
@@ -15,14 +16,22 @@ class AuditReportReviewController extends Controller
     public function index(Request $request, AuditReportReviewService $reviews): View
     {
         $user = $request->user();
+        $isReviewer = $user->can('audits.review') || $reviews->isReviewAdmin($user);
         $tab = (string) $request->input('tab', 'inbox');
-        if (! in_array($tab, ['inbox', 'returned', 'reviewed'], true)) {
+        if (! in_array($tab, ['inbox', 'returned', 'reviewed', 'history'], true) || ($tab === 'history' && ! $isReviewer)) {
             $tab = 'inbox';
         }
 
         $reports = collect();
+        $history = null;
 
-        if ($tab === 'inbox') {
+        if ($tab === 'history') {
+            $history = $reviews->reviewHistory(
+                $user,
+                $request->has('reviewer') ? (int) $request->input('reviewer') : null,
+                (int) $request->input('year', now('Asia/Dhaka')->year),
+            );
+        } elseif ($tab === 'inbox') {
             $query = AuditReport::query()
                 ->with(['shakha:id,name,code', 'projectLocation.project', 'user:id,name', 'reviewer:id,name'])
                 ->where('status', AuditReport::STATUS_IN_REVIEW)
@@ -89,12 +98,14 @@ class AuditReportReviewController extends Controller
 
         $statsMonth = (int) $request->input('stats_month', now('Asia/Dhaka')->month);
         $statsYear = (int) $request->input('stats_year', now('Asia/Dhaka')->year);
-        $monthlyStats = ($user->can('audits.review') || $reviews->isReviewAdmin($user))
+        $monthlyStats = $isReviewer
             ? $reviews->monthlyReviewStats($user, $statsMonth, $statsYear)
             : null;
 
         return view('audit-review.index', [
             'tab' => $tab,
+            'isReviewer' => $isReviewer,
+            'history' => $history,
             'reports' => $reports,
             'reviews' => $reviews,
             'counts' => $counts,
@@ -565,41 +576,107 @@ class AuditReportReviewController extends Controller
         return response()->json(['ok' => true]);
     }
 
-    public function assignments(): View
+    public function assignments(Request $request): View
     {
+        [$mode, $year, $month] = $this->assignmentScope($request);
         $auditors = User::query()
             ->permission('audits.create')
+            ->with('roles:id,name')
             ->orderBy('name')
             ->get(['id', 'name', 'email']);
 
         $reviewers = User::query()
             ->permission('audits.review')
+            ->with('roles:id,name')
             ->orderBy('name')
             ->get(['id', 'name', 'email']);
 
-        $map = AuditReviewerAssignment::query()
-            ->get()
-            ->keyBy('auditor_user_id');
+        $fixed = AuditReviewerAssignment::query()
+            ->pluck('reviewer_user_id', 'auditor_user_id');
+
+        $monthly = collect();
+        $previousMonthly = collect();
+        $monthsWithPlan = collect();
+        if ($mode === 'month') {
+            $monthly = $this->monthlyMap($year, $month);
+            $prev = \Illuminate\Support\Carbon::create($year, $month, 1)->subMonth();
+            $previousMonthly = $this->monthlyMap((int) $prev->year, (int) $prev->month);
+            $monthsWithPlan = AuditReviewerMonthAssignment::query()
+                ->where('year', $year)
+                ->selectRaw('month, count(*) as total')
+                ->groupBy('month')
+                ->pluck('total', 'month');
+        }
 
         return view('audit-review.assignments', [
             'auditors' => $auditors,
             'reviewers' => $reviewers,
-            'map' => $map,
+            'mode' => $mode,
+            'year' => $year,
+            'month' => $month,
+            'fixed' => $fixed,
+            'monthly' => $monthly,
+            'previousMonthly' => $previousMonthly,
+            'monthsWithPlan' => $monthsWithPlan,
+            'monthlyTotal' => AuditReviewerMonthAssignment::query()->count(),
         ]);
+    }
+
+    /**
+     * @return array{0:string, 1:int, 2:int}
+     */
+    private function assignmentScope(Request $request): array
+    {
+        $now = \App\Support\AppTime::now();
+        $mode = $request->input('mode') === 'month' ? 'month' : 'fixed';
+        $year = (int) $request->input('year', $now->year);
+        $month = (int) $request->input('month', $now->month);
+
+        if ($year < 2000 || $year > 2100) {
+            $year = (int) $now->year;
+        }
+        if ($month < 1 || $month > 12) {
+            $month = (int) $now->month;
+        }
+
+        return [$mode, $year, $month];
+    }
+
+    private function monthlyMap(int $year, int $month): \Illuminate\Support\Collection
+    {
+        return AuditReviewerMonthAssignment::query()
+            ->where('year', $year)
+            ->where('month', $month)
+            ->pluck('reviewer_user_id', 'auditor_user_id');
     }
 
     /**
      * Compact hub: pick a log feature (pipeline / activity / assignments).
      * Watch-only — no review actions from these screens.
      */
-    public function log(AuditReportReviewService $reviews): View
+    public function log(Request $request, AuditReportReviewService $reviews, \App\Services\AuditorActivityService $activity): View
     {
         $log = $reviews->auditorLog();
 
         return view('audit-review.log', [
             'summary' => $log['summary'],
             'positionOptions' => $log['position_options'],
-            'eventCount' => count($log['events']),
+            'overview' => $activity->overview($request->query('range')),
+        ]);
+    }
+
+    /**
+     * One auditor's full activity: timeline, reports and branch visits.
+     */
+    public function logAuditor(Request $request, User $user, AuditReportReviewService $reviews, \App\Services\AuditorActivityService $activity): View
+    {
+        $now = \App\Support\AppTime::now();
+
+        return view('audit-review.log-auditor', [
+            'auditor' => $user,
+            'profile' => $activity->profile($user, $request->query('range')),
+            'fixedReviewer' => AuditReviewerAssignment::query()->with('reviewer:id,name')->where('auditor_user_id', $user->id)->first()?->reviewer,
+            'monthReviewer' => $reviews->assignmentForAuditor((int) $user->id, (int) $now->year, (int) $now->month)?->reviewer,
         ]);
     }
 
@@ -654,6 +731,7 @@ class AuditReportReviewController extends Controller
             'assignments.*.reviewer_user_id' => ['nullable', 'integer', 'exists:users,id'],
         ]);
 
+        [$mode, $year, $month] = $this->assignmentScope($request);
         $rows = $data['assignments'] ?? [];
         $actorId = $request->user()->id;
         $skippedSelf = 0;
@@ -664,7 +742,15 @@ class AuditReportReviewController extends Controller
             $reviewerId = (int) ($row['reviewer_user_id'] ?? 0);
 
             if ($reviewerId < 1) {
-                AuditReviewerAssignment::query()->where('auditor_user_id', $auditorId)->delete();
+                if ($mode === 'month') {
+                    AuditReviewerMonthAssignment::query()
+                        ->where('auditor_user_id', $auditorId)
+                        ->where('year', $year)
+                        ->where('month', $month)
+                        ->delete();
+                } else {
+                    AuditReviewerAssignment::query()->where('auditor_user_id', $auditorId)->delete();
+                }
                 continue;
             }
 
@@ -679,16 +765,25 @@ class AuditReportReviewController extends Controller
                 continue;
             }
 
-            AuditReviewerAssignment::query()->updateOrCreate(
-                ['auditor_user_id' => $auditorId],
-                [
-                    'reviewer_user_id' => $reviewerId,
-                    'assigned_by' => $actorId,
-                ]
-            );
+            if ($mode === 'month') {
+                AuditReviewerMonthAssignment::query()->updateOrCreate(
+                    ['auditor_user_id' => $auditorId, 'year' => $year, 'month' => $month],
+                    ['reviewer_user_id' => $reviewerId, 'assigned_by' => $actorId]
+                );
+            } else {
+                AuditReviewerAssignment::query()->updateOrCreate(
+                    ['auditor_user_id' => $auditorId],
+                    [
+                        'reviewer_user_id' => $reviewerId,
+                        'assigned_by' => $actorId,
+                    ]
+                );
+            }
         }
 
-        $status = 'Reviewer assignments saved.';
+        $status = $mode === 'month'
+            ? 'Reviewers for '.\Illuminate\Support\Carbon::create($year, $month, 1)->format('F Y').' saved.'
+            : 'Fixed reviewer assignments saved.';
         $notes = [];
         if ($skippedSelf > 0) {
             $notes[] = $skippedSelf.' self-assignment'.($skippedSelf === 1 ? '' : 's').' skipped';
@@ -701,7 +796,7 @@ class AuditReportReviewController extends Controller
         }
 
         return redirect()
-            ->route('audit-review.assignments')
+            ->route('audit-review.assignments', $mode === 'month' ? ['mode' => 'month', 'year' => $year, 'month' => $month] : [])
             ->with('status', $status);
     }
 }
