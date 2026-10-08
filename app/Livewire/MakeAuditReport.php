@@ -11692,7 +11692,6 @@ class MakeAuditReport extends Component
         $completedReports = collect();
         $ongoingCount = 0;
         $completedCount = 0;
-        $pendingSlots = AuditReport::MAX_CONCURRENT_DRAFTS;
 
         // Dashboard lists only on select step — keep wizard updates light.
         if (! $isWizard) {
@@ -11828,7 +11827,6 @@ class MakeAuditReport extends Component
 
                 $ongoingCount = AuditReport::query()->accessibleBy($userId)->drafts()->count();
                 $completedCount = AuditReport::query()->accessibleBy($userId)->whereIn('status', $doneStatuses)->count();
-                $pendingSlots = max(0, AuditReport::MAX_CONCURRENT_DRAFTS - $ongoingCount);
             }
         }
 
@@ -11932,9 +11930,6 @@ class MakeAuditReport extends Component
             'completedReports' => $completedReports,
             'ongoingCount' => $ongoingCount,
             'completedCount' => $completedCount,
-            'pendingSlots' => $pendingSlots,
-            'maxConcurrentDrafts' => null,
-            'canStartNewReport' => true,
             'listFilterMonth' => $this->listFilterMonth,
             'listFilterYear' => $this->listFilterYear,
             'listFilterQ' => $this->listFilterQ,

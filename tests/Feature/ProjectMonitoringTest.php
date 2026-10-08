@@ -29,8 +29,8 @@ class ProjectMonitoringTest extends TestCase
             ->get(route('annual-audit.index', ['tab' => 'project_monitoring']))
             ->assertOk()
             ->assertSee('Project Monitoring Work Plan')
-            ->assertSee('Name of the Projects / Donor')
-            ->assertSee('Location of the Projects')
+            ->assertSee('Project / Donor')
+            ->assertSee('Location')
             ->assertSee('DSK-WASH Water Aid Project');
     }
 
@@ -45,7 +45,7 @@ class ProjectMonitoringTest extends TestCase
             ->get(route('annual-audit.index', ['tab' => 'project_audit']))
             ->assertOk()
             ->assertSee('Project Audit Work Plan')
-            ->assertSee('Name of the Projects / Donor')
+            ->assertSee('Project / Donor')
             ->assertSee('DSK Public Toilet project')
             ->assertSee('Mirpur-10, Dhaka');
     }

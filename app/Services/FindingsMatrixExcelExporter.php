@@ -23,7 +23,9 @@ class FindingsMatrixExcelExporter
 
     public function downloadMonth(int $month, int $year): StreamedResponse
     {
-        @set_time_limit(180);
+        if (! app()->runningInConsole()) {
+            @set_time_limit(180);
+        }
         @ini_set('memory_limit', '512M');
 
         $month = max(1, min(12, $month));
@@ -61,7 +63,9 @@ class FindingsMatrixExcelExporter
 
     public function downloadYear(int $year): StreamedResponse
     {
-        @set_time_limit(240);
+        if (! app()->runningInConsole()) {
+            @set_time_limit(240);
+        }
         @ini_set('memory_limit', '768M');
 
         $year = max(2000, min(2100, $year));

@@ -65,7 +65,6 @@ class DashboardController extends Controller
         return view('dashboard', array_merge($board, [
             'mode' => 'officer',
             'roleInfo' => RoleAccess::catalog()[$roleKey] ?? null,
-            'slotsLeft' => $board['stats']['slots_left'],
             'viewerName' => $user?->name,
             'viewerRole' => RoleAccess::label($roleKey),
             'viewerPosition' => $positionTitle,

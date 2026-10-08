@@ -22,7 +22,9 @@ class ShakhaKpiExcelExporter
 
     public function download(string $fyLabel, bool $onlyEntered = true): StreamedResponse
     {
-        @set_time_limit(120);
+        if (! app()->runningInConsole()) {
+            @set_time_limit(120);
+        }
         @ini_set('memory_limit', '512M');
 
         $fy = FinancialYear::fromLabel($fyLabel);

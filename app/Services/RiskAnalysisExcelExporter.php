@@ -20,7 +20,9 @@ class RiskAnalysisExcelExporter
 
     public function download(string $fyLabel): StreamedResponse
     {
-        @set_time_limit(120);
+        if (! app()->runningInConsole()) {
+            @set_time_limit(120);
+        }
         @ini_set('memory_limit', '512M');
 
         $rows = $this->riskAssessments->compileExportRows($fyLabel);

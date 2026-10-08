@@ -8,7 +8,7 @@
         <div data-flash class="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-[13px] text-emerald-800">{{ session('status') }}</div>
     @endif
 
-    <div class="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm sm:px-4 {{ $canStartNewReport ? '' : 'pointer-events-none opacity-55' }}">
+    <div class="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm sm:px-4">
         <div class="grid items-end gap-2 lg:grid-cols-[auto_auto_minmax(0,1fr)_118px_88px_auto]">
             <div class="min-w-0 pb-0.5">
                 <h1 class="text-[15px] font-semibold leading-tight tracking-tight text-navy-900">Audit Reports</h1>
@@ -114,7 +114,7 @@
 
             <div>
                 <label class="mb-0.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Month</label>
-                <select wire:model.live="report_month" class="block w-full rounded-md border-slate-200 py-1.5 text-[12px] leading-5" @disabled(! $canStartNewReport)>
+                <select wire:model.live="report_month" class="block w-full rounded-md border-slate-200 py-1.5 text-[12px] leading-5">
                     @for ($m = 1; $m <= 12; $m++)
                         <option value="{{ $m }}">{{ date('F', mktime(0, 0, 0, $m, 1)) }}</option>
                     @endfor
@@ -122,7 +122,7 @@
             </div>
             <div>
                 <label class="mb-0.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Year</label>
-                <select wire:model.live="report_year" class="block w-full rounded-md border-slate-200 py-1.5 text-[12px] leading-5" @disabled(! $canStartNewReport)>
+                <select wire:model.live="report_year" class="block w-full rounded-md border-slate-200 py-1.5 text-[12px] leading-5">
                     @for ($y = bd_now()->year + 1; $y >= bd_now()->year - 6; $y--)
                         <option value="{{ $y }}">{{ $y }}</option>
                     @endfor
@@ -134,7 +134,6 @@
                     wire:click="startReport"
                     wire:loading.attr="disabled"
                     wire:target="startReport"
-                    @disabled(! $canStartNewReport)
                     class="inline-flex h-9 w-full items-center justify-center rounded-lg bg-[#2b579a] px-4 text-[13px] font-semibold text-white shadow-sm hover:bg-[#204072] disabled:cursor-not-allowed disabled:opacity-50 lg:w-auto"
                 >
                     <span wire:loading.remove wire:target="startReport">Start</span>

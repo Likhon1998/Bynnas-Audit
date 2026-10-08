@@ -1025,6 +1025,11 @@ class MonthlyWorklistService
             return;
         }
 
+        // No actor = system maintenance (e.g. overlap clean-up); only admin locks block it.
+        if ($user === null && ! $assignment->isScheduleLocked()) {
+            return;
+        }
+
         $locker = $assignment->lockedBy?->name ?: 'an admin';
         throw new InvalidArgumentException(
             "This visit is locked by {$locker}. Only that person or Super Admin can change it."

@@ -53,7 +53,7 @@ class MakeAuditReportStartTest extends TestCase
             ->assertOk()
             ->assertSeeLivewire(MakeAuditReport::class)
             ->assertSee('Audit Reports')
-            ->assertSee('Start new')
+            ->assertSee('Branch / Project')
             ->assertSee('Start');
     }
 
@@ -154,12 +154,12 @@ class MakeAuditReportStartTest extends TestCase
             ->assertSet('mailToEmail', 'receiver@gmail.com');
     }
 
-    public function test_user_cannot_start_more_than_three_concurrent_drafts(): void
+    public function test_user_can_keep_more_than_three_drafts_open(): void
     {
         $user = $this->makeAuditUser();
         $area = Area::query()->create(['name' => 'Area', 'division' => 'Div']);
 
-        for ($i = 1; $i <= 3; $i++) {
+        for ($i = 1; $i <= 4; $i++) {
             $shakha = Shakha::query()->create([
                 'area_id' => $area->id,
                 'name' => "Branch $i",
@@ -175,22 +175,7 @@ class MakeAuditReportStartTest extends TestCase
                 ->call('backToSelect');
         }
 
-        $this->assertSame(3, AuditReport::query()->where('user_id', $user->id)->where('status', 'draft')->count());
-
-        $extra = Shakha::query()->create([
-            'area_id' => $area->id,
-            'name' => 'Branch 4',
-            'code' => 'B-4',
-            'status' => 'active',
-        ]);
-
-        Livewire::actingAs($user)
-            ->test(MakeAuditReport::class)
-            ->call('startReport', $extra->id)
-            ->assertHasErrors(['shakha_id'])
-            ->assertSet('step', 'select');
-
-        $this->assertSame(3, AuditReport::query()->where('user_id', $user->id)->where('status', 'draft')->count());
+        $this->assertSame(4, AuditReport::query()->where('user_id', $user->id)->where('status', 'draft')->count());
     }
 
     public function test_auto_save_and_resume_persists_draft(): void

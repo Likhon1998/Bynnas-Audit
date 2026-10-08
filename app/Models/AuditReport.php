@@ -29,9 +29,6 @@ class AuditReport extends Model
         self::STATUS_REVIEWED,
     ];
 
-    /** Max concurrent drafts a user may keep open at once. */
-    public const MAX_CONCURRENT_DRAFTS = 3;
-
     protected $guarded = [];
 
     protected function casts(): array

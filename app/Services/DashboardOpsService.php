@@ -76,7 +76,7 @@ class DashboardOpsService
      * Cross-module counts for the ops dashboard layout.
      *
      * @param  list<array{key:string,count:int}>  $act
-     * @param  array{ongoing:int,slots_left:int}  $myWork
+     * @param  array{ongoing:int}  $myWork
      * @param  array{significant:int,high:int,medium:int,low:int,not_assessed:int,active:int}  $shakhaRisk
      * @return array<string, int|float|string>
      */
@@ -583,14 +583,13 @@ class DashboardOpsService
     }
 
     /**
-     * @return array{ongoing:int,slots_left:int,completed_period:int,drafts:list<array{id:int,label:string,progress:int,href:string}>}
+     * @return array{ongoing:int,completed_period:int,drafts:list<array{id:int,label:string,progress:int,href:string}>}
      */
     protected function myWork(?int $userId): array
     {
         if (! $userId || ! Schema::hasTable('audit_reports')) {
             return [
                 'ongoing' => 0,
-                'slots_left' => AuditReport::MAX_CONCURRENT_DRAFTS,
                 'completed_period' => 0,
                 'drafts' => [],
             ];
@@ -609,7 +608,6 @@ class DashboardOpsService
 
         return [
             'ongoing' => $ongoing,
-            'slots_left' => max(0, AuditReport::MAX_CONCURRENT_DRAFTS - $ongoing),
             'completed_period' => 0,
             'drafts' => $drafts->map(fn (AuditReport $r) => [
                 'id' => $r->id,

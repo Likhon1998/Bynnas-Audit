@@ -189,7 +189,6 @@ class OfficerDashboardService
                 'month_completion_pct' => $monthCompletionPct,
                 'total_access' => $accessibleShakhas->count(),
                 'drafts' => $myDrafts->count(),
-                'slots_left' => max(0, AuditReport::MAX_CONCURRENT_DRAFTS - $myDrafts->count()),
                 'risk_significant' => $shakhaRisk['significant'],
                 'risk_high' => $shakhaRisk['high'],
                 'risk_critical' => $shakhaRisk['significant'] + $shakhaRisk['high'],

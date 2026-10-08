@@ -62,7 +62,6 @@
         'todayLabel' => $todayLabel ?? null,
         'monthLabel' => $monthLabel ?? null,
         'visitsUrl' => $visitsUrl,
-        'slotsLeft' => $slotsLeft ?? ($stats['slots_left'] ?? 0),
         'showMonthStats' => true,
     ])
 </div>

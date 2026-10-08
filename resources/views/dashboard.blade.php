@@ -139,7 +139,6 @@
                     'todayLabel' => $myWork['todayLabel'] ?? null,
                     'monthLabel' => $myWork['monthLabel'] ?? null,
                     'visitsUrl' => $visitsUrl,
-                    'slotsLeft' => $myWork['stats']['slots_left'] ?? 0,
                     'showMonthStats' => true,
                 ])
             </div>
