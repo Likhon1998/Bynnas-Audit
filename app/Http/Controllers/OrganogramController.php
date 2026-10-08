@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreEmployeeRequest;
 use App\Http\Requests\StorePositionRequest;
+use App\Http\Requests\UpdateEmployeeRequest;
 use App\Models\Employee;
 use App\Models\Position;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -75,6 +77,50 @@ class OrganogramController extends Controller
         ]);
 
         return back()->with('status', 'Position added to the audit organogram.');
+    }
+
+    public function update(UpdateEmployeeRequest $request, Employee $employee): RedirectResponse
+    {
+        $data = $request->validated();
+        $oldEmail = $employee->email;
+        $loginEmailSynced = false;
+
+        DB::transaction(function () use ($request, $employee, $data, $oldEmail, &$loginEmailSynced) {
+            if ((int) $employee->position_id !== (int) $data['position_id']) {
+                $employee->sort_order = ((int) Employee::query()->where('position_id', $data['position_id'])->max('sort_order')) + 1;
+            }
+
+            $employee->fill([
+                'position_id' => $data['position_id'],
+                'name' => $data['name'],
+                'email' => $data['email'] ?? null,
+            ]);
+
+            $photo = $request->file('photo');
+            if ($photo instanceof UploadedFile) {
+                $employee->deleteStoredPhoto();
+                $employee->photo_path = $photo->store('organogram-employees/'.$employee->id, 'public');
+            }
+
+            $employee->save();
+
+            $user = $employee->user;
+            if ($user) {
+                $user->name = $employee->name;
+                if (filled($employee->email) && $oldEmail !== null && strcasecmp((string) $user->email, $oldEmail) === 0) {
+                    $user->email = $employee->email;
+                    $loginEmailSynced = $user->isDirty('email');
+                }
+                $user->save();
+            }
+        });
+
+        $message = $employee->name.' updated.';
+        if ($loginEmailSynced) {
+            $message .= ' Their login email is now '.$employee->email.'.';
+        }
+
+        return back()->with('status', $message);
     }
 
     public function destroy(Employee $employee): RedirectResponse

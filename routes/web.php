@@ -72,6 +72,7 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
     Route::middleware('permission:organogram.manage')->group(function () {
         Route::post('/organogram/employees', [OrganogramController::class, 'store'])->name('organogram.employees.store');
         Route::post('/organogram/positions', [OrganogramController::class, 'storePosition'])->name('organogram.positions.store');
+        Route::put('/organogram/employees/{employee}', [OrganogramController::class, 'update'])->name('organogram.employees.update');
         Route::delete('/organogram/employees/{employee}', [OrganogramController::class, 'destroy'])->name('organogram.employees.destroy');
     });
 

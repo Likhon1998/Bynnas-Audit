@@ -111,6 +111,94 @@ class OrganogramTest extends TestCase
         $this->assertDatabaseMissing('employees', ['id' => $employee->id]);
     }
 
+    public function test_manager_can_edit_an_officer_and_linked_login_follows(): void
+    {
+        Storage::fake('public');
+        $this->seed(OrganogramSeeder::class);
+        $manager = User::factory()->create();
+        $manager->assignRole('audit_manager');
+
+        $employee = Employee::query()->firstOrFail();
+        $employee->update(['email' => 'old.officer@bynnasaudit.com', 'photo_path' => 'organogram-employees/'.$employee->id.'/old.jpg']);
+        Storage::disk('public')->put($employee->photo_path, 'old');
+        $login = User::factory()->create(['email' => 'old.officer@bynnasaudit.com', 'employee_id' => $employee->id]);
+        $newPosition = Position::query()->where('slug', 'audit-officer')->firstOrFail();
+
+        $this->actingAs($manager)
+            ->get(route('organogram'))
+            ->assertOk()
+            ->assertSee('Edit officer');
+
+        $this->actingAs($manager)
+            ->put(route('organogram.employees.update', $employee), [
+                'name' => 'Renamed Officer',
+                'email' => 'renamed.officer@bynnasaudit.com',
+                'position_id' => $newPosition->id,
+                'photo' => UploadedFile::fake()->image('new.jpg', 120, 120),
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('status');
+
+        $employee->refresh();
+        $this->assertSame('Renamed Officer', $employee->name);
+        $this->assertSame('renamed.officer@bynnasaudit.com', $employee->email);
+        $this->assertSame($newPosition->id, (int) $employee->position_id);
+        Storage::disk('public')->assertMissing('organogram-employees/'.$employee->id.'/old.jpg');
+        Storage::disk('public')->assertExists($employee->photo_path);
+
+        $login->refresh();
+        $this->assertSame('Renamed Officer', $login->name);
+        $this->assertSame('renamed.officer@bynnasaudit.com', $login->email);
+    }
+
+    public function test_editing_keeps_a_different_login_email_and_blocks_duplicates(): void
+    {
+        $this->seed(OrganogramSeeder::class);
+        $manager = User::factory()->create();
+        $manager->assignRole('audit_manager');
+
+        $employee = Employee::query()->firstOrFail();
+        $employee->update(['email' => 'officer@bynnasaudit.com']);
+        $login = User::factory()->create(['email' => 'personal.login@bynnasaudit.com', 'employee_id' => $employee->id]);
+        User::factory()->create(['email' => 'taken@bynnasaudit.com']);
+
+        $this->actingAs($manager)
+            ->put(route('organogram.employees.update', $employee), [
+                'name' => $employee->name,
+                'email' => 'officer.new@bynnasaudit.com',
+                'position_id' => $employee->position_id,
+            ])
+            ->assertRedirect();
+        $this->assertSame('personal.login@bynnasaudit.com', $login->fresh()->email);
+
+        $this->actingAs($manager)
+            ->put(route('organogram.employees.update', $employee), [
+                'name' => $employee->name,
+                'email' => 'taken@bynnasaudit.com',
+                'position_id' => $employee->position_id,
+                'edit_employee_id' => $employee->id,
+            ])
+            ->assertSessionHasErrors('email', null, 'editEmployee');
+        $this->assertSame('officer.new@bynnasaudit.com', $employee->fresh()->email);
+    }
+
+    public function test_view_only_users_cannot_edit_officers(): void
+    {
+        $this->seed(OrganogramSeeder::class);
+        $viewer = User::factory()->create();
+        $viewer->givePermissionTo('organogram.view');
+        $employee = Employee::query()->firstOrFail();
+
+        $this->actingAs($viewer)
+            ->put(route('organogram.employees.update', $employee), [
+                'name' => 'Hacked',
+                'position_id' => $employee->position_id,
+            ])
+            ->assertForbidden();
+
+        $this->assertNotSame('Hacked', $employee->fresh()->name);
+    }
+
     public function test_authenticated_users_can_view_the_dashboard(): void
     {
         $this->seed(OrganogramSeeder::class);

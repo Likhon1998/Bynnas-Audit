@@ -3,12 +3,52 @@
         $openEmployeeModal = $errors->hasAny(['name', 'email', 'position_id', 'photo']);
         $openPositionModal = $errors->hasAny(['title', 'serial']);
         $officerCount = $positions->sum(fn ($position) => $position->employees->count());
+        $canManageUsers = auth()->user()?->can('users.manage');
+        $editPayload = fn ($employee) => [
+            'id' => $employee->id,
+            'name' => $employee->name,
+            'email' => (string) $employee->email,
+            'position_id' => $employee->position_id,
+            'photo' => $employee->photoUrl(),
+            'action' => route('organogram.employees.update', $employee),
+            'login' => $employee->user ? [
+                'email' => $employee->user->email,
+                'role' => $employee->user->roleLabel(),
+                'url' => $canManageUsers ? route('users.edit', $employee->user) : null,
+            ] : null,
+            'add_login_url' => ! $employee->user && $canManageUsers ? route('users.create', ['employee_id' => $employee->id]) : null,
+        ];
+        $editErrors = $errors->getBag('editEmployee');
+        $reopenEdit = null;
+        if ($editErrors->any() && old('edit_employee_id')) {
+            $failed = $positions->flatMap->employees->firstWhere('id', (int) old('edit_employee_id'));
+            if ($failed) {
+                $reopenEdit = array_merge($editPayload($failed), [
+                    'name' => old('name', $failed->name),
+                    'email' => old('email', (string) $failed->email),
+                    'position_id' => (int) old('position_id', $failed->position_id),
+                ]);
+            }
+        }
     @endphp
 
     <div
         class="flex h-full min-h-0 flex-col px-3 py-2.5 lg:px-5"
-        x-data="{ zoom: 1, addOpen: {{ $openEmployeeModal ? 'true' : 'false' }}, positionOpen: {{ $openPositionModal ? 'true' : 'false' }}, showOpen: false }"
-        @keydown.escape.window="showOpen = false; addOpen = false; positionOpen = false"
+        x-data="{
+            zoom: 1,
+            addOpen: {{ $openEmployeeModal && ! $reopenEdit ? 'true' : 'false' }},
+            positionOpen: {{ $openPositionModal ? 'true' : 'false' }},
+            showOpen: false,
+            editOpen: {{ $reopenEdit ? 'true' : 'false' }},
+            edit: @js($reopenEdit ?? ['id' => null, 'name' => '', 'email' => '', 'position_id' => null, 'photo' => null, 'action' => '', 'login' => null, 'add_login_url' => null]),
+            editPreview: null,
+            openEdit(payload) {
+                this.edit = payload;
+                this.editPreview = null;
+                this.editOpen = true;
+            },
+        }"
+        @keydown.escape.window="showOpen = false; addOpen = false; positionOpen = false; editOpen = false"
     >
         <div class="mb-3 flex flex-wrap items-center justify-between gap-2.5">
             <div class="min-w-0">
@@ -102,18 +142,43 @@
                                     <div class="flex flex-wrap justify-center gap-2">
                                         @foreach ($position->employees as $employee)
                                             <div class="group relative">
-                                                <x-org-node
-                                                    :name="$employee->name"
-                                                    :title="$position->title"
-                                                    :accent="$position->color"
-                                                    :photo-url="$employee->photoUrl()"
-                                                />
                                                 @can('organogram.manage')
-                                                    <form method="POST" action="{{ route('organogram.employees.destroy', $employee) }}" class="absolute -right-1 -top-1 hidden group-hover:block" onsubmit="return confirm('Remove this officer from the organogram?')">
+                                                    <button type="button" class="block rounded-lg text-left transition-shadow hover:shadow-[0_6px_16px_rgba(15,33,71,0.12)] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400" @click="openEdit(@js($editPayload($employee)))" title="Edit {{ $employee->name }}">
+                                                        <x-org-node
+                                                            :name="$employee->name"
+                                                            :title="$position->title"
+                                                            :accent="$position->color"
+                                                            :photo-url="$employee->photoUrl()"
+                                                        />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        class="absolute -left-1 -top-1 hidden h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-white shadow-sm hover:bg-brand-700 group-hover:flex"
+                                                        title="Edit"
+                                                        @click="openEdit(@js($editPayload($employee)))"
+                                                    >
+                                                        <svg class="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+                                                    </button>
+                                                    <form
+                                                        method="POST"
+                                                        action="{{ route('organogram.employees.destroy', $employee) }}"
+                                                        class="absolute -right-1 -top-1 hidden group-hover:block"
+                                                        data-bynnas-confirm="{{ $employee->name }} will be removed from the audit organogram."
+                                                        data-bynnas-confirm-title="Remove officer?"
+                                                        data-bynnas-confirm-ok="Remove"
+                                                        data-bynnas-confirm-tone="rose"
+                                                    >
                                                         @csrf
                                                         @method('DELETE')
-                                                        <button type="submit" class="flex h-4 w-4 items-center justify-center rounded-full bg-slate-700 text-xs leading-none text-white hover:bg-red-600" title="Remove">×</button>
+                                                        <button type="submit" class="flex h-5 w-5 items-center justify-center rounded-full bg-slate-700 text-xs leading-none text-white shadow-sm hover:bg-red-600" title="Remove">×</button>
                                                     </form>
+                                                @else
+                                                    <x-org-node
+                                                        :name="$employee->name"
+                                                        :title="$position->title"
+                                                        :accent="$position->color"
+                                                        :photo-url="$employee->photoUrl()"
+                                                    />
                                                 @endcan
                                             </div>
                                         @endforeach
@@ -350,6 +415,96 @@
                         @else
                             <button type="submit" class="rounded-lg bg-navy-900 px-3 py-1.5 text-[12px] font-medium text-white hover:bg-navy-800">Save officer</button>
                         @endif
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {{-- Edit employee modal --}}
+        <div
+            x-show="editOpen"
+            x-cloak
+            x-transition.opacity
+            class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4 backdrop-blur-[2px]"
+            @click.self="editOpen = false"
+        >
+            <div class="w-full max-w-md overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-2xl" @click.stop>
+                <div class="flex items-start gap-3 border-b border-slate-100 px-4 py-3">
+                    <div class="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-slate-100 ring-2 ring-white shadow">
+                        <template x-if="editPreview || edit.photo">
+                            <img :src="editPreview || edit.photo" alt="" class="h-full w-full object-cover">
+                        </template>
+                        <span x-show="!editPreview && !edit.photo" class="flex h-full w-full items-center justify-center text-[13px] font-semibold text-slate-400" x-text="(edit.name || '?').trim().charAt(0).toUpperCase()"></span>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <h2 class="text-base font-semibold tracking-tight text-navy-900">Edit officer</h2>
+                        <p class="mt-0.5 truncate text-[13px] text-slate-500" x-text="edit.name"></p>
+                    </div>
+                    <button type="button" class="rounded-lg p-1 text-slate-400 hover:bg-slate-50 hover:text-slate-600" @click="editOpen = false" aria-label="Close">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+
+                <form method="POST" :action="edit.action" enctype="multipart/form-data" class="space-y-3 px-4 py-3.5">
+                    @csrf
+                    @method('PUT')
+                    <input type="hidden" name="edit_employee_id" :value="edit.id">
+
+                    @if ($editErrors->any())
+                        <div class="rounded-lg bg-red-50 px-3 py-2 text-[12px] text-red-700">{{ $editErrors->first() }}</div>
+                    @endif
+
+                    <div>
+                        <label for="edit_name" class="block text-[13px] font-medium text-slate-600">Name</label>
+                        <input id="edit_name" name="name" type="text" required x-model="edit.name" class="mt-1 block w-full rounded-lg border-slate-200 text-[13px] shadow-sm focus:border-brand-500 focus:ring-brand-500">
+                    </div>
+                    <div>
+                        <label for="edit_email" class="block text-[13px] font-medium text-slate-600">Email (optional)</label>
+                        <input id="edit_email" name="email" type="email" x-model="edit.email" class="mt-1 block w-full rounded-lg border-slate-200 text-[13px] shadow-sm focus:border-brand-500 focus:ring-brand-500">
+                    </div>
+                    <div>
+                        <label for="edit_position_id" class="block text-[13px] font-medium text-slate-600">Position</label>
+                        <select id="edit_position_id" name="position_id" required x-model.number="edit.position_id" class="mt-1 block w-full rounded-lg border-slate-200 text-[13px] text-slate-800 shadow-sm focus:border-brand-500 focus:ring-brand-500">
+                            @foreach ($positions as $position)
+                                <option value="{{ $position->id }}">{{ $position->serial }}. {{ $position->title }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label for="edit_photo" class="block text-[13px] font-medium text-slate-600">Change picture <span class="font-normal text-slate-400">(optional)</span></label>
+                        <input
+                            id="edit_photo"
+                            name="photo"
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            class="mt-1 block w-full text-[13px] text-slate-600 file:mr-2 file:rounded-md file:border-0 file:bg-slate-100 file:px-2.5 file:py-1.5 file:text-[12px] file:font-semibold file:text-slate-700 hover:file:bg-slate-200"
+                            @change="editPreview = $event.target.files[0] ? URL.createObjectURL($event.target.files[0]) : null"
+                        >
+                        <p class="mt-1 text-xs text-slate-500">JPG, PNG or WebP · max 2 MB. Leave empty to keep the current picture.</p>
+                    </div>
+
+                    <div class="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2 text-[12px]">
+                        <template x-if="edit.login">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <p class="text-slate-600">
+                                    Login: <span class="font-semibold text-navy-900" x-text="edit.login.email"></span>
+                                    · <span x-text="edit.login.role"></span>
+                                </p>
+                                <a x-show="edit.login.url" :href="edit.login.url" class="font-semibold text-brand-700 hover:underline">Role &amp; password →</a>
+                            </div>
+                        </template>
+                        <template x-if="!edit.login">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <p class="text-slate-500">No login account yet.</p>
+                                <a x-show="edit.add_login_url" :href="edit.add_login_url" class="font-semibold text-amber-700 hover:underline">+ Give login</a>
+                            </div>
+                        </template>
+                        <p x-show="edit.login" class="mt-1 text-[11px] text-slate-400">The login name follows this officer. The login email changes too if it was the same as the old email.</p>
+                    </div>
+
+                    <div class="flex justify-end gap-1.5 border-t border-slate-100 pt-3">
+                        <button type="button" class="rounded-lg px-3 py-1.5 text-[12px] font-medium text-slate-500 hover:bg-slate-50" @click="editOpen = false">Cancel</button>
+                        <button type="submit" class="rounded-lg bg-navy-900 px-3.5 py-1.5 text-[12px] font-semibold text-white hover:bg-navy-800">Save changes</button>
                     </div>
                 </form>
             </div>
