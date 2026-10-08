@@ -1,11 +1,14 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Do not rewrite real files in the project root (e.g. index.php).
-    RewriteCond %{REQUEST_FILENAME} -f
-    RewriteRule ^ - [L]
+    # cPanel AutoSSL / domain validation must reach .well-known.
+    RewriteRule ^\.well-known/ - [L]
 
-    # Force all other requests into /public (needed when docroot is project root).
+    # The root entry script is the only real file served from the project root;
+    # .env, storage/, vendor/, database/ etc. must never be reachable directly.
+    RewriteRule ^index\.php$ - [L]
+
+    # Everything else goes through /public (needed when docroot is project root).
     RewriteRule ^(.*)$ /public/$1 [L]
 </IfModule>
 

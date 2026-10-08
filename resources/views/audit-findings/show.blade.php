@@ -10,7 +10,6 @@
         null, '' => null,
         default => 'bg-amber-50 text-amber-700 ring-amber-200',
     };
-    $canEditStaff = auth()->user()?->canany(['findings.summary.edit', 'findings.enter', 'findings.view_all']);
     $cards = [
         ['label' => 'Total amount', 'value' => number_format((float) ($orgRow->total_amount ?? 0), 2), 'hint' => 'Across all branches', 'tone' => 'from-[#1b3a70] to-[#2b579a]'],
         ['label' => 'Samples checked', 'value' => number_format($samples), 'hint' => 'Items the auditors tested', 'tone' => 'from-sky-400 to-sky-600'],
@@ -22,11 +21,7 @@
     <div
         class="space-y-3 px-3 py-3 lg:px-5"
         style="font-family:'Hind Siliguri','Nirmala UI',system-ui,sans-serif;"
-        x-data="findingBranchRows({
-            employeesByShakha: @js((object) ($employeesByShakha ?? [])),
-            rows: @js($branchRows ?? []),
-            csrf: @js(csrf_token()),
-        })"
+        x-data="findingBranchRows({ rows: @js($branchRows ?? []) })"
     >
         <x-findings-header
             :title="$indicator->indicator_code.' — '.$indicator->title"
@@ -70,13 +65,7 @@
             <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/80 px-3 py-2">
                 <div>
                     <p class="text-[13px] font-semibold text-navy-900">Branches with findings <span class="font-normal text-slate-400">{{ count($branchRows) }}</span></p>
-                    <p class="text-[11px] text-slate-500">
-                        @if ($canEditStaff)
-                            Responsible staff: type an employee ID or name from that branch's employees, then pick or press Enter. It saves on its own.
-                        @else
-                            One row per branch with a stored finding for {{ $monthName }} {{ $year }}.
-                        @endif
-                    </p>
+                    <p class="text-[11px] text-slate-500">One row per branch with a stored finding for {{ $monthName }} {{ $year }}. Responsible staff come from the audit report, the same as on the Summary.</p>
                 </div>
             </div>
 
@@ -116,57 +105,28 @@
                                 <td class="max-w-[340px] px-3 py-2.5 text-[12.5px] leading-relaxed text-slate-600">
                                     <p class="line-clamp-3" :title="row.observation" x-text="row.observation"></p>
                                 </td>
-                                <td class="px-3 py-2.5" @click.outside="if (openFor === row.id) openFor = null">
-                                    @if ($canEditStaff)
-                                        <div class="relative w-52">
-                                            <input
-                                                type="text"
-                                                class="h-8 w-full rounded-lg border-slate-200 px-2.5 py-0 text-[12.5px] focus:border-[#2b579a] focus:ring-[#2b579a]"
-                                                :class="errorId === row.id ? 'border-rose-300' : ''"
-                                                placeholder="Employee ID or name"
-                                                autocomplete="off"
-                                                x-model="row.responsible_staff_name"
-                                                @focus="openStaff(row, $event.target)"
-                                                @input="openStaff(row, $event.target); staffQ = $event.target.value; staffHighlight = 0"
-                                                @keydown="onStaffKey($event, row)"
-                                                @blur="setTimeout(() => { if (openFor === row.id) saveStaff(row); }, 140)"
-                                            >
-                                            <p class="mt-0.5 text-[11px] font-medium text-emerald-600" x-show="savedId === row.id" x-cloak>✓ Saved</p>
-                                            <p class="mt-0.5 text-[11px] text-slate-500" x-show="savingId === row.id" x-cloak>Saving…</p>
-                                            <p class="mt-0.5 text-[11px] font-medium text-rose-600" x-show="errorId === row.id" x-cloak>Could not save. Check your connection and try again.</p>
-                                            <template x-teleport="body">
-                                                <div
-                                                    x-show="openFor === row.id"
-                                                    x-cloak
-                                                    x-transition.opacity.duration.100ms
-                                                    :style="dropdownStyle"
-                                                    class="max-h-48 overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-xl"
-                                                    style="font-family:'Hind Siliguri','Nirmala UI',system-ui,sans-serif;"
-                                                    @mousedown.prevent
-                                                >
-                                                    <template x-if="employeesFor(row.shakha_id).length === 0">
-                                                        <p class="px-2.5 py-2 text-[12.5px] text-amber-700">No employees for this branch. Add them under Shakha Employees.</p>
-                                                    </template>
-                                                    <template x-for="(emp, idx) in filterEmployees(row.shakha_id, staffQ)" :key="emp.id">
-                                                        <button
-                                                            type="button"
-                                                            class="flex w-full flex-col items-start gap-0.5 px-2.5 py-1.5 text-left hover:bg-sky-50"
-                                                            :class="idx === staffHighlight ? 'bg-sky-50' : ''"
-                                                            @mousedown.prevent="pickStaff(row, emp)"
-                                                        >
-                                                            <span class="text-[12.5px] font-semibold text-navy-900" x-text="emp.name"></span>
-                                                            <span class="text-[11px] text-slate-500">
-                                                                <span class="font-mono" x-text="emp.code"></span>
-                                                                <span x-show="emp.designation"> · <span x-text="emp.designation"></span></span>
-                                                            </span>
-                                                        </button>
-                                                    </template>
-                                                </div>
-                                            </template>
-                                        </div>
-                                    @else
-                                        <span class="text-[12.5px] text-slate-600" x-text="row.responsible_staff_name || '—'"></span>
-                                    @endif
+                                <td class="px-3 py-2.5 text-[12.5px] font-medium text-violet-900">
+                                    <template x-if="row.accused_people.length === 0">
+                                        <span x-text="row.accused_text || '—'"></span>
+                                    </template>
+                                    <div class="flex flex-col gap-1" x-show="row.accused_people.length > 0">
+                                        <template x-for="(person, pIdx) in row.accused_people" :key="pIdx">
+                                            <div class="flex flex-wrap items-center gap-1.5">
+                                                <template x-if="person.dossier_url">
+                                                    <a :href="person.dossier_url" class="hover:underline" title="সব বছরের আর্থিক রিপোর্ট দেখুন" x-text="person.label"></a>
+                                                </template>
+                                                <template x-if="! person.dossier_url">
+                                                    <span x-text="person.label"></span>
+                                                </template>
+                                                <span
+                                                    x-show="person.report_count >= 2"
+                                                    class="inline-flex rounded-full bg-rose-100 px-1.5 py-0.5 text-[11px] font-bold text-rose-800"
+                                                    :title="person.report_count + ' বার আর্থিক রিপোর্ট (সব বছর)'"
+                                                    x-text="person.report_count + ' বার'"
+                                                ></span>
+                                            </div>
+                                        </template>
+                                    </div>
                                 </td>
                             </tr>
                         </template>
@@ -186,22 +146,7 @@
         <script>
             function findingBranchRows(cfg) {
                 return {
-                    employeesByShakha: cfg.employeesByShakha || {},
                     rows: cfg.rows || [],
-                    csrf: cfg.csrf || '',
-                    openFor: null,
-                    staffQ: '',
-                    staffHighlight: 0,
-                    savingId: null,
-                    savedId: null,
-                    errorId: null,
-                    dropdownStyle: {},
-                    csrfToken() {
-                        return window.bynnasCsrf?.token?.()
-                            || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
-                            || this.csrf
-                            || '';
-                    },
                     toNumber(value) {
                         const n = parseFloat(String(value ?? '').replace(/,/g, ''));
                         return Number.isFinite(n) ? n : null;
@@ -217,101 +162,6 @@
                         if (rate >= 20) return 'bg-rose-50 text-rose-700';
                         if (rate >= 10) return 'bg-amber-50 text-amber-700';
                         return 'bg-emerald-50 text-emerald-700';
-                    },
-                    employeesFor(shakhaId) {
-                        return this.employeesByShakha[String(shakhaId)] || [];
-                    },
-                    placeDropdown(el) {
-                        if (! el) return;
-                        const r = el.getBoundingClientRect();
-                        const width = Math.max(r.width, 208);
-                        const menuHeight = 192;
-                        const openUp = window.innerHeight - r.bottom < menuHeight && r.top > menuHeight;
-                        const top = openUp ? Math.max(8, r.top - menuHeight - 4) : r.bottom + 4;
-                        this.dropdownStyle = {
-                            position: 'fixed',
-                            left: Math.min(r.left, window.innerWidth - width - 8) + 'px',
-                            top: top + 'px',
-                            width: width + 'px',
-                            zIndex: '9999',
-                        };
-                    },
-                    openStaff(row, el) {
-                        this.openFor = row.id;
-                        this.staffQ = row.responsible_staff_name || '';
-                        this.staffHighlight = 0;
-                        this.$nextTick(() => this.placeDropdown(el));
-                    },
-                    filterEmployees(shakhaId, q) {
-                        const list = this.employeesFor(shakhaId);
-                        const needle = (q || '').trim().toLowerCase();
-                        if (! needle) return list.slice(0, 8);
-                        return list.filter((e) => (e.code + ' ' + e.name + ' ' + (e.designation || '')).toLowerCase().includes(needle)).slice(0, 8);
-                    },
-                    resolveName(shakhaId, raw) {
-                        const needle = (raw || '').trim();
-                        if (! needle) return '';
-                        const lower = needle.toLowerCase();
-                        const exact = this.employeesFor(shakhaId).find((e) => e.code.toLowerCase() === lower || e.name.trim().toLowerCase() === lower);
-                        if (exact) return exact.name;
-                        const first = this.filterEmployees(shakhaId, needle)[0];
-                        return first ? first.name : needle;
-                    },
-                    pickStaff(row, emp) {
-                        row.responsible_staff_name = emp.name;
-                        this.staffQ = emp.name;
-                        this.openFor = null;
-                        this.saveStaff(row);
-                    },
-                    async saveStaff(row) {
-                        const resolved = this.resolveName(row.shakha_id, row.responsible_staff_name);
-                        row.responsible_staff_name = resolved;
-                        this.openFor = null;
-                        this.savingId = row.id;
-                        this.errorId = null;
-                        try {
-                            const res = await fetch(row.staff_save_url, {
-                                method: 'PATCH',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Accept': 'application/json',
-                                    'X-CSRF-TOKEN': this.csrfToken(),
-                                    'X-Requested-With': 'XMLHttpRequest',
-                                },
-                                body: JSON.stringify({ responsible_staff_name: resolved }),
-                            });
-                            if (! res.ok) {
-                                if (res.status === 419 && window.bynnasCsrf?.refresh) {
-                                    await window.bynnasCsrf.refresh({ force: true });
-                                }
-                                throw new Error('save failed');
-                            }
-                            const data = await res.json();
-                            row.responsible_staff_name = data.responsible_staff_name || '';
-                            this.savedId = row.id;
-                            setTimeout(() => { if (this.savedId === row.id) this.savedId = null; }, 1800);
-                        } catch (e) {
-                            this.errorId = row.id;
-                        } finally {
-                            this.savingId = null;
-                        }
-                    },
-                    onStaffKey(e, row) {
-                        const list = this.filterEmployees(row.shakha_id, this.staffQ);
-                        if (e.key === 'ArrowDown') {
-                            e.preventDefault();
-                            this.openFor = row.id;
-                            this.staffHighlight = Math.min(this.staffHighlight + 1, Math.max(list.length - 1, 0));
-                        } else if (e.key === 'ArrowUp') {
-                            e.preventDefault();
-                            this.staffHighlight = Math.max(this.staffHighlight - 1, 0);
-                        } else if (e.key === 'Enter') {
-                            e.preventDefault();
-                            if (list[this.staffHighlight]) this.pickStaff(row, list[this.staffHighlight]);
-                            else this.saveStaff(row);
-                        } else if (e.key === 'Escape') {
-                            this.openFor = null;
-                        }
                     },
                 };
             }

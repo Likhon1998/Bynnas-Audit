@@ -234,21 +234,7 @@ class AuditFindingController extends Controller
         $branches = $summary->getIndicatorBranchFindings($indicator->id, $month, $year);
         $orgRow = $summary->getOrganizationTotals($month, $year)->firstWhere('indicator_id', $indicator->id);
 
-        $shakhaIds = $branches->pluck('shakha_id')->unique()->filter()->values();
-        $employeesByShakha = ShakhaEmployee::query()
-            ->whereIn('shakha_id', $shakhaIds)
-            ->where('status', 'active')
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get(['id', 'shakha_id', 'employee_code', 'name', 'designation'])
-            ->groupBy('shakha_id')
-            ->map(fn ($group) => $group->map(fn (ShakhaEmployee $e) => [
-                'id' => $e->id,
-                'code' => (string) $e->employee_code,
-                'name' => (string) $e->name,
-                'designation' => (string) ($e->designation ?: ''),
-            ])->values())
-            ->toArray();
+        $accusedByFinding = $summary->accusedPeopleByFinding($branches);
 
         $branchRows = $branches->map(fn (AuditFinding $finding) => [
             'id' => $finding->id,
@@ -260,8 +246,8 @@ class AuditFindingController extends Controller
             'sample_size_checked' => $finding->sample_size_checked ?? '—',
             'irregularity_count' => $finding->irregularity_count ?? '—',
             'observation' => (string) ($finding->observation ?: '—'),
-            'responsible_staff_name' => (string) ($finding->responsible_staff_name ?: ''),
-            'staff_save_url' => route('audit-findings.staff.update', $finding),
+            'accused_text' => $accusedByFinding[(int) $finding->id]['text'] ?? '',
+            'accused_people' => $accusedByFinding[(int) $finding->id]['people'] ?? [],
         ])->values();
 
         return view('audit-findings.show', [
@@ -270,69 +256,11 @@ class AuditFindingController extends Controller
             'year' => $year,
             'branches' => $branches,
             'branchRows' => $branchRows,
-            'employeesByShakha' => $employeesByShakha,
             'orgRow' => $orgRow,
             'monthStrip' => $monthStrip,
             'prevYearUrl' => route('audit-findings.show', ['indicator' => $indicator->id, 'month' => $month, 'year' => $year - 1]),
             'nextYearUrl' => route('audit-findings.show', ['indicator' => $indicator->id, 'month' => $month, 'year' => $year + 1]),
         ]);
-    }
-
-    public function updateStaff(Request $request, AuditFinding $finding): \Illuminate\Http\JsonResponse|RedirectResponse
-    {
-        if (! app(UserAccessService::class)->canAccessShakha($request->user(), (int) $finding->shakha_id)) {
-            abort(403, 'You are not assigned to this shakha.');
-        }
-
-        $data = $request->validate([
-            'responsible_staff_name' => ['nullable', 'string', 'max:255'],
-            'employee_code' => ['nullable', 'string', 'max:80'],
-        ]);
-
-        $name = trim((string) ($data['responsible_staff_name'] ?? ''));
-        $code = trim((string) ($data['employee_code'] ?? ''));
-        $employee = null;
-
-        if ($code !== '') {
-            $employee = ShakhaEmployee::query()
-                ->where('employee_code', $code)
-                ->first();
-            if ($employee) {
-                $name = $employee->name.' ('.$employee->employee_code.')';
-            }
-        } elseif ($name !== '') {
-            $employee = ShakhaEmployee::query()
-                ->where('shakha_id', $finding->shakha_id)
-                ->where('status', 'active')
-                ->where(function ($q) use ($name) {
-                    $q->where('employee_code', $name)
-                        ->orWhere('name', $name);
-                })
-                ->first();
-            if ($employee) {
-                $name = $employee->name.' ('.$employee->employee_code.')';
-            }
-        }
-
-        $staffIds = $employee
-            ? [(int) $employee->id]
-            : app(\App\Services\StaffFinancialOccurrenceService::class)
-                ->resolveIdsFromStaffName($name !== '' ? $name : null, (int) $finding->shakha_id);
-
-        $finding->update([
-            'responsible_staff_name' => $name !== '' ? $name : null,
-            'responsible_staff_ids' => $staffIds !== [] ? $staffIds : null,
-        ]);
-
-        if ($request->expectsJson() || $request->ajax()) {
-            return response()->json([
-                'ok' => true,
-                'responsible_staff_name' => $finding->responsible_staff_name,
-                'responsible_staff_ids' => $finding->responsibleStaffIds(),
-            ]);
-        }
-
-        return back()->with('status', 'Staff updated.');
     }
 
     public function entry(Request $request): View|RedirectResponse

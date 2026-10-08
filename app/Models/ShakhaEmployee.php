@@ -102,7 +102,7 @@ class ShakhaEmployee extends Model
             return null;
         }
 
-        return Storage::disk('public')->url($this->photo_path);
+        return route('photos.show', ['path' => $this->photo_path, 'v' => $this->updated_at?->timestamp]);
     }
 
     public function hasPhoto(): bool

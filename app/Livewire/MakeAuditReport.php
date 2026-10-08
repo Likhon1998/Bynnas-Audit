@@ -11674,11 +11674,11 @@ class MakeAuditReport extends Component
             }
         }
 
-        if (! $this->logo_path) {
+        if (! $this->logo_path || ! Storage::disk('public')->exists($this->logo_path)) {
             return null;
         }
 
-        return asset('storage/'.$this->logo_path);
+        return route('photos.show', ['path' => $this->logo_path]);
     }
 
     public function render()

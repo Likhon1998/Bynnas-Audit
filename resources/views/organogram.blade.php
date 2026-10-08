@@ -200,7 +200,7 @@
                                                     @endphp
                                                     <span class="inline-flex max-w-full items-center gap-1 rounded-md border border-slate-100 bg-white px-1.5 py-1 shadow-sm">
                                                         @if ($employee->photoUrl())
-                                                            <img src="{{ $employee->photoUrl() }}" alt="{{ $employee->name }}" class="h-5 w-5 shrink-0 rounded-full object-cover ring-1 ring-slate-200">
+                                                            <img src="{{ $employee->photoUrl() }}" alt="{{ $employee->name }}" class="h-5 w-5 shrink-0 rounded-full object-cover ring-1 ring-slate-200" onerror="this.remove()">
                                                         @else
                                                             <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white" style="background-color: {{ $position->color }}">
                                                                 {{ $initials }}

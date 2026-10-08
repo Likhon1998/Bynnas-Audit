@@ -79,7 +79,9 @@ class AuditorActivityService
             ->permission('audits.create')
             ->with('roles:id,name')
             ->orderBy('name')
-            ->get(['id', 'name', 'email', 'employee_id', 'is_active', 'is_superadmin']);
+            ->get(['id', 'name', 'email', 'employee_id', 'is_active', 'is_superadmin'])
+            ->reject(fn (User $user) => $user->isSuperAdmin())
+            ->values();
     }
 
     /**
@@ -155,7 +157,20 @@ class AuditorActivityService
             ])
             ->whereBetween('created_at', [$from, $to])
             ->whereHas('report', fn ($q) => $q->whereIn('user_id', $userIds))
-            ->get();
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get()
+            // Already shown as "Marked review fixes done" from the report itself.
+            ->reject(fn (AuditReportReviewEvent $event) => $event->action === AuditReportReviewEvent::ACTION_NOTE
+                && ($event->meta['via'] ?? null) === 'maker_done');
+
+        // A reopened review that is confirmed again is still one confirmation.
+        $lastApprovalIds = $reviewEvents
+            ->where('action', AuditReportReviewEvent::ACTION_APPROVED)
+            ->groupBy('audit_report_id')
+            ->map(fn ($group) => (int) $group->last()->id);
+        $reviewEvents = $reviewEvents->reject(fn (AuditReportReviewEvent $event) => $event->action === AuditReportReviewEvent::ACTION_APPROVED
+            && ! $lastApprovalIds->contains((int) $event->id));
 
         foreach ($reviewEvents as $event) {
             $type = match ($event->action) {
@@ -188,10 +203,12 @@ class AuditorActivityService
             ->each(function (AuditReportSend $send) use ($push, $reportPlace) {
                 $push('email', (int) $send->sent_by_user_id, $send->sent_at ?: $send->created_at, [
                     'detail' => trim(($reportPlace($send->report) ?: 'Report').' → '.$send->to_email),
+                    'url' => $send->report ? route('audit-review.log.show', $send->audit_report_id) : null,
                 ]);
             });
 
         AuditChecklistSubmission::query()
+            ->withExists('report')
             ->whereIn('user_id', $userIds)
             ->where(function ($q) use ($from, $to) {
                 $q->whereBetween('saved_at', [$from, $to])
@@ -201,6 +218,7 @@ class AuditorActivityService
             ->each(function (AuditChecklistSubmission $sheet) use ($push) {
                 $push('checklist', (int) $sheet->user_id, $sheet->saved_at ?: $sheet->updated_at, [
                     'detail' => trim(($sheet->heading ?: 'Checklist').($sheet->shakha_name ? ' · '.$sheet->shakha_name : '')),
+                    'url' => $sheet->report_exists ? route('audit-review.log.show', $sheet->audit_report_id) : null,
                 ]);
             });
 
@@ -213,7 +231,7 @@ class AuditorActivityService
                         return;
                     }
                     $place = $visit->workItem?->entity_label ?: 'Branch visit';
-                    $people = collect([(int) $visit->employee_id])
+                    $people = collect([(int) $visit->employee_id, (int) $execution->actual_employee_id])
                         ->concat($visit->visitors->pluck('id')->map(fn ($id) => (int) $id))
                         ->unique()
                         ->map(fn ($employeeId) => $employeeToUser->get($employeeId))
@@ -420,7 +438,8 @@ class AuditorActivityService
             ->with(['execution', 'workItem:id,entity_label,activity_type_id', 'workItem.activityType:id,name', 'visitors:id'])
             ->where(function ($q) use ($employeeIds) {
                 $q->whereIn('employee_id', $employeeIds)
-                    ->orWhereHas('visitors', fn ($v) => $v->whereIn('employees.id', $employeeIds));
+                    ->orWhereHas('visitors', fn ($v) => $v->whereIn('employees.id', $employeeIds))
+                    ->orWhereHas('execution', fn ($e) => $e->whereIn('actual_employee_id', $employeeIds));
             })
             ->get();
     }

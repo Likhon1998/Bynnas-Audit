@@ -30,12 +30,13 @@
             const btn = this.$refs.trigger;
             if (! btn) return;
             const r = btn.getBoundingClientRect();
-            const width = 176;
+            const width = 184;
             const edge = 8;
+            const menuHeight = 240;
             let left = r.right - width;
             if (left < edge) left = edge;
             const spaceBelow = window.innerHeight - r.bottom;
-            const top = spaceBelow < 220 ? Math.max(edge, r.top - 8 - 220) : r.bottom + 6;
+            const top = spaceBelow < menuHeight ? Math.max(edge, r.top - 8 - menuHeight) : r.bottom + 6;
             this.menuStyle = 'position:fixed;top:' + top + 'px;left:' + left + 'px;width:' + width + 'px;z-index:60;';
         },
     }"
@@ -53,23 +54,52 @@
         <svg class="h-3 w-3 text-slate-500 transition" :class="open ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
     </button>
 
+    @php
+        $item = 'flex w-full items-center gap-2 rounded-xl border px-2 py-1.5 text-left text-[12.5px] font-semibold shadow-[0_1px_2px_rgba(15,33,71,0.06)] transition-colors duration-150 hover:shadow-[0_4px_12px_rgba(15,33,71,0.10)]';
+        $chip = 'inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm';
+    @endphp
     <div
         x-show="open"
         x-cloak
+        x-transition:enter="transition ease-out duration-150"
+        x-transition:enter-start="opacity-0 scale-95"
+        x-transition:enter-end="opacity-100 scale-100"
+        x-transition:leave="transition ease-in duration-100"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
         :style="menuStyle"
-        class="overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl"
+        class="origin-top-right space-y-1 rounded-2xl border border-slate-200/80 bg-white p-1.5 text-left shadow-[0_18px_40px_rgba(15,33,71,0.18)] ring-1 ring-black/5"
     >
-        <a href="{{ route('shakha-employees.dossier', $employee) }}" class="flex items-center justify-between px-3 py-1.5 text-[12px] font-semibold text-rose-700 hover:bg-rose-50">
-            রিপোর্ট
+        <a href="{{ route('shakha-employees.dossier', $employee) }}" class="{{ $item }} border-rose-100 bg-rose-50/70 text-rose-700 hover:bg-rose-100">
+            <span class="{{ $chip }} text-rose-600">
+                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+            </span>
+            <span class="flex-1">রিপোর্ট</span>
             @if ($reportCount > 0)
-                <span class="rounded-full bg-rose-100 px-1.5 text-[10px] text-rose-800">{{ $reportCount }}</span>
+                <span class="rounded-full bg-rose-600 px-1.5 py-px text-[10.5px] font-bold text-white">{{ $reportCount }}</span>
             @endif
         </a>
         @if ($canManage)
-            <a href="{{ route('shakha-employees.edit', $employee) }}" class="block px-3 py-1.5 text-[12px] font-semibold text-indigo-700 hover:bg-indigo-50">Edit</a>
+            <a href="{{ route('shakha-employees.edit', $employee) }}" class="{{ $item }} border-indigo-100 bg-indigo-50/70 text-indigo-700 hover:bg-indigo-100">
+                <span class="{{ $chip }} text-indigo-600">
+                    <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+                </span>
+                Edit
+            </a>
             @if ($canAct)
-                <button type="button" @click="open = false; transferOpen = true" class="block w-full px-3 py-1.5 text-left text-[12px] font-semibold text-sky-800 hover:bg-sky-50">Transfer</button>
-                <button type="button" @click="open = false; fireOpen = true" class="block w-full px-3 py-1.5 text-left text-[12px] font-semibold text-rose-700 hover:bg-rose-50">Fire</button>
+                <button type="button" @click="open = false; transferOpen = true" class="{{ $item }} border-sky-100 bg-sky-50/70 text-sky-800 hover:bg-sky-100">
+                    <span class="{{ $chip }} text-sky-600">
+                        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4"/><path d="M21 7H9"/><path d="M7 21l-4-4 4-4"/><path d="M3 17h12"/></svg>
+                    </span>
+                    Transfer
+                </button>
+                <div class="mx-1 border-t border-slate-100"></div>
+                <button type="button" @click="open = false; fireOpen = true" class="{{ $item }} border-rose-200 bg-white text-rose-700 hover:border-rose-600 hover:bg-rose-600 hover:text-white">
+                    <span class="{{ $chip }} text-rose-600">
+                        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c.7-3.4 3.1-5.5 6-5.5s5.3 2.1 6 5.5"/><path d="M16 11h6"/></svg>
+                    </span>
+                    Fire
+                </button>
             @endif
         @endif
         @if ($showRemove && $canManage)
@@ -83,7 +113,12 @@
             >
                 @csrf
                 @method('DELETE')
-                <button type="submit" class="block w-full px-3 py-1.5 text-left text-[12px] font-semibold text-rose-700 hover:bg-rose-50">Remove</button>
+                <button type="submit" class="{{ $item }} border-rose-200 bg-white text-rose-700 hover:border-rose-600 hover:bg-rose-600 hover:text-white">
+                    <span class="{{ $chip }} text-rose-600">
+                        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/></svg>
+                    </span>
+                    Remove
+                </button>
             </form>
         @endif
     </div>

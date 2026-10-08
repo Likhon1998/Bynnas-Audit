@@ -34,27 +34,8 @@
             'ranges' => $o['ranges'],
             'rangeKey' => $o['range']['key'],
             'rangeUrl' => fn ($key) => route('audit-review.log', ['range' => $key]),
+            'kpiCards' => $cards,
         ])
-
-        <div class="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
-            @foreach ($cards as $card)
-                <div class="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(15,33,71,0.12)]">
-                    <span class="pointer-events-none absolute -right-6 -top-6 h-16 w-16 rounded-full {{ $card['soft'] }} transition group-hover:scale-110"></span>
-                    <div class="relative flex items-center gap-2">
-                        <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white shadow-[0_6px_14px_rgba(15,33,71,0.2)] {{ $card['tone'] }}">
-                            @if ($card['type'] === 'people')
-                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3 2.8-4.8 5.5-4.8s4.9 1.8 5.5 4.8" stroke-linecap="round"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14.3c2.3.1 4 1.6 4.5 4.2" stroke-linecap="round"/></svg>
-                            @else
-                                @include('audit-review.partials.activity-icon', ['type' => $card['type'], 'class' => 'h-4 w-4'])
-                            @endif
-                        </span>
-                        <p class="text-[10.5px] font-semibold uppercase leading-tight tracking-wide text-slate-500">{{ $card['label'] }}</p>
-                    </div>
-                    <p class="relative mt-1.5 text-[22px] font-bold leading-none text-navy-900">{{ $card['value'] }}</p>
-                    <p class="relative mt-1 truncate text-[11px] text-slate-500">{{ $card['hint'] }}</p>
-                </div>
-            @endforeach
-        </div>
 
         <div class="grid items-start gap-3 xl:grid-cols-[minmax(0,1fr)_340px]">
             <div class="min-w-0 space-y-3">
@@ -180,7 +161,7 @@
                 </section>
             </div>
 
-            <aside class="min-w-0 space-y-3 xl:sticky xl:top-[80px]">
+            <aside class="min-w-0 space-y-3 xl:sticky xl:top-[172px]">
                 <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                     <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-3 py-2">
                         <div>
@@ -189,7 +170,7 @@
                         </div>
                         <span class="relative flex h-2.5 w-2.5"><span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-60"></span><span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-sky-500"></span></span>
                     </div>
-                    <ul class="max-h-[min(62vh,620px)] overflow-y-auto px-3">
+                    <ul class="max-h-[min(62vh,620px)] overflow-y-auto px-3 xl:max-h-[calc(100vh-340px)]">
                         @forelse ($o['feed'] as $event)
                             @include('audit-review.partials.activity-item', ['event' => $event, 'showWho' => true])
                         @empty

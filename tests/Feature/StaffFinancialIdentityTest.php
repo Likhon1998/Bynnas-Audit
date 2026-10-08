@@ -119,6 +119,50 @@ class StaffFinancialIdentityTest extends TestCase
         $this->assertNotEmpty($people[0]['dossier_url']);
     }
 
+    public function test_indicator_page_shows_report_staff_read_only(): void
+    {
+        $admin = User::query()->where('email', 'admin@bynnasaudit.com')->firstOrFail();
+        $area = Area::query()->create(['name' => 'Metro', 'division' => 'Dhaka', 'status' => 'active']);
+        $shakha = Shakha::query()->create(['area_id' => $area->id, 'name' => 'Branch', 'code' => 'BR', 'status' => 'active']);
+        $employee = ShakhaEmployee::query()->create([
+            'shakha_id' => $shakha->id,
+            'employee_code' => 'RO-7',
+            'name' => 'Report Person',
+            'designation' => 'FO',
+            'status' => 'active',
+        ]);
+        $indicator = AuditIndicator::query()->create([
+            'category' => 'Financial',
+            'sub_category' => null,
+            'indicator_code' => 'RO-IND',
+            'title' => 'Read-only indicator',
+            'risk_rating' => 'Major',
+            'is_active' => true,
+        ]);
+        $finding = AuditFinding::query()->create([
+            'shakha_id' => $shakha->id,
+            'audit_indicator_id' => $indicator->id,
+            'audit_month' => 9,
+            'audit_year' => 2026,
+            'amount' => 150,
+            'responsible_staff_name' => 'Report Person (RO-7)',
+            'responsible_staff_ids' => [(int) $employee->id],
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('audit-findings.show', ['indicator' => $indicator->id, 'month' => 9, 'year' => 2026]))
+            ->assertOk()
+            ->assertSee('Report Person (RO-7)')
+            ->assertViewHas('branchRows', fn ($rows) => ($rows[0]['accused_people'][0]['dossier_url'] ?? null) === route('shakha-employees.dossier', $employee))
+            ->assertDontSee('Employee ID or name');
+
+        $this->actingAs($admin)
+            ->patchJson('/audit-findings/findings/'.$finding->id.'/staff', ['responsible_staff_name' => 'Someone else'])
+            ->assertNotFound();
+
+        $this->assertSame('Report Person (RO-7)', $finding->fresh()->responsible_staff_name);
+    }
+
     public function test_sync_from_matrix_people_persists_staff_ids(): void
     {
         $area = Area::query()->create(['name' => 'Metro', 'division' => 'Dhaka', 'status' => 'active']);

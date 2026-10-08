@@ -16,9 +16,9 @@
         src="{{ $url }}"
         alt="{{ $employee?->name }}"
         class="{{ $class }} shrink-0 rounded-full object-cover ring-1 ring-slate-200 {{ $classExtra ?? '' }}"
+        onerror="this.nextElementSibling.classList.remove('hidden'); this.nextElementSibling.classList.add('inline-flex'); this.remove();"
     >
-@else
-    <span class="{{ $class }} inline-flex shrink-0 items-center justify-center rounded-full bg-slate-100 font-semibold text-slate-500 ring-1 ring-slate-200 {{ $classExtra ?? '' }}">
-        {{ $initial }}
-    </span>
 @endif
+<span class="{{ $class }} {{ $url ? 'hidden' : 'inline-flex' }} shrink-0 items-center justify-center rounded-full bg-slate-100 font-semibold text-slate-500 ring-1 ring-slate-200 {{ $classExtra ?? '' }}">
+    {{ $initial }}
+</span>

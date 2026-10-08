@@ -139,83 +139,83 @@
             </div>
         </div>
 
-        <form method="GET" action="{{ route('shakha-employees.index') }}" class="mb-3 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
-            <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-3 py-2">
-                <div class="flex items-center gap-2">
-                    <span class="flex h-6 w-6 items-center justify-center rounded-md bg-white text-slate-500 shadow-sm ring-1 ring-slate-200">
-                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 01.8 1.6L14 13.67V19a1 1 0 01-.55.9l-4 2A1 1 0 018 21v-7.33L3.2 4.6A1 1 0 013 4z"/></svg>
-                    </span>
-                    <div>
-                        <p class="text-[13px] font-semibold text-navy-900">Find a shakha</p>
-                        <p class="text-xs text-slate-500">
-                            @if ($selectedShakha)
-                                {{ $selectedShakha->area?->division }} · {{ $selectedShakha->area?->name }} · {{ $selectedShakha->name }}
-                            @else
-                                Division → Area → Shakha
-                            @endif
-                        </p>
-                    </div>
-                </div>
-                @if ($filters['division'] || $filters['area_id'] || $filters['shakha_id'] || $filters['status'] !== 'all' || $filters['q'] !== '')
-                    <a href="{{ route('shakha-employees.index') }}" class="rounded-md px-2 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50">Clear filters</a>
-                @endif
+        @php
+            $hasFilters = $filters['division'] || $filters['area_id'] || $filters['shakha_id'] || $filters['status'] !== 'all' || $filters['q'] !== '';
+            $seg = 'relative min-w-0 rounded-xl bg-slate-50/80 ring-1 ring-inset ring-slate-200/80 transition-colors hover:bg-white focus-within:bg-white focus-within:ring-2 focus-within:ring-[#2b579a]/35';
+            $segLabel = 'pointer-events-none absolute left-3 top-1.5 text-[9.5px] font-bold uppercase leading-none tracking-[0.08em] text-slate-400';
+            $segSelect = 'h-10 w-full cursor-pointer truncate rounded-xl border-0 bg-transparent pb-1 pl-3 pr-8 pt-[15px] text-[12.5px] font-semibold text-navy-900 focus:ring-0';
+        @endphp
+        <form
+            method="GET"
+            action="{{ route('shakha-employees.index') }}"
+            class="mb-2.5 grid grid-cols-2 gap-1.5 rounded-2xl border border-slate-200/80 bg-white p-1.5 shadow-[0_1px_2px_rgba(15,33,71,0.04),0_8px_24px_-12px_rgba(15,33,71,0.14)] sm:grid-cols-4 xl:grid-cols-[auto_repeat(4,minmax(0,1fr))_minmax(0,1.35fr)_auto]"
+        >
+            <span class="hidden h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#1b3a70] to-[#2b579a] text-white shadow-[0_6px_14px_rgba(27,58,112,0.28)] xl:flex" title="Find a shakha">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 01.8 1.6L14 13.67V19a1 1 0 01-.55.9l-4 2A1 1 0 018 21v-7.33L3.2 4.6A1 1 0 013 4z"/></svg>
+            </span>
+            <div class="{{ $seg }}">
+                <label for="flt-division" class="{{ $segLabel }}">Division</label>
+                <select id="flt-division" name="division" class="{{ $segSelect }}" onchange="this.form.area_id.value=''; this.form.shakha_id.value=''; this.form.submit()">
+                    <option value="">All divisions</option>
+                    @foreach ($divisions as $divisionOption)
+                        <option value="{{ $divisionOption }}" @selected($filters['division'] === $divisionOption)>{{ $divisionOption }}</option>
+                    @endforeach
+                </select>
             </div>
-            <div class="grid grid-cols-1 gap-2 p-3 sm:grid-cols-2 xl:grid-cols-5 xl:items-end">
-                <div>
-                    <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Division</label>
-                    <select name="division" class="h-9 w-full rounded-lg border-slate-200 bg-white text-[12px] shadow-sm focus:border-[#2b579a] focus:ring-[#2b579a]" onchange="this.form.area_id.value=''; this.form.shakha_id.value=''; this.form.submit()">
-                        <option value="">All divisions</option>
-                        @foreach ($divisions as $divisionOption)
-                            <option value="{{ $divisionOption }}" @selected($filters['division'] === $divisionOption)>{{ $divisionOption }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Area</label>
-                    <select name="area_id" class="h-9 w-full rounded-lg border-slate-200 bg-white text-[12px] shadow-sm focus:border-[#2b579a] focus:ring-[#2b579a]" onchange="this.form.shakha_id.value=''; this.form.submit()">
-                        <option value="">All areas{{ $filters['division'] ? ' in '.$filters['division'] : '' }}</option>
-                        @foreach ($areas as $area)
-                            <option value="{{ $area->id }}" @selected((int) $filters['area_id'] === $area->id)>
-                                {{ $area->name }}@if (! $filters['division']) · {{ $area->division }}@endif
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Shakha</label>
-                    <select name="shakha_id" class="h-9 w-full rounded-lg border-slate-200 bg-white text-[12px] shadow-sm focus:border-[#2b579a] focus:ring-[#2b579a]" onchange="this.form.submit()">
-                        <option value="">Select shakha…</option>
-                        @foreach ($shakhas as $shakha)
-                            <option value="{{ $shakha->id }}" @selected((int) $filters['shakha_id'] === $shakha->id)>{{ $shakha->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Status</label>
-                    <select name="status" class="h-9 w-full rounded-lg border-slate-200 bg-white text-[12px] shadow-sm focus:border-[#2b579a] focus:ring-[#2b579a]" onchange="this.form.submit()">
-                        <option value="all" @selected($filters['status'] === 'all')>All</option>
-                        <option value="active" @selected($filters['status'] === 'active')>Active</option>
-                        <option value="transferred" @selected($filters['status'] === 'transferred')>Transferred</option>
-                        <option value="fired" @selected($filters['status'] === 'fired')>Fired</option>
-                        <option value="inactive" @selected($filters['status'] === 'inactive')>Inactive</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Search roster</label>
-                    <div class="flex gap-2">
-                        <div class="relative min-w-0 flex-1">
-                            <svg class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="m20 20-3.5-3.5"/></svg>
-                            <input
-                                type="search"
-                                name="q"
-                                value="{{ $filters['q'] }}"
-                                placeholder="Employee ID, name…"
-                                class="h-9 w-full rounded-lg border-slate-200 bg-white pl-8 text-[12px] shadow-sm focus:border-[#2b579a] focus:ring-[#2b579a]"
-                            >
-                        </div>
-                        <button type="submit" class="inline-flex h-9 shrink-0 items-center rounded-lg bg-navy-900 px-4 text-[12px] font-semibold text-white shadow-sm hover:bg-navy-800">Go</button>
-                    </div>
-                </div>
+            <div class="{{ $seg }}">
+                <label for="flt-area" class="{{ $segLabel }}">Area</label>
+                <select id="flt-area" name="area_id" class="{{ $segSelect }}" onchange="this.form.shakha_id.value=''; this.form.submit()">
+                    <option value="">All areas{{ $filters['division'] ? ' in '.$filters['division'] : '' }}</option>
+                    @foreach ($areas as $area)
+                        <option value="{{ $area->id }}" @selected((int) $filters['area_id'] === $area->id)>
+                            {{ $area->name }}@if (! $filters['division']) · {{ $area->division }}@endif
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="{{ $seg }}">
+                <label for="flt-shakha" class="{{ $segLabel }}">Shakha</label>
+                <select id="flt-shakha" name="shakha_id" class="{{ $segSelect }}" onchange="this.form.submit()">
+                    <option value="">Select shakha…</option>
+                    @foreach ($shakhas as $shakha)
+                        <option value="{{ $shakha->id }}" @selected((int) $filters['shakha_id'] === $shakha->id)>{{ $shakha->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="{{ $seg }}">
+                <label for="flt-status" class="{{ $segLabel }}">Status</label>
+                <select id="flt-status" name="status" class="{{ $segSelect }}" onchange="this.form.submit()">
+                    <option value="all" @selected($filters['status'] === 'all')>All</option>
+                    <option value="active" @selected($filters['status'] === 'active')>Active</option>
+                    <option value="transferred" @selected($filters['status'] === 'transferred')>Transferred</option>
+                    <option value="fired" @selected($filters['status'] === 'fired')>Fired</option>
+                    <option value="inactive" @selected($filters['status'] === 'inactive')>Inactive</option>
+                </select>
+            </div>
+            <div class="{{ $seg }} col-span-2 sm:col-span-3 xl:col-span-1">
+                <label for="flt-q" class="{{ $segLabel }} left-8">Search roster</label>
+                <svg class="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="m20 20-3.5-3.5"/></svg>
+                <input
+                    id="flt-q"
+                    type="search"
+                    name="q"
+                    value="{{ $filters['q'] }}"
+                    placeholder="Employee ID, name…"
+                    class="h-10 w-full rounded-xl border-0 bg-transparent pb-1 pl-8 pr-3 pt-[15px] text-[12.5px] font-semibold text-navy-900 placeholder:font-normal placeholder:text-slate-400 focus:ring-0"
+                >
+            </div>
+            <div class="flex items-center gap-1.5">
+                <button type="submit" class="inline-flex h-10 flex-1 items-center justify-center rounded-xl bg-gradient-to-br from-[#1b3a70] to-[#2b579a] px-4 text-[12.5px] font-semibold text-white shadow-[0_6px_14px_rgba(27,58,112,0.25)] transition-shadow hover:shadow-[0_8px_18px_rgba(27,58,112,0.35)]">Go</button>
+                @if ($hasFilters)
+                    <a
+                        href="{{ route('shakha-employees.index') }}"
+                        class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-400 ring-1 ring-inset ring-slate-200/80 transition-colors hover:bg-rose-50 hover:text-rose-600 hover:ring-rose-200"
+                        title="Clear filters"
+                        aria-label="Clear filters"
+                    >
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                    </a>
+                @endif
             </div>
         </form>
 

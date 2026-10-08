@@ -59,4 +59,7 @@
             <a href="{{ route('audit-review.assignments') }}" class="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg bg-violet-600 px-3 text-[12px] font-semibold text-white shadow-[0_6px_14px_rgba(124,58,237,0.35)] transition hover:-translate-y-0.5 hover:bg-violet-700">Assign reviewers</a>
         </nav>
     </header>
+    @isset($kpiCards)
+        @include('audit-review.partials.kpi-cards', ['cards' => $kpiCards])
+    @endisset
 </div>

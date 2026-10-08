@@ -541,25 +541,7 @@ class AuditSummaryService
         /** @var array<int, array{indicator:?AuditIndicator, amount:float, samples:int, irregularities:int, branches:array<int, array{shakha_id:int, label:string, accused_kormi:string, accused_people:list<array{id:?int,label:string,report_count:int,dossier_url:?string}>}>}> $byIndicator */
         $byIndicator = [];
 
-        $occurrence = app(StaffFinancialOccurrenceService::class);
-        $allStaffIds = [];
-        foreach ($findings as $finding) {
-            $ids = $finding->responsibleStaffIds();
-            if ($ids === [] && filled($finding->responsible_staff_name)) {
-                $ids = $occurrence->resolveIdsFromStaffName(
-                    (string) $finding->responsible_staff_name,
-                    (int) $finding->shakha_id
-                );
-            }
-            foreach ($ids as $id) {
-                $allStaffIds[] = $id;
-            }
-        }
-        $lifetimeCounts = $occurrence->lifetimeVisitCounts($allStaffIds);
-        $employeesById = ShakhaEmployee::query()
-            ->whereIn('id', array_values(array_unique($allStaffIds)))
-            ->get(['id', 'employee_code', 'name'])
-            ->keyBy('id');
+        $accusedByFinding = $this->accusedPeopleByFinding($findings);
 
         foreach ($findings as $finding) {
             $indicatorId = (int) $finding->audit_indicator_id;
@@ -581,13 +563,8 @@ class AuditSummaryService
             $byIndicator[$indicatorId]['samples'] += (int) ($finding->sample_size_checked ?? 0);
             $byIndicator[$indicatorId]['irregularities'] += (int) ($finding->irregularity_count ?? 0);
 
-            $staffIds = $finding->responsibleStaffIds();
-            if ($staffIds === [] && filled($finding->responsible_staff_name)) {
-                $staffIds = $occurrence->resolveIdsFromStaffName(
-                    (string) $finding->responsible_staff_name,
-                    (int) $finding->shakha_id
-                );
-            }
+            $accusedInfo = $accusedByFinding[(int) $finding->id];
+            $staffIds = $accusedInfo['ids'];
 
             $hasSignal = (float) ($finding->amount ?? 0) > 0
                 || (int) ($finding->sample_size_checked ?? 0) > 0
@@ -602,21 +579,11 @@ class AuditSummaryService
                 if ($finding->shakha->code) {
                     $label .= ' ('.$finding->shakha->code.')';
                 }
-                $accused = $this->formatAccusedKormiForDisplay(
-                    (int) $finding->shakha_id,
-                    trim((string) ($finding->responsible_staff_name ?? ''))
-                );
-                $accusedPeople = $this->buildAccusedPeopleForSummary(
-                    $accused,
-                    $staffIds,
-                    $employeesById,
-                    $lifetimeCounts
-                );
                 $byIndicator[$indicatorId]['branches'][$shakhaId] = [
                     'shakha_id' => $shakhaId,
                     'label' => $label !== '' ? $label : 'Branch #'.$shakhaId,
-                    'accused_kormi' => $accused,
-                    'accused_people' => $accusedPeople,
+                    'accused_kormi' => $accusedInfo['text'],
+                    'accused_people' => $accusedInfo['people'],
                 ];
             }
         }
@@ -1044,6 +1011,52 @@ class AuditSummaryService
             array_map('intval', $ids),
             fn (int $id) => $id > 0
         )));
+    }
+
+    /**
+     * Accused staff per finding, exactly as the report recorded them (used by Summary and the indicator page).
+     *
+     * @param  iterable<AuditFinding>  $findings
+     * @return array<int, array{ids:list<int>, text:string, people:list<array{id:?int,label:string,report_count:int,dossier_url:?string}>}>
+     */
+    public function accusedPeopleByFinding(iterable $findings): array
+    {
+        $occurrence = app(StaffFinancialOccurrenceService::class);
+
+        $idsByFinding = [];
+        foreach ($findings as $finding) {
+            $ids = $finding->responsibleStaffIds();
+            if ($ids === [] && filled($finding->responsible_staff_name)) {
+                $ids = $occurrence->resolveIdsFromStaffName(
+                    (string) $finding->responsible_staff_name,
+                    (int) $finding->shakha_id
+                );
+            }
+            $idsByFinding[(int) $finding->id] = $ids;
+        }
+
+        $allStaffIds = array_values(array_unique(array_merge(...array_values($idsByFinding ?: [[]]))));
+        $lifetimeCounts = $occurrence->lifetimeVisitCounts($allStaffIds);
+        $employeesById = ShakhaEmployee::query()
+            ->whereIn('id', $allStaffIds)
+            ->get(['id', 'employee_code', 'name'])
+            ->keyBy('id');
+
+        $out = [];
+        foreach ($findings as $finding) {
+            $ids = $idsByFinding[(int) $finding->id];
+            $text = $this->formatAccusedKormiForDisplay(
+                (int) $finding->shakha_id,
+                trim((string) ($finding->responsible_staff_name ?? ''))
+            );
+            $out[(int) $finding->id] = [
+                'ids' => $ids,
+                'text' => $text,
+                'people' => $this->buildAccusedPeopleForSummary($text, $ids, $employeesById, $lifetimeCounts),
+            ];
+        }
+
+        return $out;
     }
 
     /**

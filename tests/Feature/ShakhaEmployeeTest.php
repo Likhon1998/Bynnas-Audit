@@ -257,6 +257,16 @@ class ShakhaEmployeeTest extends TestCase
             ->get(route('shakha-employees.manage', $shakha))
             ->assertOk()
             ->assertSee('Photo Person');
+
+        $url = $employee->photoUrl();
+        $this->assertStringContainsString('/photos/shakha-employees/', $url);
+
+        $this->actingAs($admin)->get($url)->assertOk();
+        $this->actingAs($admin)->get('/photos/shakha-employees/../../.env')->assertNotFound();
+        $this->actingAs($admin)->get('/photos/report-storage/secret.pdf')->assertNotFound();
+
+        auth()->logout();
+        $this->get($url)->assertRedirect(route('login'));
     }
 
     public function test_manager_can_transfer_employee_to_another_shakha(): void

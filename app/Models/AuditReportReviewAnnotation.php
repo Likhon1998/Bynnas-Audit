@@ -64,7 +64,7 @@ class AuditReportReviewAnnotation extends Model
             return null;
         }
 
-        return asset('storage/'.$this->snapshot_path);
+        return route('photos.show', ['path' => $this->snapshot_path]);
     }
 
     public function cssBackground(): string

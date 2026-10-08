@@ -14,12 +14,12 @@
             src="{{ $photoUrl }}"
             alt="{{ $name }}"
             class="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-slate-200"
+            onerror="this.nextElementSibling.classList.replace('hidden', 'flex'); this.remove();"
         >
-    @else
-        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-medium text-white" style="background-color: {{ $accent }}">
-            {{ $initials }}
-        </div>
     @endif
+    <div class="{{ $photoUrl ? 'hidden' : 'flex' }} h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-medium text-white" style="background-color: {{ $accent }}">
+        {{ $initials }}
+    </div>
     <div class="min-w-0">
         <p class="truncate text-[12px] font-medium leading-tight text-slate-800">{{ $name }}</p>
         <p class="truncate text-xs leading-tight text-slate-500">{{ $title }}</p>

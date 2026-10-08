@@ -10,6 +10,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MapController;
 use App\Http\Controllers\MonthlyVisitController;
 use App\Http\Controllers\OrganogramController;
+use App\Http\Controllers\PhotoController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\RiskAssessmentController;
@@ -35,6 +36,7 @@ Route::get('/csrf-token', function () {
 
 Route::middleware(['auth', 'verified', 'active'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/photos/{path}', [PhotoController::class, 'show'])->where('path', '.*')->name('photos.show');
 
     Route::middleware('permission:map.view')->group(function () {
         Route::get('/map', [MapController::class, 'index'])->name('map.index');
@@ -154,9 +156,6 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
     Route::middleware('permission:findings.enter')->group(function () {
         Route::get('/audit-findings/entry', [AuditFindingController::class, 'entry'])->name('audit-findings.entry');
         Route::post('/audit-findings/entry', [AuditFindingController::class, 'storeEntry'])->name('audit-findings.entry.store');
-    });
-    Route::middleware('permission:findings.summary.edit|findings.enter|findings.view_all')->group(function () {
-        Route::patch('/audit-findings/findings/{finding}/staff', [AuditFindingController::class, 'updateStaff'])->name('audit-findings.staff.update');
     });
 
     Route::middleware('permission:shakhas.manage|shakhas.view_all')->group(function () {
