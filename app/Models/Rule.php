@@ -28,4 +28,12 @@ class Rule extends Model
     {
         return trim((string) $this->statement);
     }
+
+    public static function titleFromStatement(string $statement): string
+    {
+        $words = preg_split('/\s+/u', trim($statement)) ?: [];
+        $title = preg_replace('/^[\s।,;.]+|[\s।,;.]+$/u', '', implode(' ', array_slice($words, 0, 10))) ?? '';
+
+        return $title !== '' ? mb_substr($title, 0, 255) : 'Rule';
+    }
 }

@@ -190,9 +190,6 @@ class RuleBookController extends Controller
 
     private function titleFrom(string $statement): string
     {
-        $words = preg_split('/\s+/u', $statement) ?: [];
-        $title = trim(implode(' ', array_slice($words, 0, 10)), " ।,;.");
-
-        return $title !== '' ? $title : 'Rule';
+        return Rule::titleFromStatement($statement);
     }
 }

@@ -77,6 +77,7 @@
             }
         }"
     >
+        <div class="sticky top-0 z-30 -mx-3 -mt-2 mb-1.5 border-b border-slate-200/70 bg-canvas/95 px-3 pb-0.5 pt-2 backdrop-blur lg:-mx-5 lg:px-5">
         <div class="mb-1.5 flex flex-wrap items-center gap-1.5">
             <div class="mr-1 shrink-0">
                 <h1 class="text-[14px] font-semibold leading-none tracking-tight text-navy-900">All Shakha</h1>
@@ -226,6 +227,7 @@
                 </label>
                 <button type="button" @click="clearFilters()" class="font-medium text-brand-600 hover:underline">Clear</button>
             </div>
+        </div>
         </div>
 
         <div class="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-card">
