@@ -5,10 +5,19 @@
     $showTitle = $showTitle ?? false;
     $titleMarginTop = $titleMarginTop ?? '5mm';
     $widths = Doc::tocColumnWidths();
+    // Real page of each heading, measured from a first PDF render (AuditReportPdfService).
+    $measuredPages = is_array($tocPageMap ?? null) ? $tocPageMap : [];
+    $pageFor = function (string $anchor, $typed) use ($measuredPages) {
+        if ($anchor !== '' && isset($measuredPages[$anchor])) {
+            return \App\Support\BanglaNumerals::fromInt((int) $measuredPages[$anchor]);
+        }
+
+        return ($typed ?? '') !== '' ? (string) $typed : '';
+    };
 @endphp
 
 @if ($showTitle)
-    <h3 @if($titleMarginTop === '0') style="margin-top:0;" @endif>সূচিপত্র</h3>
+    <h3 @if($titleMarginTop === '0') style="margin-top:0;" @endif>@include('audits.partials.pdf-anchor', ['id' => 'toc', 'label' => 'সূচিপত্র', 'level' => 0])সূচিপত্র</h3>
 @endif
 
 <table class="doc-table compact toc-table">
@@ -32,16 +41,26 @@
             @php
                 $isSection = ($row['type'] ?? 'item') === 'section';
                 $rating = $row['rating'] ?? '';
-                $anchor = ! $isSection ? MakeAuditReport::findingAnchorId($row['serial'] ?? '') : '';
+                $anchor = $isSection
+                    ? MakeAuditReport::sectionAnchorId($row['serial'] ?? '')
+                    : MakeAuditReport::findingAnchorId($row['serial'] ?? '');
                 $findingText = ($row['finding'] ?? '') !== '' ? $row['finding'] : '—';
-                $pageNo = ($row['page_no'] ?? '') !== '' ? $row['page_no'] : '';
+                $pageNo = $pageFor($anchor, $row['page_no'] ?? '');
+                $linked = $anchor !== '' && isset($measuredPages[$anchor]);
             @endphp
             @if ($isSection)
                 <tr>
                     <td class="center bold section">
                         @include('audits.partials.bn-num', ['value' => $row['serial'] !== '' ? $row['serial'] : '—', 'variant' => 'serial-section'])
                     </td>
-                    <td colspan="5" class="section left-align">{{ $row['finding'] !== '' ? $row['finding'] : '—' }}</td>
+                    @if ($linked)
+                        <td colspan="4" class="section left-align"><a href="#{{ $anchor }}" style="color:#111; text-decoration:none;">{{ $findingText }}</a></td>
+                        <td class="section center">
+                            <a href="#{{ $anchor }}" class="bn-page-link">@include('audits.partials.bn-num', ['value' => $pageNo, 'variant' => 'page'])</a>
+                        </td>
+                    @else
+                        <td colspan="5" class="section left-align">{{ $findingText }}</td>
+                    @endif
                 </tr>
             @else
                 <tr>

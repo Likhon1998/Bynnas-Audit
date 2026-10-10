@@ -76,8 +76,7 @@
                     <tbody class="divide-y divide-slate-100">
                         @forelse ($findings as $index => $finding)
                             @php
-                                $visitKey = $finding->audit_year.'-'.$finding->audit_month.'-'.$finding->shakha_id;
-                                $reportUrl = $reportLinks[$visitKey] ?? null;
+                                $reportUrl = $reportLinks[$finding->id] ?? null;
                                 $monthLabel = date('M Y', mktime(0, 0, 0, (int) $finding->audit_month, 1, (int) $finding->audit_year));
                             @endphp
                             <tr class="hover:bg-sky-50/40">
@@ -101,7 +100,7 @@
                                 </td>
                                 <td class="px-3 py-2 text-right whitespace-nowrap">
                                     @if ($reportUrl)
-                                        <a href="{{ $reportUrl }}" class="text-[13px] font-semibold text-[#2b579a] hover:underline">Open report</a>
+                                        <a href="{{ $reportUrl }}" class="text-[13px] font-semibold text-[#2b579a] hover:underline" title="রিপোর্টে এই ফাইন্ডিং ও অভিযুক্ত কর্মীর জায়গায় যাবে">Open report</a>
                                     @else
                                         <span class="text-[13px] text-slate-300">—</span>
                                     @endif

@@ -4,6 +4,7 @@ namespace App\Support\PhpWord;
 
 use App\Livewire\MakeAuditReport;
 use App\Support\AuditComplianceHeading;
+use App\Support\AuditCopyRecipients;
 use App\Support\AuditDocumentLayout as Doc;
 use App\Support\AuditReportClassification;
 use App\Support\AuditScoreSheet;
@@ -13,6 +14,7 @@ use App\Support\CustomTableSchema;
 use Carbon\Carbon;
 use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\PhpWord;
+use PhpOffice\PhpWord\Settings;
 use PhpOffice\PhpWord\Shared\Converter;
 use PhpOffice\PhpWord\SimpleType\Jc;
 
@@ -168,6 +170,9 @@ class AuditReportDocxBuilder
 
     protected function bootDocument(): void
     {
+        // Report text is plain user input; without escaping a single "&" or "<" makes Word reject the file.
+        Settings::setOutputEscapingEnabled(true);
+
         $this->word = new PhpWord;
         $this->word->setDefaultFontName(self::FONT);
         $this->word->setDefaultFontSize(self::SIZE_BODY);
@@ -302,7 +307,7 @@ class AuditReportDocxBuilder
 
         $this->addSpacer($section, 200);
         $section->addText('অনুলিপি:', $this->fontBold);
-        $copyRecipients = \App\Support\AuditCopyRecipients::normalize($data['copy_recipients'] ?? null);
+        $copyRecipients = AuditCopyRecipients::normalize($data['copy_recipients'] ?? null);
         foreach ($copyRecipients as $index => $item) {
             $section->addText(BanglaNumerals::fromInt($index + 1).'. '.$item, $this->fontBody, ['indentation' => ['left' => 360]]);
         }
@@ -369,6 +374,7 @@ class AuditReportDocxBuilder
             foreach ($lines as $line) {
                 if ($line === '') {
                     $this->addSpacerCell($cell, 160);
+
                     continue;
                 }
                 $cell->addText($line, $this->fontSmall, ['spaceAfter' => 80]);
@@ -485,21 +491,21 @@ class AuditReportDocxBuilder
                 }
                 $section->addText((string) ($block['title'] ?? $block['serial'] ?? ''), $this->fontBold);
             } elseif ($type === 'finding') {
-            $table = $section->addTable($this->gridTable);
-            $table->addRow();
-            $table->addCell($this->pct($widths[0]), ['valign' => 'center'])
+                $table = $section->addTable($this->gridTable);
+                $table->addRow();
+                $table->addCell($this->pct($widths[0]), ['valign' => 'center'])
                     ->addText($block['serial'] ?? '', ['name' => self::FONT, 'size' => 10, 'bold' => true], ['alignment' => Jc::CENTER]);
-            $table->addCell($this->pct($widths[1]), ['valign' => 'center'])
+                $table->addCell($this->pct($widths[1]), ['valign' => 'center'])
                     ->addText($block['title'] ?? 'শিরোনাম', ['name' => self::FONT, 'size' => 10, 'bold' => true], ['alignment' => Jc::CENTER]);
                 $body = (string) ($block['body'] ?? '');
                 if (($block['amount'] ?? '') !== '') {
                     $body .= ($body !== '' ? "\n" : '').'টাকার পরিমাণ: '.$block['amount'];
                 }
-            $table->addCell($this->pct($widths[2]), ['valign' => 'top'])
+                $table->addCell($this->pct($widths[2]), ['valign' => 'top'])
                     ->addText($body, $this->fontSmall, ['alignment' => Jc::BOTH]);
-            $ratingCell = $table->addCell($this->pct($widths[3]), ['valign' => 'center']);
+                $ratingCell = $table->addCell($this->pct($widths[3]), ['valign' => 'center']);
                 $this->addRatingBox($ratingCell, $block['rating'] ?? '');
-            $this->addSpacer($section, 80);
+                $this->addSpacer($section, 80);
             } elseif ($type === 'criteria') {
                 $section->addText((string) ($block['label'] ?? 'প্রচলিত নিয়ম (Criteria):'), $this->fontBold, ['spaceBefore' => 120]);
                 $section->addText((string) ($block['body'] ?? ($data['financial_criteria'] ?? '')), $this->fontBody, ['alignment' => Jc::BOTH]);
@@ -1178,6 +1184,7 @@ class AuditReportDocxBuilder
                     ->addText($row['serial'] ?: '—', ['name' => self::FONT, 'size' => 10, 'bold' => true], ['alignment' => Jc::CENTER]);
                 $table->addCell($this->pct($widths[1] + $widths[2] + $widths[3] + $widths[4] + $widths[5]), ['gridSpan' => 5, 'bgColor' => 'EFEFEF', 'valign' => 'center'])
                     ->addText($row['finding'] ?: '—', ['name' => self::FONT, 'size' => 10, 'bold' => true]);
+
                 continue;
             }
 

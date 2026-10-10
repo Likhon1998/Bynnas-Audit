@@ -51,6 +51,13 @@ class MakeAuditReport extends Component
 
     public string $startedNotice = '';
 
+    /**
+     * Deep link from the employee dossier: which finding / পর্যবেক্ষণ block names this employee.
+     *
+     * @var array{indicator_id:int, finding_block:int, observation_block:?int, employee:string, serial:string}|null
+     */
+    public ?array $dossierFocus = null;
+
     /** When true, report is in_review or reviewed — UI is read-only. */
     public bool $reviewReadOnly = false;
 
@@ -483,8 +490,84 @@ class MakeAuditReport extends Component
             $this->resumeReport($openId);
             if (request()->boolean('preview') || request()->string('mode')->toString() === 'review') {
                 $this->showPreview = true;
+            } elseif (request()->integer('focus_indicator') > 0) {
+                $this->focusDossierFinding(request()->integer('focus_indicator'), request()->integer('focus_employee'));
             }
         }
+    }
+
+    /**
+     * Open page 4 on the finding (by matrix indicator) where the given employee is named অভিযুক্ত.
+     */
+    public function focusDossierFinding(int $indicatorId, int $employeeId = 0): void
+    {
+        $employee = $employeeId > 0 ? ShakhaEmployee::query()->find($employeeId, ['id', 'name', 'employee_code']) : null;
+        $employeeCode = trim((string) ($employee?->employee_code ?? ''));
+
+        $namesEmployee = function (mixed $people) use ($employee, $employeeCode): bool {
+            if (! $employee) {
+                return false;
+            }
+            foreach ((array) $people as $person) {
+                if (! is_array($person)) {
+                    continue;
+                }
+                if ((int) ($person['id'] ?? 0) === (int) $employee->id) {
+                    return true;
+                }
+                if ($employeeCode !== '' && trim((string) ($person['code'] ?? '')) === $employeeCode) {
+                    return true;
+                }
+            }
+
+            return false;
+        };
+
+        $firstFinding = null;
+        $match = null;
+        $currentFinding = null;
+        foreach ($this->reportBlocks as $index => $block) {
+            $type = (string) (is_array($block) ? ($block['type'] ?? '') : '');
+            if ($type === 'section') {
+                $currentFinding = null;
+
+                continue;
+            }
+            if ($type === 'finding') {
+                $currentFinding = (int) ($block['indicator_id'] ?? 0) === $indicatorId ? $index : null;
+                $firstFinding ??= $currentFinding;
+
+                continue;
+            }
+            if ($type === 'observation' && $currentFinding !== null && $namesEmployee($block['matrix_people'] ?? null)) {
+                $match = ['finding' => $currentFinding, 'observation' => $index];
+                break;
+            }
+        }
+
+        $findingIndex = $match['finding'] ?? $firstFinding;
+        if ($findingIndex === null) {
+            return;
+        }
+
+        $serial = (string) ($this->reportBlocks[$findingIndex]['serial'] ?? '');
+        $this->dossierFocus = [
+            'indicator_id' => $indicatorId,
+            'finding_block' => $findingIndex,
+            'observation_block' => $match['observation'] ?? null,
+            'employee' => $employee
+                ? trim($employee->name.($employeeCode !== '' ? ' ('.$employeeCode.')' : ''))
+                : '',
+            'serial' => $serial,
+        ];
+        $this->activeTab = 'page4';
+        $findingAnchor = self::findingAnchorId($serial);
+        $this->outlineActiveAnchor = $findingAnchor !== '' ? $findingAnchor : 'audit-page4';
+    }
+
+    public function clearDossierFocus(): void
+    {
+        $this->dossierFocus = null;
     }
 
     public function updatedLogoUpload(): void
@@ -946,6 +1029,7 @@ class MakeAuditReport extends Component
     {
         $this->startedReportId = null;
         $this->startedNotice = '';
+        $this->dossierFocus = null;
         $user = auth()->user();
         $report = AuditReport::query()->findOrFail($reportId);
         $reviews = app(\App\Services\AuditReportReviewService::class);

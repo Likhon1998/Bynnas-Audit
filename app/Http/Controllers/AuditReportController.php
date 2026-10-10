@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AuditReport;
 use App\Models\AuditReportChecklistFile;
 use App\Models\AuditReportSend;
+use App\Services\AuditReportArchiveService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -74,9 +75,7 @@ class AuditReportController extends Controller
         abort_unless($userId > 0 && (int) $report->user_id === $userId, 403);
         abort_unless($report->isMakerDone(), 404);
 
-        if (! $report->storage_pdf_path || ! Storage::disk('local')->exists($report->storage_pdf_path)) {
-            $report = app(\App\Services\AuditReportArchiveService::class)->archive($report);
-        }
+        $report = app(AuditReportArchiveService::class)->fresh($report);
 
         abort_unless($report->storage_pdf_path && Storage::disk('local')->exists($report->storage_pdf_path), 404);
 

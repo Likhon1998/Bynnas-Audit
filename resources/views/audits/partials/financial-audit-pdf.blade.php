@@ -50,13 +50,10 @@
     @php $type = $block['type'] ?? ''; @endphp
 
     @if ($type === 'section')
-        <p class="section-heading bold finding-heading" style="{{ $bIndex > 0 ? 'margin-top:4mm;' : '' }}">{!! \App\Support\BanglaNumerals::highlight($block['title'] ?? ($block['serial'] ?? ''), 'serial') !!}</p>
+        <p class="section-heading bold finding-heading" style="{{ $bIndex > 0 ? 'margin-top:4mm;' : '' }}">@include('audits.partials.pdf-anchor', ['id' => MakeAuditReport::sectionAnchorId($block['serial'] ?? ''), 'label' => $block['title'] ?? ($block['serial'] ?? ''), 'level' => 0]){!! \App\Support\BanglaNumerals::highlight($block['title'] ?? ($block['serial'] ?? ''), 'serial') !!}</p>
 
     @elseif ($type === 'finding')
         @php $anchor = MakeAuditReport::findingAnchorId($block['serial'] ?? ''); @endphp
-    @if ($anchor !== '')
-        <a id="{{ $anchor }}" name="{{ $anchor }}"></a>
-    @endif
     <table class="doc-table finding-table" style="margin-bottom:2mm;">
         <colgroup>
             @foreach ($widths as $w)
@@ -66,6 +63,7 @@
         <tbody>
             <tr>
                 <td class="bold center">
+                        @include('audits.partials.pdf-anchor', ['id' => $anchor, 'label' => trim(($block['serial'] ?? '').' '.($block['body'] ?? '')), 'level' => 1])
                         @include('audits.partials.bn-num', ['value' => $block['serial'] ?? '', 'variant' => 'serial'])
                     </td>
                     <td class="bold center">{{ $block['title'] ?? 'শিরোনাম' }}</td>
@@ -152,13 +150,14 @@
             }
             $extraCount = max(0, count($headers) - count($coreFields));
             $complianceRows = array_values((array) ($block['rows'] ?? []));
+            $complianceWidths = $extraCount === 0 ? [9, 22, 13, 25, 19, 12] : [];
         @endphp
-        @include('audits.partials.compliance-heading', ['block' => $block, 'forDoc' => true])
-        <table class="doc-table" style="margin-bottom:5mm;font-size:7px;">
+        @include('audits.partials.compliance-heading', ['block' => $block, 'forDoc' => true, 'anchorId' => MakeAuditReport::sectionAnchorId($block['serial'] ?? ''), 'anchorForDoc' => $forDoc ?? false])
+        <table class="doc-table" style="margin-bottom:5mm;width:100%;font-size:9pt;">
             <thead>
                 <tr>
-                    @foreach ($headers as $header)
-                        <th>{{ $header }}</th>
+                    @foreach ($headers as $hi => $header)
+                        <th style="font-size:9pt;{{ isset($complianceWidths[$hi]) ? 'width:'.$complianceWidths[$hi].'%;' : '' }}">{{ $header }}</th>
                     @endforeach
                 </tr>
             </thead>
@@ -166,10 +165,10 @@
                 @foreach ($complianceRows as $row)
                     <tr>
                         @foreach ($coreFields as $field)
-                            <td class="{{ in_array($field, ['prev_para_no', 'first_discovery_period', 'current_para_no'], true) ? 'center' : '' }}">{{ $row[$field] ?? '' }}</td>
+                            <td class="{{ in_array($field, ['prev_para_no', 'first_discovery_period', 'current_para_no'], true) ? 'center' : '' }}" style="font-size:9pt;line-height:1.45;vertical-align:top;">{{ $row[$field] ?? '' }}</td>
                         @endforeach
                         @for ($ei = 0; $ei < $extraCount; $ei++)
-                            <td>{{ $row['extra'][$ei] ?? '' }}</td>
+                            <td style="font-size:9pt;line-height:1.45;vertical-align:top;">{{ $row['extra'][$ei] ?? '' }}</td>
                         @endfor
                     </tr>
                 @endforeach
@@ -184,7 +183,7 @@
             $itRows = array_values((array) ($block['rows'] ?? []));
         @endphp
         <div class="it-checklist-block" style="text-align:center;margin:4mm 0 3mm;">
-            <p class="bold finding-heading" style="margin:0 0 1.5mm;font-size:12pt;line-height:1.35;">{!! \App\Support\BanglaNumerals::highlight($block['title'] ?? '', 'serial') !!}</p>
+            <p class="bold finding-heading" style="margin:0 0 1.5mm;font-size:12pt;line-height:1.35;">@include('audits.partials.pdf-anchor', ['id' => MakeAuditReport::sectionAnchorId($block['serial'] ?? ''), 'label' => $block['title'] ?? '', 'level' => 0]){!! \App\Support\BanglaNumerals::highlight($block['title'] ?? '', 'serial') !!}</p>
             @foreach (['org_line1', 'org_line2', 'org_line3'] as $orgKey)
                 @if (trim((string) ($block[$orgKey] ?? '')) !== '')
                     <p style="margin:0;font-size:10.5pt;line-height:1.45;">{{ $block[$orgKey] }}</p>
@@ -260,7 +259,7 @@
             $extRows = array_values((array) ($block['rows'] ?? []));
         @endphp
         <div class="external-audit-block" style="text-align:center;margin:4mm 0 3mm;">
-            <p class="bold finding-heading" style="margin:0 0 2mm;font-size:12pt;text-decoration:underline;line-height:1.35;">{!! \App\Support\BanglaNumerals::highlight($block['title'] ?? '', 'serial') !!}</p>
+            <p class="bold finding-heading" style="margin:0 0 2mm;font-size:12pt;text-decoration:underline;line-height:1.35;">@include('audits.partials.pdf-anchor', ['id' => MakeAuditReport::sectionAnchorId($block['serial'] ?? ''), 'label' => $block['title'] ?? '', 'level' => 0]){!! \App\Support\BanglaNumerals::highlight($block['title'] ?? '', 'serial') !!}</p>
             <p style="margin:0 0 3mm;font-size:10.5pt;font-weight:700;line-height:1.45;">
                 {{ $block['branch_label'] ?? 'Name of Branch----' }} {{ $block['branch'] ?? '' }}
             </p>
@@ -316,7 +315,7 @@
         <table style="width:100%;border-collapse:collapse;margin:1mm 0 2.5mm;font-size:9.5pt;">
             <tr>
                 <td style="width:58%;vertical-align:top;padding:0 3mm 0 0;">
-                    <p style="margin:0 0 0.8mm;"><span class="bold">Branch Name &amp; Code:</span> {{ $block['branch_name_code'] ?? '' }}</p>
+                    <p style="margin:0 0 0.8mm;">@include('audits.partials.pdf-anchor', ['id' => MakeAuditReport::sectionAnchorId($block['serial'] ?? ''), 'label' => trim(($block['serial'] ?? '').' Audit Score / Sample-based Observations'), 'level' => 0])<span class="bold">Branch Name &amp; Code:</span> {{ $block['branch_name_code'] ?? '' }}</p>
                     <p style="margin:0 0 0.8mm;"><span class="bold">Branch Category:</span> {{ $block['branch_category'] ?? '' }}</p>
                     <p style="margin:0;"><span class="bold">Audit period:</span> {{ $block['audit_period'] ?? '' }}</p>
                 </td>

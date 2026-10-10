@@ -123,6 +123,7 @@ class StaffFinancialOccurrenceService
                 $employee = (clone $query)->where('employee_code', $code)->first();
                 if ($employee) {
                     $ids[] = (int) $employee->id;
+
                     continue;
                 }
             }
@@ -149,8 +150,10 @@ class StaffFinancialOccurrenceService
      *   transfer_count:int,
      *   findings:Collection<int, AuditFinding>,
      *   transfers:Collection<int, ShakhaEmployeeTransfer>,
-     *   report_links:array<string, ?string>
+     *   report_links:array<int, ?string>
      * }
+     *
+     * report_links is keyed by finding id and deep-links to that finding + this employee inside the report.
      */
     public function dossierPayload(ShakhaEmployee $employee): array
     {
@@ -162,20 +165,24 @@ class StaffFinancialOccurrenceService
             ->orderByDesc('id')
             ->get();
 
+        $reportIds = [];
         $reportLinks = [];
         foreach ($findings as $finding) {
             $key = $finding->audit_year.'-'.$finding->audit_month.'-'.$finding->shakha_id;
-            if (array_key_exists($key, $reportLinks)) {
-                continue;
+            if (! array_key_exists($key, $reportIds)) {
+                $reportIds[$key] = AuditReport::query()
+                    ->where('shakha_id', $finding->shakha_id)
+                    ->where('report_month', $finding->audit_month)
+                    ->where('report_year', $finding->audit_year)
+                    ->orderByDesc('id')
+                    ->value('id');
             }
-            $report = AuditReport::query()
-                ->where('shakha_id', $finding->shakha_id)
-                ->where('report_month', $finding->audit_month)
-                ->where('report_year', $finding->audit_year)
-                ->orderByDesc('id')
-                ->first(['id']);
-            $reportLinks[$key] = $report
-                ? route('audits.index', ['report' => $report->id])
+            $reportLinks[(int) $finding->id] = $reportIds[$key]
+                ? route('audits.index', [
+                    'report' => $reportIds[$key],
+                    'focus_indicator' => (int) $finding->audit_indicator_id,
+                    'focus_employee' => (int) $employee->id,
+                ])
                 : null;
         }
 

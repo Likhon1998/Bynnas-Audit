@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Livewire\MakeAuditReport;
 use App\Models\Area;
 use App\Models\AuditFinding;
 use App\Models\AuditIndicator;
+use App\Models\AuditReport;
 use App\Models\Shakha;
 use App\Models\ShakhaEmployee;
 use App\Models\User;
@@ -12,6 +14,7 @@ use App\Services\AuditSummaryService;
 use App\Services\StaffFinancialOccurrenceService;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class StaffFinancialIdentityTest extends TestCase
@@ -183,7 +186,7 @@ class StaffFinancialIdentityTest extends TestCase
             'is_active' => true,
         ]);
 
-        $report = \App\Models\AuditReport::query()->create([
+        $report = AuditReport::query()->create([
             'shakha_id' => $shakha->id,
             'report_month' => 9,
             'report_year' => 2026,
@@ -225,5 +228,73 @@ class StaffFinancialIdentityTest extends TestCase
         $this->assertNotNull($finding);
         $this->assertSame([(int) $employee->id], $finding->responsibleStaffIds());
         $this->assertSame('Sync Person (SYNC-1)', $finding->responsible_staff_name);
+    }
+
+    public function test_dossier_open_report_jumps_to_the_finding_naming_the_employee(): void
+    {
+        $admin = User::query()->where('email', 'admin@bynnasaudit.com')->firstOrFail();
+        $area = Area::query()->create(['name' => 'Metro', 'division' => 'Dhaka', 'status' => 'active']);
+        $shakha = Shakha::query()->create(['area_id' => $area->id, 'name' => 'Branch', 'code' => 'BR', 'status' => 'active']);
+        $other = ShakhaEmployee::query()->create([
+            'shakha_id' => $shakha->id, 'employee_code' => 'F-1', 'name' => 'Other Person', 'designation' => 'FO', 'status' => 'active',
+        ]);
+        $employee = ShakhaEmployee::query()->create([
+            'shakha_id' => $shakha->id, 'employee_code' => 'F-2', 'name' => 'Focus Person', 'designation' => 'FO', 'status' => 'active',
+        ]);
+        $first = AuditIndicator::query()->create([
+            'category' => 'Financial', 'indicator_code' => 'F-IND-1', 'title' => 'First', 'risk_rating' => 'Major', 'is_active' => true,
+        ]);
+        $second = AuditIndicator::query()->create([
+            'category' => 'Financial', 'indicator_code' => 'F-IND-2', 'title' => 'Second', 'risk_rating' => 'Major', 'is_active' => true,
+        ]);
+
+        $report = AuditReport::query()->create([
+            'user_id' => $admin->id,
+            'shakha_id' => $shakha->id,
+            'report_month' => 9,
+            'report_year' => 2026,
+            'status' => 'draft',
+            'pages_data' => [
+                'page4' => [
+                    'reportBlocks' => [
+                        ['type' => 'section', 'serial' => '১.০', 'title' => '১.০ আর্থিক'],
+                        ['type' => 'finding', 'serial' => '১.১', 'indicator_id' => $first->id, 'body' => 'First finding', 'amount' => '100'],
+                        ['type' => 'observation', 'label' => 'পর্যবেক্ষণ', 'body' => 'First obs', 'matrix_people' => [
+                            ['id' => $other->id, 'code' => 'F-1', 'name' => 'Other Person'],
+                        ]],
+                        ['type' => 'finding', 'serial' => '১.২', 'indicator_id' => $second->id, 'body' => 'Second finding', 'amount' => '200'],
+                        ['type' => 'criteria', 'label' => 'প্রচলিত নিয়ম', 'body' => 'Rule'],
+                        ['type' => 'observation', 'label' => 'পর্যবেক্ষণ', 'body' => 'Second obs', 'matrix_people' => [
+                            ['id' => $employee->id, 'code' => 'F-2', 'name' => 'Focus Person'],
+                        ]],
+                    ],
+                ],
+            ],
+        ]);
+        app(AuditSummaryService::class)->syncFromReport($report);
+
+        $payload = app(StaffFinancialOccurrenceService::class)->dossierPayload($employee->fresh());
+        $finding = $payload['findings']->sole();
+        $url = $payload['report_links'][$finding->id];
+        $this->assertSame(route('audits.index', [
+            'report' => $report->id,
+            'focus_indicator' => $second->id,
+            'focus_employee' => $employee->id,
+        ]), $url);
+
+        $this->actingAs($admin)
+            ->get($url)
+            ->assertOk()
+            ->assertSee('কর্মী ডসিয়ার থেকে:')
+            ->assertSee('Focus Person (F-2)')
+            ->assertSee('এই ফাইন্ডিং (১.২)-এ অভিযুক্ত।');
+
+        Livewire::actingAs($admin)
+            ->test(MakeAuditReport::class)
+            ->call('resumeReport', $report->id)
+            ->call('focusDossierFinding', $second->id, $employee->id)
+            ->assertSet('activeTab', 'page4')
+            ->assertSet('dossierFocus.finding_block', 3)
+            ->assertSet('dossierFocus.observation_block', 5);
     }
 }

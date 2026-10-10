@@ -30,11 +30,46 @@
         $blocks[] = ['type' => 'stats'];
         $blocks[] = ['type' => 'stats'];
     }
+
+    $focus = $editable && is_array($dossierFocus ?? null) ? $dossierFocus : null;
+    if ($focus && (int) ($blocks[$focus['finding_block']]['indicator_id'] ?? 0) !== (int) ($focus['indicator_id'] ?? -1)) {
+        $focus = null;
+    }
+    $focusFinding = $focus ? (int) $focus['finding_block'] : null;
+    $focusObservation = $focus && $focus['observation_block'] !== null
+        && (($blocks[$focus['observation_block']]['type'] ?? '') === 'observation')
+        ? (int) $focus['observation_block']
+        : null;
 @endphp
 
 @foreach ($blocks as $bIndex => $block)
     @php $type = $block['type'] ?? ''; @endphp
     <a id="audit-block-{{ $bIndex }}" class="relative top-0 block scroll-mt-6"></a>
+
+    @if ($focusFinding === $bIndex)
+        <div
+            wire:key="dossier-focus-{{ $bIndex }}"
+            x-data
+            x-init="setTimeout(() => $el.scrollIntoView({ block: 'start' }), 150)"
+            class="mb-2 flex scroll-mt-4 flex-wrap items-start justify-between gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 print:hidden"
+        >
+            <div class="min-w-0 text-[13px] leading-snug text-rose-900">
+                <p class="font-semibold">
+                    কর্মী ডসিয়ার থেকে:
+                    @if ($focus['employee'] !== '')
+                        <span class="text-rose-950">{{ $focus['employee'] }}</span>
+                    @endif
+                    এই ফাইন্ডিং{{ $focus['serial'] !== '' ? ' ('.$focus['serial'].')' : '' }}-এ অভিযুক্ত।
+                </p>
+                <p class="text-xs text-rose-800/90">
+                    {{ $focusObservation !== null
+                        ? 'নিচে লাল দাগ দেওয়া পর্যবেক্ষণে অভিযুক্ত কর্মী হিসেবে নাম আছে।'
+                        : 'এই ফাইন্ডিং-এর Findings Matrix ঘরে অভিযুক্ত হিসেবে নাম আছে।' }}
+                </p>
+            </div>
+            <button type="button" wire:click="clearDossierFocus" class="shrink-0 text-xs font-semibold text-rose-700 hover:underline">চিহ্ন সরান</button>
+        </div>
+    @endif
 
     @if ($editable)
         @include('livewire.partials.audit-block-insert-menu', ['insertIndex' => $bIndex])
@@ -76,7 +111,7 @@
         @if ($anchor !== '')
             <a id="{{ $anchor }}" name="{{ $anchor }}"></a>
         @endif
-        <table class="{{ $tableClass }} mb-[2mm]" @if ($anchor !== '') data-outline-id="{{ $anchor }}" @endif>
+        <table class="{{ $tableClass }} mb-[2mm] {{ $focusFinding === $bIndex ? 'ring-2 ring-rose-400 ring-offset-2' : '' }}" @if ($anchor !== '') data-outline-id="{{ $anchor }}" @endif>
             <tbody>
                 <tr>
                     <td style="width:9%;" class="align-top text-center font-bold finding-serial-cell">
@@ -180,7 +215,7 @@
                 $obsSourceDetail = 'সূত্র: চেকলিস্ট'.($code !== '' ? ' — '.$code : '').($obsSourceLabel !== '' ? ' · '.$obsSourceLabel : '');
             }
         @endphp
-        <div class="mt-[3mm]">
+        <div class="mt-[3mm] {{ $focusObservation === $bIndex ? 'rounded-lg bg-rose-50/60 p-2 ring-2 ring-rose-400' : '' }}">
             @if ($editable)
                 <div class="mb-1 flex flex-wrap items-center gap-2">
                     <input
