@@ -38,6 +38,13 @@
             ->values();
     @endphp
 
+    <style>
+        .law-op { width: 5.75rem; padding: 0 1.6rem 0 0.5rem; background-position: right 0.35rem center; background-size: 1.1em 1.1em; }
+        .no-spin { -moz-appearance: textfield; appearance: textfield; padding: 0 0.25rem; }
+        .no-spin::-webkit-outer-spin-button,
+        .no-spin::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+
     <form method="POST" action="{{ route('shakhas.risk.laws.update') }}" class="flex h-full min-h-0 flex-col bg-slate-100/80">
         @csrf
         @method('PUT')
@@ -105,7 +112,7 @@
                                             <input type="text" name="laws[{{ $law->id }}][true_label]" value="{{ old($prefix.'.true_label', $bands['true_label'] ?? '') }}" class="mt-1 h-7 w-full rounded-md border-slate-200 text-[12px] text-navy-900">
                                             <label class="mt-1 flex items-center justify-between text-[11px] text-slate-600">
                                                 Points
-                                                <input type="number" min="0" max="100" name="laws[{{ $law->id }}][true_points]" value="{{ old($prefix.'.true_points', $bands['true_points'] ?? 0) }}" class="h-7 w-14 rounded-md border-slate-200 text-center text-[13px] font-semibold text-emerald-800">
+                                                <input type="number" min="0" max="100" name="laws[{{ $law->id }}][true_points]" value="{{ old($prefix.'.true_points', $bands['true_points'] ?? 0) }}" class="no-spin h-7 w-14 rounded-md border-slate-200 px-1 py-0 text-center text-[13px] font-semibold text-emerald-800">
                                             </label>
                                         </div>
                                         <div class="rounded-lg border border-rose-100 bg-white px-2 py-2">
@@ -113,7 +120,7 @@
                                             <input type="text" name="laws[{{ $law->id }}][false_label]" value="{{ old($prefix.'.false_label', $bands['false_label'] ?? '') }}" class="mt-1 h-7 w-full rounded-md border-slate-200 text-[12px] text-navy-900">
                                             <label class="mt-1 flex items-center justify-between text-[11px] text-slate-600">
                                                 Points
-                                                <input type="number" min="0" max="100" name="laws[{{ $law->id }}][false_points]" value="{{ old($prefix.'.false_points', $bands['false_points'] ?? 0) }}" class="h-7 w-14 rounded-md border-slate-200 text-center text-[13px] font-semibold text-rose-800">
+                                                <input type="number" min="0" max="100" name="laws[{{ $law->id }}][false_points]" value="{{ old($prefix.'.false_points', $bands['false_points'] ?? 0) }}" class="no-spin h-7 w-14 rounded-md border-slate-200 px-1 py-0 text-center text-[13px] font-semibold text-rose-800">
                                             </label>
                                         </div>
                                     </div>
@@ -122,7 +129,7 @@
                                         @foreach ($bands as $i => $band)
                                             @php $paint = $law->unit === 'category' ? $riskPaint($band['label'] ?? '') : 'text-navy-900'; @endphp
                                             <div class="flex items-center gap-1.5 rounded-lg border border-slate-100 bg-white px-1.5 py-1">
-                                                <select name="laws[{{ $law->id }}][bands][{{ $i }}][op]" class="h-7 w-[6.5rem] rounded-md border-slate-200 bg-white text-[11px]">
+                                                <select name="laws[{{ $law->id }}][bands][{{ $i }}][op]" class="law-op h-7 shrink-0 rounded-md border-slate-200 bg-white text-[12px] font-medium text-slate-700">
                                                     @if ($law->direction === 'higher_better')
                                                         <option value="gte" @selected(($band['op'] ?? '') === 'gte')>at least</option>
                                                     @else
@@ -130,12 +137,12 @@
                                                     @endif
                                                     <option value="default" @selected(($band['op'] ?? '') === 'default')>else</option>
                                                 </select>
-                                                <input type="number" step="any" name="laws[{{ $law->id }}][bands][{{ $i }}][value]" value="{{ $band['value'] ?? '' }}" class="h-7 w-16 rounded-md border-slate-200 bg-white text-center text-[12px] font-semibold" placeholder="—">
+                                                <input type="number" step="any" name="laws[{{ $law->id }}][bands][{{ $i }}][value]" value="{{ $band['value'] ?? '' }}" class="no-spin h-7 w-16 shrink-0 rounded-md border-slate-200 bg-white px-1 py-0 text-center text-[12px] font-semibold" placeholder="—">
                                                 @if ($law->unit === 'category')
-                                                    <input type="text" name="laws[{{ $law->id }}][bands][{{ $i }}][label]" value="{{ $band['label'] ?? '' }}" class="h-7 min-w-0 flex-1 rounded-md border-slate-200 bg-white px-2 text-[12px] font-semibold {{ $paint }}">
+                                                    <input type="text" name="laws[{{ $law->id }}][bands][{{ $i }}][label]" value="{{ $band['label'] ?? '' }}" class="h-7 min-w-0 flex-1 rounded-md border-slate-200 bg-white px-2 py-0 text-[12px] font-semibold {{ $paint }}">
                                                 @else
                                                     <span class="ml-auto text-[10px] font-semibold uppercase text-slate-400">pts</span>
-                                                    <input type="number" min="0" max="100" name="laws[{{ $law->id }}][bands][{{ $i }}][points]" value="{{ $band['points'] ?? 0 }}" class="h-7 w-12 rounded-md border-slate-200 bg-white text-center text-[13px] font-semibold {{ $tone['mark'] }}">
+                                                    <input type="number" min="0" max="100" name="laws[{{ $law->id }}][bands][{{ $i }}][points]" value="{{ $band['points'] ?? 0 }}" class="no-spin h-7 w-12 shrink-0 rounded-md border-slate-200 bg-white px-1 py-0 text-center text-[13px] font-semibold {{ $tone['mark'] }}">
                                                 @endif
                                             </div>
                                         @endforeach

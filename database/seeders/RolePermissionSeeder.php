@@ -42,7 +42,6 @@ class RolePermissionSeeder extends Seeder
             'findings.summary.edit',
             'dashboard.ops',
             'dashboard.officer',
-            'map.view',
             'calendar.manage',
             'calendar.view',
         ];
@@ -84,7 +83,6 @@ class RolePermissionSeeder extends Seeder
             'findings.summary.export_ppt',
             'findings.summary.edit',
             'dashboard.ops',
-            'map.view',
             'calendar.manage',
             'calendar.view',
         ];
@@ -109,7 +107,6 @@ class RolePermissionSeeder extends Seeder
             'findings.summary.export_ppt',
             'findings.summary.edit',
             'dashboard.officer',
-            'map.view',
         ]);
 
         $officerPerms = [
@@ -118,7 +115,6 @@ class RolePermissionSeeder extends Seeder
             'monthly_visits.execute',
             'calendar.view',
             'dashboard.officer',
-            'map.view',
         ];
 
         $officer->syncPermissions($officerPerms);

@@ -53,18 +53,6 @@
                 <span class="sidebar-link-label truncate">Dashboard</span>
             </x-sidebar-link>
 
-            @if (config('features.map'))
-                @can('map.view')
-                    <x-sidebar-link :href="route('map.index')" :active="request()->routeIs('map.*')" title="Map">
-                        <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('map.*') ? 'text-emerald-100' : 'text-emerald-400' }}" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M9.4 4.2l5.2-1.73a1 1 0 01.9.12l4.9 3.43a1 1 0 01.4.8v11.3a1 1 0 01-1.3.95l-4.9-1.63a1 1 0 00-.62 0l-5.2 1.73a1 1 0 01-.9-.12L3.98 15.6a1 1 0 01-.4-.8V3.5a1 1 0 011.3-.95l4.52 1.5a1 1 0 00.6.15z"/>
-                            <path class="{{ request()->routeIs('map.*') ? 'text-amber-300' : 'text-amber-400' }}" fill="currentColor" d="M10 7.5v11l4-1.3V6.2l-4 1.3z"/>
-                        </svg>
-                        <span class="sidebar-link-label truncate">Map</span>
-                    </x-sidebar-link>
-                @endcan
-            @endif
-
             @canany(['organogram.view', 'organogram.manage'])
                 <x-sidebar-link :href="route('organogram')" :active="request()->routeIs('organogram')" title="Organogram">
                     <svg class="h-3.5 w-3.5 shrink-0 {{ request()->routeIs('organogram') ? 'text-violet-100' : 'text-violet-400' }}" viewBox="0 0 24 24" fill="currentColor">

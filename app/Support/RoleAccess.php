@@ -459,7 +459,7 @@ class RoleAccess
                 ],
             ],
             'Dashboard' => [
-                'label' => 'Dashboard & map',
+                'label' => 'Dashboard',
                 'permissions' => [
                     'dashboard.ops' => [
                         'label' => 'Ops dashboard',
@@ -468,10 +468,6 @@ class RoleAccess
                     'dashboard.officer' => [
                         'label' => 'Officer dashboard',
                         'help' => 'Personal field-officer home dashboard.',
-                    ],
-                    'map.view' => [
-                        'label' => 'Map',
-                        'help' => 'Geographic map of shakhas / visits (when map feature is on).',
                     ],
                 ],
             ],
@@ -535,7 +531,6 @@ class RoleAccess
             'findings.summary.edit' => ['Findings Summary (edit)'],
             'dashboard.ops' => ['Ops Dashboard'],
             'dashboard.officer' => ['Officer Dashboard'],
-            'map.view' => ['Map'],
         ];
     }
 

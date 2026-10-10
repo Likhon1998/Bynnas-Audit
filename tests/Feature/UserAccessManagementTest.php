@@ -206,7 +206,6 @@ class UserAccessManagementTest extends TestCase
                 'audits.create',
                 'audits.review',
                 'dashboard.officer',
-                'map.view',
             ],
         ])->assertRedirect(route('roles.index'));
 
@@ -265,7 +264,6 @@ class UserAccessManagementTest extends TestCase
             'findings.enter',
             'monthly_visits.execute',
             'dashboard.officer',
-            'map.view',
             'findings.view_all',
             'users.manage',
         ]);

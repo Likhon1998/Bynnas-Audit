@@ -81,12 +81,12 @@ class WorkingCalendarTest extends TestCase
 
     public function test_user_without_permission_cannot_manage_calendar(): void
     {
-        Permission::findOrCreate('map.view');
+        Permission::findOrCreate('dashboard.officer');
         $user = User::factory()->create([
             'email_verified_at' => now(),
             'is_active' => true,
         ]);
-        $user->givePermissionTo('map.view');
+        $user->givePermissionTo('dashboard.officer');
 
         $this->actingAs($user)
             ->get(route('calendar.index'))
