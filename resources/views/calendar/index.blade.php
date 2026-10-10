@@ -232,10 +232,52 @@
                     </template>
                     <input type="hidden" name="is_active" :value="form.is_active ? 1 : 0">
 
-                    <div>
-                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Date</label>
-                        <input type="date" name="holiday_date" x-model="form.holiday_date" required class="h-9 w-full rounded-lg border-slate-200 text-[12px]">
+                    <div x-show="!editingId" class="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-[12px] font-semibold">
+                        <button
+                            type="button"
+                            class="rounded-md px-3 py-1"
+                            :class="!form.is_range ? 'bg-white text-teal-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+                            @click="form.is_range = false"
+                        >Single day</button>
+                        <button
+                            type="button"
+                            class="rounded-md px-3 py-1"
+                            :class="form.is_range ? 'bg-white text-teal-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+                            @click="form.is_range = true; if (!form.holiday_date_to || form.holiday_date_to < form.holiday_date) form.holiday_date_to = form.holiday_date"
+                        >Date range</button>
                     </div>
+
+                    <div class="grid gap-2" :class="isRange ? 'grid-cols-2' : 'grid-cols-1'">
+                        <div>
+                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500" x-text="isRange ? 'From' : 'Date'"></label>
+                            <input
+                                type="date"
+                                name="holiday_date"
+                                x-model="form.holiday_date"
+                                @change="if (isRange && form.holiday_date_to < form.holiday_date) form.holiday_date_to = form.holiday_date"
+                                required
+                                class="h-9 w-full rounded-lg border-slate-200 text-[12px]"
+                            >
+                        </div>
+                        <div x-show="isRange" x-cloak>
+                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">To</label>
+                            <input
+                                type="date"
+                                name="holiday_date_to"
+                                x-model="form.holiday_date_to"
+                                :min="form.holiday_date"
+                                :disabled="!isRange"
+                                :required="isRange"
+                                class="h-9 w-full rounded-lg border-slate-200 text-[12px]"
+                            >
+                        </div>
+                    </div>
+                    <p x-show="isRange" x-cloak class="-mt-1 text-[12px]" :class="rangeDays > maxRangeDays ? 'text-rose-600' : 'text-slate-500'">
+                        <span x-show="rangeDays > 0 && rangeDays <= maxRangeDays">
+                            <span class="font-semibold text-teal-800" x-text="rangeDays"></span> days will be marked off, one entry per date (e.g. Durga Puja 4–8).
+                        </span>
+                        <span x-show="rangeDays > maxRangeDays" x-text="'A range can cover at most ' + maxRangeDays + ' days.'"></span>
+                    </p>
                     <div>
                         <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Name</label>
                         <input type="text" name="name" x-model="form.name" required maxlength="160" placeholder="e.g. Staff training day / Founders Day" class="h-9 w-full rounded-lg border-slate-200 text-[12px]">
@@ -266,7 +308,12 @@
                         >Delete</button>
                         <div class="ml-auto flex gap-2">
                             <button type="button" class="rounded-md border border-slate-200 px-3 py-1.5 text-[12px] font-medium text-slate-600 hover:bg-slate-50" @click="modalOpen = false">Cancel</button>
-                            <button type="submit" class="rounded-md bg-teal-700 px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-teal-800" x-text="editingId ? 'Save changes' : 'Add off day'"></button>
+                            <button
+                                type="submit"
+                                class="rounded-md bg-teal-700 px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                :disabled="isRange && (rangeDays < 1 || rangeDays > maxRangeDays)"
+                                x-text="editingId ? 'Save changes' : (isRange && rangeDays > 1 ? 'Add ' + rangeDays + ' off days' : 'Add off day')"
+                            ></button>
                         </div>
                     </div>
                 </form>
@@ -290,12 +337,24 @@
                 weekendDays: weekendDays || [],
                 modalOpen: false,
                 editingId: null,
+                maxRangeDays: @js(\App\Http\Controllers\CalendarController::MAX_RANGE_DAYS),
                 form: {
                     holiday_date: '',
+                    holiday_date_to: '',
+                    is_range: false,
                     name: '',
                     type: 'ngo',
                     notes: '',
                     is_active: true,
+                },
+                get isRange() {
+                    return !this.editingId && this.form.is_range;
+                },
+                get rangeDays() {
+                    const from = Date.parse(this.form.holiday_date + 'T00:00:00Z');
+                    const to = Date.parse(this.form.holiday_date_to + 'T00:00:00Z');
+                    if (Number.isNaN(from) || Number.isNaN(to) || to < from) return 0;
+                    return Math.round((to - from) / 86400000) + 1;
                 },
                 get formAction() {
                     return this.editingId ? holidayBase + '/' + this.editingId : storeUrl;
@@ -341,8 +400,11 @@
                 },
                 openCreate(date = null) {
                     this.editingId = null;
+                    const start = date || (window.bynnasTime?.todayYmd?.() || new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Dhaka' }));
                     this.form = {
-                        holiday_date: date || (window.bynnasTime?.todayYmd?.() || new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Dhaka' })),
+                        holiday_date: start,
+                        holiday_date_to: start,
+                        is_range: false,
                         name: '',
                         type: 'ngo',
                         notes: '',
@@ -368,6 +430,8 @@
                     this.editingId = holiday.id;
                     this.form = {
                         holiday_date: holiday.holiday_date,
+                        holiday_date_to: holiday.holiday_date,
+                        is_range: false,
                         name: holiday.name,
                         type: holiday.type,
                         notes: holiday.notes || '',

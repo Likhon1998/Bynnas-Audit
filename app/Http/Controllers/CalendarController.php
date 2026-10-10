@@ -102,44 +102,79 @@ class CalendarController extends Controller
         ]);
     }
 
+    /** Longest off-day range that can be added in one go. */
+    public const MAX_RANGE_DAYS = 31;
+
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
             'holiday_date' => ['required', 'date'],
+            'holiday_date_to' => ['nullable', 'date', 'after_or_equal:holiday_date'],
             'name' => ['required', 'string', 'max:160'],
             'type' => ['required', Rule::in(CalendarHoliday::TYPES)],
             'notes' => ['nullable', 'string', 'max:255'],
             'is_active' => ['sometimes', 'boolean'],
+        ], [
+            'holiday_date_to.after_or_equal' => 'The "To" date must be on or after the "From" date.',
         ]);
 
-        $exists = CalendarHoliday::query()
-            ->whereDate('holiday_date', $data['holiday_date'])
-            ->where('type', $data['type'])
-            ->exists();
+        $from = Carbon::parse($data['holiday_date'], 'Asia/Dhaka')->startOfDay();
+        $to = filled($data['holiday_date_to'] ?? null)
+            ? Carbon::parse($data['holiday_date_to'], 'Asia/Dhaka')->startOfDay()
+            : $from->copy();
+        $span = (int) $from->diffInDays($to) + 1;
 
-        if ($exists) {
+        if ($span > self::MAX_RANGE_DAYS) {
             return back()->withErrors([
-                'holiday_date' => 'An off day of this type already exists on that date.',
+                'holiday_date_to' => 'A range can cover at most '.self::MAX_RANGE_DAYS.' days.',
             ])->withInput();
         }
 
-        CalendarHoliday::query()->create([
-            'holiday_date' => $data['holiday_date'],
-            'name' => $data['name'],
-            'type' => $data['type'],
-            'notes' => $data['notes'] ?? null,
-            'is_active' => $request->boolean('is_active'),
-            'created_by' => $request->user()?->id,
-        ]);
+        $dates = [];
+        for ($cursor = $from->copy(); $cursor->lte($to); $cursor->addDay()) {
+            $dates[] = $cursor->toDateString();
+        }
+
+        $taken = CalendarHoliday::query()
+            ->whereBetween('holiday_date', [$from->toDateString(), $to->toDateString()])
+            ->where('type', $data['type'])
+            ->get(['holiday_date'])
+            ->map(fn (CalendarHoliday $h) => $h->holiday_date->toDateString())
+            ->all();
+        $newDates = array_values(array_diff($dates, $taken));
+
+        if ($newDates === []) {
+            return back()->withErrors([
+                'holiday_date' => $span === 1
+                    ? 'An off day of this type already exists on that date.'
+                    : 'Every date in that range already has an off day of this type.',
+            ])->withInput();
+        }
+
+        foreach ($newDates as $date) {
+            CalendarHoliday::query()->create([
+                'holiday_date' => $date,
+                'name' => $data['name'],
+                'type' => $data['type'],
+                'notes' => $data['notes'] ?? null,
+                'is_active' => $request->boolean('is_active'),
+                'created_by' => $request->user()?->id,
+            ]);
+        }
 
         $this->calendar->forgetCache();
 
+        $status = $span === 1
+            ? 'Off day added to the calendar.'
+            : count($newDates).' off days added ('.$from->format('d M').' – '.$to->format('d M Y').').';
+        $skipped = count($dates) - count($newDates);
+        if ($skipped > 0) {
+            $status .= ' '.$skipped.' '.($skipped === 1 ? 'date was' : 'dates were').' already marked and left as is.';
+        }
+
         return redirect()
-            ->route('calendar.index', [
-                'month' => (int) date('n', strtotime($data['holiday_date'])),
-                'year' => (int) date('Y', strtotime($data['holiday_date'])),
-            ])
-            ->with('status', 'Off day added to the calendar.');
+            ->route('calendar.index', ['month' => $from->month, 'year' => $from->year])
+            ->with('status', $status);
     }
 
     public function update(Request $request, CalendarHoliday $holiday): RedirectResponse

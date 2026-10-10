@@ -69,13 +69,20 @@
                                         <a href="{{ route('roles.edit', $role) }}" class="text-[13px] font-semibold text-[#2b579a] hover:underline">Edit</a>
                                     @endif
                                     @unless ($isSystem)
-                                        <form method="POST" action="{{ route('roles.destroy', $role) }}" class="inline">
+                                        <form
+                                            method="POST"
+                                            action="{{ route('roles.destroy', $role) }}"
+                                            class="inline"
+                                            data-bynnas-confirm="Users with this role must be reassigned first."
+                                            data-bynnas-confirm-title="Delete this role?"
+                                            data-bynnas-confirm-ok="Delete role"
+                                            data-bynnas-confirm-tone="rose"
+                                        >
                                             @csrf
                                             @method('DELETE')
                                             <button
                                                 type="submit"
                                                 class="text-[13px] font-semibold text-rose-600 hover:underline"
-                                                onclick="return confirm('Delete this role? Users must be reassigned first.')"
                                             >Delete</button>
                                         </form>
                                     @endunless

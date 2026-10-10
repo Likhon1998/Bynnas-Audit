@@ -613,8 +613,15 @@
                                 @if ($isDraft && (int) $report->user_id === (int) auth()->id())
                                     <button
                                         type="button"
-                                        wire:click="deleteDraft({{ $report->id }})"
-                                        wire:confirm="Delete this draft?"
+                                        @click="async () => {
+                                            const ok = await window.bynnasConfirm({
+                                                title: 'Delete this draft?',
+                                                message: 'The draft report and its unsaved work will be removed.',
+                                                okLabel: 'Delete draft',
+                                                tone: 'rose',
+                                            });
+                                            if (ok) $wire.deleteDraft({{ $report->id }});
+                                        }"
                                         class="inline-flex h-7 items-center rounded-md px-2 text-[13px] font-medium text-rose-600 hover:bg-rose-50"
                                     >Delete</button>
                                 @endif

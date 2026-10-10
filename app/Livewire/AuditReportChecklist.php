@@ -9,7 +9,9 @@ use App\Models\AuditReportChecklistFile;
 use App\Models\ShakhaEmployee;
 use App\Services\ChecklistAiSummaryService;
 use App\Services\ChecklistReportInfluenceService;
+use App\Services\VisitAuditWorkService;
 use App\Support\AuditChecklistCatalog;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -223,8 +225,8 @@ class AuditReportChecklist extends Component
 
     public function openSubmission(int $id): void
     {
+        // Report access is checked in mount(); evidence belongs to the report, so collaborators see the maker's work.
         $row = AuditChecklistSubmission::query()
-            ->where('user_id', auth()->id())
             ->where('audit_report_id', $this->report->id)
             ->with('format')
             ->findOrFail($id);
@@ -453,7 +455,7 @@ class AuditReportChecklist extends Component
     {
         $this->persist('evidence');
 
-        $progress = app(\App\Services\VisitAuditWorkService::class)->checklistProgress($this->report);
+        $progress = app(VisitAuditWorkService::class)->checklistProgress($this->report);
         $msg = 'Saved as evidence for this report. Use সারসংক্ষেপ → Add to report to place observations in findings (optional).';
         if ($progress['needs_selection'] ?? false) {
             $msg .= ' Select the checklist headings that apply to this visit.';
@@ -566,27 +568,23 @@ class AuditReportChecklist extends Component
             'saved_at' => now(),
         ];
 
-        if ($this->submissionId) {
-            $row = AuditChecklistSubmission::query()
-                ->where('user_id', auth()->id())
+        $existing = $this->submissionId
+            ? AuditChecklistSubmission::query()
                 ->where('audit_report_id', $this->report->id)
-                ->findOrFail($this->submissionId);
-            $row->update($data);
-            $this->submissionId = $row->id;
-        } else {
-            $existing = AuditChecklistSubmission::query()
-                ->where('audit_report_id', $this->report->id)
-                ->where('audit_checklist_format_id', $format->id)
-                ->latest('id')
-                ->first();
+                ->find($this->submissionId)
+            : null;
+        $existing ??= AuditChecklistSubmission::query()
+            ->where('audit_report_id', $this->report->id)
+            ->where('audit_checklist_format_id', $format->id)
+            ->latest('id')
+            ->first();
 
-            if ($existing) {
-                $existing->update($data);
-                $this->submissionId = $existing->id;
-            } else {
-                $row = AuditChecklistSubmission::query()->create($data);
-                $this->submissionId = $row->id;
-            }
+        if ($existing) {
+            $existing->update(Arr::except($data, ['user_id']));
+            $this->submissionId = $existing->id;
+        } else {
+            $row = AuditChecklistSubmission::query()->create($data);
+            $this->submissionId = $row->id;
         }
     }
 

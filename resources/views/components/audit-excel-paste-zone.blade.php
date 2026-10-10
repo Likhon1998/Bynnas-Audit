@@ -43,7 +43,15 @@
             <span class="text-xs font-medium text-emerald-700" x-text="status" x-show="status" x-cloak></span>
             <button
                 type="button"
-                @click="if (confirm('এই টেবিলের সব সারি মুছে ফেলবেন? পরে আবার পেস্ট বা + row দিয়ে যোগ করতে পারবেন।')) { $wire.clearTable(path) }"
+                @click="async () => {
+                    const ok = await window.bynnasConfirm({
+                        title: 'টেবিল মুছবেন?',
+                        message: 'এই টেবিলের সব সারি মুছে যাবে। পরে আবার পেস্ট বা + row দিয়ে যোগ করতে পারবেন।',
+                        okLabel: 'মুছুন',
+                        tone: 'rose',
+                    });
+                    if (ok) $wire.clearTable(path);
+                }"
                 class="rounded border border-rose-200 bg-white px-2 py-0.5 text-xs font-semibold text-rose-700 hover:bg-rose-50"
             >
                 টেবিল মুছুন

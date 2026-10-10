@@ -165,8 +165,15 @@
                             >{{ $sub ? 'Edit' : 'Fill' }}</button>
                             <button
                                 type="button"
-                                wire:click="removeHeading({{ $format->id }})"
-                                wire:confirm="Remove this heading from the report? (Saved evidence stays until you delete it separately.)"
+                                @click="async () => {
+                                    const ok = await window.bynnasConfirm({
+                                        title: 'Remove this heading?',
+                                        message: 'It is removed from this report only. Saved evidence stays until you delete it separately.',
+                                        okLabel: 'Remove',
+                                        tone: 'rose',
+                                    });
+                                    if (ok) $wire.removeHeading({{ $format->id }});
+                                }"
                                 class="inline-flex h-8 items-center rounded-md border border-rose-200 px-2 text-[13px] font-medium text-rose-600 hover:bg-rose-50"
                             >Remove</button>
                         </div>

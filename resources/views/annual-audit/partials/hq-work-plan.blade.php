@@ -134,7 +134,14 @@
                         @endforeach
                         <td class="border border-slate-200 px-2 py-1.5 text-center font-semibold text-navy-900" x-text="total">{{ $row['total'] }}</td>
                         <td class="border border-slate-200 px-2 py-1.5 text-center">
-                            <form method="POST" action="{{ route('annual-audit.hq.destroy', $row['id']) }}" onsubmit="return confirm('Delete department {{ $row['name'] }}?')">
+                            <form
+                                method="POST"
+                                action="{{ route('annual-audit.hq.destroy', $row['id']) }}"
+                                data-bynnas-confirm="Department “{{ $row['name'] }}” and its monthly plan will be removed from this work plan."
+                                data-bynnas-confirm-title="Delete department?"
+                                data-bynnas-confirm-ok="Delete"
+                                data-bynnas-confirm-tone="rose"
+                            >
                                 @csrf
                                 @method('DELETE')
                                 <input type="hidden" name="fy" value="{{ $plan->fy_label }}">

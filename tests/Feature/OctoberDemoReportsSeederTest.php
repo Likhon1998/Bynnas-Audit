@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Livewire\AuditReportChecklist;
 use App\Livewire\MakeAuditReport;
 use App\Models\Area;
 use App\Models\AuditChecklistSubmission;
@@ -106,6 +107,41 @@ class OctoberDemoReportsSeederTest extends TestCase
         $this->assertSame($ids, $this->octoberListIdsFor($superAdmin));
         $this->assertSame($ids, $this->octoberListIdsFor($shared));
         $this->assertSame([], $this->octoberListIdsFor($guest));
+    }
+
+    public function test_shared_super_admin_can_open_every_demo_checklist(): void
+    {
+        $superAdmin = User::query()->where('is_superadmin', true)->firstOrFail();
+        $officer = User::factory()->create(['email_verified_at' => now(), 'is_superadmin' => false, 'is_active' => true]);
+        $this->artisan('demo:october-reports', ['--owner' => $officer->email])->assertSuccessful();
+
+        foreach ($this->demoReports() as $report) {
+            $this->actingAs($superAdmin)
+                ->get(route('audits.checklist', $report))
+                ->assertOk()
+                ->assertSee('Evidence saved');
+
+            $submissions = AuditChecklistSubmission::query()->where('audit_report_id', $report->id)->get();
+            $this->assertCount(5, $submissions);
+
+            foreach ($submissions as $submission) {
+                $component = Livewire::actingAs($superAdmin)
+                    ->test(AuditReportChecklist::class, ['report' => $report])
+                    ->call('workOnFormat', $submission->audit_checklist_format_id)
+                    ->assertOk()
+                    ->assertSet('viewMode', 'editor')
+                    ->assertSet('submissionId', $submission->id);
+                $this->assertNotEmpty($component->get('payload'), $submission->heading);
+
+                $component->call('saveDraft')->assertOk();
+                $saved = $submission->fresh();
+                $this->assertSame((int) $officer->id, (int) $saved->user_id, 'editing must not take over the maker\'s evidence');
+                $this->assertSame(1, AuditChecklistSubmission::query()
+                    ->where('audit_report_id', $report->id)
+                    ->where('audit_checklist_format_id', $submission->audit_checklist_format_id)
+                    ->count());
+            }
+        }
     }
 
     public function test_seeds_three_complete_reports_with_matrix_staff_and_checklists(): void
