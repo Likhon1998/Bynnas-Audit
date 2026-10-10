@@ -18,6 +18,7 @@ use Database\Seeders\OctoberDemoReportsSeeder;
 use Database\Seeders\ShakhaEmployeeRosterSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class OctoberDemoReportsSeederTest extends TestCase
@@ -64,6 +65,41 @@ class OctoberDemoReportsSeederTest extends TestCase
         return AuditReport::query()->where('report_month', 10)->where('report_year', 2026)->orderBy('id')->get()
             ->filter(fn (AuditReport $r) => ($r->pages_data['meta']['demo_seed'] ?? null) === OctoberDemoReportsSeeder::DEMO_TAG)
             ->values();
+    }
+
+    /** @return list<int> */
+    private function octoberListIdsFor(User $user): array
+    {
+        return Livewire::actingAs($user)
+            ->test(MakeAuditReport::class)
+            ->set('listFilterMonth', 10)
+            ->set('listFilterYear', 2026)
+            ->viewData('completedReports')
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->sort()
+            ->values()
+            ->all();
+    }
+
+    public function test_reports_show_in_october_list_for_owner_and_super_admins(): void
+    {
+        $superAdmin = User::query()->where('is_superadmin', true)->firstOrFail();
+        $officer = User::factory()->create(['email_verified_at' => now(), 'is_superadmin' => false, 'is_active' => true]);
+        $guest = User::factory()->create(['email_verified_at' => now(), 'is_superadmin' => false, 'is_active' => true]);
+        $shared = User::factory()->create(['email_verified_at' => now(), 'is_superadmin' => false, 'is_active' => true]);
+
+        $this->artisan('demo:october-reports', ['--owner' => $officer->email, '--share' => [$shared->email]])
+            ->assertSuccessful();
+
+        $ids = $this->demoReports()->pluck('id')->map(fn ($id) => (int) $id)->sort()->values()->all();
+        $this->assertCount(3, $ids);
+        $this->assertTrue($this->demoReports()->every(fn (AuditReport $r) => (int) $r->user_id === (int) $officer->id));
+
+        $this->assertSame($ids, $this->octoberListIdsFor($officer));
+        $this->assertSame($ids, $this->octoberListIdsFor($superAdmin));
+        $this->assertSame($ids, $this->octoberListIdsFor($shared));
+        $this->assertSame([], $this->octoberListIdsFor($guest));
     }
 
     public function test_seeds_three_complete_reports_with_matrix_staff_and_checklists(): void

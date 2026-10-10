@@ -49,6 +49,12 @@ class OctoberDemoReportsSeeder extends Seeder
 
     protected const MARKS = ['y' => '✓', 'n' => '✗', '-' => 'N/A'];
 
+    /** Set by `demo:october-reports --owner=` — owns (and can edit) all three reports. */
+    public static ?User $ownerOverride = null;
+
+    /** @var list<int> Set by `demo:october-reports --share=` — extra users who see the reports. */
+    public static array $shareWith = [];
+
     protected bool $rosterEnsured = false;
 
     public function run(): void
@@ -94,6 +100,7 @@ class OctoberDemoReportsSeeder extends Seeder
                     $staff = $this->staffFor($shakha);
 
                     $report = $this->createReport($bp, $shakha, $owner, $staff, $indicators, $rules);
+                    $viewers = $this->shareReport($report, $owner);
                     $this->seedChecklists($report, $bp, $staff, $formats, $owner);
                     $this->composeWithEditor($report, $owner);
 
@@ -113,13 +120,14 @@ class OctoberDemoReportsSeeder extends Seeder
                     }
 
                     $this->command?->info(sprintf(
-                        'Created #%d — %s (%s) · owner: %s · %d findings · checklist %s',
+                        'Created #%d — %s (%s) · owner: %s · %d findings · checklist %s · also visible to: %s',
                         $report->id,
                         $report->shakha_display_name,
                         $bp['control_rating'],
                         $owner->name,
                         $synced,
-                        $this->checklistLabel($report)
+                        $this->checklistLabel($report),
+                        $viewers ?: '—'
                     ));
                 }
             });
@@ -213,7 +221,34 @@ class OctoberDemoReportsSeeder extends Seeder
             }
         }
 
-        return array_slice($targets, 0, $count);
+        $targets = array_slice($targets, 0, $count);
+        if (self::$ownerOverride) {
+            foreach ($targets as $i => $target) {
+                $targets[$i]['owner'] = self::$ownerOverride;
+            }
+        }
+
+        return $targets;
+    }
+
+    /**
+     * The report list only shows a report to its owner and collaborators, so share each
+     * demo report with every Super Admin plus any `--share` users.
+     *
+     * @return string Names of the users it was shared with
+     */
+    protected function shareReport(AuditReport $report, User $owner): string
+    {
+        $users = $this->activeUsers()->get()
+            ->filter(fn (User $user) => $user->isSuperAdmin())
+            ->merge(User::query()->whereIn('id', self::$shareWith)->get())
+            ->unique('id')
+            ->reject(fn (User $user) => (int) $user->id === (int) $owner->id)
+            ->values();
+
+        $report->collaborators()->syncWithoutDetaching($users->pluck('id')->all());
+
+        return $users->pluck('name')->implode(', ');
     }
 
     /**
