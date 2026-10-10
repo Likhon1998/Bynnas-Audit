@@ -66,10 +66,12 @@
                         @endif
                     >
                         @if ($editable)
+                            @php $cellText = (string) ($cell['text'] ?? ''); @endphp
                             <input
                                 type="text"
-                                wire:key="ct-cell-{{ $blockIndex }}-{{ $rIndex }}-{{ $c }}"
-                                wire:model.blur="reportBlocks.{{ $blockIndex }}.rows.{{ $rIndex }}.cells.{{ $c }}"
+                                wire:key="ct-cell-{{ $blockIndex }}-{{ $rIndex }}-{{ $c }}-{{ hash('crc32b', $cellText) }}"
+                                value="{{ $cellText }}"
+                                wire:change="setCustomTableCell({{ $blockIndex }}, {{ $rIndex }}, {{ $c }}, $event.target.value)"
                                 class="w-full border-0 bg-transparent {{ $textAlign }} text-[13px] {{ $isTotal ? 'font-bold' : '' }}"
                                 @if ($alpineSelect || $selectable) @click.stop @endif
                             >

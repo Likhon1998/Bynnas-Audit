@@ -13,7 +13,9 @@
         <div class="mb-2 flex flex-wrap items-center gap-2">
             <input
                 type="text"
-                wire:model.blur="reportBlocks.{{ $blockIndex }}.title"
+                wire:key="ct-title-{{ $blockIndex }}-{{ hash('crc32b', (string) $table['title']) }}"
+                value="{{ $table['title'] }}"
+                wire:change="setCustomTableTitle({{ $blockIndex }}, $event.target.value)"
                 class="min-w-[220px] flex-1 rounded border border-slate-200 bg-sky-50/40 px-2 py-1 text-[12px] font-bold"
                 placeholder="টেবিল শিরোনাম"
             >

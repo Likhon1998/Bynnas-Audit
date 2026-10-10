@@ -46,6 +46,11 @@ class MakeAuditReport extends Component
 
     public ?int $reportId = null;
 
+    /** Report just started from the dashboard (stay on list; user picks Checklist or Report). */
+    public ?int $startedReportId = null;
+
+    public string $startedNotice = '';
+
     /** When true, report is in_review or reviewed — UI is read-only. */
     public bool $reviewReadOnly = false;
 
@@ -631,8 +636,11 @@ class MakeAuditReport extends Component
         return $query;
     }
 
-    public function startReport($entityKey = null): void
+    public function startReport($entityKey = null, bool $openEditor = true): void
     {
+        $this->startedReportId = null;
+        $this->startedNotice = '';
+
         if ($entityKey !== null && $entityKey !== '') {
             if (is_numeric($entityKey)) {
                 $this->selectReportEntity('shakha:'.(int) $entityKey);
@@ -761,6 +769,14 @@ class MakeAuditReport extends Component
                     $collaboration->syncCollaborators($existing, $teamIds, $authUser);
                 }
 
+                if (! $openEditor) {
+                    $this->startedReportId = (int) $existing->id;
+                    $this->startedNotice = 'এই শাখা/লোকেশনের এই মাসের রিপোর্ট আগে থেকেই আছে — Checklist বা Report থেকে চালিয়ে যান।';
+                    $this->resetErrorBag();
+
+                    return;
+                }
+
                 $this->resumeReport((int) $existing->id);
 
                 $statusLabel = match (true) {
@@ -884,6 +900,29 @@ class MakeAuditReport extends Component
             return;
         }
 
+        if (! $openEditor) {
+            // Drop the wizard defaults built above — the list page only needs the new id.
+            $this->resetExcept([
+                'step',
+                'shakha_id',
+                'project_location_id',
+                'report_entity_key',
+                'report_month',
+                'report_year',
+                'auditor_name',
+                'auditor_designation',
+                'listFilterMonth',
+                'listFilterYear',
+                'listFilterQ',
+                'listFilterStatus',
+            ]);
+            $this->startedReportId = (int) $report->id;
+            $this->startedNotice = 'রিপোর্ট শুরু হয়েছে — Checklist দিয়ে শুরু করুন অথবা সরাসরি Report খুলুন।';
+            $this->resetErrorBag();
+
+            return;
+        }
+
         $this->reportId = $report->id;
         $this->refreshChecklistGate($report);
         $this->step = 'wizard';
@@ -897,8 +936,16 @@ class MakeAuditReport extends Component
         $this->sign_auditor_designation = $this->auditor_designation;
         $this->resetErrorBag();
     }
+    public function dismissStartedReport(): void
+    {
+        $this->startedReportId = null;
+        $this->startedNotice = '';
+    }
+
     public function resumeReport(int $reportId): void
     {
+        $this->startedReportId = null;
+        $this->startedNotice = '';
         $user = auth()->user();
         $report = AuditReport::query()->findOrFail($reportId);
         $reviews = app(\App\Services\AuditReportReviewService::class);
@@ -2487,6 +2534,42 @@ class MakeAuditReport extends Component
         // One save when leaving — not on every click/keystroke
         $this->afterBlocksChanged();
         $this->js('delete document.body.dataset.ctEditor');
+    }
+
+    /** Background sync from the client-side table editor (no re-render). */
+    public function syncCustomTableDraft(int $blockIndex, array $table): void
+    {
+        $this->applyCustomTableFromEditor($blockIndex, $table);
+        $this->skipRender();
+    }
+
+    /** Final save from the client-side table editor, then close it. */
+    public function saveCustomTableEditor(int $blockIndex, array $table, ?array $original = null): void
+    {
+        if (
+            is_array($original)
+            && isset($this->reportBlocks[$blockIndex])
+            && ($this->reportBlocks[$blockIndex]['type'] ?? '') === 'custom_table'
+            && CustomTableSchema::normalize($original) != CustomTableSchema::normalize($table)
+        ) {
+            $current = $this->reportBlocks[$blockIndex];
+            $this->reportBlocks[$blockIndex] = CustomTableSchema::normalize($original);
+            $this->pushUndoSnapshot('টেবিল আগের অবস্থা');
+            $this->reportBlocks[$blockIndex] = $current;
+        }
+
+        $this->applyCustomTableFromEditor($blockIndex, $table);
+        $this->closeCustomTableEditor();
+    }
+
+    protected function applyCustomTableFromEditor(int $blockIndex, array $table): bool
+    {
+        if (! isset($this->reportBlocks[$blockIndex]) || ($this->reportBlocks[$blockIndex]['type'] ?? '') !== 'custom_table') {
+            return false;
+        }
+        $this->reportBlocks[$blockIndex] = CustomTableSchema::normalize($table);
+
+        return true;
     }
 
     /** Instant selection — no HTML re-render. */

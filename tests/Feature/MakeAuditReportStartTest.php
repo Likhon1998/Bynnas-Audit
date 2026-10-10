@@ -98,6 +98,41 @@ class MakeAuditReportStartTest extends TestCase
         $this->assertSame(1, AuditReport::query()->where('shakha_id', $shakha->id)->count());
     }
 
+    public function test_dashboard_start_creates_draft_and_stays_on_list(): void
+    {
+        $user = $this->makeAuditUser();
+        $shakha = $this->makeShakha();
+
+        $component = Livewire::actingAs($user)
+            ->test(MakeAuditReport::class)
+            ->set('report_month', 8)
+            ->set('report_year', 2026)
+            ->call('selectReportEntity', 'shakha:'.$shakha->id)
+            ->call('startReport', null, false)
+            ->assertHasNoErrors()
+            ->assertSet('step', 'select')
+            ->assertSet('reportId', null)
+            ->assertSee('Open report')
+            ->assertSee('রিপোর্ট শুরু হয়েছে');
+
+        $report = AuditReport::query()->where('shakha_id', $shakha->id)->sole();
+        $component->assertSet('startedReportId', $report->id);
+
+        // Second Start for the same branch/month reuses it — still on the list.
+        $component
+            ->call('startReport', null, false)
+            ->assertHasNoErrors()
+            ->assertSet('step', 'select')
+            ->assertSet('startedReportId', $report->id)
+            ->assertSee('আগে থেকেই আছে');
+        $this->assertSame(1, AuditReport::query()->where('shakha_id', $shakha->id)->count());
+
+        $component
+            ->call('resumeReport', $report->id)
+            ->assertSet('step', 'wizard')
+            ->assertSet('startedReportId', null);
+    }
+
     public function test_new_report_does_not_copy_the_previously_opened_report(): void
     {
         $user = $this->makeAuditUser();

@@ -1,4 +1,5 @@
 import './bootstrap';
+import './custom-table-editor';
 
 // Alpine is provided/started by Livewire (@livewireScripts in the layout).
 // Do not call Alpine.start() here — a second start breaks Livewire pages.
@@ -227,11 +228,16 @@ import './bootstrap';
             ? Object.keys(commit.updates)
             : [];
 
-        // Background poll / silent persist — never flash the top bar.
-        if (methods.length === 1 && (methods[0] === 'autoSaveDraft' || methods[0] === 'refreshUndoWindow')) {
-            return true;
-        }
-        if (methods.length > 0 && methods.every((m) => m === 'autoSaveDraft' || m === 'refreshUndoWindow')) {
+        // Background poll / silent persist / table typing — never flash the top bar.
+        const quiet = new Set([
+            'autoSaveDraft',
+            'refreshUndoWindow',
+            'syncCustomTableDraft',
+            'saveCustomTableEditor',
+            'setCustomTableCell',
+            'setCustomTableTitle',
+        ]);
+        if (methods.length > 0 && methods.every((m) => quiet.has(m))) {
             return true;
         }
 

@@ -1,6 +1,11 @@
 {{-- Audit reports dashboard — dense single workspace --}}
 @php
     $allReports = $ongoingReports->concat($completedReports)->values();
+    $startedReport = null;
+    if ($startedReportId ?? null) {
+        $startedReport = $allReports->firstWhere('id', (int) $startedReportId)
+            ?? \App\Models\AuditReport::query()->with('shakha')->find((int) $startedReportId);
+    }
 @endphp
 
 <div class="space-y-2">
@@ -131,7 +136,7 @@
             <div class="flex items-end">
                 <button
                     type="button"
-                    wire:click="startReport"
+                    wire:click="startReport(null, false)"
                     wire:loading.attr="disabled"
                     wire:target="startReport"
                     class="inline-flex h-9 w-full items-center justify-center rounded-lg bg-[#2b579a] px-4 text-[13px] font-semibold text-white shadow-sm hover:bg-[#204072] disabled:cursor-not-allowed disabled:opacity-50 lg:w-auto"
@@ -142,6 +147,55 @@
             </div>
         </div>
     </div>
+
+    @if ($startedReport)
+        @php
+            $startedChecklist = $startedReport->checklistProgress();
+        @endphp
+        <div
+            wire:key="started-report-{{ $startedReport->id }}"
+            class="flex flex-wrap items-center gap-3 rounded-xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-white px-3 py-2.5 shadow-sm sm:px-4"
+        >
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white shadow-sm">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            </span>
+            <div class="min-w-0 flex-1">
+                <p class="truncate text-[13px] font-semibold text-navy-900">
+                    {{ $startedReport->entityDisplayName() }}
+                    <span class="font-medium text-slate-500">· {{ $startedReport->periodLabel() }}</span>
+                </p>
+                <p class="text-[12px] text-emerald-800">{{ $startedNotice }}</p>
+            </div>
+            <div class="flex shrink-0 flex-wrap items-center gap-1.5">
+                <a
+                    href="{{ route('audits.checklist', $startedReport) }}"
+                    class="inline-flex h-8 items-center gap-1.5 rounded-lg bg-teal-600 px-3 text-[13px] font-semibold text-white shadow-[0_6px_14px_rgba(13,148,136,0.3)] transition hover:-translate-y-0.5 hover:bg-teal-700"
+                >
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                    Checklist
+                    @if (($startedChecklist['required'] ?? 0) > 0)
+                        <span class="rounded bg-white/20 px-1 text-[11px] tabular-nums">{{ $startedChecklist['done'] }}/{{ $startedChecklist['required'] }}</span>
+                    @endif
+                </a>
+                <button
+                    type="button"
+                    wire:click="resumeReport({{ $startedReport->id }})"
+                    wire:loading.attr="disabled"
+                    wire:target="resumeReport"
+                    class="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#2b579a] px-3 text-[13px] font-semibold text-white shadow-[0_6px_14px_rgba(43,87,154,0.3)] transition hover:-translate-y-0.5 hover:bg-[#204072] disabled:opacity-60"
+                >
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    Open report
+                </button>
+                <button
+                    type="button"
+                    wire:click="dismissStartedReport"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white hover:text-slate-600"
+                    title="Hide"
+                >×</button>
+            </div>
+        </div>
+    @endif
 
     <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
     <div class="flex flex-wrap items-end gap-2 border-b border-slate-100 bg-slate-50/80 px-3 py-2.5 sm:px-4">
@@ -215,7 +269,7 @@
                     @php
                         $isDraft = $report->isDraft();
                     @endphp
-                    <tr class="hover:bg-slate-50/80">
+                    <tr class="{{ (int) ($startedReportId ?? 0) === (int) $report->id ? 'bg-emerald-50/70 shadow-[inset_3px_0_0_#059669]' : 'hover:bg-slate-50/80' }}">
                         <td class="px-3 py-2 align-middle sm:px-4 {{ $report->shakha?->riskCategory() ? \App\Support\ShakhaRiskTone::softBgClasses($report->shakha->riskCategory()) : '' }}">
                             <x-shakha-name
                                 :name="$report->entityDisplayName()"
