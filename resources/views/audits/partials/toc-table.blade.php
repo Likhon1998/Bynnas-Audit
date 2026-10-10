@@ -54,9 +54,9 @@
                         @include('audits.partials.bn-num', ['value' => $row['serial'] !== '' ? $row['serial'] : '—', 'variant' => 'serial-section'])
                     </td>
                     @if ($linked)
-                        <td colspan="4" class="section left-align"><a href="#{{ $anchor }}" style="color:#111; text-decoration:none;">{{ $findingText }}</a></td>
-                        <td class="section center">
-                            <a href="#{{ $anchor }}" class="bn-page-link">@include('audits.partials.bn-num', ['value' => $pageNo, 'variant' => 'page'])</a>
+                        <td colspan="4" class="section left-align"><a href="#{{ $anchor }}" style="color:#111;text-decoration:none;">{{ $findingText }}</a></td>
+                        <td class="section toc-page">
+                            <a href="#{{ $anchor }}" class="bn-page-link" style="color:#111;text-decoration:none;">{{ $pageNo }}</a>
                         </td>
                     @else
                         <td colspan="5" class="section left-align">{{ $findingText }}</td>
@@ -83,14 +83,12 @@
                         @endif
                     </td>
                     <td class="center">{!! ($row['status'] ?? '') !== '' ? e($row['status']) : '&nbsp;' !!}</td>
-                    <td class="center">
+                    <td class="toc-page">
                         @if ($pageNo !== '')
                             @if ($anchor !== '')
-                                <a href="#{{ $anchor }}" class="bn-page-link">
-                                    @include('audits.partials.bn-num', ['value' => $pageNo, 'variant' => 'page'])
-                                </a>
+                                <a href="#{{ $anchor }}" class="bn-page-link" style="color:#111;text-decoration:none;">{{ $pageNo }}</a>
                             @else
-                                @include('audits.partials.bn-num', ['value' => $pageNo, 'variant' => 'page'])
+                                {{ $pageNo }}
                             @endif
                         @else
                             &nbsp;

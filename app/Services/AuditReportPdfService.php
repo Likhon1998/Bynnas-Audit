@@ -11,7 +11,7 @@ use Mpdf\Output\Destination;
 class AuditReportPdfService
 {
     /** Archived PDFs stored before this moment are re-rendered on download; bump it whenever the PDF layout changes. */
-    public const LAYOUT_REVISION = '2026-10-11 01:20:00';
+    public const LAYOUT_REVISION = '2026-10-11 02:10:00';
 
     /** Render passes allowed for the সূচিপত্র page numbers to settle. */
     protected const MAX_PASSES = 3;

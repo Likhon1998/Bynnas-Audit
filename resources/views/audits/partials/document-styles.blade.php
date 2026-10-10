@@ -219,6 +219,20 @@
         word-wrap: break-word;
         overflow-wrap: anywhere;
     }
+    {{-- Page column: same weight/size as other TOC cells, always centered (beats .section left-align). --}}
+    {{ $p }}table.doc-table.toc-table thead th:last-child,
+    {{ $p }}table.doc-table.toc-table tbody td.toc-page {
+        text-align: center !important;
+        vertical-align: middle;
+        font-size: 8.5pt;
+        font-weight: 400;
+        color: #111;
+        white-space: nowrap;
+    }
+    {{ $p }}table.doc-table.toc-table tbody td.toc-page.section {
+        font-weight: 700;
+        background: #efefef;
+    }
 
     {{ $p }}table.classification-table {
         font-size: {{ $compact ? '7.5pt' : '8pt' }};
@@ -448,21 +462,23 @@
         letter-spacing: 0.07em;
         line-height: 1.25;
     }
+    {{-- TOC page numbers: plain table text (not blue link chrome). Link still works for click-to-jump. --}}
     {{ $p }}.bn-page {
-        display: inline-block;
-        min-width: 1.4em;
-        font-weight: 700;
-        font-size: 9.5pt;
-        color: #1d4ed8;
-        line-height: 1.25;
+        font-weight: inherit;
+        font-size: inherit;
+        color: inherit;
+        line-height: inherit;
+        letter-spacing: 0;
     }
-    {{ $p }}a.bn-page-link {
-        color: #1d4ed8;
-        text-decoration: none;
-    }
-    {{ $p }}a.bn-page-link .bn-page {
-        border-bottom: 1px solid #93c5fd;
-        padding-bottom: 0.5pt;
+    {{ $p }}a.bn-page-link,
+    {{ $p }}a.bn-page-link:link,
+    {{ $p }}a.bn-page-link:visited,
+    {{ $p }}a.bn-page-link:hover,
+    {{ $p }}a.bn-page-link:active {
+        color: #111 !important;
+        text-decoration: none !important;
+        border: 0;
+        background: transparent;
     }
     {{ $p }}.bn-index {
         display: inline-block;
